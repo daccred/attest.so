@@ -12,3 +12,7 @@ export type AttgestSDKResponse<T = undefined> =
       data?: undefined;
       error: any;
     };
+
+export type AttestSDKBaseConfig = {
+  privateKey?: string;
+};
