@@ -12,13 +12,15 @@
   },
   "scripts": {
     "build": "rm -rf dist && microbundle --tsconfig tsconfig.json --no-sourcemap",
-    "dev": "microbundle --watch --tsconfig tsconfig.json --no-sourcemap"
+    "dev": "microbundle --watch --tsconfig tsconfig.json --no-sourcemap",
+    "sdk-test": "ts-node ./test/run.ts"
   },
   "keywords": [],
   "author": "daccred",
   "license": "MIT",
   "devDependencies": {
-    "microbundle": "^0.15.1"
+    "microbundle": "^0.15.1",
+    "ts-node": "^10.9.2"
   },
   "dependencies": {
     "isomorphic-unfetch": "^4.0.2"

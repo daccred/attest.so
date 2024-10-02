@@ -1,9 +1,8 @@
-export type AttestSDKResponse<T = undefined> = {
-  error?: any;
-  data?: T;
-};
-
-export type AttgestSDKResponse<T = undefined> =
+/**
+ * AttestSDKResponse type definition.
+ * @template T - The type of the data in the response.
+ */
+export type AttestSDKResponse<T = undefined> =
   | {
       data: T;
       error?: undefined;
@@ -13,6 +12,9 @@ export type AttgestSDKResponse<T = undefined> =
       error: any;
     };
 
+/**
+ * AttestSDKBaseConfig type definition.
+ */
 export type AttestSDKBaseConfig = {
   privateKey?: string;
 };

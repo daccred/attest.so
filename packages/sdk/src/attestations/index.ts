@@ -1,8 +1,14 @@
-import { AttgestSDKResponse } from '../core/types';
+import { AttestSDKResponse } from '../core/types';
 import { AttestSDKBase } from '../core';
 
 export class Attestations extends AttestSDKBase {
-  async create(id: string): Promise<AttgestSDKResponse<string>> {
+  /**
+   * Creates a new attestation based on the provided schema identifier.
+   *
+   * @param id The unique identifier of the schema for which the attestation is being created.
+   * @returns A promise that resolves to an AttestSDKResponse object containing the unique identifier of the created attestation.
+   */
+  async create(id: string): Promise<AttestSDKResponse<string>> {
     const valid = await this.verifySchema(id);
 
     if (!valid) {
@@ -19,7 +25,13 @@ export class Attestations extends AttestSDKBase {
     };
   }
 
-  async revoke(id: string): Promise<AttgestSDKResponse<string>> {
+  /**
+   * Revokes an existing attestation by its unique identifier.
+   *
+   * @param id The unique identifier of the attestation to be revoked.
+   * @returns A promise that resolves to an AttestSDKResponse object containing the unique identifier of the revoked attestation.
+   */
+  async revoke(id: string): Promise<AttestSDKResponse<string>> {
     const valid = await this.verifyAttestationUID(id);
 
     if (!valid) {
