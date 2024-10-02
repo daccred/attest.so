@@ -6,9 +6,9 @@ export type AttestSDKResponse<T = undefined> = {
 export type AttgestSDKResponse<T = undefined> =
   | {
       data: T;
-      error: null;
+      error?: undefined;
     }
   | {
-      data: null;
+      data?: undefined;
       error: any;
     };

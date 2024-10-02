@@ -8,7 +8,6 @@ export class Schemas extends AttestSDKBase {
 
     return {
       data: uid,
-      error: null,
     };
   }
 
@@ -18,7 +17,6 @@ export class Schemas extends AttestSDKBase {
 
     return {
       data: uid,
-      error: null,
     };
   }
 }
