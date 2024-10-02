@@ -1,4 +1,4 @@
-import { AttestSDKBaseConfig } from "./types";
+import { AttestSDKBaseConfig } from './types';
 
 export abstract class AttestSDKBase {
   private privateKey: string | undefined;
@@ -49,7 +49,10 @@ export abstract class AttestSDKBase {
     return null;
   }
 
-  protected async performDelegation(id: string, delegateTo: string): Promise<boolean> {
+  protected async performDelegation(
+    id: string,
+    delegateTo: string,
+  ): Promise<boolean> {
     // Implementation to perform attestation delegation
     return true;
   }
@@ -78,5 +81,14 @@ export abstract class AttestSDKBase {
     // Implementation to fetch total number of attestations
     return 0;
   }
-}
 
+  protected async fetchAllSchemaUIDs(): Promise<string[]> {
+    // Implementation to fetch all schema UIDs
+    return [];
+  }
+
+  protected async fetchAllSchemaRecords(): Promise<string[]> {
+    // Implementation to fetch all schema records
+    return [];
+  }
+}
