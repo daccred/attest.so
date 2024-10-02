@@ -1,0 +1,14 @@
+export type AttestSDKResponse<T = undefined> = {
+  error?: any;
+  data?: T;
+};
+
+export type AttgestSDKResponse<T = undefined> =
+  | {
+      data: T;
+      error: null;
+    }
+  | {
+      data: null;
+      error: any;
+    };
