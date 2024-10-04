@@ -1,5 +1,10 @@
 import { AttestSDKResponse } from '../core/types';
 import { AttestSDKBase } from '../core';
+import {
+  CreateAttestationProps,
+  AttestationUIDProp,
+  GetAllAttestationsProps,
+} from './props';
 
 export class Attestations extends AttestSDKBase {
   /**
@@ -8,8 +13,11 @@ export class Attestations extends AttestSDKBase {
    * @param id The unique identifier of the schema for which the attestation is being created.
    * @returns A promise that resolves to an AttestSDKResponse object containing the unique identifier of the created attestation.
    */
-  async create(id: string): Promise<AttestSDKResponse<string>> {
-    const valid = await this.verifySchema(id);
+  async create(
+    props: CreateAttestationProps,
+  ): Promise<AttestSDKResponse<string>> {
+    const { schemaUID, data } = props;
+    const valid = await this.verifySchema(schemaUID);
 
     if (!valid) {
       return {
@@ -17,8 +25,17 @@ export class Attestations extends AttestSDKBase {
       };
     }
 
-    const uid = await this.generateUID();
-    await this.storeAttestation(uid);
+    const uid = await this.createAttestation(
+      schemaUID,
+      data,
+      'custom-resolver-from-schema',
+    );
+
+    if (!uid) {
+      return {
+        error: 'Invalid attestation',
+      };
+    }
 
     return {
       data: uid,
@@ -31,27 +48,22 @@ export class Attestations extends AttestSDKBase {
    * @param id The unique identifier of the attestation to be revoked.
    * @returns A promise that resolves to an AttestSDKResponse object containing the unique identifier of the revoked attestation.
    */
-  async revoke(id: string): Promise<AttestSDKResponse<string>> {
-    const valid = await this.verifyAttestationUID(id);
+  async revoke(props: AttestationUIDProp): Promise<AttestSDKResponse<string>> {
+    const { attestationUID } = props;
 
-    if (!valid) {
-      return {
-        error: 'Invalid attestation',
-      };
-    }
+    const { error } = await this.verifyAttestationIsRevocable(attestationUID);
 
-    const isRevocable = await this.verifyAttestationIsRevocable(id);
+    if (error) return { error };
 
-    if (!isRevocable) {
-      return {
-        error: 'Attestation is not revocable',
-      };
-    }
+    const res = this.triggerResolver('resolver', {
+      uid: attestationUID,
+      status: 'revoked',
+    });
 
-    await this.updateAttestationStatus(id, 'revoked');
+    await this.updateAttestationStatus(attestationUID, 'revoked');
 
     return {
-      data: id,
+      data: attestationUID,
     };
   }
 
@@ -108,9 +120,10 @@ export class Attestations extends AttestSDKBase {
    * @returns A promise that resolves to an AttestSDKResponse object containing the attestation data.
    */
   protected async getAttestation(
-    id: string,
+    props: AttestationUIDProp,
   ): Promise<AttestSDKResponse<string>> {
-    const attestation = await this.fetchAttestation(id);
+    const { attestationUID } = props;
+    const attestation = await this.fetchAttestation(attestationUID);
 
     if (!attestation) {
       return {
@@ -128,8 +141,11 @@ export class Attestations extends AttestSDKBase {
    *
    * @returns A promise that resolves to an AttestSDKResponse object containing an array of attestation data.
    */
-  protected async getAllAttestations(): Promise<AttestSDKResponse<string[]>> {
-    const attestations = await this.fetchAllAttestations();
+  protected async getAllAttestations(
+    props: GetAllAttestationsProps,
+  ): Promise<AttestSDKResponse<string[]>> {
+    const { schemaUID } = props;
+    const attestations = await this.fetchAllAttestations(schemaUID);
 
     return {
       data: attestations,
@@ -143,9 +159,10 @@ export class Attestations extends AttestSDKBase {
    * @returns A promise that resolves to an AttestSDKResponse object containing a boolean indicating the attestation's validity.
    */
   protected async isAttestationValid(
-    id: string,
+    props: AttestationUIDProp,
   ): Promise<AttestSDKResponse<boolean>> {
-    const valid = await this.verifyAttestationValidity(id);
+    const { attestationUID } = props;
+    const valid = await this.verifyAttestationValidity(attestationUID);
 
     return {
       data: valid,
@@ -157,8 +174,11 @@ export class Attestations extends AttestSDKBase {
    *
    * @returns A promise that resolves to an AttestSDKResponse object containing the current timestamp.
    */
-  protected async getTimestamp(): Promise<AttestSDKResponse<number>> {
-    const timestamp = await this.fetchCurrentTimestamp();
+  protected async getTimestamp(
+    props: AttestationUIDProp,
+  ): Promise<AttestSDKResponse<number>> {
+    const { attestationUID } = props;
+    const timestamp = await this.fetchAttestationTimestamp(attestationUID);
 
     return {
       data: timestamp,
@@ -170,10 +190,11 @@ export class Attestations extends AttestSDKBase {
    *
    * @returns A promise that resolves to an AttestSDKResponse object containing the number of attestations.
    */
-  protected async getNumberOfAttestations(): Promise<
-    AttestSDKResponse<number>
-  > {
-    const count = await this.fetchAttestationCount();
+  protected async getNumberOfAttestations(
+    props: AttestationUIDProp,
+  ): Promise<AttestSDKResponse<number>> {
+    const { attestationUID } = props;
+    const count = await this.fetchAttestationCount(attestationUID);
 
     return {
       data: count,
