@@ -1,5 +1,3 @@
-import * as info from './info'
-import * as greeting from './greeting'
-import * as create from './create'
+import * as start from './start'
 
-export const commands = [info, greeting, create]
+export const commands = [start]

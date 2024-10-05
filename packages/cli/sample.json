@@ -1,0 +1,11 @@
+{
+  "title": "UserSchema",
+  "type": "object",
+  "properties": {
+    "uid": { "type": "string", "maxLength": 32 },
+    "name": { "type": "string", "maxLength": 50 },
+    "age": { "type": "integer", "minimum": 0 },
+    "email": { "type": "string", "format": "email" }
+  },
+  "required": ["uid", "name", "age", "email"]
+}
