@@ -1,3 +1,3 @@
-import * as start from './start'
+import * as publish from './publish'
 
-export const commands = [start]
+export const commands = [publish]
