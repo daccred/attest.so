@@ -1,11 +1,21 @@
 {
-  "name": "root",
+  "name": "attest.so",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "contracts/*",
+    "apps/*"
   ],
-  "dependencies": {},
-  "devDependencies": {
-    "lerna": "^8.1.7"
-  }
+  "scripts": {
+    "build": "pnpm run --recursive build",
+    "dev": "pnpm run --recursive dev",
+    "lint": "pnpm run -r lint",
+    "test": "pnpm run -r test"
+  },
+  "keywords": [
+    "monorepo",
+    "pnpm"
+  ],
+  "author": "Andrew Miracle <andrew@daccred.co>",
+  "dependencies": {}
 }
