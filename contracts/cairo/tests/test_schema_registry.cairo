@@ -7,15 +7,15 @@ use snforge_std::{
     declare, ContractClassTrait, start_cheat_caller_address, stop_cheat_caller_address
 };
 
-use attestme::schema_registry::ISchemaRegistrySafeDispatcher;
-use attestme::schema_registry::ISchemaRegistrySafeDispatcherTrait;
-use attestme::schema_registry::ISchemaRegistryDispatcher;
-use attestme::schema_registry::ISchemaRegistryDispatcherTrait;
-use attestme::SAS::ISASSafeDispatcher;
-use attestme::SAS::ISASSafeDispatcherTrait;
-use attestme::SAS::ISASDispatcher;
-use attestme::SAS::ISASDispatcherTrait;
-use attestme::SAS::{AttestationRequest, AttestationRequestData, Attestation};
+use starknet_attestso::schema_registry::ISchemaRegistrySafeDispatcher;
+use starknet_attestso::schema_registry::ISchemaRegistrySafeDispatcherTrait;
+use starknet_attestso::schema_registry::ISchemaRegistryDispatcher;
+use starknet_attestso::schema_registry::ISchemaRegistryDispatcherTrait;
+use starknet_attestso::SAS::ISASSafeDispatcher;
+use starknet_attestso::SAS::ISASSafeDispatcherTrait;
+use starknet_attestso::SAS::ISASDispatcher;
+use starknet_attestso::SAS::ISASDispatcherTrait;
+use starknet_attestso::SAS::{AttestationRequest, AttestationRequestData, Attestation};
 
 fn deploy_contract_schema_registry(name: ByteArray) -> ContractAddress {
     let contract = declare(name).unwrap();

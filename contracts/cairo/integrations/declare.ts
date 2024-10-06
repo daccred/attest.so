@@ -13,8 +13,8 @@ async function main(contract_name: string) {
     const account = new Account(provider, accountAddress, privateKey, '1');
     console.log("Account connected\n");
 
-    const testSierra = json.parse(fs.readFileSync(`./target/dev/attestme_${contract_name}.contract_class.json`).toString("ascii"));
-    const testCasm = json.parse(fs.readFileSync(`./target//dev/attestme_${contract_name}.compiled_contract_class.json`).toString("ascii"));
+    const testSierra = json.parse(fs.readFileSync(`./target/dev/starknet_attestso_${contract_name}.contract_class.json`).toString("ascii"));
+    const testCasm = json.parse(fs.readFileSync(`./target//dev/starknet_attestso_${contract_name}.compiled_contract_class.json`).toString("ascii"));
 
     const { suggestedMaxFee: fee1 } = await account.estimateDeclareFee({ contract: testSierra, casm: testCasm });
     console.log("suggestedMaxFee =", fee1.toString(), "wei");

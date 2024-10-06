@@ -20,8 +20,8 @@ async function main() {
     console.log("Account connected.\n");
 
     // Declare Test contract in specified network (Sepolia)
-    const testSierra = json.parse(fs.readFileSync("./target/dev/attestme_SAS.contract_class.json").toString("ascii"));
-    const testCasm = json.parse(fs.readFileSync("./target/dev/attestme_SAS.compiled_contract_class.json").toString("ascii"));
+    const testSierra = json.parse(fs.readFileSync("./target/dev/starknet_attestso_SAS.contract_class.json").toString("ascii"));
+    const testCasm = json.parse(fs.readFileSync("./target/dev/starknet_attestso_SAS.compiled_contract_class.json").toString("ascii"));
     const { suggestedMaxFee: fee1 } = await account.estimateDeclareFee({ contract: testSierra, casm: testCasm });
     console.log("suggestedMaxFee =", fee1.toString(), "wei");
     const declareResponse = await account.declare({ contract: testSierra, casm: testCasm }, { maxFee: fee1 * 11n / 10n });

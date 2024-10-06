@@ -1,6 +1,6 @@
 use starknet::ContractAddress;
-use attestme::interfaces::ISemver;
-use attestme::helpers::common;
+use starknet_attestso::interfaces::ISemver;
+use starknet_attestso::helpers::common;
 
 #[starknet::interface]
 trait ISchemaResolver<TContractState> {

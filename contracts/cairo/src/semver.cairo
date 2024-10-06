@@ -1,5 +1,5 @@
 use starknet::ContractAddress;
-use attestme::{schema_registry::SchemaRecord};
+use starknet_attestso::{schema_registry::SchemaRecord};
 
 #[starknet::interface]
 trait ISemver<TContractState> {

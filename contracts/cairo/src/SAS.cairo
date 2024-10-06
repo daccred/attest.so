@@ -59,9 +59,9 @@ pub struct RevocationRequest {
     data: RevocationRequestData // The arguments of the revocation request.
 }
 
-use attestme::schema_registry::{ISchemaRegistryDispatcher, SchemaRecord};
-use attestme::schema_registry::ISchemaRegistryDispatcherTrait;
-use attestme::{
+use starknet_attestso::schema_registry::{ISchemaRegistryDispatcher, SchemaRecord};
+use starknet_attestso::schema_registry::ISchemaRegistryDispatcherTrait;
+use starknet_attestso::{
     semver,
     helpers::common::{
         EMPTY_UID,

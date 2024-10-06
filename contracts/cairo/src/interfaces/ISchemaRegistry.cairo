@@ -1,5 +1,5 @@
 use starknet::ContractAddress;
-use attestme::interfaces::ISchemaResolver;
+use starknet_attestso::interfaces::ISchemaResolver;
 
 /// @notice A struct representing a record for a submitted schema.
 #[derive(Copy, Drop, Serde, starknet::Store)]

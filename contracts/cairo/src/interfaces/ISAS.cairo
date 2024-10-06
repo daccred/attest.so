@@ -1,6 +1,6 @@
 // use starknet::ContractAddress;
 
-// use attestme::{
+// use starknet_attestso::{
 //     helpers::common::{Attestation, Signature},
 //     interfaces::{ISchemaResolver, ISchemaRegistry, ISemver}
 // }; // common::{Attestation, Signature}
