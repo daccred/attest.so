@@ -5,17 +5,22 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-anchor = "4LT4wumb1FPdzpreAuuqkDsWfGsCJSnWK4WPTwZrcFFR"
+attestso = "BwTpLDj7ZHfqRN4PtC3gqXUcpsW7cfTU7uw557pxUcmx"
+
+
+[programs.devnet]
+attestso = "BwTpLDj7ZHfqRN4PtC3gqXUcpsW7cfTU7uw557pxUcmx"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "Localnet"
+# cluster = "https://api.devnet.solana.com"
 wallet = "~/.config/solana/id.json"
 
-# --- [test.validator]
-# --- url = "http://127.0.0.1:8899"
+[test.validator]
+url = "http://127.0.0.1:8899"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

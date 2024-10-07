@@ -50,7 +50,7 @@ describe('attestso', () => {
       .signers([authorityKeypair]) // authority is a signer
       .rpc();
 
-    console.log('Authority registered with transaction signature:', tx);
+    console.log('[Registers a new authority]::::::::::::Authority registered with transaction signature:', tx);
 
     // Check if the authority was registered correctly.
     const authorityAccount = await program.account.authorityRecord.fetch(authorityRecordPDA);
@@ -76,7 +76,7 @@ describe('attestso', () => {
       .signers([adminKeypair]) // Admin is the signer
       .rpc();
 
-    console.log('Authority verified with transaction signature:', tx);
+    console.log('[Verifies an authority]::::::::::::Authority verified with transaction signature:', tx);
 
     // Verify that the authority's status is updated.
     const authorityAccount = await program.account.authorityRecord.fetch(authorityRecordPDA);
@@ -110,7 +110,7 @@ describe('attestso', () => {
       .signers([authorityKeypair]) // Deployer is the authority and signer
       .rpc();
 
-    console.log('Schema registered with transaction signature:', tx);
+    console.log('[Registers a new schema]::::::::::::Schema registered with transaction signature:', tx);
 
     // Save the schema UID for later use
     schemaUID = schemaDataPDA;
@@ -131,7 +131,7 @@ describe('attestso', () => {
   it('Fetches a schema using UID', async () => {
     const schemaAccount = await program.account.schemaData.fetch(schemaUID);
 
-    console.log('Fetched Schema:', schemaAccount);
+      console.log('[Fetches a schema using UID::Fetched Schema:', schemaAccount);
 
     // Verify schema details.
     expect(schemaAccount.schema).to.equal('{"name": "example", "type": "object"}');
