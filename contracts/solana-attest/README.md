@@ -37,7 +37,7 @@ solana config set --keypair ~/.config/solana/id.json
 
 6.
 
-6. Initialize the program 
+7. Initialize the program
 
 ```bash
 anchor idl init
@@ -77,3 +77,12 @@ anchor build
 anchor idl verify
 anchor idl decode --filepath target/idl/attestso.json --uid <SCHEMA_UID>
 ```
+
+## Thoughts on Resolvers
+
+Resolvers should be CPI by default.
+
+- Our internal resolvers are CPI
+- Our external resolvers are CPI
+
+> the logical flow will be one of such, if a schema provides us it's own custom resolver, we will use it, otherwise we will route the attestation to the internal resolver which implements the interface for resolvers.
