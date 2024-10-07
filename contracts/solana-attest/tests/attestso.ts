@@ -2,6 +2,7 @@ import * as anchor from '@coral-xyz/anchor';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { Program } from '@coral-xyz/anchor';
 import { Attestso } from '../target/types/attestso'; 
+import { customExpect } from './expect-util';
 
 describe('attestso', () => {
   // Configure the client to use the local cluster.
@@ -54,8 +55,8 @@ describe('attestso', () => {
 
     // Check if the authority was registered correctly.
     const authorityAccount = await program.account.authorityRecord.fetch(authorityRecordPDA);
-    expect(authorityAccount.authority.toBase58()).to.equal(authorityKeypair.publicKey.toBase58());
-    expect(authorityAccount.isVerified).to.be.false;
+    customExpect(authorityAccount.authority.toBase58()).to.equal(authorityKeypair.publicKey.toBase58());
+    customExpect(authorityAccount.isVerified).to.be.false;
   });
 
   // Test 3: Update authority verification status.
@@ -80,7 +81,7 @@ describe('attestso', () => {
 
     // Verify that the authority's status is updated.
     const authorityAccount = await program.account.authorityRecord.fetch(authorityRecordPDA);
-    expect(authorityAccount.isVerified).to.be.true;
+    customExpect(authorityAccount.isVerified).to.be.true;
   });
 
   // Test 4: Register a new schema.
@@ -117,14 +118,14 @@ describe('attestso', () => {
 
     // Check that the schema data is saved correctly.
     const schemaAccount = await program.account.schemaData.fetch(schemaDataPDA);
-    expect(schemaAccount.schema).to.equal(schemaContent);
+    customExpect(schemaAccount.schema).to.equal(schemaContent);
     if (resolverAddress) {
-      expect(schemaAccount.resolver.toBase58()).to.equal(resolverAddress.toBase58());
+      customExpect(schemaAccount.resolver.toBase58()).to.equal(resolverAddress.toBase58());
     } else {
-      expect(schemaAccount.resolver).to.be.null;
+      customExpect(schemaAccount.resolver).to.be.null;
     }
-    expect(schemaAccount.revocable).to.be.true;
-    expect(schemaAccount.deployer.toBase58()).to.equal(authorityKeypair.publicKey.toBase58());
+    customExpect(schemaAccount.revocable).to.be.true;
+    customExpect(schemaAccount.deployer.toBase58()).to.equal(authorityKeypair.publicKey.toBase58());
   });
 
   // Test 5: Fetch an existing schema.
@@ -134,7 +135,7 @@ describe('attestso', () => {
       console.log('[Fetches a schema using UID::Fetched Schema:', schemaAccount);
 
     // Verify schema details.
-    expect(schemaAccount.schema).to.equal('{"name": "example", "type": "object"}');
-    expect(schemaAccount.deployer.toBase58()).to.equal(authorityKeypair.publicKey.toBase58());
+    customExpect(schemaAccount.schema).to.equal('{"name": "example", "type": "object"}');
+    customExpect(schemaAccount.deployer.toBase58()).to.equal(authorityKeypair.publicKey.toBase58());
   });
 });
