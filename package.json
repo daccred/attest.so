@@ -1,15 +1,11 @@
 {
   "name": "attest.so",
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "contracts/*",
-    "apps/*"
-  ],
   "scripts": {
     "build": "pnpm run --recursive build",
     "dev": "pnpm run --recursive dev",
     "lint": "pnpm run -r lint",
+    "filter": " pnpm --filter",
     "test": "pnpm run -r test"
   },
   "keywords": [
