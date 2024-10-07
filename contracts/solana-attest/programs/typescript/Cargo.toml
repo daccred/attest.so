@@ -1,12 +1,12 @@
 [package]
-name = "attestso"
-version = "0.1.1"
-description = "Attestation Service Portal on Solana"
+name = "typescript"
+version = "0.1.0"
+description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "attestso"
+name = "typescript"
 
 [features]
 default = []

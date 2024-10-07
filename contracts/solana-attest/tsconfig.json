@@ -6,5 +6,7 @@
     "module": "commonjs",
     "target": "es6",
     "esModuleInterop": true
-  }
+  },
+  "include": ["tests/**/*.ts", "**/*.ts"],
+  "exclude": ["node_modules"]
 }
