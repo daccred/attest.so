@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 
 #[account]
-pub struct Authority {
+pub struct AuthorityRecord {
     pub authority: Pubkey,     // The public key of the authority (e.g., user).
     pub is_verified: bool,     // Flag to check if the authority is verified by an admin.
     pub first_deployment: i64, // Timestamp of their first schema deployment.
@@ -24,7 +24,7 @@ pub enum AuthorityError {
 #[derive(Accounts)]
 pub struct RegisterAuthority<'info> {
     #[account(init, payer = authority, space = 8 + 32 + 1 + 8)]
-    pub authority_record: Account<'info, Authority>,
+    pub authority_record: Account<'info, AuthorityRecord>,
     #[account(mut, signer)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -34,19 +34,19 @@ pub struct RegisterAuthority<'info> {
 #[derive(Accounts)]
 pub struct VerifyAuthority<'info> {
     #[account(mut)]
-    pub authority_record: Account<'info, Authority>,
+    pub authority_record: Account<'info, AuthorityRecord>,
     #[account(signer)]
     pub admin: Signer<'info>, // The admin account
 }
 
 
 /// Finds or registers a new authority.
-pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<Authority> {
+pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<AuthorityRecord> {
     let authority_record = &mut ctx.accounts.authority_record;
 
     // Only register if we don't have a record
     if authority_record.authority != Pubkey::default() {
-        return Ok(Authority {
+        return Ok(AuthorityRecord {
             authority: authority_record.authority,
             is_verified: authority_record.is_verified,
             first_deployment: authority_record.first_deployment,
@@ -57,8 +57,8 @@ pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<Authority> 
     authority_record.is_verified = false;
     authority_record.first_deployment = Clock::get()?.unix_timestamp as i64;
 
-    // Return the Authority struct itself
-    Ok(Authority {
+    // Return the AuthorityRecord struct itself
+    Ok(AuthorityRecord {
         authority: authority_record.authority,
         is_verified: authority_record.is_verified,
         first_deployment: authority_record.first_deployment,
