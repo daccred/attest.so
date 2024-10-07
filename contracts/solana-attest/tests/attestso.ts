@@ -1,5 +1,4 @@
 import * as anchor from '@coral-xyz/anchor';
-import { expect } from 'chai';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { Program } from '@coral-xyz/anchor';
 import { Attestso } from '../target/types/attestso'; 
