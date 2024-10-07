@@ -1,0 +1,14 @@
+{
+	"extension": [
+		"ts"
+	],
+	"spec": [
+		"test/specs/**/*.ts"
+	],
+	"timeout": "0",
+	"require": [
+		"./test/mocha.env.mjs",
+		"ts-node/register",
+		"tsconfig-paths/register"
+	]
+}
