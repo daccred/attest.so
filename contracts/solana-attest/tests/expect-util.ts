@@ -108,4 +108,4 @@ export class Expectation<T> {
   }
 }
 
-export const customExpect = <T>(actual: T) => new Expectation(actual)
+export const expect = <T>(actual: T) => new Expectation(actual)

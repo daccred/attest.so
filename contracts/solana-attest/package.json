@@ -3,7 +3,8 @@
   "license": "ISC",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "deploy:attestso": "solana program deploy target/deploy/attestso.so --verbose"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",

@@ -8,14 +8,14 @@ pub mod registry;
 use authority::*;
 use registry::*;
 
-/// #[cfg(not(feature = "no-entrypoint"))]
-/// solana_security_txt::security_txt! {
-///     name: "attest-protocol",
-///     project_url: "attest.so",
-///     contacts: "email:security@attestprotocol.org",
-///     policy: "https://github.com/daccred/attest.so/blob/main/SECURITY.md",
-///     source_code: "https://github.com/daccred/attest.so"
-/// }
+#[cfg(not(feature = "no-entrypoint"))]
+solana_security_txt::security_txt! {
+    name: "attest-protocol",
+    project_url: "attest.so",
+    contacts: "email:security@attestprotocol.org",
+    policy: "https://github.com/daccred/attest.so/blob/main/SECURITY.md",
+    source_code: "https://github.com/daccred/attest.so"
+}
 
 #[program]
 pub mod attestso {

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("FZd5AYmqdBvBZhkLZuMonc7B7WhqvR8UoF2L4hHvqNTs");
+declare_id!("Gqa1ajpLqHgvesQWA4UBasoZAzbJvLqpFWUgrmsohTYB");
 
 #[program]
 pub mod typescript {

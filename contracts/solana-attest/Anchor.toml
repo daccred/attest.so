@@ -7,7 +7,6 @@ skip-lint = false
 [programs.localnet]
 attestso = "BwTpLDj7ZHfqRN4PtC3gqXUcpsW7cfTU7uw557pxUcmx"
 
-
 [programs.devnet]
 attestso = "BwTpLDj7ZHfqRN4PtC3gqXUcpsW7cfTU7uw557pxUcmx"
 
