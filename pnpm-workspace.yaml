@@ -5,7 +5,7 @@ packages:
   # all packages in direct subdirs of packages/
   - 'packages/*'
   # all smart contract implementations
-  # - 'contracts/**'
+  - 'contracts/**'
   # exclude packages that are inside test directories
   - '!**/test/**'
   # exclude packages that are inside test directories
