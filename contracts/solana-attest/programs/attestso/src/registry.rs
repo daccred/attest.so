@@ -1,18 +1,18 @@
 use anchor_lang::prelude::*;
-use crate::authority::*;
 
-#[account]
-pub struct SchemaRecord {
-    pub uid: Pubkey,       // Unique identifier for the schema.
-    pub deployer: Pubkey,  // Deployer who created the schema.
+#[event]
+pub struct NewSchemaSignal {
+    pub uid: Pubkey,         // The generated UID for the schema (PDA).
+    pub schema_data: SchemaData,  // Full schema data including schema, resolver, revocable, and deployer.
 }
 
 #[account]
 pub struct SchemaData {
-    pub schema: String,    // Schema data (e.g., JSON, XML, etc.)
-    pub resolver: Pubkey,  // Resolver address for external verification
-    pub revocable: bool,   // Indicates whether the schema is revocable
-    pub deployer: Pubkey,  // The account that deployed (registered) the schema
+    pub uid: Pubkey, // Generate PDA as reference key.
+    pub schema: String,    // The actual schema data (e.g., JSON, XML, etc.).
+    pub resolver: Option<Pubkey>,  // Resolver address (another contract) for schema verification.
+    pub revocable: bool,   // Indicates whether the schema is revocable.
+    pub deployer: Pubkey,  // The deployer who created the schema.
 }
 
 #[error_code]
@@ -22,80 +22,79 @@ pub enum RegistryError {
 }
 
 #[derive(Accounts)]
+#[instruction(schema_name: String)] // Pass schema_name as an instruction argument.
 pub struct RegisterSchema<'info> {
-    #[account(init, payer = deployer, space = 8 + 32 + 32)]
-    pub schema_record: Account<'info, SchemaRecord>,
-    #[account(mut, has_one = deployer)]
-    pub authority_record: Account<'info, AuthorityRecord>,
-    #[account(mut, signer)]
-    pub deployer: Signer<'info>, // The deployer registering the schema
+    #[account(mut)]
+    pub deployer: Signer<'info>, // Deployer who creates the schema.
+    #[account(init, seeds = [b"schema", deployer.key().as_ref(), schema_name.as_bytes()], bump, payer = deployer, space = 8 + 200 + 32 + 1)]
+    pub schema_data: Account<'info, SchemaData>, // Schema data stored at the derived PDA.
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct GetSchema<'info> {
-    pub schema_record: Account<'info, SchemaRecord>,
-    #[account(mut)]
-    pub deployer: Signer<'info>,
+    pub schema_data: Account<'info, SchemaData>, // Schema data retrieved via UID.
 }
+
 
 impl SchemaData {
     pub const LEN: usize = 8 + 32 + 1 + 200 + 32;
 }
 
-pub fn derive_schema_pda(uid: &Pubkey, program_id: &Pubkey) -> (Pubkey, u8) {
-    Pubkey::find_program_address(&[b"schema", uid.as_ref()], program_id)
-}
 
+// Register a new schema and emit an event with the UID (PDA) and full schema data.
 pub fn register_schema(
     ctx: Context<RegisterSchema>,
+    schema_name: String,
     schema: String,
-    resolver: Option<Pubkey>,
+    resolver: Option<Pubkey>, // Optional resolver address for external verification.
     revocable: bool,
-) -> Result<()> {
-    let deployer = &ctx.accounts.deployer;
-    let schema_uid = Pubkey::new_unique();
-    let schema_record = &mut ctx.accounts.schema_record;
-    schema_record.uid = schema_uid;
-    schema_record.deployer = *deployer.key;
+) -> Result<Pubkey> {
+    let schema_data = &mut ctx.accounts.schema_data;
 
-    let (schema_pda, _bump) = derive_schema_pda(&schema_uid, ctx.program_id);
+    let (uid, _bump) = Pubkey::find_program_address(
+        &[b"schema", ctx.accounts.deployer.key.as_ref(), schema_name.as_bytes()],
+        ctx.program_id,
+    );
 
-    let schema_data = SchemaData {
-        schema,
-        resolver,
-        revocable,
-        deployer: *deployer.key,
-    };
+    schema_data.uid = uid;
+    schema_data.schema = schema;
+    schema_data.resolver = resolver;
+    schema_data.revocable = revocable;
+    schema_data.deployer = *ctx.accounts.deployer.key;
+    
+    emit!(NewSchemaSignal {
+        uid,
+        schema_data: SchemaData {
+            uid: schema_data.uid,
+            schema: schema_data.schema.clone(),
+            resolver: schema_data.resolver,
+            revocable: schema_data.revocable,
+            deployer: schema_data.deployer,
+        }
+    });
 
-    anchor_lang::solana_program::program::invoke(
-        &anchor_lang::solana_program::system_instruction::create_account(
-            &deployer.key,
-            &schema_pda,
-            Rent::get()?.minimum_balance(SchemaData::LEN),
-            SchemaData::LEN as u64,
-            ctx.program_id,
-        ),
-        &[
-            ctx.accounts.deployer.to_account_info(),
-            ctx.accounts.system_program.to_account_info(),
-        ],
-    )?;
-
-    let mut data = &mut schema_pda.try_borrow_mut_data()?;
-    schema_data.serialize(&mut data)?;
-
-    Ok(())
+    Ok(uid)
 }
 
-pub fn get_schema(ctx: Context<GetSchema>, uid: Pubkey) -> Result<()> {
-    let (schema_pda, _bump) = derive_schema_pda(&uid, ctx.program_id);
-    let schema_data: Account<SchemaData> = Account::try_from(&schema_pda)?;
+// Fetch a schema using the UID and return SchemaData.
+pub fn get_schema(ctx: Context<GetSchema>) -> Result<SchemaData> {
+    let schema_data = &ctx.accounts.schema_data;
 
-    msg!("Schema: {}", schema_data.schema);
-    msg!("Resolver: {}", schema_data.resolver);
-    msg!("Revocable: {}", schema_data.revocable);
-    msg!("Deployer: {}", schema_data.deployer);
+    // Return the full schema data.
+    Ok(SchemaData {
+        uid: schema_data.uid,
+        schema: schema_data.schema.clone(),
+        resolver: schema_data.resolver,
+        revocable: schema_data.revocable,
+        deployer: schema_data.deployer,
+    })
+}
 
-    Ok(())
+// Helper function to derive the schema's PDA.
+pub fn derive_schema_pda(deployer: &Pubkey, schema_name: &str, program_id: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[b"schema", deployer.as_ref(), schema_name.as_bytes()],
+        program_id,
+    )
 }

@@ -5,9 +5,8 @@ declare_id!("4LT4wumb1FPdzpreAuuqkDsWfGsCJSnWK4WPTwZrcFFR");
 pub mod authority;
 pub mod registry;
 
-// use authority::*;
+use authority::*;
 use registry::*;
-
 
 /// #[cfg(not(feature = "no-entrypoint"))]
 /// solana_security_txt::security_txt! {
@@ -27,21 +26,22 @@ pub mod attestso {
         Ok(())
     }
 
-    // pub fn get_authority(ctx: Context<RegisterAuthority>) -> Result<Authority> {
-    //     register_authority(ctx)
-    // }
+    pub fn find_or_set_authority(ctx: Context<RegisterAuthority>) -> Result<AuthorityRecord> {
+        register_authority(ctx)
+    }
 
-    // pub fn update_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
-    //     verify_authority(ctx, is_verified)
-    // }
+    pub fn update_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
+        verify_authority(ctx, is_verified)
+    }
 
     pub fn register(
         ctx: Context<RegisterSchema>,
+        schema_name: String,
         schema: String,
-        resolver: Option<Pubkey>,
+        resolver: Option<Pubkey>, // Optional resolver address for external verification.
         revocable: bool,
-    ) -> Result<()> {
-        register_schema(ctx, schema, resolver, revocable)
+    ) -> Result<Pubkey> {
+        register_schema(ctx, schema_name, schema, resolver, revocable)
     }
 
     // #[access_control(verify_admin(&ctx.accounts))]
@@ -51,13 +51,12 @@ pub mod attestso {
     //     msg!("Admin action performed!");
     //     Ok(())
     // }
+
+    // fn verify_admin(accounts: &AdminAction) -> Result<()> {
+    //     require!(accounts.admin.key() == accounts.admin_account.admin, ErrorCode::Unauthorized);
+    //     Ok(())
+    // }
 }
 
 #[derive(Accounts)]
 pub struct Initialize {}
-
-
-// fn verify_admin(accounts: &AdminAction) -> Result<()> {
-//     require!(accounts.admin.key() == accounts.admin_account.admin, ErrorCode::Unauthorized);
-//     Ok(())
-// }

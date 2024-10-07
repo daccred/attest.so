@@ -9,7 +9,7 @@ pub struct AuthorityRecord {
 }
 
 #[event]
-pub struct AuthorityMSG {
+pub struct VerifiedAuthoritySignal {
     authority: Pubkey,
     is_verified: bool,
 }
@@ -80,7 +80,7 @@ pub fn verify_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Res
     let authority_record = &mut ctx.accounts.authority_record;
     authority_record.is_verified = is_verified;
 
-    emit!(AuthorityMSG{
+    emit!(VerifiedAuthoritySignal {
         authority: authority_record.authority,
         is_verified: authority_record.is_verified,
     });
