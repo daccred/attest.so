@@ -9,6 +9,15 @@ use authority::*;
 // use registry::*;
 
 
+// #[cfg(not(feature = "no-entrypoint"))]
+// solana_security_txt::security_txt! {
+//     name: "attest-protocol",
+//     project_url: "attest.so",
+//     contacts: "email:security@attestprotocol.org",
+//     policy: "https://github.com/daccred/attest.so/blob/main/SECURITY.md",
+//     source_code: "https://github.com/daccred/attest.so"
+// }
+
 #[program]
 pub mod attestso {
     use super::*;
@@ -18,7 +27,7 @@ pub mod attestso {
         Ok(())
     }
 
-    pub fn new_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
+    pub fn get_authority(ctx: Context<RegisterAuthority>) -> Result<Authority> {
         register_authority(ctx)
     }
 

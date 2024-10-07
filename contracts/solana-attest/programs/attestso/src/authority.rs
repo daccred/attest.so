@@ -1,15 +1,19 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 
-// Define the `Authority` struct with its fields.
 #[account]
 pub struct Authority {
     pub authority: Pubkey,     // The public key of the authority (e.g., user).
     pub is_verified: bool,     // Flag to check if the authority is verified by an admin.
-    pub first_deployment: i64, // Timestamp of the first schema deployment.
+    pub first_deployment: i64, // Timestamp of their first schema deployment.
 }
 
-// Define errors for authority operations.
+#[event]
+pub struct AuthorityMSG {
+    authority: Pubkey,
+    is_verified: bool,
+}
+
 #[error_code]
 pub enum AuthorityError {
     #[msg("Unauthorized operation: Only admin can perform this action.")]
@@ -36,18 +40,34 @@ pub struct VerifyAuthority<'info> {
 }
 
 
-/// Register a new authority.
-pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
+/// Finds or registers a new authority.
+pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<Authority> {
     let authority_record = &mut ctx.accounts.authority_record;
+
+    // Only register if we don't have a record
+    if authority_record.authority != Pubkey::default() {
+        return Ok(Authority {
+            authority: authority_record.authority,
+            is_verified: authority_record.is_verified,
+            first_deployment: authority_record.first_deployment,
+        });
+    }
+
     authority_record.authority = *ctx.accounts.authority.key;
     authority_record.is_verified = false;
-    authority_record.first_deployment = Clock::get()?.unix_timestamp;
+    authority_record.first_deployment = Clock::get()?.unix_timestamp as i64;
 
-    Ok(())
+    // Return the Authority struct itself
+    Ok(Authority {
+        authority: authority_record.authority,
+        is_verified: authority_record.is_verified,
+        first_deployment: authority_record.first_deployment,
+    })
 }
 
-/// Verify the authority (admin only).
-pub fn verify_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Authority {
+
+/// Verifies the authority (admin only).
+pub fn verify_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
     // let expected_admin_pubkey = Pubkey::from_str(ADMIN_PUBLIC_KEY).unwrap();
 
     // require_keys_eq!(expected_admin_pubkey, ctx.accounts.admin.key());
@@ -56,12 +76,15 @@ pub fn verify_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Aut
     //     return Err(AuthorityError::Unauthorized.into());
     // }
 
+
     let authority_record = &mut ctx.accounts.authority_record;
     authority_record.is_verified = is_verified;
 
-    Authority {
-        is_verified: authority_record.is_verified,
-        first_deployment: authority_record.first_deployment,
+    emit!(AuthorityMSG{
         authority: authority_record.authority,
-    }
+        is_verified: authority_record.is_verified,
+    });
+
+    Ok(())
+
 }
