@@ -82,15 +82,12 @@ importers:
 
   packages/cli:
     dependencies:
+      '@peke65/attest-sdk':
+        specifier: workspace:^
+        version: link:../sdk
       '@solana/web3.js':
         specifier: 1.95.3
         version: 1.95.3(bufferutil@4.0.8)(utf-8-validate@5.0.10)
-      ajv:
-        specifier: ^8.17.1
-        version: 8.17.1
-      borsh:
-        specifier: ^2.0.0
-        version: 2.0.0
       consola:
         specifier: ^3.2.3
         version: 3.2.3
@@ -191,6 +188,12 @@ importers:
 
   packages/sdk:
     dependencies:
+      '@coral-xyz/anchor':
+        specifier: ^0.30.1
+        version: 0.30.1(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      '@solana/web3.js':
+        specifier: ^1.95.3
+        version: 1.95.3(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       isomorphic-unfetch:
         specifier: ^4.0.2
         version: 4.0.2
