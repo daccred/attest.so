@@ -2,13 +2,13 @@ use anchor_lang::prelude::*;
 
 declare_id!("6G7K1oERceSXCFipTPpadvRmqAzxATCFWz1LfkBz5WcN");
 
+pub mod attestation;
 pub mod authority;
 pub mod registry;
-pub mod attestation;
 
+use attestation::*;
 use authority::*;
 use registry::*;
-use attestation::*;
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
@@ -49,42 +49,21 @@ pub mod attestso {
         Ok(())
     }
 
-        // Register a new attestation
-        pub fn create_attestation(
-            ctx: Context<Attest>,
-            data: String,
-            expiration_time: Option<i64>,
-            revocable: bool,
-        ) -> Result<()> {
-            attest(ctx, data, expiration_time, revocable)
-        }
-    
-        // Multi-attest
-        pub fn create_multi_attestation(ctx: Context<MultiAttest>, attestations: Vec<MultiAttestationData>) -> Result<()> {
-            multi_attest(ctx, attestations)
-        }
-    
-        // Delegated attestation
-        pub fn create_attestation_by_delegation(
-            ctx: Context<AttestByDelegation>,
-            request: DelegatedAttestationRequest,
-        ) -> Result<()> {
-            attest_by_delegation(ctx, request)
-        }
-    
-        // Multi-attest by delegation
-        pub fn create_multi_attestation_by_delegation(
-            ctx: Context<MultiAttestByDelegation>,
-            requests: Vec<DelegatedAttestationRequest>,
-        ) -> Result<()> {
-            multi_attest_by_delegation(ctx, requests)
-        }
-    
-        // Revoke an attestation by delegation
-        pub fn revoke_attestation_by_delegation(ctx: Context<RevokeByDelegation>, request: DelegatedAttestationRequest) -> Result<()> {
-            revoke_by_delegation(ctx, request)
-        }
+    // Register a new attestation
+    pub fn create_attestation(
+        ctx: Context<Attest>,
+        data: String,
+        ref_uid: Option<Pubkey>,
+        expiration_time: Option<i64>,
+        revocable: bool,
+    ) -> Result<()> {
+        attest(ctx, data, ref_uid,expiration_time, revocable)
+    }
 
+
+    pub fn revoke_attestation(ctx: Context<Revoke>) -> Result<()> {
+        revoke(ctx)
+    }
 
     // #[access_control(verify_admin(&ctx.accounts))]
     // pub fn perform_admin_action(ctx: Context<AdminAction>) -> Result<()> {

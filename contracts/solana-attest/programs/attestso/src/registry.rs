@@ -91,20 +91,6 @@ pub fn register_schema(
     Ok(uid)
 }
 
-/// Fetch a schema using the UID and return SchemaData.
-pub fn get_schema(ctx: Context<GetSchema>) -> Result<SchemaData> {
-    let schema_data = &ctx.accounts.schema_data;
-
-    // Return the full schema data.
-    Ok(SchemaData {
-        uid: schema_data.uid,
-        schema: schema_data.schema.clone(),
-        resolver: schema_data.resolver,
-        revocable: schema_data.revocable,
-        deployer: schema_data.deployer,
-    })
-}
-
 // Helper function to derive the schema's PDA.
 pub fn derive_schema_pda(
     deployer: &Pubkey,
