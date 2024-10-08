@@ -40,69 +40,58 @@ describe('attestso', () => {
     console.log('[attestso]:Program initialized with transaction signature:', tx)
   })
 
-  // Test 2: Register a new authority.
-  it('Registers a new authority', async () => {
-    // Derive the authorityRecord PDA
-    const [authorityRecordPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('authority'), authorityKeypair.publicKey.toBuffer()],
-      program.programId
-    )
-
-    console.log({ from: "[attestso::register new authority]>>>>>>>>>>>>>>>>>>>>", authorityRecordPDA })
-
-  //   pub struct AuthorityRecord {
-  //     pub authority: Pubkey,     // The public key of the authority (e.g., user).
-  //     pub is_verified: bool,     // Flag to check if the authority is verified by an admin.
-  //     pub first_deployment: i64, // Timestamp of their first schema deployment.
-  // }
-    const tx = await program.methods
-      .findOrSetAuthority()
-      .accounts({
-        authorityRecord: authorityRecordPDA,
-        authority: authorityKeypair.publicKey,
-        // systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([authorityKeypair]) // authority is a signer
-      .rpc()
-
-    console.log(
-      '[Registers a new authority]::::::::::::Authority registered with transaction signature:',
-      tx
-    )
-
-    // Check if the authority was registered correctly.
-    const authorityAccount = await program.account.authorityRecord.fetch(authorityRecordPDA);
-    expect(authorityAccount.authority.toBase58()).to.equal(authorityKeypair.publicKey.toBase58());
-    expect(authorityAccount.isVerified).to.be.false;
-  });
-
-  // Test 3: Update authority verification status.
-  it('Verifies an authority', async () => {
-    // Derive the authorityRecord PDA
-    const [authorityRecordPDA] = await PublicKey.findProgramAddress(
-      [Buffer.from('authority'), authorityKeypair.publicKey.toBuffer()],
-      program.programId
-    )
-
-    // Update the authority's verification status.
-    const tx = await program.methods
-      .updateAuthority(true)
-      .accounts({
-        authorityRecord: authorityRecordPDA,
-        admin: adminKeypair.publicKey, // Use adminKeypair
-      })
-      .signers([adminKeypair]) // Admin is the signer
-      .rpc()
-
-    console.log(
-      '[Verifies an authority]::::::::::::Authority verified with transaction signature:',
-      tx
-    )
-
-    // Verify that the authority's status is updated.
-    const authorityAccount = await program.account.authorityRecord.fetch(authorityRecordPDA);
-    expect(authorityAccount.isVerified).to.be.true;
-  });
+    // Test 2: Register a new authority.
+    it('///unit:test/// Registers a new authority', async () => {
+      // Derive the authorityRecord PDA
+      const [authorityRecordPDA, authorityRecordBump] = PublicKey.findProgramAddressSync(
+        [Buffer.from('authority'), authorityKeypair.publicKey.toBuffer()],
+        program.programId
+      );
+  
+      console.log('[attestso::register new authority]', { authorityRecordPDA: authorityRecordPDA.toBase58() });
+  
+      const tx = await program.methods
+        .findOrSetAuthority()
+        .accounts({
+          // authorityRecord: authorityRecordPDA,
+          authority: authorityKeypair.publicKey,
+        })
+        .signers([authorityKeypair])
+        .rpc();
+  
+      console.log('Authority registered with transaction signature:', tx);
+      console.log('[Fetch authority]>>>>>>>>>>>>>', await program.account.authorityRecord.fetch(authorityRecordPDA))
+  
+      // Check if the authority was registered correctly.
+      const authorityAccount = await program.account.authorityRecord.fetch(authorityRecordPDA);
+      expect(authorityAccount.authority.toBase58()).to.equal(authorityKeypair.publicKey.toBase58());
+      expect(authorityAccount.isVerified).to.be.false;
+    });
+  
+    // Test 3: Update authority verification status.
+    it('Verifies an authority', async () => {
+      // Derive the authorityRecord PDA
+      const [authorityRecordPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from('authority'), authorityKeypair.publicKey.toBuffer()],
+        program.programId
+      );
+  
+      // Update the authority's verification status.
+      const tx = await program.methods
+        .updateAuthority(true)
+        .accounts({
+          authorityRecord: authorityRecordPDA,
+          admin: adminKeypair.publicKey,
+        })
+        .signers([adminKeypair])
+        .rpc();
+  
+      console.log('Authority verified with transaction signature:', tx);
+  
+      // Verify that the authority's status is updated.
+      const authorityAccount = await program.account.authorityRecord.fetch(authorityRecordPDA);
+      expect(authorityAccount.isVerified).to.be.true;
+    });
 
   // Test 4: Register a new schema.
   it('Registers a new schema', async () => {
@@ -178,7 +167,7 @@ describe('attestso', () => {
 
 
   // Test 5: Fetch an existing schema.
-  it('Fetches a schema using UID', async () => {
+  it('///unit:test/// Fetches a schema using UID', async () => {
     const schemaAccount = await program.account.schemaData.fetch(schemaUID)
 
     console.log('[Fetches a schema using UID::Fetched Schema:', schemaAccount)

@@ -26,7 +26,7 @@ pub mod attestso {
         Ok(())
     }
 
-    pub fn find_or_set_authority(ctx: Context<RegisterAuthority>) -> Result<AuthorityRecord> {
+    pub fn find_or_set_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
         register_authority(ctx)
     }
 
@@ -40,8 +40,11 @@ pub mod attestso {
         schema: String,
         resolver: Option<Pubkey>, // Optional resolver address for external verification.
         revocable: bool,
-    ) -> Result<Pubkey> {
-        register_schema(ctx, schema_name, schema, resolver, revocable)
+    ) -> Result<()> {
+        let uid = register_schema(ctx, schema_name, schema, resolver, revocable);
+        msg!("Registered schema with UID: {:?}", uid);
+
+        Ok(())
     }
 
     // #[access_control(verify_admin(&ctx.accounts))]

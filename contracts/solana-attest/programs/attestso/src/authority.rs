@@ -8,10 +8,21 @@ pub struct AuthorityRecord {
     pub first_deployment: i64, // Timestamp of their first schema deployment.
 }
 
+impl AuthorityRecord {
+    pub const LEN: usize = 8 + 32 + 1 + 8; // Account discriminator + field sizes
+}
+
 #[event]
 pub struct VerifiedAuthoritySignal {
     authority: Pubkey,
     is_verified: bool,
+}
+
+#[event]
+pub struct NewAuthoritySignal {
+    authority: Pubkey,
+    is_verified: bool,
+    first_deployment: i64,
 }
 
 #[error_code]
@@ -20,17 +31,22 @@ pub enum AuthorityError {
     Unauthorized,
 }
 
-// Instruction context to register a new authority.
 #[derive(Accounts)]
+#[instruction()]
 pub struct RegisterAuthority<'info> {
-    #[account(init, payer = authority, space = 8 + 32 + 1 + 8)]
+    #[account(
+        init,
+        payer = authority,
+        seeds = [b"authority", authority.key().as_ref()],
+        bump,
+        space = AuthorityRecord::LEN,
+    )]
     pub authority_record: Account<'info, AuthorityRecord>,
     #[account(mut, signer)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
-// Instruction context to verify the authority by an admin.
 #[derive(Accounts)]
 pub struct VerifyAuthority<'info> {
     #[account(mut)]
@@ -41,28 +57,23 @@ pub struct VerifyAuthority<'info> {
 
 
 /// Finds or registers a new authority.
-pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<AuthorityRecord> {
+pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
     let authority_record = &mut ctx.accounts.authority_record;
 
-    // Only register if we don't have a record
-    if authority_record.authority != Pubkey::default() {
-        return Ok(AuthorityRecord {
-            authority: authority_record.authority,
-            is_verified: authority_record.is_verified,
-            first_deployment: authority_record.first_deployment,
-        });
+    if authority_record.authority == Pubkey::default() {
+        authority_record.authority = *ctx.accounts.authority.key;
+        authority_record.is_verified = false;
+        authority_record.first_deployment = Clock::get()?.unix_timestamp;
     }
 
-    authority_record.authority = *ctx.accounts.authority.key;
-    authority_record.is_verified = false;
-    authority_record.first_deployment = Clock::get()?.unix_timestamp as i64;
-
     // Return the AuthorityRecord struct itself
-    Ok(AuthorityRecord {
+    emit!(NewAuthoritySignal {
         authority: authority_record.authority,
         is_verified: authority_record.is_verified,
         first_deployment: authority_record.first_deployment,
-    })
+    });
+
+    Ok(())
 }
 
 

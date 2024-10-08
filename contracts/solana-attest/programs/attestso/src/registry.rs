@@ -27,7 +27,7 @@ pub struct RegisterSchema<'info> {
     #[account(mut)]
     pub deployer: Signer<'info>, // Deployer who creates the schema.
 
-    #[account(init, seeds = [b"schema", deployer.key().as_ref(), schema_name.as_bytes()], bump, payer = deployer, space = SchemaData::LEN)]
+    #[account(init_if_needed, seeds = [b"schema", deployer.key().as_ref(), schema_name.as_bytes()], bump, payer = deployer, space = SchemaData::LEN)]
     pub schema_data: Account<'info, SchemaData>, // Schema data stored at the derived PDA.
     pub system_program: Program<'info, System>,
 }
@@ -51,15 +51,11 @@ pub fn register_schema(
 ) -> Result<Pubkey> {
     let schema_data = &mut ctx.accounts.schema_data;
 
-    // if schema_data.to_account_info().lamports() > 0 {
-    //     return Err(RegistryError::SchemaAlreadyExists.into());
-    // }
-    
+    if schema_data.deployer != Pubkey::default() {
+        return Err(RegistryError::SchemaAlreadyExists.into());
+    }
 
-    // let (uid, _bump) = Pubkey::find_program_address(
-    //     &[b"schema", ctx.accounts.deployer.key.as_ref(), schema_name.as_bytes()],
-    //     ctx.program_id,
-    // );
+ 
     let (uid, _bump) = derive_schema_pda(ctx.accounts.deployer.key, schema_name, ctx.program_id);
 
     // Manual operation for schema resolution.
