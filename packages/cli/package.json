@@ -15,7 +15,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/kucherenko/cli-typescript-starter.git"
+    "url": "git+ssh://git@github.com/daccred/attest.so.git"
   },
   "scripts": {
     "build": "tsup-node",
@@ -41,7 +41,7 @@
     "cli",
     "bootstrap"
   ],
-  "author": "Andrey Kucherenko <kucherenko.andrey@gmail.com>",
+  "author": "Andrew Miracle <andrew@daccred.co>",
   "license": "MIT",
   "devDependencies": {
     "@commitlint/cli": "^18.6.1",

@@ -5,10 +5,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-attestso = "6G7K1oERceSXCFipTPpadvRmqAzxATCFWz1LfkBz5WcN"
+attestso = "3zqb9TDPZXQW3EWWokmrZtW7ic13caVmKZsQq3PK66Gm"
 
 [programs.localnet]
-attestso = "6G7K1oERceSXCFipTPpadvRmqAzxATCFWz1LfkBz5WcN"
+attestso = "3zqb9TDPZXQW3EWWokmrZtW7ic13caVmKZsQq3PK66Gm"
 
 [registry]
 url = "https://api.apr.dev"
