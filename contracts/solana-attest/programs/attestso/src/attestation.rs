@@ -1,7 +1,7 @@
 // attestation.rs
 
-use anchor_lang::prelude::*;
 use crate::registry::SchemaData;
+use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum AttestationError {
@@ -18,7 +18,6 @@ pub enum AttestationError {
     #[msg("Data too large.")]
     DataTooLarge,
 }
-
 
 #[event]
 pub struct Attested {
@@ -38,19 +37,18 @@ pub struct Revoked {
     time: i64,
 }
 
-
 #[account]
 pub struct Attestation {
-    pub schema: Pubkey,         // 32 bytes
-    pub recipient: Pubkey,      // 32 bytes
-    pub attester: Pubkey,       // 32 bytes
-    pub data: String,           // 4 bytes length prefix + data
-    pub time: i64,              // 8 bytes
-    pub ref_uid: Option<Pubkey>,        // 32 bytes (optional)
-    pub expiration_time: Option<i64>,  // 1 byte option tag + 8 bytes
-    pub revocation_time: Option<i64>,  // 1 byte option tag + 8 bytes
-    pub revocable: bool,        // 1 byte
-    pub uid: Pubkey,            // 32 bytes
+    pub schema: Pubkey,               // 32 bytes
+    pub recipient: Pubkey,            // 32 bytes
+    pub attester: Pubkey,             // 32 bytes
+    pub data: String,                 // 4 bytes length prefix + data
+    pub time: i64,                    // 8 bytes
+    pub ref_uid: Option<Pubkey>,      // 32 bytes (optional)
+    pub expiration_time: Option<i64>, // 1 byte option tag + 8 bytes
+    pub revocation_time: Option<i64>, // 1 byte option tag + 8 bytes
+    pub revocable: bool,              // 1 byte
+    pub uid: Pubkey,                  // 32 bytes
 }
 
 impl Attestation {
@@ -148,9 +146,14 @@ pub struct Revoke<'info> {
     pub attestation: Account<'info, Attestation>,
 }
 
-pub fn revoke(ctx: Context<Revoke>, _schema_uid:Pubkey, _recipient: Pubkey) -> Result<()> {
-
+pub fn revoke(ctx: Context<Revoke>, schema_uid: Pubkey, recipient: Pubkey) -> Result<()> {
     let attestation = &mut ctx.accounts.attestation;
+
+    // We use schema_uid in PDA derivation (already implicit in Revoke Struct)
+    let _ = schema_uid;
+
+    // Use recipient in PDA derivation (already implicit in Context<Revoke>)
+    let _ = recipient;
 
     // Ensure the attestation is revocable
     if !attestation.revocable {
@@ -173,7 +176,5 @@ pub fn revoke(ctx: Context<Revoke>, _schema_uid:Pubkey, _recipient: Pubkey) -> R
         time: attestation.time,
     });
 
-
     Ok(())
 }
-

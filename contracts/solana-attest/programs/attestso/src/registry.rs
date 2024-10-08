@@ -55,7 +55,6 @@ pub fn register_schema(
         return Err(RegistryError::SchemaAlreadyExists.into());
     }
 
- 
     let (uid, _bump) = derive_schema_pda(ctx.accounts.deployer.key, schema_name, ctx.program_id);
 
     // Manual operation for schema resolution.

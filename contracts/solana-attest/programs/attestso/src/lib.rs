@@ -57,11 +57,14 @@ pub mod attestso {
         expiration_time: Option<i64>,
         revocable: bool,
     ) -> Result<()> {
-        attest(ctx, data, ref_uid,expiration_time, revocable)
+        attest(ctx, data, ref_uid, expiration_time, revocable)
     }
 
-
-    pub fn revoke_attestation(ctx: Context<Revoke>, schema_uid: Pubkey, recipient: Pubkey) -> Result<()> {
+    pub fn revoke_attestation(
+        ctx: Context<Revoke>,
+        schema_uid: Pubkey,
+        recipient: Pubkey,
+    ) -> Result<()> {
         revoke(ctx, schema_uid, recipient)
     }
 

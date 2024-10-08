@@ -55,7 +55,6 @@ pub struct VerifyAuthority<'info> {
     pub admin: Signer<'info>, // The admin account
 }
 
-
 /// Finds or registers a new authority.
 pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
     let authority_record = &mut ctx.accounts.authority_record;
@@ -76,7 +75,6 @@ pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
     Ok(())
 }
 
-
 /// Verifies the authority (admin only).
 pub fn verify_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
     // let expected_admin_pubkey = Pubkey::from_str(ADMIN_PUBLIC_KEY).unwrap();
@@ -87,7 +85,6 @@ pub fn verify_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Res
     //     return Err(AuthorityError::Unauthorized.into());
     // }
 
-
     let authority_record = &mut ctx.accounts.authority_record;
     authority_record.is_verified = is_verified;
 
@@ -97,5 +94,4 @@ pub fn verify_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Res
     });
 
     Ok(())
-
 }
