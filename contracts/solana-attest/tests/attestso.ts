@@ -37,17 +37,24 @@ describe('attestso', () => {
   // Test 1: Initialize the program.
   it('Initializes the program', async () => {
     const tx = await program.methods.initialize().rpc()
-    console.log('Program initialized with transaction signature:', tx)
+    console.log('[attestso]:Program initialized with transaction signature:', tx)
   })
 
   // Test 2: Register a new authority.
   it('Registers a new authority', async () => {
     // Derive the authorityRecord PDA
-    const [authorityRecordPDA] = await PublicKey.findProgramAddress(
+    const [authorityRecordPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority'), authorityKeypair.publicKey.toBuffer()],
       program.programId
     )
 
+    console.log({ from: "[attestso::register new authority]>>>>>>>>>>>>>>>>>>>>", authorityRecordPDA })
+
+  //   pub struct AuthorityRecord {
+  //     pub authority: Pubkey,     // The public key of the authority (e.g., user).
+  //     pub is_verified: bool,     // Flag to check if the authority is verified by an admin.
+  //     pub first_deployment: i64, // Timestamp of their first schema deployment.
+  // }
     const tx = await program.methods
       .findOrSetAuthority()
       .accounts({
@@ -114,7 +121,6 @@ describe('attestso', () => {
       .register(schemaName, schemaContent, resolverAddress, revocable)
       .accounts({
         deployer: authorityKeypair.publicKey,
-        // schemaData: schemaDataPDA,
         // systemProgram: SystemProgram.programId,
       })
       .signers([authorityKeypair]) // Deployer is the authority and signer

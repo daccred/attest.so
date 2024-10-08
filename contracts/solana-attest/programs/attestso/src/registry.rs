@@ -51,9 +51,9 @@ pub fn register_schema(
 ) -> Result<Pubkey> {
     let schema_data = &mut ctx.accounts.schema_data;
 
-    if schema_data.to_account_info().lamports() > 0 {
-        return Err(RegistryError::SchemaAlreadyExists.into());
-    }
+    // if schema_data.to_account_info().lamports() > 0 {
+    //     return Err(RegistryError::SchemaAlreadyExists.into());
+    // }
     
 
     // let (uid, _bump) = Pubkey::find_program_address(
