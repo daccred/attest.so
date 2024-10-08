@@ -134,15 +134,21 @@ pub fn attest(
 }
 
 #[derive(Accounts)]
+#[instruction(schema_uid: Pubkey, recipient: Pubkey)]
 pub struct Revoke<'info> {
     #[account(mut)]
     pub attester: Signer<'info>,
-    #[account(mut, has_one = attester, has_one = schema)]
+    #[account(
+        mut,
+        seeds = [b"attestation", schema_uid.as_ref(), recipient.as_ref(), attester.key.as_ref()],
+        bump,
+        has_one = attester,
+        constraint = attestation.schema == schema_uid @ AttestationError::InvalidSchema,
+    )]
     pub attestation: Account<'info, Attestation>,
-    pub schema: Account<'info, SchemaData>,
 }
 
-pub fn revoke(ctx: Context<Revoke>) -> Result<()> {
+pub fn revoke(ctx: Context<Revoke>, _schema_uid:Pubkey, _recipient: Pubkey) -> Result<()> {
 
     let attestation = &mut ctx.accounts.attestation;
 
@@ -156,6 +162,9 @@ pub fn revoke(ctx: Context<Revoke>) -> Result<()> {
         return Err(AttestationError::AlreadyRevoked.into());
     }
 
+    // Set revocation time
+    attestation.revocation_time = Some(Clock::get()?.unix_timestamp);
+
     emit!(Revoked {
         schema: attestation.schema,
         recipient: attestation.recipient,
@@ -164,8 +173,6 @@ pub fn revoke(ctx: Context<Revoke>) -> Result<()> {
         time: attestation.time,
     });
 
-    // Set revocation time
-    attestation.revocation_time = Some(Clock::get()?.unix_timestamp);
 
     Ok(())
 }

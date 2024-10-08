@@ -61,8 +61,8 @@ pub mod attestso {
     }
 
 
-    pub fn revoke_attestation(ctx: Context<Revoke>) -> Result<()> {
-        revoke(ctx)
+    pub fn revoke_attestation(ctx: Context<Revoke>, schema_uid: Pubkey, recipient: Pubkey) -> Result<()> {
+        revoke(ctx, schema_uid, recipient)
     }
 
     // #[access_control(verify_admin(&ctx.accounts))]
