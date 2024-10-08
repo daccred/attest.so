@@ -1,46 +1,49 @@
-## Build and Publish SDK
+# AttestSDK
 
-### 1. Build the SDK
-Run the following command to generate the `dist` folder:
+AttestSDK is a JavaScript library for interacting with the Attest API, enabling easy management of schemas within the Solana blockchain.
 
-```bash
-npm run build
-```
+## Installation
 
-### 2. Create an NPM Account
-
-If you don’t have an NPM account, [create one here](https://www.npmjs.com/signup).
-
-
-### 3. Log in to NPM
-
-Log in from the command line in your project directory:
+You can install the package via npm:
 
 ```bash
-npm login
+npm install @peke65/attest-sdk
 ```
 
-### 4. Test Locally (Optional)
 
-If needed, test your package locally using:
 
-```bash
-npm link
+## Usage
+
+To use the SDK, you need to import it and create an instance of the `AttestSDK` class:
+
+```ts
+import AttestSDK from '@peke65/attest-sdk';
+
+async function run() {
+  const secretKey = [/* your secret key here */];
+
+  const client = new AttestSDK({
+    secretKey,
+  });
+
+  const res = await client.schema.register({
+    schemaName: 'schema-name',
+    schemaContent: '{"name": "example", "type": "object"}',
+  });
+
+  console.log({ res });
+
+  const res2 = await client.schema.fetch(res.data!.toBase58());
+
+  console.log({ res2 });
+}
+
+run();
+
 ```
-_Skipping this step here as everything appears to be working._
 
-### 5. Initialize NPM Scope
+## Features
+- **Register Schema:** Register a new schema with a name and content.
+- **Fetch Schema:** Retrieve an existing schema by its ID.
 
-Initialize with a scope
 
-```bash
-npm init --scope=<preferred_name>
-```
-
-### 6. Publish the Package
-
-Publish the package to the NPM registry:
-
-```bash
-npm publish --access=public
-```
