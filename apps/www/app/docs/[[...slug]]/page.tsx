@@ -67,12 +67,9 @@ export default function Page({
             Accordions,
             blockquote: Callout as unknown as FC<ComponentProps<'blockquote'>>,
             APIPage: openapi.APIPage,
-            HeadlessOnly:
-              params.slug[0] === 'headless' ? Fragment : () => undefined,
-            UIOnly: params.slug[0] === 'ui' ? Fragment : () => undefined,
           }}
         />
-        {('index' in page.data) && page.data.index ? (
+        {page.data && 'index' in page.data && page.data.index ? (
           <DocsCategory page={page} pages={utils.getPages()} />
         ) : null}
       </DocsBody>

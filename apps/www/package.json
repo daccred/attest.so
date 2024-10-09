@@ -1,5 +1,7 @@
 {
   "name": "www",
+  "description": "The attest.so documentation",
+  "keywords": ["attestation", "trust", "blockchain", "schema"],
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -30,5 +32,10 @@
     "postcss": "^8.4.45",
     "tailwindcss": "^3.4.10",
     "typescript": "^5.5.4"
+  },
+  "author": {
+    "name": "Joshua Omobola",
+    "email": "omobolathejoshua@gmail.com",
+    "url": "https://github.com/kohasummons"
   }
 }
