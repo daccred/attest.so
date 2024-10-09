@@ -6,38 +6,40 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 
+import { SolanaIcon, StarknetIcon, StellarIcon } from '@/components/ui/icon';
+
 export interface Mode {
     param: string;
     name: string;
     package: string;
     description: string;
     version: string;
-    icon: LucideIcon;
+    icon: LucideIcon | React.FC<React.SVGProps<SVGSVGElement>>;
 }
 
 export const modes: Mode[] = [
     {
         param: 'solana',
-        name: 'SOLANA',
-        package: 'fumadocs-core',
-        description: '',
+        name: 'Solana',
+        package: 'Solana',
+        description: 'Solana Attestation Service',
         version: '13.4.10',
-        icon: LibraryIcon,
+        icon: SolanaIcon,
     },
     {
         param: 'stellar',
-        name: 'STELLAR',
-        package: 'fumadocs-ui',
-        description: 'The user interface',
+        name: 'Stellar',
+        package: 'Stellar',
+        description: 'Stellar Attestation Service',
         version: '13.4.10',
-        icon: LayoutIcon,
+        icon: StellarIcon,
     },
     {
         param: 'starknet',
-        name: 'STARKNET',
-        package: 'fumadocs-mdx',
-        description: 'Built-in source provider',
+        name: 'Starknet',
+        package: 'Starknet',
+        description: 'Attest on Starknet',
         version: '13.4.10',
-        icon: PaperclipIcon,
+        icon: StarknetIcon,
     },
 ];
