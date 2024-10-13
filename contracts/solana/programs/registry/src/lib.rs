@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
 
-declare_id!("7yyVeiJbSJT6mot6FLqNufBc8ycEqp9S2R3FAJhgJwtj");
+declare_id!("BX5fRierpB6rHNREARgupoB14pjdaeGYvkQkFreseKYh");
 
 #[program]
-pub mod resolver {
+pub mod schema_registry {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {

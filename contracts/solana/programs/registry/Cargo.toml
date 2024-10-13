@@ -1,12 +1,12 @@
 [package]
-name = "resolver"
+name = "registry"
 version = "0.1.0"
-description = "Created with Anchor"
+description = "Schema registry program for the attestation service"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "resolver"
+name = "schema_registry"
 
 [features]
 default = []

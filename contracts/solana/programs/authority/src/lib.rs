@@ -1,14 +1,8 @@
 use anchor_lang::prelude::*;
+declare_id!("A8yA94Pr6urSgTLkQsa45U1RGqmTC8r4f3sm5zNCPRX9");
 
-declare_id!("CBhbYHvMuabwrjG9U9B3Q8jGHyw8eNbSL7YRjHrfS3mf");
-
-pub mod attestation;
-pub mod authority;
-pub mod registry;
-
-use attestation::*;
-use authority::*;
-use registry::*;
+pub mod sdk;
+use sdk::*;
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
@@ -20,7 +14,7 @@ solana_security_txt::security_txt! {
 }
 
 #[program]
-pub mod solana_attestation_service {
+pub mod authority_resolver {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
@@ -34,38 +28,6 @@ pub mod solana_attestation_service {
 
     pub fn update_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
         verify_authority(ctx, is_verified)
-    }
-
-    pub fn register(
-        ctx: Context<RegisterSchema>,
-        schema_name: String,
-        schema: String,
-        resolver: Option<Pubkey>, // Optional resolver address for external verification.
-        revocable: bool,
-    ) -> Result<()> {
-        let uid = register_schema(ctx, schema_name, schema, resolver, revocable);
-        msg!("Registered schema with UID: {:?}", uid);
-
-        Ok(())
-    }
-
-    // Register a new attestation
-    pub fn create_attestation(
-        ctx: Context<Attest>,
-        data: String,
-        ref_uid: Option<Pubkey>,
-        expiration_time: Option<i64>,
-        revocable: bool,
-    ) -> Result<()> {
-        attest(ctx, data, ref_uid, expiration_time, revocable)
-    }
-
-    pub fn revoke_attestation(
-        ctx: Context<Revoke>,
-        schema_uid: Pubkey,
-        recipient: Pubkey,
-    ) -> Result<()> {
-        revoke(ctx, schema_uid, recipient)
     }
 
     // #[access_control(verify_admin(&ctx.accounts))]

@@ -1,12 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { Resolver } from "../target/types/resolver";
+import { SchemaRegistry } from "../target/types/schema_registry";
 
 describe("resolver", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
-  const program = anchor.workspace.Resolver as Program<Resolver>;
+  const program = anchor.workspace.SchemaRegistry as Program<SchemaRegistry>;
 
   it("Is initialized!", async () => {
     // Add your test here.
