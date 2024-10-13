@@ -1,15 +1,15 @@
 import * as anchor from '@coral-xyz/anchor'
 import { PublicKey, SystemProgram } from '@solana/web3.js'
 import { Program } from '@coral-xyz/anchor'
-import { Attestso } from '../target/types/attestso'
+import { SolanaAttestationService } from '../target/types/solana_attestation_service'
 import { expect } from './_expect';
 
-describe('attestso', () => {
+describe('SolanaAttestationService', () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.Attestso as Program<Attestso>;
+  const program = anchor.workspace.SolanaAttestationService as Program<SolanaAttestationService>;
 
   // Generate keypairs
   const authorityKeypair = anchor.web3.Keypair.generate();
@@ -36,7 +36,7 @@ describe('attestso', () => {
   // Test 1: Initialize the program.
   it('Initializes the program', async () => {
     const tx = await program.methods.initialize().rpc()
-    console.log('[attestso]:Program initialized with transaction signature:', tx)
+    console.log('[@attestso/solana-attestation-service]:Program initialized with transaction signature:', tx)
   })
 
     // Test 2: Register a new authority.
@@ -47,7 +47,7 @@ describe('attestso', () => {
         program.programId
       );
   
-      console.log('[attestso::register new authority]', { authorityRecordPDA: authorityRecordPDA.toBase58() });
+      console.log('[@attestso/solana-attestation-service::register new authority]', { authorityRecordPDA: authorityRecordPDA.toBase58() });
   
       const tx = await program.methods
         .findOrSetAuthority()

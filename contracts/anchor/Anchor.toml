@@ -5,10 +5,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-attestso = "3zqb9TDPZXQW3EWWokmrZtW7ic13caVmKZsQq3PK66Gm"
+solana_attestation_service = "CBhbYHvMuabwrjG9U9B3Q8jGHyw8eNbSL7YRjHrfS3mf"
 
 [programs.localnet]
-attestso = "3zqb9TDPZXQW3EWWokmrZtW7ic13caVmKZsQq3PK66Gm"
+solana_attestation_service = "CBhbYHvMuabwrjG9U9B3Q8jGHyw8eNbSL7YRjHrfS3mf"
 
 [registry]
 url = "https://api.apr.dev"
@@ -27,6 +27,5 @@ upgradeable = false
 
 [test.validator]
 bind_address = "0.0.0.0"
-url = "http://127.0.0.1:8899"
 ledger = ".anchor/test-ledger"
 rpc_port = 8899

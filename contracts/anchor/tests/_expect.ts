@@ -1,5 +1,3 @@
-// expect-util.ts
-
 export class Expectation<T> {
   constructor(private actual: T) {}
 
