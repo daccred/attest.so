@@ -3,12 +3,8 @@ use anchor_lang::prelude::*;
 declare_id!("BLAJAawBXtBvPnvfNB5drNWgYGWQ7aGseg1YpbhhoH5D");
 
 pub mod attestation;
-pub mod authority;
-pub mod registry;
 
 use attestation::*;
-use authority::*;
-use registry::*;
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
@@ -25,27 +21,6 @@ pub mod solana_attestation_service {
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         msg!("Program initialized with ID: {:?}", ctx.program_id);
-        Ok(())
-    }
-
-    pub fn find_or_set_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
-        register_authority(ctx)
-    }
-
-    pub fn update_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
-        verify_authority(ctx, is_verified)
-    }
-
-    pub fn register(
-        ctx: Context<RegisterSchema>,
-        schema_name: String,
-        schema: String,
-        resolver: Option<Pubkey>, // Optional resolver address for external verification.
-        revocable: bool,
-    ) -> Result<()> {
-        let uid = register_schema(ctx, schema_name, schema, resolver, revocable);
-        msg!("Registered schema with UID: {:?}", uid);
-
         Ok(())
     }
 

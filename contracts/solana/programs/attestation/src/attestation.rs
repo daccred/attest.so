@@ -1,7 +1,19 @@
-// attestation.rs
-
-use crate::registry::SchemaData;
 use anchor_lang::prelude::*;
+
+#[account]
+pub struct SchemaData {
+    /// Generate PDA as reference key.
+    pub uid: Pubkey,              
+    /// The actual schema data (e.g., JSON, XML, etc.).
+    pub schema: String,           
+    /// Resolver address (another contract) for schema verification.
+    pub resolver: Option<Pubkey>, 
+    /// Indicates whether the schema is revocable.
+    pub revocable: bool,          
+    /// The deployer/authority who created the schema.
+    pub deployer: Pubkey,         
+}
+
 
 #[error_code]
 pub enum AttestationError {
@@ -107,6 +119,7 @@ pub fn attest(
         }
     }
 
+   
     // Populate attestation fields
     attestation.schema = schema_data.uid;
     attestation.recipient = *ctx.accounts.recipient.key;
