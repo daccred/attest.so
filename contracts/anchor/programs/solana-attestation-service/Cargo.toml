@@ -1,12 +1,12 @@
 [package]
-name = "attestso"
+name = "solana-attestation-service"
 version = "0.1.1"
-description = "Attestation Service Portal on Solana"
+description = "Attestation Service Program on Solana"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "attestso"
+name = "solana_attestation_service"
 
 [features]
 default = []

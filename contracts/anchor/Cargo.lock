@@ -351,14 +351,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
-name = "attestso"
-version = "0.1.1"
-dependencies = [
- "anchor-lang",
- "solana-security-txt",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1505,6 +1497,14 @@ name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+
+[[package]]
+name = "solana-attestation-service"
+version = "0.1.1"
+dependencies = [
+ "anchor-lang",
+ "solana-security-txt",
+]
 
 [[package]]
 name = "solana-frozen-abi"

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("3zqb9TDPZXQW3EWWokmrZtW7ic13caVmKZsQq3PK66Gm");
+declare_id!("5q5k73dQB2utZFgVW5nwPe6NiaVo9Hefpz5hMoCW25z1");
 
 pub mod attestation;
 pub mod authority;
@@ -20,7 +20,7 @@ solana_security_txt::security_txt! {
 }
 
 #[program]
-pub mod attestso {
+pub mod solana_attestation_service {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
