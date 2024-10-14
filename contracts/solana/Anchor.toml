@@ -4,11 +4,11 @@
 resolution = true
 skip-lint = false
 
-[programs.devnet]
-solana_attestation_service = "CBhbYHvMuabwrjG9U9B3Q8jGHyw8eNbSL7YRjHrfS3mf"
+# [programs.devnet]
+# solana_attestation_service = "CBhbYHvMuabwrjG9U9B3Q8jGHyw8eNbSL7YRjHrfS3mf"
 
-[programs.localnet]
-solana_attestation_service = "CBhbYHvMuabwrjG9U9B3Q8jGHyw8eNbSL7YRjHrfS3mf"
+# [programs.localnet]
+# solana_attestation_service = "CBhbYHvMuabwrjG9U9B3Q8jGHyw8eNbSL7YRjHrfS3mf"
 
 [registry]
 url = "https://api.apr.dev"
@@ -18,7 +18,7 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "pnpm ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [test]
 startup_wait = 5000
