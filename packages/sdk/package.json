@@ -1,6 +1,6 @@
 {
-  "name": "@attest/sdk",
-  "version": "0.0.1",
+  "name": "@peke65/attest-sdk",
+  "version": "0.0.3",
   "description": "`npm run build`",
   "main": "dist/index.js",
   "module": "dist/index.m.js",
@@ -8,7 +8,9 @@
   "types": "dist/index.d.ts",
   "exports": {
     "require": "./dist/index.js",
-    "default": "./dist/index.modern.js"
+    "default": "./dist/index.modern.js",
+    "import": "./dist/index.js",
+    "types": "./dist/index.d.ts"
   },
   "scripts": {
     "build": "rm -rf dist && microbundle --tsconfig tsconfig.json --no-sourcemap",
@@ -23,9 +25,20 @@
     "ts-node": "^10.9.2"
   },
   "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/web3.js": "^1.95.3",
     "isomorphic-unfetch": "^4.0.2"
   },
-  "files": [
-    "dist"
-  ]
+  "files": ["dist"],
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daccred/attest.so.git"
+  },
+  "bugs": {
+    "url": "https://github.com/daccred/attest.so/issues"
+  },
+  "homepage": "https://github.com/daccred/attest.so#readme"
 }

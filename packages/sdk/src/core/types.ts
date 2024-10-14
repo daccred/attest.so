@@ -4,17 +4,18 @@
  */
 export type AttestSDKResponse<T = undefined> =
   | {
-      data: T;
-      error?: undefined;
+      data: T
+      error?: undefined
     }
   | {
-      data?: undefined;
-      error: any;
-    };
+      data?: undefined
+      error: any
+    }
 
 /**
  * AttestSDKBaseConfig type definition.
  */
 export type AttestSDKBaseConfig = {
-  privateKey?: string;
-};
+  secretKey: number[]
+  url?: string
+}

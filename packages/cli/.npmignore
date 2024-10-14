@@ -1,0 +1,14 @@
+src
+tsconfig.json
+.prettierrc
+.eslintignore
+.eslint.cjs
+.env.example
+.releaserc.json
+commitlint.config.js
+jest.config.js
+tsup.config.ts
+coverage
+.idea
+.editorconfig
+.fleet

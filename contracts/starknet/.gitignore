@@ -1,0 +1,8 @@
+target
+.snfoundry_cache/
+node_modules
+typechain-types
+keystore
+account
+.env
+amend*

@@ -1,0 +1,12 @@
+# pnpm-workspace.yaml
+packages:
+  # executable/launchable applications and docs
+  - 'apps/*'
+  # all packages in direct subdirs of packages/
+  - 'packages/*'
+  # all smart contract implementations
+  - 'contracts/**'
+  # exclude packages that are inside test directories
+  - '!**/test/**'
+  # exclude packages that are inside test directories
+  - '!**/examples/**'

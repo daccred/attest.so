@@ -1,0 +1,313 @@
+{
+  "address": "BwTpLDj7ZHfqRN4PtC3gqXUcpsW7cfTU7uw557pxUcmx",
+  "metadata": {
+    "name": "attestso",
+    "version": "0.1.1",
+    "spec": "0.1.0",
+    "description": "Attestation Service Portal on Solana"
+  },
+  "instructions": [
+    {
+      "name": "find_or_set_authority",
+      "discriminator": [
+        243,
+        53,
+        202,
+        21,
+        4,
+        52,
+        133,
+        31
+      ],
+      "accounts": [
+        {
+          "name": "authority_record",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [],
+      "returns": {
+        "defined": {
+          "name": "AuthorityRecord"
+        }
+      }
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [],
+      "args": []
+    },
+    {
+      "name": "register",
+      "discriminator": [
+        211,
+        124,
+        67,
+        15,
+        211,
+        194,
+        178,
+        240
+      ],
+      "accounts": [
+        {
+          "name": "deployer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "schema_data",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  109,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "deployer"
+              },
+              {
+                "kind": "arg",
+                "path": "schema_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "schema_name",
+          "type": "string"
+        },
+        {
+          "name": "schema",
+          "type": "string"
+        },
+        {
+          "name": "resolver",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "revocable",
+          "type": "bool"
+        }
+      ],
+      "returns": "pubkey"
+    },
+    {
+      "name": "update_authority",
+      "discriminator": [
+        32,
+        46,
+        64,
+        28,
+        149,
+        75,
+        243,
+        88
+      ],
+      "accounts": [
+        {
+          "name": "authority_record",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "is_verified",
+          "type": "bool"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "AuthorityRecord",
+      "discriminator": [
+        177,
+        116,
+        28,
+        129,
+        149,
+        56,
+        73,
+        128
+      ]
+    },
+    {
+      "name": "SchemaData",
+      "discriminator": [
+        193,
+        151,
+        116,
+        128,
+        165,
+        185,
+        163,
+        24
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "NewSchemaSignal",
+      "discriminator": [
+        14,
+        172,
+        236,
+        29,
+        123,
+        163,
+        125,
+        205
+      ]
+    },
+    {
+      "name": "VerifiedAuthoritySignal",
+      "discriminator": [
+        29,
+        89,
+        201,
+        80,
+        124,
+        83,
+        72,
+        169
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized operation: Only admin can perform this action."
+    }
+  ],
+  "types": [
+    {
+      "name": "AuthorityRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_verified",
+            "type": "bool"
+          },
+          {
+            "name": "first_deployment",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NewSchemaSignal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "uid",
+            "type": "pubkey"
+          },
+          {
+            "name": "schema_data",
+            "type": {
+              "defined": {
+                "name": "SchemaData"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SchemaData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "uid",
+            "type": "pubkey"
+          },
+          {
+            "name": "schema",
+            "type": "string"
+          },
+          {
+            "name": "resolver",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "revocable",
+            "type": "bool"
+          },
+          {
+            "name": "deployer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VerifiedAuthoritySignal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_verified",
+            "type": "bool"
+          }
+        ]
+      }
+    }
+  ]
+}

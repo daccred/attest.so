@@ -1,10 +1,7 @@
-import { AttestSDKResponse } from '../core/types';
-import { AttestSDKBase } from '../core';
-import {
-  CreateSchemaProps,
-  GetAllSchemaUIDsProps,
-  GetSchemaProps,
-} from './props';
+import { AttestSDKResponse } from '../core/types'
+import { AttestSDKBase } from '../core'
+import { PublicKey } from '@solana/web3.js'
+
 export class Schemas extends AttestSDKBase {
   /**
    * Creates and registers a new schema with an optional reference schema.
@@ -14,32 +11,33 @@ export class Schemas extends AttestSDKBase {
    *    - reference?: An optional reference schema to validate against.
    * @returns A promise that resolves to an AttestSDKResponse object containing the unique identifier (UID) of the registered schema or an error message if validation fails.
    */
-  async create(props: CreateSchemaProps): Promise<AttestSDKResponse<string>> {
-    const { schema, reference, resolver } = props;
+  async register({
+    schemaName,
+    schemaContent,
+    resolverAddress = null,
+    revocable = true,
+  }: {
+    schemaName: string
+    schemaContent: string
+    resolverAddress?: PublicKey | null
+    revocable?: boolean
+  }): Promise<AttestSDKResponse<PublicKey>> {
+    try {
+      const res = await this.registerSchema({
+        schemaName,
+        schemaContent,
+        resolverAddress,
+        revocable,
+      })
 
-    const schemaIsValid = await this.validateSchema(schema);
-
-    if (!schemaIsValid) {
       return {
-        error: 'Invalid schema',
-      };
-    }
-
-    if (reference) {
-      const referenceIsValid = await this.validateSchema(reference);
-
-      if (!referenceIsValid) {
-        return {
-          error: 'Invalid reference',
-        };
+        data: res,
+      }
+    } catch (err) {
+      return {
+        error: err,
       }
     }
-
-    const uid = await this.storeSchema(schema);
-
-    return {
-      data: uid,
-    };
   }
 
   /**
@@ -49,20 +47,18 @@ export class Schemas extends AttestSDKBase {
    *    - uid: The unique identifier of the schema to be retrieved.
    * @returns A promise that resolves to an AttestSDKResponse object containing the schema or an error message if the schema is not found.
    */
-  async get(props: GetSchemaProps): Promise<AttestSDKResponse<string>> {
-    const { uid } = props;
+  async fetch(schemaUID: string): Promise<AttestSDKResponse<string>> {
+    try {
+      const res = await this.fetchSchema(schemaUID)
 
-    const schema = await this.fetchSchema(uid);
-
-    if (!schema) {
       return {
-        error: 'Schema not found',
-      };
+        data: res,
+      }
+    } catch (err) {
+      return {
+        error: err,
+      }
     }
-
-    return {
-      data: schema,
-    };
   }
 
   /**
@@ -72,15 +68,12 @@ export class Schemas extends AttestSDKBase {
    *    - uids: An optional array of UIDs to filter the retrieval.
    * @returns A promise that resolves to an AttestSDKResponse object containing an array of schema UIDs.
    */
-  protected async getAllUIDs(
-    props: GetAllSchemaUIDsProps,
-  ): Promise<AttestSDKResponse<string[]>> {
-    const { uids } = props;
-    const schemaUIDs = await this.fetchAllSchemaUIDs(uids);
+  protected async getAllUIDs(): Promise<AttestSDKResponse<string[]>> {
+    const uids = await this.fetchAllSchemaUIDs()
 
     return {
-      data: schemaUIDs,
-    };
+      data: uids,
+    }
   }
 
   /**
@@ -89,10 +82,10 @@ export class Schemas extends AttestSDKBase {
    * @returns A promise that resolves to an AttestSDKResponse object containing an array of all schema records.
    */
   protected async getAllSchemaRecords(): Promise<AttestSDKResponse<string[]>> {
-    const records = await this.fetchAllSchemaRecords();
+    const records = await this.fetchAllSchemaRecords()
 
     return {
       data: records,
-    };
+    }
   }
 }
