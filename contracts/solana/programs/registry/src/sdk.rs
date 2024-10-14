@@ -3,23 +3,23 @@ use anchor_lang::prelude::*;
 #[event]
 pub struct RegisteredSchema {
     /// The generated UID for the schema (PDA).
-    pub uid: Pubkey,             
+    pub uid: Pubkey,
     /// Full schema data including schema, resolver, revocable, and deployer.
-    pub schema_data: SchemaData, 
+    pub schema_data: SchemaData,
 }
 
 #[account]
 pub struct SchemaData {
     /// Generate PDA as reference key.
-    pub uid: Pubkey,              
+    pub uid: Pubkey,
     /// The actual schema data (e.g., JSON, XML, etc.).
-    pub schema: String,           
+    pub schema: String,
     /// Resolver address (another contract) for schema verification.
-    pub resolver: Option<Pubkey>, 
+    pub resolver: Option<Pubkey>,
     /// Indicates whether the schema is revocable.
-    pub revocable: bool,          
+    pub revocable: bool,
     /// The deployer/authority who created the schema.
-    pub deployer: Pubkey,         
+    pub deployer: Pubkey,
 }
 
 #[error_code]
@@ -30,18 +30,25 @@ pub enum RegistryError {
 
 #[derive(Accounts)]
 /// Pass schema_name as an instruction argument.
-#[instruction(schema_name: String)] 
+#[instruction(schema_name: String)]
 pub struct RegisterSchema<'info> {
     #[account(mut)]
     /// Deployer who creates the schema.
-    pub deployer: Signer<'info>, 
+    pub deployer: Signer<'info>,
 
     /// Schema data stored at the derived PDA.
     #[account(init_if_needed, seeds = [b"schema", deployer.key().as_ref(), schema_name.as_bytes()], bump, payer = deployer, space = SchemaData::LEN)]
-    pub schema_data: Account<'info, SchemaData>, 
+    // #[account(
+    //     init,
+    //     payer = deployer,
+    //     space = SchemaData::LEN,
+    //     seeds = [b"schema", deployer.key().as_ref(), schema_name.as_bytes()],
+    //     bump,
+    //     owner = schema_registry_program_id  // Explicitly set the owner here to ensure it is managed by the registry program
+    // )]
+    pub schema_data: Account<'info, SchemaData>,
     pub system_program: Program<'info, System>,
 }
-
 
 impl SchemaData {
     pub const LEN: usize = 8 + 32 + 1 + 200 + 32;
@@ -125,7 +132,6 @@ pub fn register_schema(
 
     Ok(uid)
 }
-
 
 /// Derives the Program Derived Address (PDA) for a schema.
 ///
