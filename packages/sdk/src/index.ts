@@ -9,7 +9,6 @@ class AttestSDK {
   /**
    * The configuration for the AttestSDK.
    */
-  private config: AttestSDKBaseConfig;
   /**
    * An instance of Attestations for managing attestations.
    */
@@ -24,10 +23,9 @@ class AttestSDK {
    *
    * @param config The configuration for the AttestSDK.
    */
-  constructor(config: AttestSDKBaseConfig) {
-    this.config = config;
-    this.attestation = new Attestations(this.config);
-    this.schema = new Schemas(this.config);
+  constructor(config: Omit<AttestSDKBaseConfig, 'idl'>) {
+    this.attestation = new Attestations(config)
+    this.schema = new Schemas(config)
   }
 }
 

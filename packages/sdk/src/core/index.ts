@@ -1,32 +1,35 @@
-import { AttestSDKBaseConfig, AttestSDKResponse } from './types'
-import { Connection, Keypair, PublicKey } from '@solana/web3.js'
+import { AttestSDKBaseConfig, AttestSDKResponse, SchemaRecord, WalletNetwork } from './types'
+import { Connection } from '@solana/web3.js'
 import * as anchor from '@coral-xyz/anchor'
-import idl from './idl.json'
+import {
+  HELIUS_DEVNET_URL,
+  HELIUS_MAINNET_URL,
+  SOLANA_DEVNET_URL,
+  SOLANA_MAINNET_URL,
+  SOLANA_TESTNET_URL,
+} from './constants'
 
-const authorityPair = [
-  113, 7, 155, 214, 148, 126, 181, 107, 120, 44, 193, 72, 169, 185, 218, 216, 104, 3, 106, 237, 40,
-  195, 35, 191, 40, 51, 61, 70, 37, 168, 34, 68, 182, 64, 112, 205, 55, 248, 241, 213, 45, 191, 199,
-  3, 183, 58, 48, 133, 131, 2, 110, 253, 146, 222, 31, 123, 18, 73, 114, 55, 78, 185, 101, 68,
-]
-
-const authorityKeypair = Keypair.fromSecretKey(Uint8Array.from(authorityPair))
-
-export abstract class AttestSDKBase {
-  private connection!: Connection
-  private wallet!: anchor.Wallet
-  private program!: any
+export abstract class AttestSDKBase<T extends anchor.Idl> {
+  protected connection: Connection
+  protected wallet: anchor.Wallet
+  protected program: anchor.Program<T>
 
   protected DEFAULT_RESOLVER = 'https://schema.attest.so/resolver'
 
+  private heliusAPIKey: string
+  private heliusUrl: string
+
   constructor(config: AttestSDKBaseConfig) {
     this.connection = new anchor.web3.Connection(
-      config.url ?? 'https://api.devnet.solana.com',
+      config.url ?? config.network === WalletNetwork.MAINNET
+        ? SOLANA_MAINNET_URL
+        : config.network === WalletNetwork.DEVNET
+        ? SOLANA_DEVNET_URL
+        : SOLANA_TESTNET_URL,
       'confirmed'
     )
 
-    const walletKeypair = Keypair.fromSecretKey(Uint8Array.from(config.secretKey))
-
-    this.wallet = new anchor.Wallet(walletKeypair)
+    this.wallet = config.wallet
 
     const provider = new anchor.AnchorProvider(this.connection, this.wallet, {
       commitment: 'confirmed',
@@ -34,48 +37,12 @@ export abstract class AttestSDKBase {
 
     anchor.setProvider(provider)
 
-    this.program = new anchor.Program(idl as anchor.Idl) as any
-  }
+    this.program = new anchor.Program(config.idl as anchor.Idl) as any as anchor.Program<T>
 
-  protected async initialize(): Promise<string> {
-    const tx = await this.program.methods.initialize().rpc()
+    this.heliusAPIKey = config.heliusAPIKey ?? 'helius-api-key'
 
-    return tx
-  }
-
-  protected async registerSchema({
-    schemaName,
-    schemaContent,
-    resolverAddress = null,
-    revocable = true,
-  }: {
-    schemaName: string
-    schemaContent: string
-    resolverAddress?: PublicKey | null
-    revocable?: boolean
-  }): Promise<PublicKey> {
-    const [schemaDataPDA] = await PublicKey.findProgramAddress(
-      [Buffer.from('schema'), authorityKeypair.publicKey.toBuffer(), Buffer.from(schemaName)],
-      this.program.programId
-    )
-
-    const tx = await this.program.methods
-      .register(schemaName, schemaContent, resolverAddress, revocable)
-      .accounts({
-        deployer: authorityKeypair.publicKey,
-        // schemaData: schemaDataPDA,
-        // systemProgram: SystemProgram.programId,
-      })
-      .signers([authorityKeypair]) // Deployer is the authority and signer
-      .rpc()
-
-    return schemaDataPDA
-  }
-
-  protected async fetchSchema(schemaUID: string): Promise<string> {
-    const schemaAccount = await this.program.account.schemaData.fetch(schemaUID)
-
-    return schemaAccount.schema
+    this.heliusUrl =
+      config.network === WalletNetwork.MAINNET ? HELIUS_MAINNET_URL : HELIUS_DEVNET_URL
   }
 
   protected async generateUID(): Promise<string> {
@@ -176,13 +143,69 @@ export abstract class AttestSDKBase {
     return 0
   }
 
-  protected async fetchAllSchemaUIDs(uids?: string[]): Promise<string[]> {
-    // Implementation to fetch all schema UIDs
-    return []
+  protected async fetchAllSchemaForWallet(): Promise<AttestSDKResponse<SchemaRecord[]>> {
+    const url = `${
+      this.heliusUrl
+    }/addresses/${this.wallet.publicKey.toBase58()}/transactions?api-key=${
+      this.heliusAPIKey
+    }&type=UNKNOWN`
+
+    const response = await fetch(url)
+    if (response.ok) {
+      const res = await response.json()
+
+      const data = res.map((x: any) => {
+        return {
+          slot: x.slot,
+          timestamp: x.timestamp,
+          signature: x.signature,
+          fee: x.fee,
+          feePayer: x.feePayer,
+          type: x.type,
+          source: x.source,
+          description: x.description,
+          schemaAccount: x.nativeTransfers[0].toUserAccount,
+        }
+      })
+
+      return { data }
+    }
+
+    return {
+      error: response.statusText,
+    }
   }
 
-  protected async fetchAllSchemaRecords(): Promise<string[]> {
-    // Implementation to fetch all schema records
-    return []
+  protected async fetchAllSchemaRecords(): Promise<AttestSDKResponse<SchemaRecord[]>> {
+    const url = `${
+      this.heliusUrl
+    }/addresses/${this.program.programId.toBase58()}/transactions?api-key=${
+      this.heliusAPIKey
+    }&type=UNKNOWN`
+
+    const response = await fetch(url)
+    if (response.ok) {
+      const res = await response.json()
+
+      const data = res.map((x: any) => {
+        return {
+          slot: x.slot,
+          timestamp: x.timestamp,
+          signature: x.signature,
+          fee: x.fee,
+          feePayer: x.feePayer,
+          type: x.type,
+          source: x.source,
+          description: x.description,
+          schemaAccount: x.nativeTransfers[0].toUserAccount,
+        }
+      })
+
+      return { data }
+    }
+
+    return {
+      error: response.statusText,
+    }
   }
 }
