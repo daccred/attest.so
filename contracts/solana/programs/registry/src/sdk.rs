@@ -55,7 +55,7 @@ impl SchemaData {
     // 8 bytes for account discriminator,
     // 32 bytes for uid,
     // 1 byte for revocable,
-    // 200 bytes for schema string (adjust as needed),
+    // 200 bytes for schema string,
     // 32 bytes for deployer pubkey.
 }
 

@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-declare_id!("BvUeiU9rHjTDFxVdVETvpsfPekp8K9Cr38wwuuCEgwnT");
+declare_id!("DpfLHN7jZToNzrk93gowVT1nED5JHqaqwUCFBGbWUv7M");
 
 pub mod sdk;
 use sdk::*;
