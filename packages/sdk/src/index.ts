@@ -1,6 +1,6 @@
-import { Attestations } from './attestations';
-import { AttestSDKBaseConfig } from './core/types';
-import { Schemas } from './schemas';
+import { Attestations } from './attestations'
+import { AttestSDKBaseConfig } from './core/types'
+import { Schemas } from './schemas'
 
 /**
  * Represents the AttestSDK, which provides access to attestations and schemas.
@@ -12,11 +12,11 @@ class AttestSDK {
   /**
    * An instance of Attestations for managing attestations.
    */
-  attestation: Attestations;
+  attestation: Attestations
   /**
    * An instance of Schemas for managing schemas.
    */
-  schema: Schemas;
+  schema: Schemas
 
   /**
    * Initializes a new instance of the AttestSDK with the provided configuration.
@@ -29,4 +29,5 @@ class AttestSDK {
   }
 }
 
-export default AttestSDK;
+export { AttestSDK }
+export default AttestSDK

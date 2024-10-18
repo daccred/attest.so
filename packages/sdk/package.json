@@ -1,20 +1,21 @@
 {
   "name": "@peke65/attest-sdk",
-  "version": "0.0.3",
-  "description": "`npm run build`",
+  "version": "0.0.7",
+  "description": "Attest SDK for Solana",
   "main": "dist/index.js",
-  "module": "dist/index.m.js",
+  "module": "dist/index.modern.mjs",
   "unpkg": "dist/index.umd.js",
   "types": "dist/index.d.ts",
   "exports": {
-    "require": "./dist/index.js",
-    "default": "./dist/index.modern.js",
-    "import": "./dist/index.js",
-    "types": "./dist/index.d.ts"
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.modern.mjs",
+      "types": "./dist/index.d.ts"
+    }
   },
   "scripts": {
-    "build": "rm -rf dist && microbundle --tsconfig tsconfig.json --no-sourcemap",
-    "dev": "microbundle --watch --tsconfig tsconfig.json --no-sourcemap",
+    "build": "rm -rf dist && microbundle --tsconfig tsconfig.json --no-sourcemap --format modern,cjs,umd",
+    "dev": "microbundle watch --tsconfig tsconfig.json --no-sourcemap --format modern,cjs,umd",
     "sdk-test": "ts-node ./test/run.ts"
   },
   "keywords": [],

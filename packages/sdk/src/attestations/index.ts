@@ -17,25 +17,14 @@ export class Attestations extends AttestSDKBase<SolanaAttestationService> {
    */
   async create(props: CreateAttestationProps): Promise<AttestSDKResponse<string>> {
     const { schemaUID, data } = props
-    const valid = await this.verifySchema(schemaUID)
+    // const valid = await this.verifySchema(schemaUID)
 
-    if (!valid) {
+    // if (!valid) {
       return {
         error: 'Invalid schema',
-      }
+      // }
     }
 
-    const uid = await this.createAttestation(schemaUID, data, 'custom-resolver-from-schema')
-
-    if (!uid) {
-      return {
-        error: 'Invalid attestation',
-      }
-    }
-
-    return {
-      data: uid,
-    }
   }
 
   /**

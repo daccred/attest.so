@@ -1,4 +1,4 @@
-import { Keypair } from '@solana/web3.js'
+import { Keypair, PublicKey } from '@solana/web3.js'
 import AttestSDK from '../src'
 import * as anchor from '@coral-xyz/anchor'
 import { WalletNetwork } from '../src/core/types'
@@ -25,37 +25,42 @@ async function run() {
   const client = new AttestSDK({
     network: WalletNetwork.DEVNET,
     wallet: wallet,
-    heliusAPIKey: 'helius-api-key',
+    heliusAPIKey: '264035c4-1ac7-4d99-9bf1-56b6482ded6c',
   })
 
-  const res = await client.schema.generate({
-    schemaName: 'schema-bean',
-    schemaContent: '{"name": "example", "type": "object"}',
+  // const res = await client.schema.generate({
+  //   schemaName: 'schema-bean22',
+  //   schemaContent: '{"name": "example22", "type": "object"}',
+  // })
+
+  // console.log({ res })
+
+  // const res2 = await client.schema.fetch('64G26T3rU9REDZqaCoJqAr1cQKzPnj6DUBAYi9iic6aw')
+
+  // console.log({ res2 })
+
+  const res3 = await client.attestation.create({
+    schemaUID: new PublicKey('4HL3YioWPjeZf8Ksoe57RBq4TmS2Crjjt55Yp4suYDdc'),
+    data: {},
   })
 
-  console.log({ res })
+  // client.schema
+  //   .getAllSchemaRecords()
+  //   .then((res) => {
+  //     console.log(res)
+  //   })
+  //   .catch((err) => {
+  //     console.log(err)
+  //   })
 
-  const res2 = await client.schema.fetch(res.data!.uid.toBase58())
-
-  console.log({ res2 })
-
-  client.schema
-    .getAllSchemaRecords()
-    .then((res) => {
-      console.log(res)
-    })
-    .catch((err) => {
-      console.log(err)
-    })
-
-  client.schema
-    .getAllSchemaForWallet()
-    .then((res) => {
-      console.log(res)
-    })
-    .catch((err) => {
-      console.log(err)
-    })
+  // client.schema
+  //   .getAllSchemaForWallet()
+  //   .then((res) => {
+  //     console.log(res)
+  //   })
+  //   .catch((err) => {
+  //     console.log(err)
+  //   })
 }
 
 run()

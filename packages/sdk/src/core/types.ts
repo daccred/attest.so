@@ -1,4 +1,5 @@
 import * as anchor from '@coral-xyz/anchor'
+import { PublicKey } from '@solana/web3.js'
 
 /**
  * AttestSDKResponse type definition.
@@ -42,4 +43,12 @@ export type SchemaRecord = {
   source: string
   description: string
   schemaAccount: string
+}
+
+export type SchemaAccount = {
+  uid: PublicKey
+  schema: string
+  resolver: PublicKey | null
+  revocable: boolean
+  deployer: PublicKey
 }

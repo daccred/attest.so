@@ -1,4 +1,4 @@
-import { AttestSDKBaseConfig, AttestSDKResponse } from '../core/types'
+import { AttestSDKBaseConfig, AttestSDKResponse, SchemaAccount } from '../core/types'
 import { AttestSDKBase } from '../core'
 import { PublicKey, Transaction } from '@solana/web3.js'
 import { Idl } from '@coral-xyz/anchor'
@@ -75,12 +75,12 @@ export class Schemas extends AttestSDKBase<SchemaRegistry> {
    *    - uid: The unique identifier of the schema to be retrieved.
    * @returns A promise that resolves to an AttestSDKResponse object containing the schema or an error message if the schema is not found.
    */
-  async fetch(schemaUID: string): Promise<AttestSDKResponse<string>> {
+  async fetch(schemaUID: string): Promise<AttestSDKResponse<SchemaAccount>> {
     try {
       const schemaAccount = await this.program.account.schemaData.fetch(schemaUID)
 
       return {
-        data: schemaAccount.schema,
+        data: schemaAccount,
       }
     } catch (err) {
       return {
