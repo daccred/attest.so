@@ -20,5 +20,5 @@ export default function Layout({ children }: { children: ReactNode }) {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://attest-next.verce.app')
+  metadataBase: new URL('https://explhttps://explorer.attest.so/')
 }
