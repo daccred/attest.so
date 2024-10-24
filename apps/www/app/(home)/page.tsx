@@ -60,7 +60,7 @@ function Hero(): React.ReactElement {
           Getting Started
         </Link>
         <a
-          href="https://attest-next.vercel.app/"
+          href="https://explorer.attest.so"
           className={cn(
             buttonVariants({
               size: 'lg',
