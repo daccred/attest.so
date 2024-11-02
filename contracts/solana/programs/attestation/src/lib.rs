@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
-declare_id!("Dt5pcWDzikT6PLmy6VsCjnH2tkqeN8PiKPfZe2VMRD83");
+#[cfg(not(test))]
+declare_id!("DKzP3qVf2wfLJXEAkCWadbjwuvF8VWHQbxXJ2LXt2P14");
 
 pub mod attestation;
 

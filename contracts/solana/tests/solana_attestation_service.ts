@@ -1,7 +1,7 @@
 import * as anchor from '@coral-xyz/anchor'
 import { PublicKey, SystemProgram } from '@solana/web3.js'
 import { Program } from '@coral-xyz/anchor'
-import { SolanaAttestationService } from '../target/types/solana_attestation_service'
+import { SolanaAttestationService, IDL } from '../target/types/solana_attestation_service'
 import { expect } from './_expect'
 
 describe('SolanaAttestationService', () => {
