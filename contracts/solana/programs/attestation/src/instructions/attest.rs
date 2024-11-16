@@ -3,7 +3,7 @@ use crate::events::Attested;
 use crate::state::Attestation;
 use anchor_lang::prelude::*;
 use schema_registry::program::SchemaRegistry;
-use schema_registry::sdk::SchemaData;
+use schema_registry::SchemaData;
 
 /// Context for the `attest` instruction, which creates a new attestation.
 ///
