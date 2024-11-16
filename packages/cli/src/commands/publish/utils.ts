@@ -41,9 +41,9 @@ export const checkValidJSONContent = (schema: any): string | null => {
     return 'Invalid schema: must be an object.'
   }
 
-  // Check for title
-  if (typeof schema.title !== 'string') {
-    return 'Invalid schema: title is required and must be a string.'
+  // Check for name
+  if (typeof schema.name !== 'string') {
+    return 'Invalid schema: name is required and must be a string.'
   }
 
   // Check for type
