@@ -54,7 +54,7 @@ describe('resolver', () => {
     })
 
     const tx = await program.methods
-      .findOrSetAuthority()
+      .registerAuthority()
       .accounts({
         // authorityRecord: authorityRecordPDA,
         authority: authorityKeypair.publicKey,
@@ -62,7 +62,10 @@ describe('resolver', () => {
       .signers([authorityKeypair])
       .rpc()
 
-    console.log('[@attestso/solana-attestation-authority]::::::::::::Authority registered with transaction signature:', tx)
+    console.log(
+      '[@attestso/solana-attestation-authority]::::::::::::Authority registered with transaction signature:',
+      tx
+    )
     console.log(
       '[@attestso/solana-attestation-authority:[Fetch authority]>>>>>>>>>>>>>',
       await program.account.authorityRecord.fetch(authorityRecordPDA)
@@ -84,7 +87,7 @@ describe('resolver', () => {
 
     // Update the authority's verification status.
     const tx = await program.methods
-      .updateAuthority(true)
+      .verifyAuthority(true)
       .accounts({
         authorityRecord: authorityRecordPDA,
         admin: adminKeypair.publicKey,
@@ -92,7 +95,10 @@ describe('resolver', () => {
       .signers([adminKeypair])
       .rpc()
 
-    console.log('[@attestso/solana-attestation-authority]::::::::::::Authority verified with transaction signature:', tx)
+    console.log(
+      '[@attestso/solana-attestation-authority]::::::::::::Authority verified with transaction signature:',
+      tx
+    )
 
     // Verify that the authority's status is updated.
     const authorityAccount = await program.account.authorityRecord.fetch(authorityRecordPDA)
