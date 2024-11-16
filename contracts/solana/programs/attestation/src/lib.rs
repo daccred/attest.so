@@ -1,11 +1,15 @@
 use anchor_lang::prelude::*;
 
-#[cfg(not(test))]
-declare_id!("DKzP3qVf2wfLJXEAkCWadbjwuvF8VWHQbxXJ2LXt2P14");
+mod consts;
+mod errors;
+mod events;
+mod instructions;
+mod state;
 
-pub mod attestation;
+pub use instructions::*;
 
-use attestation::*;
+// #[cfg(not(test))]
+declare_id!("4Ckr89AGNKazxN1GihavzVNedoZnkoYtaoeXDWzRTNDD");
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
@@ -18,11 +22,11 @@ solana_security_txt::security_txt! {
 
 #[program]
 pub mod solana_attestation_service {
+
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        msg!("Program initialized with ID: {:?}", ctx.program_id);
-        Ok(())
+        initialize_handler(ctx)
     }
 
     // Register a new attestation
@@ -33,7 +37,7 @@ pub mod solana_attestation_service {
         expiration_time: Option<i64>,
         revocable: bool,
     ) -> Result<()> {
-        attest(ctx, data, ref_uid, expiration_time, revocable)
+        create_attestation_handler(ctx, data, ref_uid, expiration_time, revocable)
     }
 
     pub fn revoke_attestation(
@@ -41,7 +45,7 @@ pub mod solana_attestation_service {
         schema_uid: Pubkey,
         recipient: Pubkey,
     ) -> Result<()> {
-        revoke(ctx, schema_uid, recipient)
+        revoke_attestation_handler(ctx, schema_uid, recipient)
     }
 
     // #[access_control(verify_admin(&ctx.accounts))]
@@ -57,6 +61,3 @@ pub mod solana_attestation_service {
     //     Ok(())
     // }
 }
-
-#[derive(Accounts)]
-pub struct Initialize {}
