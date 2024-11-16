@@ -1,5 +1,6 @@
+use crate::events::VerifiedAuthoritySignal;
+use crate::state::AuthorityRecord;
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::pubkey::Pubkey;
 
 #[derive(Accounts)]
 pub struct VerifyAuthority<'info> {
@@ -10,7 +11,7 @@ pub struct VerifyAuthority<'info> {
 }
 
 /// Verifies the authority (admin only).
-pub fn verify_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
+pub fn verify_authority_handler(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
     // let expected_admin_pubkey = Pubkey::from_str(ADMIN_PUBLIC_KEY).unwrap();
 
     // require_keys_eq!(expected_admin_pubkey, ctx.accounts.admin.key());

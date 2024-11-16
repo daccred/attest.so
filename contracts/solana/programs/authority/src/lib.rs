@@ -1,8 +1,11 @@
 use anchor_lang::prelude::*;
-declare_id!("8JLhEaxC69YK5d3qrbffuq8E5k9H5kwnzNo5LP4zcprw");
 
-pub mod sdk;
-use sdk::*;
+mod errors;
+mod events;
+mod instructions;
+mod state;
+
+pub use instructions::*;
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
@@ -13,21 +16,22 @@ solana_security_txt::security_txt! {
     source_code: "https://github.com/daccred/attest.so"
 }
 
+declare_id!("9nxf8wETZeSH3YXmfy6ZWrVmQMYbY7e4FhTSGR4WpVw3");
+
 #[program]
 pub mod authority_resolver {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        msg!("Program initialized with ID: {:?}", ctx.program_id);
-        Ok(())
+        initialize_handler(ctx)
     }
 
-    pub fn find_or_set_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
-        register_authority(ctx)
+    pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
+        register_authority_handler(ctx)
     }
 
-    pub fn update_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
-        verify_authority(ctx, is_verified)
+    pub fn verify_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
+        verify_authority_handler(ctx, is_verified)
     }
 
     // #[access_control(verify_admin(&ctx.accounts))]
@@ -43,6 +47,3 @@ pub mod authority_resolver {
     //     Ok(())
     // }
 }
-
-#[derive(Accounts)]
-pub struct Initialize {}
