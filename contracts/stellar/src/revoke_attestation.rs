@@ -42,24 +42,6 @@ pub struct AttestationContract;
 
 #[contractimpl]
 impl AttestationContract {
-    fn attest(
-        &self,
-        env: Env,
-        data: String,
-        recipient_address: Address,
-        ref_uid: Option<Vec<u8>>,
-        expiration_time: Option<u64>,
-        revocable: bool,
-    ) -> Result<(), String> {
-        // ... (existing logic for attestation creation)
-        Ok(())
-    }
-
-    fn query_attestation(&self, env: Env, uid: Vec<u8>) -> Result<Option<Attestation>, String> {
-        let attestation = get_attestation(env, &uid).ok_or("Attestation not found")?;
-        Ok(Some(attestation))
-    }
-
     fn revoke_attestation(&self, env: Env, uid: Vec<u8>) -> Result<(), String> {
         let caller = self.principal();
 
@@ -85,14 +67,6 @@ impl AttestationContract {
 }
 
 // Storage functions
-fn get_authority(env: Env, address: &Address) -> Option<Authority> {
-    env.storage().get(address)
-}
-
-fn get_schema(env: Env, uid: &[u8]) -> Option<Schema> {
-    env.storage().get(uid)
-}
-
 fn get_attestation(env: Env, uid: &[u8]) -> Option<Attestation> {
     env.storage().get(uid)
 }
