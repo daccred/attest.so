@@ -25,10 +25,6 @@ pub mod solana_attestation_service {
 
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize_handler(ctx)
-    }
-
     // Register a new attestation
     pub fn create_attestation(
         ctx: Context<Attest>,
