@@ -14,4 +14,8 @@ pub enum AttestationError {
     InvalidExpirationTime,
     #[msg("Data too large.")]
     DataTooLarge,
+    #[msg("Wrong Asset.")]
+    WrongAsset,
+    #[msg("Should be unused.")]
+    ShouldBeUnused,
 }
