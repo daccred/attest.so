@@ -2,38 +2,53 @@ use crate::errors::AttestationError;
 use crate::events::Attested;
 use crate::state::Attestation;
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{transfer, Mint, Token, TokenAccount, Transfer},
+};
 use schema_registry::program::SchemaRegistry;
 use schema_registry::SchemaData;
 
-/// Context for the `attest` instruction, which creates a new attestation.
-///
-/// Accounts:
-/// - `attester`: The signer who is creating the attestation.
-/// - `recipient`: The public key of the recipient of the attestation.
-/// - `schema_data`: The schema data account associated with the attestation.
-/// - `attestation`: The new attestation account to be created.
-/// - `system_program`: The system program for account creation.
 #[derive(Accounts)]
 pub struct Attest<'info> {
-    #[account(mut)]
     /// The attester who is creating the attestation.
+    #[account(mut)]
     pub attester: Signer<'info>,
 
     /// CHECK: The recipient's public key; no data needed.
     pub recipient: UncheckedAccount<'info>,
 
-    // #[account(
-    //     constraint = schema_data.to_account_info().owner == &schema_registry_program_id @ AttestationError::InvalidSchema,
-    // )]
+    /// CHECK just a chill account
+    pub levy_receipent: UncheckedAccount<'info>,
+
+    /// CHECK: The deployer is only used for validation purposes, and no data is read or written to this account.
+    pub deployer: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub mint_account: Account<'info, Mint>,
+
+    #[account(
+        mut,
+        associated_token::mint = mint_account,
+        associated_token::authority = attester,
+    )]
+    pub attester_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        init_if_needed,
+        payer = attester,
+        associated_token::mint = mint_account,
+        associated_token::authority = levy_receipent,
+    )]
+    pub levy_receipent_token_account: Account<'info, TokenAccount>,
+
     /// The schema data account; must match the schema UID.
     #[account(
         has_one = deployer,
         constraint = schema_data.to_account_info().owner == &schema_registry_program.key() @ AttestationError::InvalidSchema,
     )]
     pub schema_data: Account<'info, SchemaData>,
-
-    /// CHECK: The deployer is only used for validation purposes, and no data is read or written to this account.
-    pub deployer: UncheckedAccount<'info>,
 
     #[account(
         init,
@@ -42,49 +57,15 @@ pub struct Attest<'info> {
         seeds = [b"attestation", schema_data.key().as_ref(), recipient.key.as_ref(), attester.key.as_ref()],
         bump
     )]
-    /// The attestation account to be created.
     pub attestation: Account<'info, Attestation>,
 
-    /// The Schema Registry program account for CPI.
     pub schema_registry_program: Program<'info, SchemaRegistry>,
-
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
 
-/// Creates a new attestation and emits an `Attested` event.
-///
-/// This function initializes a new `Attestation` account associated with a schema,
-/// recipient, and attester. It ensures that the schema exists and that the data
-/// provided is within acceptable limits.
-///
-/// # Arguments
-///
-/// * `ctx` - The context containing the accounts required for creating the attestation.
-/// * `data` - Custom data associated with the attestation.
-/// * `ref_uid` - An optional reference UID to another attestation.
-/// * `expiration_time` - An optional expiration timestamp for the attestation.
-/// * `revocable` - A boolean indicating whether the attestation is revocable.
-///
-/// # Errors
-///
-/// * `AttestationError::DataTooLarge` - If the provided data exceeds `MAX_DATA_SIZE`.
-/// * `AttestationError::InvalidExpirationTime` - If the expiration time is in the past.
-/// * `AttestationError::InvalidSchema` - If the schema is invalid or not found.
-///
-/// # Implementation Details
-///
-/// - **Schema Validation**: Verifies that the provided schema exists and is valid.
-/// - **Data Size Check**: Ensures that the `data` does not exceed `MAX_DATA_SIZE`.
-/// - **Expiration Time Check**: Validates that the expiration time is in the future.
-/// - **Attestation Initialization**: Populates the attestation account with provided data.
-/// - **Event Emission**: Emits an `Attested` event for off-chain indexing.
-///
-/// # Why We Are Doing This
-///
-/// Attestations allow attesters to assert claims about recipients based on predefined schemas.
-/// Emitting events facilitates off-chain indexing and enables clients to stay updated
-/// with new attestations without polling the blockchain.
-pub fn create_attestation_handler(
+pub fn attest_handler(
     ctx: Context<Attest>,
     data: String,
     ref_uid: Option<Pubkey>,
@@ -94,6 +75,49 @@ pub fn create_attestation_handler(
     let schema_data = &ctx.accounts.schema_data;
     let attestation = &mut ctx.accounts.attestation;
     let current_time = Clock::get()?.unix_timestamp;
+    let levy = schema_data.levy.clone();
+
+    if let Some(lev) = levy {
+        // if asset is none, use SOL.
+        if lev.asset.is_none() {
+            system_program::transfer(
+                CpiContext::new(
+                    ctx.accounts.system_program.to_account_info(),
+                    system_program::Transfer {
+                        from: ctx.accounts.attester.to_account_info(),
+                        to: ctx.accounts.levy_receipent.to_account_info(),
+                    },
+                ),
+                lev.amount,
+            )?;
+        } else {
+            require!(
+                lev.asset.unwrap() == ctx.accounts.mint_account.key(),
+                AttestationError::WrongAsset
+            );
+
+            transfer(
+                CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    Transfer {
+                        from: ctx.accounts.attester_token_account.to_account_info(),
+                        to: ctx.accounts.levy_receipent_token_account.to_account_info(),
+                        authority: ctx.accounts.attester.to_account_info(),
+                    },
+                ),
+                lev.amount * 10u64.pow(ctx.accounts.mint_account.decimals as u32), // Transfer amount, adjust for decimals
+            )?;
+        }
+    } else {
+        require!(
+            ctx.accounts.levy_receipent.key() == Pubkey::default(),
+            AttestationError::ShouldBeUnused
+        );
+        require!(
+            ctx.accounts.levy_receipent_token_account.key() == Pubkey::default(),
+            AttestationError::ShouldBeUnused
+        );
+    }
 
     // Ensure data size is within limits
     if data.len() > Attestation::MAX_DATA_SIZE {

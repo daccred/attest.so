@@ -26,14 +26,14 @@ pub mod solana_attestation_service {
     use super::*;
 
     // Register a new attestation
-    pub fn create_attestation(
+    pub fn attest(
         ctx: Context<Attest>,
         data: String,
         ref_uid: Option<Pubkey>,
         expiration_time: Option<i64>,
         revocable: bool,
     ) -> Result<()> {
-        create_attestation_handler(ctx, data, ref_uid, expiration_time, revocable)
+        attest_handler(ctx, data, ref_uid, expiration_time, revocable)
     }
 
     pub fn revoke_attestation(
