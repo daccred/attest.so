@@ -6,6 +6,7 @@ mod instructions;
 mod state;
 
 pub use instructions::*;
+pub use state::AuthorityRecord;
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
@@ -21,10 +22,6 @@ declare_id!("9nxf8wETZeSH3YXmfy6ZWrVmQMYbY7e4FhTSGR4WpVw3");
 #[program]
 pub mod authority_resolver {
     use super::*;
-
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize_handler(ctx)
-    }
 
     pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
         register_authority_handler(ctx)

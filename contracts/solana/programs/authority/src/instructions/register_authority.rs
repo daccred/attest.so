@@ -13,8 +13,10 @@ pub struct RegisterAuthority<'info> {
         space = AuthorityRecord::LEN,
     )]
     pub authority_record: Account<'info, AuthorityRecord>,
+
     #[account(mut, signer)]
     pub authority: Signer<'info>,
+
     pub system_program: Program<'info, System>,
 }
 

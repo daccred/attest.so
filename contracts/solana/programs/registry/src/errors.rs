@@ -4,4 +4,6 @@ use anchor_lang::prelude::*;
 pub enum RegistryError {
     #[msg("Schema already exists.")]
     SchemaAlreadyExists,
+    #[msg("Unauthorized authority.")]
+    Unauthorized,
 }

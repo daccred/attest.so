@@ -4,10 +4,9 @@ mod errors;
 mod events;
 mod instructions;
 mod state;
-mod utils;
 
 pub use instructions::*;
-pub use state::SchemaData;
+pub use state::{Levy, SchemaData};
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
@@ -25,13 +24,14 @@ pub mod schema_registry {
 
     use super::*;
 
-    pub fn register(
-        ctx: Context<RegisterSchema>,
+    pub fn create_schema(
+        ctx: Context<CreateSchema>,
         schema_name: String,
         schema: String,
         resolver: Option<Pubkey>,
         revocable: bool,
+        levy: Option<Levy>,
     ) -> Result<()> {
-        register_schema_handler(ctx, schema_name, schema, resolver, revocable)
+        create_schema_handler(ctx, schema_name, schema, resolver, revocable, levy)
     }
 }
