@@ -38,3 +38,21 @@ impl Attestation {
         + 1   // revocable bool
         + 32; // uid Pubkey:PDA
 }
+
+#[account]
+pub struct AttestationData {
+    pub schema_uid: [u8; 32],
+    pub recipient: Pubkey,
+    pub data: String,
+    pub ref_uid: Option<Pubkey>,
+    pub expiration_time: Option<u64>,
+    pub revocable: bool,
+    pub nonce: u64, // For uniqueness and replay protection
+}
+
+#[account]
+pub struct AttesterInfo {
+    pub message: Vec<u8>,
+    pub pubkey: [u8; 32],
+    pub signature: [u8; 64],
+}
