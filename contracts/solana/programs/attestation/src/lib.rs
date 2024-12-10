@@ -31,7 +31,7 @@ pub mod solana_attestation_service {
         ctx: Context<Attest>,
         data: String,
         ref_uid: Option<Pubkey>,
-        expiration_time: Option<i64>,
+        expiration_time: Option<u64>,
         revocable: bool,
     ) -> Result<()> {
         attest_handler(ctx, data, ref_uid, expiration_time, revocable)

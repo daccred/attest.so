@@ -11,13 +11,13 @@ pub struct Attestation {
     /// Custom data associated with the attestation.
     pub data: String, // 4 bytes length prefix + data
     /// Timestamp of when the attestation was created.
-    pub time: i64, // 8 bytes
+    pub time: u64, // 8 bytes
     /// Reference to another attestation UID, if any.
     pub ref_uid: Option<Pubkey>, // 1 byte option tag + 32 bytes
     /// Optional expiration time of the attestation.
-    pub expiration_time: Option<i64>, // 1 byte option tag + 8 bytes
+    pub expiration_time: Option<u64>, // 1 byte option tag + 8 bytes
     /// Timestamp of when the attestation was revoked, if revoked.
-    pub revocation_time: Option<i64>, // 1 byte option tag + 8 bytes
+    pub revocation_time: Option<u64>, // 1 byte option tag + 8 bytes
     /// Indicates whether the attestation is revocable.
     pub revocable: bool, // 1 byte
     /// Unique identifier (PDA) of this attestation.

@@ -74,7 +74,7 @@ pub fn revoke_attestation_handler(
     }
 
     // Set revocation time
-    attestation.revocation_time = Some(Clock::get()?.unix_timestamp);
+    attestation.revocation_time = Some(Clock::get()?.unix_timestamp as u64);
 
     // Emit an event to notify off-chain clients.
     emit!(Revoked {
