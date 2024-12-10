@@ -69,12 +69,12 @@ pub fn attest_handler(
     ctx: Context<Attest>,
     data: String,
     ref_uid: Option<Pubkey>,
-    expiration_time: Option<i64>,
+    expiration_time: Option<u64>,
     revocable: bool,
 ) -> Result<()> {
     let schema_data = &ctx.accounts.schema_data;
     let attestation = &mut ctx.accounts.attestation;
-    let current_time = Clock::get()?.unix_timestamp;
+    let current_time = Clock::get()?.unix_timestamp as u64;
     let levy = schema_data.levy.clone();
 
     if let Some(lev) = levy {

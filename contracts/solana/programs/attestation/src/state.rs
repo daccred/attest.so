@@ -11,13 +11,13 @@ pub struct Attestation {
     /// Custom data associated with the attestation.
     pub data: String, // 4 bytes length prefix + data
     /// Timestamp of when the attestation was created.
-    pub time: i64, // 8 bytes
+    pub time: u64, // 8 bytes
     /// Reference to another attestation UID, if any.
     pub ref_uid: Option<Pubkey>, // 1 byte option tag + 32 bytes
     /// Optional expiration time of the attestation.
-    pub expiration_time: Option<i64>, // 1 byte option tag + 8 bytes
+    pub expiration_time: Option<u64>, // 1 byte option tag + 8 bytes
     /// Timestamp of when the attestation was revoked, if revoked.
-    pub revocation_time: Option<i64>, // 1 byte option tag + 8 bytes
+    pub revocation_time: Option<u64>, // 1 byte option tag + 8 bytes
     /// Indicates whether the attestation is revocable.
     pub revocable: bool, // 1 byte
     /// Unique identifier (PDA) of this attestation.
@@ -37,4 +37,22 @@ impl Attestation {
         + 1 + 8   // revocation_time Option<i64>
         + 1   // revocable bool
         + 32; // uid Pubkey:PDA
+}
+
+#[account]
+pub struct AttestationData {
+    pub schema_uid: [u8; 32],
+    pub recipient: Pubkey,
+    pub data: String,
+    pub ref_uid: Option<Pubkey>,
+    pub expiration_time: Option<u64>,
+    pub revocable: bool,
+    pub nonce: u64, // For uniqueness and replay protection
+}
+
+#[account]
+pub struct AttesterInfo {
+    pub message: Vec<u8>,
+    pub pubkey: [u8; 32],
+    pub signature: [u8; 64],
 }

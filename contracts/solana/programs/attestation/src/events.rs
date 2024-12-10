@@ -11,7 +11,7 @@ pub struct Attested {
     /// Unique identifier (PDA) of the attestation.
     pub uid: Pubkey,
     /// Timestamp of when the attestation was created.
-    pub time: i64,
+    pub time: u64,
 }
 
 #[event]
@@ -25,5 +25,5 @@ pub struct Revoked {
     /// Unique identifier (PDA) of the attestation.
     pub uid: Pubkey,
     /// Timestamp of when the attestation was revoked.
-    pub time: i64,
+    pub time: u64,
 }
