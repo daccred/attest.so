@@ -8,6 +8,7 @@ mod state;
 mod utils;
 
 pub use instructions::*;
+pub use state::*;
 
 // #[cfg(not(test))]
 declare_id!("4Ckr89AGNKazxN1GihavzVNedoZnkoYtaoeXDWzRTNDD");
@@ -37,6 +38,16 @@ pub mod solana_attestation_service {
         attest_handler(ctx, data, ref_uid, expiration_time, revocable)
     }
 
+    pub fn delegated_attest(
+        ctx: Context<DelegatedAttest>,
+        attestation_data: AttestationData,
+        attester_info: AttesterInfo,
+        recipient: Pubkey,
+        attester: Pubkey,
+    ) -> Result<()> {
+        delegated_attest_handler(ctx, attestation_data, attester_info, recipient, attester)
+    }
+
     pub fn revoke_attestation(
         ctx: Context<Revoke>,
         schema_uid: Pubkey,
@@ -44,17 +55,4 @@ pub mod solana_attestation_service {
     ) -> Result<()> {
         revoke_attestation_handler(ctx, schema_uid, recipient)
     }
-
-    // #[access_control(verify_admin(&ctx.accounts))]
-    // pub fn perform_admin_action(ctx: Context<AdminAction>) -> Result<()> {
-    //     // Admin-only action logic
-    //      verify_authority(ctx, true)
-    //     msg!("Admin action performed!");
-    //     Ok(())
-    // }
-
-    // fn verify_admin(accounts: &AdminAction) -> Result<()> {
-    //     require!(accounts.admin.key() == accounts.admin_account.admin, ErrorCode::Unauthorized);
-    //     Ok(())
-    // }
 }
