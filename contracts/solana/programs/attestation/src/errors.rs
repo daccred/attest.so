@@ -18,4 +18,6 @@ pub enum AttestationError {
     WrongAsset,
     #[msg("Should be unused.")]
     ShouldBeUnused,
+    #[msg("Invalid data.")]
+    InvalidData,
 }
