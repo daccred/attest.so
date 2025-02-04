@@ -1,14 +1,12 @@
-use crate::errors::AttestationError;
+use crate::errors::AttestError;
 use crate::events::Attested;
-use crate::state::Attestation;
+use crate::state::{Attestation, SchemaData};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{transfer, Mint, Token, TokenAccount, Transfer},
 };
-use schema_registry::program::SchemaRegistry;
-use schema_registry::SchemaData;
 
 #[derive(Accounts)]
 pub struct Attest<'info> {
@@ -46,7 +44,7 @@ pub struct Attest<'info> {
     /// The schema data account; must match the schema UID.
     #[account(
         has_one = deployer,
-        constraint = schema_data.to_account_info().owner == &schema_registry_program.key() @ AttestationError::InvalidSchema,
+        // constraint = schema_data.to_account_info().owner == &schema_registry_program.key() @ AttestError::InvalidSchema,
     )]
     pub schema_data: Account<'info, SchemaData>,
 
@@ -59,7 +57,7 @@ pub struct Attest<'info> {
     )]
     pub attestation: Account<'info, Attestation>,
 
-    pub schema_registry_program: Program<'info, SchemaRegistry>,
+    // pub schema_registry_program: Program<'info, SchemaRegistry>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -93,7 +91,7 @@ pub fn attest_handler(
         } else {
             require!(
                 lev.asset.unwrap() == ctx.accounts.mint_account.key(),
-                AttestationError::WrongAsset
+                AttestError::WrongAsset
             );
 
             transfer(
@@ -111,23 +109,23 @@ pub fn attest_handler(
     } else {
         require!(
             ctx.accounts.levy_receipent.key() == Pubkey::default(),
-            AttestationError::ShouldBeUnused
+            AttestError::ShouldBeUnused
         );
         require!(
             ctx.accounts.levy_receipent_token_account.key() == Pubkey::default(),
-            AttestationError::ShouldBeUnused
+            AttestError::ShouldBeUnused
         );
     }
 
     // Ensure data size is within limits
     if data.len() > Attestation::MAX_DATA_SIZE {
-        return Err(AttestationError::DataTooLarge.into());
+        return Err(AttestError::DataTooLarge.into());
     }
 
     // Ensure expiration time is in the future, if provided
     if let Some(exp_time) = expiration_time {
         if exp_time <= current_time {
-            return Err(AttestationError::InvalidExpirationTime.into());
+            return Err(AttestError::InvalidExpirationTime.into());
         }
     }
 

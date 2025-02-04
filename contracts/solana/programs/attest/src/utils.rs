@@ -1,9 +1,8 @@
-use crate::errors::AttestationError;
-use crate::state::AttesterInfo;
+use crate::errors::AttestError;
+use crate::state::{AttesterInfo, Levy};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 use anchor_spl::token::{transfer, Mint, Transfer};
-use schema_registry::Levy;
 use solana_program::instruction::Instruction;
 
 pub fn create_verify_signature_instruction(
@@ -59,7 +58,7 @@ pub fn settle_levy<'info>(
                 }
                 Some(asset) => {
                     // Transfer tokens
-                    require!(asset == mint.key(), AttestationError::WrongAsset);
+                    require!(asset == mint.key(), AttestError::WrongAsset);
 
                     let adjusted_amount = lev.amount * 10u64.pow(mint.decimals as u32);
                     transfer(
@@ -80,11 +79,11 @@ pub fn settle_levy<'info>(
             // Validate unused accounts when no levy is present
             require!(
                 recipient.key() == Pubkey::default(),
-                AttestationError::ShouldBeUnused
+                AttestError::ShouldBeUnused
             );
             require!(
                 recipient_token.key() == Pubkey::default(),
-                AttestationError::ShouldBeUnused
+                AttestError::ShouldBeUnused
             );
             Ok(())
         }

@@ -409,12 +409,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
-name = "attestation"
-version = "0.1.1"
+name = "attest"
+version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
- "registry",
  "solana-program",
  "solana-security-txt",
 ]
@@ -428,14 +427,6 @@ dependencies = [
  "hermit-abi",
  "libc",
  "winapi",
-]
-
-[[package]]
-name = "authority"
-version = "0.1.1"
-dependencies = [
- "anchor-lang",
- "solana-security-txt",
 ]
 
 [[package]]
@@ -1696,15 +1687,6 @@ name = "regex-syntax"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
-
-[[package]]
-name = "registry"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "authority",
- "solana-security-txt",
-]
 
 [[package]]
 name = "rustc-hash"

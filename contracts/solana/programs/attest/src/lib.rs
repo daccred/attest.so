@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 
-mod consts;
 mod errors;
 mod events;
 mod instructions;
@@ -10,8 +9,7 @@ mod utils;
 pub use instructions::*;
 pub use state::*;
 
-// #[cfg(not(test))]
-declare_id!("4Ckr89AGNKazxN1GihavzVNedoZnkoYtaoeXDWzRTNDD");
+declare_id!("25CRaHHcKjqB5zXUSmPAHxbXEcAM19AWjgLC3kYL93pe");
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
@@ -23,8 +21,7 @@ solana_security_txt::security_txt! {
 }
 
 #[program]
-pub mod solana_attestation_service {
-
+pub mod attest {
     use super::*;
 
     // Register a new attestation
@@ -54,5 +51,24 @@ pub mod solana_attestation_service {
         recipient: Pubkey,
     ) -> Result<()> {
         revoke_attestation_handler(ctx, schema_uid, recipient)
+    }
+
+    pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<()> {
+        register_authority_handler(ctx)
+    }
+
+    pub fn verify_authority(ctx: Context<VerifyAuthority>, is_verified: bool) -> Result<()> {
+        verify_authority_handler(ctx, is_verified)
+    }
+
+    pub fn create_schema(
+        ctx: Context<CreateSchema>,
+        schema_name: String,
+        schema: String,
+        resolver: Option<Pubkey>,
+        revocable: bool,
+        levy: Option<Levy>,
+    ) -> Result<()> {
+        create_schema_handler(ctx, schema_name, schema, resolver, revocable, levy)
     }
 }

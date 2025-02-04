@@ -56,3 +56,56 @@ pub struct AttesterInfo {
     pub pubkey: [u8; 32],
     pub signature: [u8; 64],
 }
+
+#[account]
+pub struct AuthorityRecord {
+    pub authority: Pubkey,     // The public key of the authority (e.g., user).
+    pub is_verified: bool,     // Flag to check if the authority is verified by an admin.
+    pub first_deployment: i64, // Timestamp of their first schema deployment.
+}
+
+impl AuthorityRecord {
+    pub const LEN: usize = 8 + 32 + 1 + 8; // Account discriminator + field sizes
+}
+
+#[account]
+pub struct SchemaData {
+    /// Generate PDA as reference key.
+    pub uid: Pubkey,
+
+    /// The actual schema data (e.g., JSON, XML, etc.).
+    pub schema: String,
+
+    /// Resolver address (another contract) for schema verification.
+    pub resolver: Option<Pubkey>,
+
+    /// Indicates whether the schema is revocable.
+    pub revocable: bool,
+
+    /// The deployer/authority who created the schema.
+    pub deployer: Pubkey,
+
+    pub levy: Option<Levy>,
+}
+
+impl SchemaData {
+    // 8 bytes for account discriminator,
+    // 32 bytes for uid,
+    // 1 byte for revocable,
+    // 200 bytes for schema string,
+    // 32 bytes for deployer pubkey.
+    pub const LEN: usize = 8 + 32 + 1 + 200 + 32;
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct Levy {
+    /// 8 bytes
+    pub amount: u64,
+
+    /// 32 bytes (Asset address)
+    pub asset: Option<Pubkey>,
+
+    /// 32 bytes (Recipient of the levy)
+    pub recipient: Pubkey,
+}

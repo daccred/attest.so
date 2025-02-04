@@ -1,14 +1,13 @@
-use crate::errors::AttestationError;
+use crate::errors::AttestError;
 use crate::events::Attested;
-use crate::state::{Attestation, AttestationData, AttesterInfo};
+use crate::state::{Attestation, AttestationData, AttesterInfo, SchemaData};
 use crate::utils::{create_verify_signature_instruction, settle_levy};
 use anchor_lang::{prelude::*, solana_program};
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{Mint, Token, TokenAccount},
 };
-use schema_registry::program::SchemaRegistry;
-use schema_registry::SchemaData;
+// use schema_registry::program::SchemaRegistry;
 
 #[derive(Clone)]
 pub struct ED25519;
@@ -52,7 +51,7 @@ pub struct DelegatedAttest<'info> {
     /// The schema data account; must match the schema UID.
     #[account(
         has_one = deployer,
-        constraint = schema_data.to_account_info().owner == &schema_registry_program.key() @ AttestationError::InvalidSchema,
+        // constraint = schema_data.to_account_info().owner == &schema_registry_program.key() @ AttestError::InvalidSchema,
     )]
     pub schema_data: Account<'info, SchemaData>,
 
@@ -65,7 +64,7 @@ pub struct DelegatedAttest<'info> {
     )]
     pub attestation: Account<'info, Attestation>,
 
-    pub schema_registry_program: Program<'info, SchemaRegistry>,
+    // pub schema_registry_program: Program<'info, SchemaRegistry>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -81,11 +80,11 @@ pub fn delegated_attest_handler(
 ) -> Result<()> {
     require!(
         attestation_data.recipient == recipient,
-        AttestationError::InvalidData
+        AttestError::InvalidData
     );
     require!(
         Pubkey::from(attester_info.pubkey) == attester,
-        AttestationError::InvalidData
+        AttestError::InvalidData
     );
 
     let ix = create_verify_signature_instruction(
@@ -124,13 +123,13 @@ pub fn delegated_attest_handler(
 
     // Ensure data size is within limits
     if attestation_data.data.len() > Attestation::MAX_DATA_SIZE {
-        return Err(AttestationError::DataTooLarge.into());
+        return Err(AttestError::DataTooLarge.into());
     }
 
     // Ensure expiration time is in the future, if provided
     if let Some(exp_time) = attestation_data.expiration_time {
         if exp_time <= current_time as u64 {
-            return Err(AttestationError::InvalidExpirationTime.into());
+            return Err(AttestError::InvalidExpirationTime.into());
         }
     }
 

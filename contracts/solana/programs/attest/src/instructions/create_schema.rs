@@ -1,8 +1,8 @@
-use crate::errors::RegistryError;
+use crate::errors::AttestError;
 use crate::events::SchemaCreated;
-use crate::state::{Levy, SchemaData};
+use crate::state::{AuthorityRecord, Levy, SchemaData};
 use anchor_lang::prelude::*;
-use authority_resolver::AuthorityRecord;
+// use authority_resolver::AuthorityRecord;
 
 #[derive(Accounts)]
 #[instruction(_schema_name: String)]
@@ -13,7 +13,7 @@ pub struct CreateSchema<'info> {
 
     #[account(
         mut,
-        constraint = deployer.key() == authority_record.authority.key() @ RegistryError::Unauthorized,
+        constraint = deployer.key() == authority_record.authority.key() @ AttestError::Unauthorized,
     )]
     pub authority_record: Account<'info, AuthorityRecord>,
 
@@ -42,7 +42,7 @@ pub fn create_schema_handler(
 
     // Check if the schema already exists by verifying if 'deployer' is set.
     if schema_data.deployer != Pubkey::default() {
-        return Err(RegistryError::SchemaAlreadyExists.into());
+        return Err(AttestError::SchemaAlreadyExists.into());
     }
 
     // use schema data account as uid
