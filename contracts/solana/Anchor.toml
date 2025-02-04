@@ -4,11 +4,8 @@
 resolution = true
 skip-lint = false
 
-# [programs.devnet]
-# solana_attestation_service = "CBhbYHvMuabwrjG9U9B3Q8jGHyw8eNbSL7YRjHrfS3mf"
-
-# [programs.localnet]
-# solana_attestation_service = "CBhbYHvMuabwrjG9U9B3Q8jGHyw8eNbSL7YRjHrfS3mf"
+[programs.localnet]
+attest = "25CRaHHcKjqB5zXUSmPAHxbXEcAM19AWjgLC3kYL93pe"
 
 [registry]
 url = "https://api.apr.dev"

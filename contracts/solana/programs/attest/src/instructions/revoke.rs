@@ -1,4 +1,4 @@
-use crate::errors::AttestationError;
+use crate::errors::AttestError;
 use crate::events::Revoked;
 use crate::state::Attestation;
 use anchor_lang::prelude::*;
@@ -20,7 +20,7 @@ pub struct Revoke<'info> {
         seeds = [b"attestation", schema_uid.as_ref(), recipient.as_ref(), attester.key.as_ref()],
         bump,
         has_one = attester,
-        constraint = attestation.schema == schema_uid @ AttestationError::InvalidSchema,
+        constraint = attestation.schema == schema_uid @ AttestError::InvalidSchema,
     )]
     /// The attestation account to be revoked.
     pub attestation: Account<'info, Attestation>,
@@ -39,9 +39,9 @@ pub struct Revoke<'info> {
 ///
 /// # Errors
 ///
-/// * `AttestationError::Irrevocable` - If the attestation is marked as irrevocable.
-/// * `AttestationError::AlreadyRevoked` - If the attestation has already been revoked.
-/// * `AttestationError::InvalidSchema` - If the attestation's schema does not match the provided schema UID.
+/// * `AttestError::Irrevocable` - If the attestation is marked as irrevocable.
+/// * `AttestError::AlreadyRevoked` - If the attestation has already been revoked.
+/// * `AttestError::InvalidSchema` - If the attestation's schema does not match the provided schema UID.
 ///
 /// # Implementation Details
 ///
@@ -65,16 +65,16 @@ pub fn revoke_attestation_handler(
 
     // Ensure the attestation is revocable
     if !attestation.revocable {
-        return Err(AttestationError::Irrevocable.into());
+        return Err(AttestError::Irrevocable.into());
     }
 
     // Ensure it hasn't already been revoked
     if attestation.revocation_time.is_some() {
-        return Err(AttestationError::AlreadyRevoked.into());
+        return Err(AttestError::AlreadyRevoked.into());
     }
 
     // Set revocation time
-    attestation.revocation_time = Some(Clock::get()?.unix_timestamp);
+    attestation.revocation_time = Some(Clock::get()?.unix_timestamp as u64);
 
     // Emit an event to notify off-chain clients.
     emit!(Revoked {

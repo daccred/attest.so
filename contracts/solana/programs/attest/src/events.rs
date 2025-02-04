@@ -1,3 +1,4 @@
+use crate::state::SchemaData;
 use anchor_lang::prelude::*;
 
 #[event]
@@ -11,7 +12,7 @@ pub struct Attested {
     /// Unique identifier (PDA) of the attestation.
     pub uid: Pubkey,
     /// Timestamp of when the attestation was created.
-    pub time: i64,
+    pub time: u64,
 }
 
 #[event]
@@ -25,5 +26,26 @@ pub struct Revoked {
     /// Unique identifier (PDA) of the attestation.
     pub uid: Pubkey,
     /// Timestamp of when the attestation was revoked.
-    pub time: i64,
+    pub time: u64,
+}
+
+#[event]
+pub struct VerifiedAuthoritySignal {
+    pub authority: Pubkey,
+    pub is_verified: bool,
+}
+
+#[event]
+pub struct NewAuthoritySignal {
+    pub authority: Pubkey,
+    pub is_verified: bool,
+    pub first_deployment: i64,
+}
+
+#[event]
+pub struct SchemaCreated {
+    /// The generated UID for the schema (PDA).
+    pub uid: Pubkey,
+    /// Full schema data including schema, resolver, revocable, and deployer.
+    pub schema_data: SchemaData,
 }
