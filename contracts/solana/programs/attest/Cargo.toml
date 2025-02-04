@@ -21,3 +21,4 @@ anchor-lang = { version = "0.30.1", features = ["init-if-needed"] }
 anchor-spl = { version = "0.30.1", features = ["metadata"] }
 solana-security-txt = "1.1.1"
 solana-program = "1.18.1"
+
