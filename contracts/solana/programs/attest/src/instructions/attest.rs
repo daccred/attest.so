@@ -44,7 +44,6 @@ pub struct Attest<'info> {
     /// The schema data account; must match the schema UID.
     #[account(
         has_one = deployer,
-        // constraint = schema_data.to_account_info().owner == &schema_registry_program.key() @ AttestError::InvalidSchema,
     )]
     pub schema_data: Account<'info, SchemaData>,
 
@@ -57,7 +56,6 @@ pub struct Attest<'info> {
     )]
     pub attestation: Account<'info, Attestation>,
 
-    // pub schema_registry_program: Program<'info, SchemaRegistry>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -74,6 +72,8 @@ pub fn attest_handler(
     let attestation = &mut ctx.accounts.attestation;
     let current_time = Clock::get()?.unix_timestamp as u64;
     let levy = schema_data.levy.clone();
+
+    require!(schema_data.to_account_info().owner == ctx.program_id, AttestError::InvalidData);
 
     if let Some(lev) = levy {
         // if asset is none, use SOL.
