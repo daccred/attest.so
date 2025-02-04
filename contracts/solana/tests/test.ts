@@ -1,8 +1,6 @@
 import * as anchor from '@coral-xyz/anchor'
 import { Program, AnchorError } from '@coral-xyz/anchor'
-import { AuthorityResolver } from '../target/types/authority_resolver'
-import { SchemaRegistry } from '../target/types/schema_registry'
-import { SolanaAttestationService } from '../target/types/solana_attestation_service'
+import {Attest} from '../target/types/attest'
 import { PublicKey, SystemProgram } from '@solana/web3.js'
 import { expect } from './_expect'
 // import { assert, expect } from 'chai'
@@ -19,10 +17,7 @@ describe('attest.so', () => {
   const provider = anchor.AnchorProvider.env()
   anchor.setProvider(provider)
 
-  const authority_program = anchor.workspace.AuthorityResolver as Program<AuthorityResolver>
-  const schema_program = anchor.workspace.SchemaRegistry as Program<SchemaRegistry>
-  const attestation_program = anchor.workspace
-    .SolanaAttestationService as Program<SolanaAttestationService>
+  const attest = anchor.workspace.Attest as Program<Attest>
 
   // Generate keypairs
   const authorityKeypair = anchor.web3.Keypair.generate()
@@ -97,10 +92,10 @@ describe('attest.so', () => {
     // Derive the authorityRecord PDA
     const [authorityRecordPDA, authorityRecordBump] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority'), authorityKeypair.publicKey.toBuffer()],
-      authority_program.programId
+      attest.programId
     )
 
-    await authority_program.methods
+    await attest.methods
       .registerAuthority()
       .accounts({
         authority: authorityKeypair.publicKey,
@@ -109,7 +104,7 @@ describe('attest.so', () => {
       .rpc()
 
     // Check if the authority was registered correctly.
-    const authorityAccount = await authority_program.account.authorityRecord.fetch(
+    const authorityAccount = await attest.account.authorityRecord.fetch(
       authorityRecordPDA
     )
     expect(authorityAccount.authority.toBase58()).to.equal(authorityKeypair.publicKey.toBase58())
@@ -140,16 +135,16 @@ describe('attest.so', () => {
     // Derive the authorityRecord PDA
     const [authorityRecordPDA, authorityRecordBump] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority'), authorityKeypair.publicKey.toBuffer()],
-      authority_program.programId
+      attest.programId
     )
 
     // Derive the schemaData PDA
     const [schemaDataPDA] = await PublicKey.findProgramAddress(
       [Buffer.from('schema'), authorityKeypair.publicKey.toBuffer(), Buffer.from(schemaName)],
-      schema_program.programId
+      attest.programId
     )
 
-    await schema_program.methods
+    await attest.methods
       .createSchema(schemaName, schemaContent, resolverAddress, revocable, levy)
       .accounts({
         deployer: authorityKeypair.publicKey,
@@ -158,7 +153,7 @@ describe('attest.so', () => {
       .signers([authorityKeypair]) // Deployer is the authority and signer
       .rpc()
 
-    const schemeDataAccount = await schema_program.account.schemaData.fetch(schemaDataPDA)
+    const schemeDataAccount = await attest.account.schemaData.fetch(schemaDataPDA)
     expect(schemeDataAccount.levy.amount.toNumber()).to.equal(10)
     expect(schemeDataAccount.levy.recipient.toBase58()).to.equal(
       authorityKeypair.publicKey.toBase58()
@@ -179,7 +174,7 @@ describe('attest.so', () => {
     // Derive the schemaData PDA
     const [schemaDataPDA] = await PublicKey.findProgramAddress(
       [Buffer.from('schema'), authorityKeypair.publicKey.toBuffer(), Buffer.from(schemaName)],
-      schema_program.programId
+      attest.programId
     )
 
     // Derive the attestation PDA
@@ -190,10 +185,10 @@ describe('attest.so', () => {
         recipientKeypair.publicKey.toBuffer(),
         attestKeypair.publicKey.toBuffer(),
       ],
-      attestation_program.programId
+      attest.programId
     )
 
-    await attestation_program.methods
+    await attest.methods
       .attest(data, refUid, expirationTime, revocable)
       .accounts({
         attester: attestKeypair.publicKey,
@@ -205,7 +200,7 @@ describe('attest.so', () => {
         levyReceipentTokenAccount: levyTokenAccount,
         schemaData: schemaDataPDA,
         attestation: attestationPDA,
-        schemaRegistryProgram: schema_program.programId,
+        // schemaRegistryProgram: schema_program.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
