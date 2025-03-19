@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, Env, Address, String};
+use soroban_sdk::{contract, contractimpl, Address, Env, String};
 
 pub trait AuthorityContract {
     type Error;
@@ -17,7 +17,8 @@ impl AuthorityContract for AuthorityContractImpl {
     type Error = String;
 
     fn authority_registered(env: Env, address: Address, metadata: String) {
-        env.emit().authority_registered(Authority { address, metadata });
+        env.emit()
+            .authority_registered(Authority { address, metadata });
     }
 
     fn register_authority(env: Env, metadata: String) -> Result<(), Self::Error> {
@@ -28,7 +29,10 @@ impl AuthorityContract for AuthorityContractImpl {
         };
 
         env.storage().set(caller, &authority)?;
-        env.storage().set(b"authorities_count", &authorities_count(env).unwrap_or_default() + 1)?;
+        env.storage().set(
+            b"authorities_count",
+            &authorities_count(env).unwrap_or_default() + 1,
+        )?;
 
         env.emit().authority_registered(caller, metadata.clone());
 
@@ -43,5 +47,7 @@ pub struct Authority {
 }
 
 fn authorities_count(env: Env) -> u64 {
-    env.storage().get::<u64>(b"authorities_count").unwrap_or_default()
+    env.storage()
+        .get::<u64>(b"authorities_count")
+        .unwrap_or_default()
 }
