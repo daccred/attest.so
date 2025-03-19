@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, Env, String, Address, Vec};
+use soroban_sdk::{contract, contractimpl, Address, Env, String, Vec};
 
 #[derive(Debug, Clone)]
 pub struct Schema {
@@ -30,7 +30,13 @@ pub trait SchemaContract {
 
     fn schema_created(schema: Schema);
 
-    fn create_schema(name: String, definition: String, resolver: Option<Address>, revocable: bool, levy: Option<Levy>) -> Result<(), Self::Error>;
+    fn create_schema(
+        name: String,
+        definition: String,
+        resolver: Option<Address>,
+        revocable: bool,
+        levy: Option<Levy>,
+    ) -> Result<(), Self::Error>;
 }
 
 #[contract]
@@ -44,7 +50,14 @@ impl SchemaContract for SchemaContractImpl {
         env.emit().schema_created(schema);
     }
 
-    fn create_schema(env: Env, name: String, definition: String, resolver: Option<Address>, revocable: bool, levy: Option<Levy>) -> Result<(), Self::Error> {
+    fn create_schema(
+        env: Env,
+        name: String,
+        definition: String,
+        resolver: Option<Address>,
+        revocable: bool,
+        levy: Option<Levy>,
+    ) -> Result<(), Self::Error> {
         // Ensure the caller is a registered authority
         let caller = env.caller();
         let authority = authorities(env, caller).expect("Caller is not a registered authority");
