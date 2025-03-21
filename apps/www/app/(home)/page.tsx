@@ -7,7 +7,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { AttestFullIcon } from '@/components/ui/logo'
 
 import Footer from '@/components/blocks/footer'
-import Header from '@/components/blocks/header'
+import ReverseHeader from '@/components/blocks/header'
 import HeroBackdrop from '@/components/blocks/hero-backdrop'
 
 export default function Page(): React.ReactElement {
@@ -46,9 +46,17 @@ export default function Page(): React.ReactElement {
             />
             <section className="flex flex-col min-h-screen">
               <HeroBackdrop />
+
+              <div className='py-6'>
+
               <Footer />
+              </div>
               <PreFooter />
-              <Header />
+
+              <footer className='py-4'>
+
+              <ReverseHeader />
+              </footer>
             </section>
           </div>
         </div>
@@ -114,9 +122,9 @@ function PreFooter(): React.ReactElement {
         className="absolute inset-0 z-[-1]"
         style={{
           backgroundImage: [
-            'radial-gradient(ellipse at top, transparent 60%, hsl(var(--primary) / 0.2))',
-            'linear-gradient(to bottom, transparent 30%, hsl(var(--primary) / 0.2))',
-            'linear-gradient(to bottom, hsl(var(--background)) 40%, transparent)',
+            'radial-gradient(ellipse at top,rgba(0, 0, 0, 0.71) 83%, hsl(var(--primary) / 0.2))',
+            'linear-gradient(to bottom, transparent 30%, hsl(0deg 0% 0% / 0.6))',
+            'linear-gradient(to bottom, hsl(var(--background)) 40%,rgba(182, 77, 29, 0.19))',
             'repeating-linear-gradient(45deg, transparent,transparent 60px, hsl(var(--primary)) 61px, transparent 62px)',
           ].join(', '),
         }}

@@ -11,15 +11,15 @@ const items = [
   { src: Solana, alt: 'Solana', tooltip: 'Attest for Solana', inactive: StellarActive },
   // { src: Aptos, alt: 'Aptos', tooltip: 'Attest for Aptos', inactive: StellarActive },
   { src: Starknet, alt: 'Starknet', tooltip: 'Attest for Starknet', inactive: StellarActive },
-  { src: Stellar, alt: 'stellar', tooltip: 'Attest for Stellar', inactive: StellarActive },
+  // { src: Stellar, alt: 'stellar', tooltip: 'Attest for Stellar', inactive: StellarActive },
   // { src: Cosmos, alt: 'Cosmos', tooltip: 'Attest for Cosmos', inactive: StellarActive },
-  { src: Solana, alt: 'Solana', tooltip: 'Attest for Solana', inactive: StellarActive },
-  { src: Sui, alt: 'Sui', tooltip: 'Attest for Sui', inactive: StellarActive },
+  // { src: Solana, alt: 'Solana', tooltip: 'Attest for Solana', inactive: StellarActive },
+  // { src: Sui, alt: 'Sui', tooltip: 'Attest for Sui', inactive: StellarActive },
 ]
 
 const AttestedItems = () => {
   return (
-    <div className="grid w-full gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 mx-auto justify-items-center">
+    <div className="grid w-full gap-4 grid-cols-3 sm:grid-cols-3 lg:grid-cols-3 mx-auto justify-items-center">
       {items.map((item, index) => (
         <div key={index} className="relative group text-center">
           <div className="w-36 h-24 relative">
