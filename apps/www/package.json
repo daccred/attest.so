@@ -1,7 +1,12 @@
 {
   "name": "www",
   "description": "The attest.so documentation",
-  "keywords": ["attestation", "trust", "blockchain", "schema"],
+  "keywords": [
+    "attestation",
+    "trust",
+    "blockchain",
+    "schema"
+  ],
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -21,6 +26,7 @@
     "next": "^14.2.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "sharp": "^0.33.5",
     "tailwind-merge": "^2.5.3"
   },
   "devDependencies": {

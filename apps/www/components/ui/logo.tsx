@@ -1,5 +1,5 @@
-import React from 'react';
-import { type SVGProps } from 'react';
+import React from 'react'
+import { type SVGProps } from 'react'
 
 export const Logo = (props: SVGProps<SVGSVGElement>) => {
   return (
@@ -16,8 +16,8 @@ export const Logo = (props: SVGProps<SVGSVGElement>) => {
         fill="#FF8700"
       />
     </svg>
-  );
-};
+  )
+}
 
 export const AttestFullIcon = (props: SVGProps<SVGSVGElement>) => {
   return (
@@ -61,14 +61,9 @@ export const AttestFullIcon = (props: SVGProps<SVGSVGElement>) => {
       </g>
       <defs>
         <clipPath id="clip0_561_4148">
-          <rect
-            width="117"
-            height="25.9582"
-            fill="white"
-            transform="translate(0 0.520874)"
-          />
+          <rect width="117" height="25.9582" fill="white" transform="translate(0 0.520874)" />
         </clipPath>
       </defs>
     </svg>
-  );
-};
+  )
+}
