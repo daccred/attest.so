@@ -67,7 +67,7 @@ export default function Page(): React.ReactElement {
 
 function PreFooter(): React.ReactElement {
   return (
-    <div className="container relative z-[2] flex flex-col items-center overflow-hidden border-x border-t bg-fd-background px-6 pt-12 text-center md:pt-20 [.uwu_&]:hidden">
+    <div className="container relative z-[2] flex flex-col items-center overflow-hidden  bg-fd-background px-6 pt-12 text-center md:pt-20 [.uwu_&]:hidden">
       <h1 className="mb-6 text-8xl md:text-5xl tracking-tighter">attest to all things</h1>
       <p className="mb-6 h-fit p-2 text-fd-muted-foreground md:max-w-[80%] md:text-xl">
         We’re building <b className="font-medium text-fd-foreground">https on the blockchain</b>.
