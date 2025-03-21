@@ -1,4 +1,4 @@
-import { createPreset } from 'fumadocs-ui/tailwind-plugin';
+import { createPreset } from 'fumadocs-ui/tailwind-plugin'
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -10,4 +10,4 @@ export default {
     './node_modules/fumadocs-ui/dist/**/*.js',
   ],
   presets: [createPreset()],
-};
+}
