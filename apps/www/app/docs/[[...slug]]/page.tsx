@@ -1,39 +1,29 @@
-import type { Metadata } from 'next';
-import {
-  DocsPage,
-  DocsBody,
-  DocsTitle,
-  DocsDescription,
-  DocsCategory,
-} from 'fumadocs-ui/page';
-import { notFound } from 'next/navigation';
-import { type ComponentProps, type FC, Fragment } from 'react';
-import defaultComponents from 'fumadocs-ui/mdx';
-import { Popup, PopupContent, PopupTrigger } from 'fumadocs-ui/twoslash/popup';
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
-import { Callout } from 'fumadocs-ui/components/callout';
-import { TypeTable } from 'fumadocs-ui/components/type-table';
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { getImageMeta } from 'fumadocs-ui/og';
+import type { Metadata } from 'next'
+import { DocsPage, DocsBody, DocsTitle, DocsDescription, DocsCategory } from 'fumadocs-ui/page'
+import { notFound } from 'next/navigation'
+import { type ComponentProps, type FC, Fragment } from 'react'
+import defaultComponents from 'fumadocs-ui/mdx'
+import { Popup, PopupContent, PopupTrigger } from 'fumadocs-ui/twoslash/popup'
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+import { Callout } from 'fumadocs-ui/components/callout'
+import { TypeTable } from 'fumadocs-ui/components/type-table'
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion'
+import { getImageMeta } from 'fumadocs-ui/og'
 // import Preview from '@/components/preview';
-import { createMetadata } from '@/utils/metadata';
-import { openapi, utils } from '@/app/source';
+import { createMetadata } from '@/utils/metadata'
+import { openapi, utils } from '@/app/source'
 // import { Wrapper } from '@/components/preview/wrapper';
 
 interface Param {
-  slug: string[];
+  slug: string[]
 }
 
-export default function Page({
-  params,
-}: {
-  params: Param;
-}): React.ReactElement {
-  const page = utils.getPage(params.slug);
+export default function Page({ params }: { params: Param }): React.ReactElement {
+  const page = utils.getPage(params.slug)
 
-  if (!page) notFound();
+  if (!page) notFound()
 
-  const path = `apps/docs/content/docs/${page.file.path}`;
+  const path = `apps/docs/content/docs/${page.file.path}`
 
   return (
     <DocsPage
@@ -74,18 +64,17 @@ export default function Page({
         ) : null}
       </DocsBody>
     </DocsPage>
-  );
+  )
 }
 
 export function generateMetadata({ params }: { params: Param }): Metadata {
-  const page = utils.getPage(params.slug);
+  const page = utils.getPage(params.slug)
 
-  if (!page) notFound();
+  if (!page) notFound()
 
-  const description =
-    page.data.description ?? 'Https for the blockchain';
+  const description = page.data.description ?? 'Https for the blockchain'
 
-  const image = getImageMeta('og', page.slugs);
+  const image = getImageMeta('og', page.slugs)
 
   return createMetadata({
     title: page.data.title,
@@ -97,9 +86,9 @@ export function generateMetadata({ params }: { params: Param }): Metadata {
     twitter: {
       images: image,
     },
-  });
+  })
 }
 
 export function generateStaticParams(): Param[] {
-  return utils.generateParams();
+  return utils.generateParams()
 }

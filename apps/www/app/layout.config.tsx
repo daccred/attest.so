@@ -1,13 +1,13 @@
-import Image from 'next/image';
-import { utils } from '@/app/source';
-import { modes } from '@/utils/modes';
+import Image from 'next/image'
+import { utils } from '@/app/source'
+import { modes } from '@/utils/modes'
 import { Logo } from '@/components/ui/logo'
+// import { AttestFullIcon as Logo } from '@/components/ui/logo'
 import { NavChildren } from './layout.client'
-import { type DocsLayoutProps } from 'fumadocs-ui/layout';
-import { type HomeLayoutProps } from 'fumadocs-ui/home-layout';
-import { BookIcon, Heart, LayoutTemplateIcon } from 'lucide-react';
-import { RootToggle } from 'fumadocs-ui/components/layout/root-toggle';
-
+import { type DocsLayoutProps } from 'fumadocs-ui/layout'
+import { type HomeLayoutProps } from 'fumadocs-ui/home-layout'
+import { BookIcon, Heart, LayoutTemplateIcon } from 'lucide-react'
+import { RootToggle } from 'fumadocs-ui/components/layout/root-toggle'
 
 /**
  * Shared layout configurations
@@ -17,16 +17,14 @@ import { RootToggle } from 'fumadocs-ui/components/layout/root-toggle';
  * Docs Layout: app/docs/layout.tsx
  */
 export const baseOptions: HomeLayoutProps = {
-  githubUrl: "https://github.com/daccred",
+  githubUrl: 'https://github.com/daccred/attest.so',
   nav: {
     title: (
       <>
-        <Logo
-          className="size-4 [header_&]:size-5"
-          fill="currentColor" />
-
-        <span className="font-medium max-md:[header_&]:hidden">
-          attest.docs
+        {/* <Logo className="size-20 [header_&]:size-20" fill="currentColor" /> */}
+        <Logo className="size-4 [header_&]:size-5" fill="currentColor" />
+        <span className="font-medium max-md:[header_&]:hidden font-[var(--font-pp-supply-mono)]">
+          attest
         </span>
       </>
     ),
@@ -49,9 +47,9 @@ export const baseOptions: HomeLayoutProps = {
       text: 'Sponsors',
       url: '/docs/solana',
       icon: <Heart />,
-    }
+    },
   ],
-};
+}
 
 export const docsOptions: DocsLayoutProps = {
   ...baseOptions,
@@ -81,5 +79,4 @@ export const docsOptions: DocsLayoutProps = {
       />
     ),
   },
-};
-
+}

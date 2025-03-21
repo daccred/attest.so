@@ -31,5 +31,4 @@ WIP
 ### Resources & Links
 
 - Product log and [research room](https://daccred.notion.site/We-re-building-https-on-the-blockchain-df20b05cb5a04e379a165714aab024fb?pvs=4)
-- Stellar Attestation Service [Activation](https://communityfund.stellar.org/project/stellar-attestation-service)
-
+- Solana Radar [Public Goods Award](https://x.com/solana/status/1856362113561964676)

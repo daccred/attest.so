@@ -1,4 +1,6 @@
-import { cva } from 'class-variance-authority';
+import * as React from 'react'
+import { cn } from '@/utils/cn'
+import { cva, type VariantProps } from 'class-variance-authority'
 
 const buttonVariants = cva(
   'inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-fd-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fd-ring disabled:pointer-events-none disabled:opacity-50',
@@ -9,8 +11,7 @@ const buttonVariants = cva(
           'bg-fd-background bg-gradient-to-b from-fd-primary to-fd-primary/60 text-fd-primary-foreground shadow-inner shadow-fd-background/20 hover:bg-fd-primary/90',
         outline:
           'border bg-gradient-to-t from-fd-primary/10 shadow-inner shadow-fd-primary/10 hover:bg-fd-accent/50 hover:text-fd-accent-foreground',
-        secondary:
-          'border bg-fd-secondary text-fd-secondary-foreground hover:bg-fd-secondary/80',
+        secondary: 'border bg-fd-secondary text-fd-secondary-foreground hover:bg-fd-secondary/80',
         ghost: 'hover:bg-fd-accent hover:text-fd-accent-foreground',
         link: 'text-fd-primary underline-offset-4 hover:underline',
       },
@@ -25,7 +26,23 @@ const buttonVariants = cva(
       variant: 'default',
       size: 'default',
     },
-  },
-);
+  }
+)
 
-export { buttonVariants };
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? React.Fragment : 'button'
+    return (
+      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+    )
+  }
+)
+Button.displayName = 'Button'
+
+export { Button, buttonVariants }
