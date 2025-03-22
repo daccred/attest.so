@@ -1,53 +1,75 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, Address, Env, String};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Symbol,
+};
 
 pub trait AuthorityContract {
-    type Error;
-
-    fn authority_registered(address: Address, metadata: String);
-
-    fn register_authority(metadata: String) -> Result<(), Self::Error>;
+    fn init(env: Env) -> Result<(), Error>;
+    fn register_authority(env: Env);
+    fn verify_authority(env: Env);
 }
+
+const REGISTER: Symbol = symbol_short!("REGISTER");
+const VERIFY: Symbol = symbol_short!("VERIFY");
 
 #[contract]
 pub struct AuthorityContractImpl;
 
 #[contractimpl]
 impl AuthorityContract for AuthorityContractImpl {
-    type Error = String;
-
-    fn authority_registered(env: Env, address: Address, metadata: String) {
-        env.emit()
-            .authority_registered(Authority { address, metadata });
-    }
-
-    fn register_authority(env: Env, metadata: String) -> Result<(), Self::Error> {
-        let caller = env.caller();
-        let authority = Authority {
-            address: caller,
-            metadata,
-        };
-
-        env.storage().set(caller, &authority)?;
-        env.storage().set(
-            b"authorities_count",
-            &authorities_count(env).unwrap_or_default() + 1,
-        )?;
-
-        env.emit().authority_registered(caller, metadata.clone());
-
+    fn init(env: Env) -> Result<(), Error> {
+        if env.storage().instance().has(&DataKey::Admin) {
+            return Err(Error::AlreadyInitialized);
+        }
+        let admin = env.current_contract_address();
+        env.storage().instance().set(&DataKey::Admin, &admin);
         Ok(())
     }
+
+    fn register_authority(env: Env) {
+        let caller = env.current_contract_address();
+
+        let signer_key = AuthorityRecord::Signer;
+        let signer_verified_key = AuthorityRecord::SignerVerified;
+
+        env.storage().instance().set(&signer_key, &caller);
+        env.storage().instance().set(&signer_verified_key, &false);
+
+        env.events().publish((REGISTER,), caller);
+    }
+
+    fn verify_authority(env: Env) {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        admin.require_auth();
+
+        let signer_key = AuthorityRecord::Signer;
+        let signer_verified_key = AuthorityRecord::SignerVerified;
+        env.storage().instance().set(&signer_verified_key, &true);
+
+        // TODO: remove unwrap
+        let authority: Address = env.storage().instance().get(&signer_key).unwrap();
+
+        env.events().publish((VERIFY,), authority);
+    }
 }
 
-#[derive(Debug)]
-pub struct Authority {
-    pub address: Address,
-    pub metadata: String,
+#[contracttype]
+#[derive(Clone)]
+enum AuthorityRecord {
+    SignerVerified,
+    Signer,
+}
+#[contracttype]
+#[derive(Clone)]
+enum DataKey {
+    Admin,
 }
 
-fn authorities_count(env: Env) -> u64 {
-    env.storage()
-        .get::<u64>(b"authorities_count")
-        .unwrap_or_default()
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum Error {
+    AlreadyInitialized = 1,
 }
+
+mod test;

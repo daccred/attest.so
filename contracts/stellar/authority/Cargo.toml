@@ -8,8 +8,8 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 doctest = false
 
-[features]
-testutils = []
+# [features]
+# testutils = []
 
 [dependencies]
 soroban-sdk = { workspace = true }
