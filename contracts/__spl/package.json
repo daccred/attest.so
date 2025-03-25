@@ -14,9 +14,9 @@
     "@solana/web3.js": "^1.95.3",
     "borsh": "^2.0.0",
     "buffer": "^6.0.3",
-    "fs": "0.0.1-security"
+    "fs": "^0.0.1-security"
   },
   "devDependencies": {
-    "@types/node": "^22.7.4"
+    "@types/node": "^22.13.10"
   }
 }

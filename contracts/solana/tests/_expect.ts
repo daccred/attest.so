@@ -42,6 +42,12 @@ export class Expectation<T> {
         }
         return true
       },
+      not_null: () => {
+        if (this.actual === null) {
+          throw new Error(`Expected ${this.actual} to be null`)
+        }
+        return true
+      },
       undefined: () => {
         if (this.actual !== undefined) {
           throw new Error(`Expected ${this.actual} to be undefined`)
@@ -63,13 +69,18 @@ export class Expectation<T> {
 
     // Array inclusion
     include: (expected: any) => {
-      if (!Array.isArray(this.actual)) {
-        throw new Error('Can only check inclusion on arrays')
+      if (!Array.isArray(this.actual) && typeof this.actual !== 'string') {
+      throw new Error('Can only check inclusion on arrays or strings')
       }
-      if (!this.actual.includes(expected)) {
-        throw new Error(
-          `Expected ${JSON.stringify(this.actual)} to include ${JSON.stringify(expected)}`
-        )
+      if (Array.isArray(this.actual) && !this.actual.includes(expected)) {
+      throw new Error(
+        `Expected ${JSON.stringify(this.actual)} to include ${JSON.stringify(expected)}`
+      )
+      }
+      if (typeof this.actual === 'string' && !this.actual.includes(String(expected))) {
+      throw new Error(
+        `Expected "${this.actual}" to include "${expected}"`
+      )
       }
       return true
     },

@@ -12,7 +12,7 @@ mod utils;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("25CRaHHcKjqB5zXUSmPAHxbXEcAM19AWjgLC3kYL93pe");
+declare_id!("BMr9aui54YuxtpBzWXiFNmnr2iH6etRu7rMFJnKxjtpY");
 
 #[cfg(not(feature = "no-entrypoint"))]
 solana_security_txt::security_txt! {
