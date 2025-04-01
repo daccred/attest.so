@@ -1,82 +1,340 @@
 {
-  "address": "BwTpLDj7ZHfqRN4PtC3gqXUcpsW7cfTU7uw557pxUcmx",
+  "address": "BMr9aui54YuxtpBzWXiFNmnr2iH6etRu7rMFJnKxjtpY",
   "metadata": {
-    "name": "attestso",
-    "version": "0.1.1",
+    "name": "attest",
+    "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "Attestation Service Portal on Solana"
+    "description": "Created with Anchor"
   },
   "instructions": [
     {
-      "name": "find_or_set_authority",
+      "name": "attest",
       "discriminator": [
-        243,
-        53,
-        202,
-        21,
-        4,
-        52,
-        133,
-        31
+        83,
+        148,
+        120,
+        119,
+        144,
+        139,
+        117,
+        160
       ],
       "accounts": [
         {
-          "name": "authority_record",
+          "name": "attester",
+          "docs": [
+            "The attester who is creating the attestation."
+          ],
           "writable": true,
           "signer": true
         },
         {
-          "name": "authority",
+          "name": "recipient"
+        },
+        {
+          "name": "levy_receipent",
+          "docs": [
+            "CHECK just a chill account"
+          ]
+        },
+        {
+          "name": "deployer",
+          "relations": [
+            "schema_data"
+          ]
+        },
+        {
+          "name": "mint_account",
+          "writable": true
+        },
+        {
+          "name": "attester_token_account",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "attester"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "levy_receipent_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "levy_receipent"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "schema_data",
+          "docs": [
+            "The schema data account; must match the schema UID."
+          ]
+        },
+        {
+          "name": "attestation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  101,
+                  115,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "schema_data"
+              },
+              {
+                "kind": "account",
+                "path": "recipient"
+              },
+              {
+                "kind": "account",
+                "path": "attester"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": [],
-      "returns": {
-        "defined": {
-          "name": "AuthorityRecord"
+      "args": [
+        {
+          "name": "data",
+          "type": "string"
+        },
+        {
+          "name": "ref_uid",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "expiration_time",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "revocable",
+          "type": "bool"
         }
-      }
+      ]
     },
     {
-      "name": "initialize",
+      "name": "create_schema",
       "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
-      ],
-      "accounts": [],
-      "args": []
-    },
-    {
-      "name": "register",
-      "discriminator": [
-        211,
-        124,
-        67,
-        15,
-        211,
-        194,
-        178,
-        240
+        105,
+        171,
+        40,
+        140,
+        30,
+        91,
+        30,
+        134
       ],
       "accounts": [
         {
           "name": "deployer",
+          "docs": [
+            "Deployer who creates the schema."
+          ],
           "writable": true,
           "signer": true
         },
         {
+          "name": "authority_record",
+          "writable": true
+        },
+        {
           "name": "schema_data",
+          "docs": [
+            "Schema data stored at the derived PDA."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -97,7 +355,7 @@
               },
               {
                 "kind": "arg",
-                "path": "schema_name"
+                "path": "_schema_name"
               }
             ]
           }
@@ -125,21 +383,456 @@
         {
           "name": "revocable",
           "type": "bool"
+        },
+        {
+          "name": "levy",
+          "type": {
+            "option": {
+              "defined": {
+                "name": "Levy"
+              }
+            }
+          }
         }
-      ],
-      "returns": "pubkey"
+      ]
     },
     {
-      "name": "update_authority",
+      "name": "delegated_attest",
       "discriminator": [
-        32,
-        46,
-        64,
-        28,
-        149,
-        75,
-        243,
-        88
+        253,
+        38,
+        166,
+        213,
+        168,
+        72,
+        220,
+        143
+      ],
+      "accounts": [
+        {
+          "name": "delegated_attester",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "levy_receipent",
+          "docs": [
+            "CHECK just a chill account"
+          ]
+        },
+        {
+          "name": "deployer",
+          "relations": [
+            "schema_data"
+          ]
+        },
+        {
+          "name": "mint_account",
+          "writable": true
+        },
+        {
+          "name": "delegated_attester_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "delegated_attester"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "levy_receipent_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "levy_receipent"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint_account"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "schema_data",
+          "docs": [
+            "The schema data account; must match the schema UID."
+          ]
+        },
+        {
+          "name": "attestation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  101,
+                  115,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "schema_data"
+              },
+              {
+                "kind": "arg",
+                "path": "recipient"
+              },
+              {
+                "kind": "arg",
+                "path": "attester"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "ed25519_program",
+          "address": "Ed25519SigVerify111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "attestation_data",
+          "type": {
+            "defined": {
+              "name": "AttestationData"
+            }
+          }
+        },
+        {
+          "name": "attester_info",
+          "type": {
+            "defined": {
+              "name": "AttesterInfo"
+            }
+          }
+        },
+        {
+          "name": "recipient",
+          "type": "pubkey"
+        },
+        {
+          "name": "attester",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "register_authority",
+      "discriminator": [
+        142,
+        245,
+        45,
+        213,
+        198,
+        12,
+        231,
+        91
+      ],
+      "accounts": [
+        {
+          "name": "authority_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "revoke_attestation",
+      "discriminator": [
+        12,
+        156,
+        103,
+        161,
+        194,
+        246,
+        211,
+        179
+      ],
+      "accounts": [
+        {
+          "name": "attester",
+          "docs": [
+            "The attester who is revoking the attestation."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "attestation"
+          ]
+        },
+        {
+          "name": "attestation",
+          "docs": [
+            "The attestation account to be revoked."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  101,
+                  115,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "schema_uid"
+              },
+              {
+                "kind": "arg",
+                "path": "recipient"
+              },
+              {
+                "kind": "account",
+                "path": "attester"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "schema_uid",
+          "type": "pubkey"
+        },
+        {
+          "name": "recipient",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "verify_authority",
+      "discriminator": [
+        73,
+        197,
+        140,
+        96,
+        127,
+        246,
+        175,
+        87
       ],
       "accounts": [
         {
@@ -160,6 +853,19 @@
     }
   ],
   "accounts": [
+    {
+      "name": "Attestation",
+      "discriminator": [
+        152,
+        125,
+        183,
+        86,
+        36,
+        146,
+        121,
+        73
+      ]
+    },
     {
       "name": "AuthorityRecord",
       "discriminator": [
@@ -189,16 +895,55 @@
   ],
   "events": [
     {
-      "name": "NewSchemaSignal",
+      "name": "Attested",
       "discriminator": [
-        14,
-        172,
-        236,
-        29,
-        123,
-        163,
-        125,
-        205
+        184,
+        102,
+        113,
+        199,
+        220,
+        197,
+        96,
+        50
+      ]
+    },
+    {
+      "name": "NewAuthoritySignal",
+      "discriminator": [
+        96,
+        61,
+        229,
+        248,
+        174,
+        134,
+        19,
+        116
+      ]
+    },
+    {
+      "name": "Revoked",
+      "discriminator": [
+        113,
+        216,
+        148,
+        99,
+        124,
+        184,
+        0,
+        65
+      ]
+    },
+    {
+      "name": "SchemaCreated",
+      "discriminator": [
+        78,
+        195,
+        195,
+        2,
+        80,
+        75,
+        53,
+        86
       ]
     },
     {
@@ -218,11 +963,263 @@
   "errors": [
     {
       "code": 6000,
+      "name": "InvalidSchema",
+      "msg": "Invalid Schema"
+    },
+    {
+      "code": 6001,
+      "name": "NotFound",
+      "msg": "Attestation not found."
+    },
+    {
+      "code": 6002,
+      "name": "AlreadyRevoked",
+      "msg": "Attestation already revoked."
+    },
+    {
+      "code": 6003,
+      "name": "Irrevocable",
+      "msg": "Schema is not revocable."
+    },
+    {
+      "code": 6004,
+      "name": "InvalidExpirationTime",
+      "msg": "Invalid expiration time."
+    },
+    {
+      "code": 6005,
+      "name": "DataTooLarge",
+      "msg": "Data too large."
+    },
+    {
+      "code": 6006,
+      "name": "WrongAsset",
+      "msg": "Wrong Asset."
+    },
+    {
+      "code": 6007,
+      "name": "ShouldBeUnused",
+      "msg": "Should be unused."
+    },
+    {
+      "code": 6008,
+      "name": "InvalidData",
+      "msg": "Invalid data."
+    },
+    {
+      "code": 6009,
       "name": "Unauthorized",
       "msg": "Unauthorized operation: Only admin can perform this action."
+    },
+    {
+      "code": 6010,
+      "name": "SchemaAlreadyExists",
+      "msg": "Schema already exists."
     }
   ],
   "types": [
+    {
+      "name": "Attestation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema",
+            "docs": [
+              "Schema UID (PDA) associated with this attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "recipient",
+            "docs": [
+              "The recipient of the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "attester",
+            "docs": [
+              "The attester who created the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "data",
+            "docs": [
+              "Custom data associated with the attestation."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "time",
+            "docs": [
+              "Timestamp of when the attestation was created."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "ref_uid",
+            "docs": [
+              "Reference to another attestation UID, if any."
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "expiration_time",
+            "docs": [
+              "Optional expiration time of the attestation."
+            ],
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "revocation_time",
+            "docs": [
+              "Timestamp of when the attestation was revoked, if revoked."
+            ],
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "revocable",
+            "docs": [
+              "Indicates whether the attestation is revocable."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "uid",
+            "docs": [
+              "Unique identifier (PDA) of this attestation."
+            ],
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AttestationData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_uid",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "data",
+            "type": "string"
+          },
+          {
+            "name": "ref_uid",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "expiration_time",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "revocable",
+            "type": "bool"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Attested",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema",
+            "docs": [
+              "Schema UID associated with the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "recipient",
+            "docs": [
+              "The recipient of the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "attester",
+            "docs": [
+              "The attester who created the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "uid",
+            "docs": [
+              "Unique identifier (PDA) of the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "time",
+            "docs": [
+              "Timestamp of when the attestation was created."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AttesterInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "message",
+            "type": "bytes"
+          },
+          {
+            "name": "pubkey",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "signature",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "AuthorityRecord",
       "type": {
@@ -244,16 +1241,116 @@
       }
     },
     {
-      "name": "NewSchemaSignal",
+      "name": "Levy",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "docs": [
+              "8 bytes"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "asset",
+            "docs": [
+              "32 bytes (Asset address)"
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "recipient",
+            "docs": [
+              "32 bytes (Recipient of the levy)"
+            ],
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NewAuthoritySignal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_verified",
+            "type": "bool"
+          },
+          {
+            "name": "first_deployment",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Revoked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema",
+            "docs": [
+              "Schema UID associated with the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "recipient",
+            "docs": [
+              "The recipient of the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "attester",
+            "docs": [
+              "The attester who revoked the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "uid",
+            "docs": [
+              "Unique identifier (PDA) of the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "time",
+            "docs": [
+              "Timestamp of when the attestation was revoked."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SchemaCreated",
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "uid",
+            "docs": [
+              "The generated UID for the schema (PDA)."
+            ],
             "type": "pubkey"
           },
           {
             "name": "schema_data",
+            "docs": [
+              "Full schema data including schema, resolver, revocable, and deployer."
+            ],
             "type": {
               "defined": {
                 "name": "SchemaData"
@@ -270,25 +1367,50 @@
         "fields": [
           {
             "name": "uid",
+            "docs": [
+              "Generate PDA as reference key."
+            ],
             "type": "pubkey"
           },
           {
             "name": "schema",
+            "docs": [
+              "The actual schema data (e.g., JSON, XML, etc.)."
+            ],
             "type": "string"
           },
           {
             "name": "resolver",
+            "docs": [
+              "Resolver address (another contract) for schema verification."
+            ],
             "type": {
               "option": "pubkey"
             }
           },
           {
             "name": "revocable",
+            "docs": [
+              "Indicates whether the schema is revocable."
+            ],
             "type": "bool"
           },
           {
             "name": "deployer",
+            "docs": [
+              "The deployer/authority who created the schema."
+            ],
             "type": "pubkey"
+          },
+          {
+            "name": "levy",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "Levy"
+                }
+              }
+            }
           }
         ]
       }

@@ -1,34 +1,28 @@
-import { Attestations } from './attestations';
-import { AttestSDKBaseConfig } from './core/types';
-import { Schemas } from './schemas';
+import { SolanaConfig, StarknetConfig, StellarConfig } from './core/types'
+// import { StellarAttestSDK } from './core/stellar'
+import { SolanaAttestSDK } from './core/solana'
+// import { StarknetAttestSDK } from './core/starknet'
 
 /**
- * Represents the AttestSDK, which provides access to attestations and schemas.
+ * Factory function to create the appropriate AttestSDKBase implementation
+ * based on the provided configuration
  */
-class AttestSDK {
-  /**
-   * The configuration for the AttestSDK.
-   */
-  private config: AttestSDKBaseConfig;
-  /**
-   * An instance of Attestations for managing attestations.
-   */
-  attestation: Attestations;
-  /**
-   * An instance of Schemas for managing schemas.
-   */
-  schema: Schemas;
+export class AttestSDK {
+  // static async initializeStellar(config: StellarConfig): Promise<StellarAttestSDK> {
+  //   const stellarClient = new StellarAttestSDK(config)
+  //   await stellarClient.initialize()
+  //   return stellarClient
+  // }
 
-  /**
-   * Initializes a new instance of the AttestSDK with the provided configuration.
-   *
-   * @param config The configuration for the AttestSDK.
-   */
-  constructor(config: AttestSDKBaseConfig) {
-    this.config = config;
-    this.attestation = new Attestations(this.config);
-    this.schema = new Schemas(this.config);
+  static async initializeSolana(config: SolanaConfig): Promise<SolanaAttestSDK> {
+    const solanaClient = new SolanaAttestSDK(config)
+    await solanaClient.initialize()
+    return solanaClient
   }
-}
 
-export default AttestSDK;
+  // static async initializeStarknet(config: StarknetConfig): Promise<StarknetAttestSDK> {
+  //   const starknetClient = new StarknetAttestSDK(config)
+  //   await starknetClient.initialize()
+  //   return starknetClient
+  // }
+}

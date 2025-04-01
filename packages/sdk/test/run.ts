@@ -1,28 +1,129 @@
-import AttestSDK from '../src'
-
+import { AttestSDK } from '../src'
+import * as anchor from '@coral-xyz/anchor'
+import { createMint, createAccount, mintTo } from '@solana/spl-token'
 
 async function run() {
-  const secretKey = [
-    114, 196, 179, 104, 127, 64, 39, 59, 139, 102, 15, 159, 174, 148, 220, 126, 53, 58, 254, 166,
-    162, 119, 252, 77, 119, 61, 64, 44, 131, 150, 23, 36, 220, 229, 29, 142, 145, 8, 143, 3, 124,
-    35, 111, 115, 224, 191, 68, 64, 198, 202, 179, 60, 250, 89, 214, 140, 3, 234, 169, 159, 235, 42,
-    26, 42,
-  ]
+  const url = 'http://localhost:8899'
+  const connection = new anchor.web3.Connection(url, 'confirmed')
 
-  const client = new AttestSDK({
-    secretKey,
+  // Initialize SDK with Solana chain and relevant wallets
+  const authorityKeypair = anchor.web3.Keypair.generate()
+  const recipientKeypair = anchor.web3.Keypair.generate()
+  const levyRecipientKeypair = anchor.web3.Keypair.generate()
+  const attesterKeypair = anchor.web3.Keypair.generate()
+
+  const authoritySolana = await AttestSDK.initializeSolana({
+    url,
+    walletOrSecretKey: new anchor.Wallet(authorityKeypair),
   })
 
-  const res = await client.schema.register({
-    schemaName: 'schema-bean',
-    schemaContent: '{"name": "example", "type": "object"}',
+  const attesterSolana = await AttestSDK.initializeSolana({
+    url,
+    walletOrSecretKey: new anchor.Wallet(attesterKeypair),
   })
 
-  console.log({ res })
+  const authorityAirdrop = await connection.requestAirdrop(
+    authorityKeypair.publicKey,
+    anchor.web3.LAMPORTS_PER_SOL
+  )
+  console.log('Airdropped SOL to authority:', authorityAirdrop)
+  await connection.confirmTransaction(authorityAirdrop)
 
-  const res2 = await client.schema.fetch(res.data!.toBase58())
+  const attesterAirdrop = await connection.requestAirdrop(
+    attesterKeypair.publicKey,
+    anchor.web3.LAMPORTS_PER_SOL
+  )
+  console.log('Airdropped SOL to attester:', attesterAirdrop)
+  await connection.confirmTransaction(attesterAirdrop)
 
-  console.log({ res2 })
+  // Create Mint Account
+  const mintAcount = await createMint(
+    connection,
+    authorityKeypair,
+    authorityKeypair.publicKey,
+    null,
+    0
+  )
+
+  const attesterTokenAccount = await createAccount(
+    connection,
+    authorityKeypair,
+    mintAcount,
+    attesterKeypair.publicKey
+  )
+  await mintTo(
+    connection,
+    authorityKeypair,
+    mintAcount,
+    attesterTokenAccount,
+    authorityKeypair,
+    10_000
+  )
+
+  // Register as authority
+  const { data: authority, error: authorityError } = await authoritySolana.registerAuthority()
+
+  console.log({ authority, authorityError })
+  const { data: schema, error: schemaError } = await authoritySolana.createSchema({
+    schemaName: 'test-schema',
+    schemaContent: 'string name, string email, uint8 verification_level',
+    revocable: true,
+    levy: {
+      amount: new anchor.BN(10),
+      asset: mintAcount,
+      recipient: authorityKeypair.publicKey,
+    },
+  })
+
+  if (schemaError) {
+    console.error('Error creating schema:', schemaError)
+  } else {
+    console.log({ schema })
+  }
+
+  const fetchSchema = await attesterSolana.fetchSchema(schema!)
+
+  console.log({ fetchSchema })
+
+  const { data: attestation, error: attestationError } = await attesterSolana.attest({
+    schemaData: schema!,
+    data: 'This is a test attestation',
+    revocable: true,
+    accounts: {
+      recipient: recipientKeypair.publicKey,
+      levyReceipent: levyRecipientKeypair.publicKey,
+      mintAccount: mintAcount,
+    },
+  })
+
+  if (attestationError) {
+    console.error('Error creating attestation:', attestationError)
+  } else {
+    console.log({ attestation })
+  }
+
+  const { data: fetchAttestation, error: fetchAttestationError } =
+    await attesterSolana.fetchAttestation(attestation!)
+
+  if (fetchAttestationError) {
+    console.error('Error fetching attestation:', fetchAttestationError)
+  } else {
+    console.log({ fetchAttestation })
+  }
+
+  const { data: revokedAttestation, error: revokedAttestationError } =
+    await attesterSolana.revokeAttestation({
+      schemaUID: schema!,
+      recipient: recipientKeypair.publicKey,
+    })
+
+  if (revokedAttestationError) {
+    console.error('Error revoking attestation:', revokedAttestationError)
+  } else {
+    console.log({ revokedAttestation })
+  }
 }
 
-run()
+run().catch((err) => {
+  console.error('Error running test:', err)
+})
