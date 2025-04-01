@@ -1,6 +1,7 @@
 ![attest.so](./public/attest-full.svg)
 
 ## attest.docs
+
 attest to all things
 
 We’re building <b>https on the blockchain</b>.
@@ -8,6 +9,7 @@ We’re building <b>https on the blockchain</b>.
 Build anything from network states, DAOs, DePIN, and RWA. <br /> Never worry about trust again.
 
 ## Setup
+
 Run development server:
 
 ```bash
