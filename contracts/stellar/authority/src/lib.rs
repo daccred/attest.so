@@ -3,21 +3,15 @@ use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Symbol,
 };
 
-pub trait AuthorityContract {
-    fn init(env: Env) -> Result<(), Error>;
-    fn register_authority(env: Env);
-    fn verify_authority(env: Env);
-}
-
 const REGISTER: Symbol = symbol_short!("REGISTER");
 const VERIFY: Symbol = symbol_short!("VERIFY");
 
 #[contract]
-pub struct AuthorityContractImpl;
+pub struct AuthorityContract;
 
 #[contractimpl]
-impl AuthorityContract for AuthorityContractImpl {
-    fn init(env: Env) -> Result<(), Error> {
+impl AuthorityContract {
+    pub fn __constructor(env: Env) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::Admin) {
             return Err(Error::AlreadyInitialized);
         }
@@ -26,7 +20,7 @@ impl AuthorityContract for AuthorityContractImpl {
         Ok(())
     }
 
-    fn register_authority(env: Env) {
+    pub fn register_authority(env: Env) {
         let caller = env.current_contract_address();
 
         let signer_key = AuthorityRecord::Signer;
@@ -38,7 +32,7 @@ impl AuthorityContract for AuthorityContractImpl {
         env.events().publish((REGISTER,), caller);
     }
 
-    fn verify_authority(env: Env) {
+    pub fn verify_authority(env: Env) {
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
         admin.require_auth();
 
