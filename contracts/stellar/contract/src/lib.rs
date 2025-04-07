@@ -7,27 +7,34 @@ use soroban_sdk::{
 };
 
 mod schema;
-use schema::{Schema, register_schema as create_schema, DataKey as SchemaDataKey, SchemaError};
+mod resolver_interface;
+
+use resolver_interface::{AttestationRecord};
+use schema::{register_schema as create_schema, DataKey as SchemaDataKey, SchemaError};
+
+use schema::Schema as SchemaDefinition;
 
 #[contracttype]
 pub enum DataKey {
     Authority(Address),
     Attestation(BytesN<32>),
     Schema(BytesN<32>),
+    Admin,
 }
 
 #[derive(Debug, Clone)]
 #[contracttype]
-pub struct Attestation {
-    pub uid: BytesN<32>,
+pub struct StoredAttestation {
     pub schema_uid: BytesN<32>,
     pub recipient: Address,
     pub attester: Address,
-    pub data: String,
     pub time: u64,
     pub expiration_time: Option<u64>,
     pub revocation_time: Option<u64>,
     pub revocable: bool,
+    pub ref_uid: Option<BytesN<32>>,
+    pub data: Bytes,
+    pub value: Option<i128>,
 }
 
 #[derive(Debug, Clone)]
@@ -50,6 +57,10 @@ pub enum Error {
     StorageFailed = 7,
     SchemaError = 8,
     InvalidUid = 9,
+    ResolverError = 10,
+    SchemaHasNoResolver = 11,
+    AdminNotSet = 12,
+    AlreadyInitialized = 13,
 }
 
 impl From<SchemaError> for Error {
@@ -58,11 +69,39 @@ impl From<SchemaError> for Error {
     }
 }
 
+fn to_attestation_record(
+    _env: &Env,
+    uid: &BytesN<32>,
+    att: &StoredAttestation,
+) -> AttestationRecord {
+    AttestationRecord {
+        uid: uid.clone(),
+        schema_uid: att.schema_uid.clone(),
+        recipient: att.recipient.clone(),
+        attester: att.attester.clone(),
+        time: att.time,
+        expiration_time: att.expiration_time,
+        revocation_time: att.revocation_time,
+        revocable: att.revocable,
+        ref_uid: att.ref_uid.clone(),
+        data: att.data.clone(),
+        value: att.value,
+    }
+}
+
 #[contract]
 pub struct AttestationContract;
 
 #[contractimpl]
 impl AttestationContract {
+    pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
+        if env.storage().instance().has(&DataKey::Admin) {
+            return Err(Error::AlreadyInitialized);
+        }
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        Ok(())
+    }
+
     pub fn register_schema(
         env: Env,
         caller: Address,
@@ -77,10 +116,12 @@ impl AttestationContract {
     pub fn attest(
         env: Env,
         caller: Address,
-        data: String,
+        data: Bytes,
         recipient_address: Address,
         schema_uid: BytesN<32>,
         expiration_time: Option<u64>,
+        ref_uid: Option<BytesN<32>>,
+        value: Option<i128>,
         revocable: bool,
     ) -> Result<BytesN<32>, Error> {
         caller.require_auth();
@@ -89,27 +130,17 @@ impl AttestationContract {
             .ok_or(Error::AuthorityNotRegistered)?;
 
         let schema_key = SchemaDataKey::Schema(schema_uid.clone());
-        let schema: Schema = env.storage().instance().get(&schema_key)
+        let schema: SchemaDefinition = env.storage().instance().get(&schema_key)
             .ok_or(Error::SchemaNotFound)?;
-
-        if let Some(levy) = &schema.levy {
-            env.invoke_contract::<()>(
-                &levy.asset,
-                &symbol_short!("transfer"),
-                vec![
-                    &env,
-                    caller.clone().into_val(&env),
-                    levy.recipient.clone().into_val(&env),
-                    levy.amount.into_val(&env),
-                ],
-            );
-        }
 
         let mut attestation_data_to_hash = Bytes::new(&env);
         attestation_data_to_hash.append(&data.clone().to_xdr(&env));
         attestation_data_to_hash.append(&schema_uid.clone().to_xdr(&env));
         attestation_data_to_hash.append(&recipient_address.clone().to_xdr(&env));
         attestation_data_to_hash.append(&caller.clone().to_xdr(&env));
+        if let Some(r_uid) = &ref_uid {
+            attestation_data_to_hash.append(&r_uid.to_xdr(&env));
+        }
         let uid: BytesN<32> = env.crypto().sha256(&attestation_data_to_hash).into();
 
         let attestation_key = DataKey::Attestation(uid.clone());
@@ -118,22 +149,33 @@ impl AttestationContract {
             return Err(Error::AttestationExists);
         }
 
-        let attestation = Attestation {
-            uid: uid.clone(),
+        let time = env.ledger().timestamp();
+        let attestation_to_store = StoredAttestation {
             schema_uid,
             recipient: recipient_address,
             attester: caller,
-            data,
-            time: env.ledger().timestamp(),
+            time,
             expiration_time,
             revocation_time: None,
             revocable,
+            ref_uid: ref_uid.clone(),
+            data: data.clone(),
+            value,
         };
 
-        store_attestation(&env, &uid, &attestation)?;
+        if let Some(resolver_address) = &schema.resolver {
+            let attestation_record = to_attestation_record(&env, &uid, &attestation_to_store);
+            env.invoke_contract::<()>(
+                resolver_address,
+                &symbol_short!("attest"),
+                vec![&env, attestation_record.into_val(&env)],
+            );
+        }
+
+        store_attestation(&env, &uid, &attestation_to_store)?;
 
         env.events()
-            .publish((symbol_short!("attest"), symbol_short!("create")), attestation.clone());
+            .publish((symbol_short!("attest"), symbol_short!("create")), attestation_to_store.clone());
 
         Ok(uid)
     }
@@ -146,11 +188,11 @@ impl AttestationContract {
         caller.require_auth();
 
         let attestation_key = DataKey::Attestation(uid.clone());
-        let mut attestation: Attestation = env.storage().instance().get(&attestation_key)
+        let mut attestation: StoredAttestation = env.storage().instance().get(&attestation_key)
             .ok_or(Error::AttestationNotFound)?;
 
         let schema_key = SchemaDataKey::Schema(attestation.schema_uid.clone());
-        let schema: Schema = env.storage().instance().get(&schema_key)
+        let schema: SchemaDefinition = env.storage().instance().get(&schema_key)
              .ok_or(Error::SchemaNotFound)?;
         if schema.authority != caller {
              return Err(Error::NotAuthorized);
@@ -160,7 +202,17 @@ impl AttestationContract {
             return Err(Error::NotAuthorized);
         }
 
+        let original_attestation = attestation.clone();
         attestation.revocation_time = Some(env.ledger().timestamp());
+
+        if let Some(resolver_address) = &schema.resolver {
+            let attestation_record = to_attestation_record(&env, &uid, &original_attestation);
+            env.invoke_contract::<()>(
+                resolver_address,
+                &symbol_short!("revoke"),
+                vec![&env, attestation_record.into_val(&env)],
+            );
+        }
 
         store_attestation(&env, &uid, &attestation)?;
 
@@ -173,7 +225,7 @@ impl AttestationContract {
     pub fn get_attest(
         env: Env,
         uid: BytesN<32>
-    ) -> Result<Attestation, Error> {
+    ) -> Result<StoredAttestation, Error> {
         let attestation_key = DataKey::Attestation(uid);
         env.storage().instance().get(&attestation_key)
             .ok_or(Error::AttestationNotFound)
@@ -181,10 +233,10 @@ impl AttestationContract {
 
     pub fn reg_auth(
         env: Env,
-        admin: Address,
         auth_to_reg: Address,
         metadata: String,
     ) -> Result<(), Error> {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).ok_or(Error::AdminNotSet)?;
         admin.require_auth();
         
         let authority = Authority {
@@ -193,6 +245,10 @@ impl AttestationContract {
         };
         let key = DataKey::Authority(auth_to_reg);
         env.storage().instance().set(&key, &authority);
+        env.events().publish(
+            (symbol_short!("auth"), symbol_short!("register")),
+            authority,
+        );
         Ok(())
     }
 }
@@ -202,7 +258,7 @@ fn get_authority(env: &Env, address: &Address) -> Option<Authority> {
     env.storage().instance().get(&key)
 }
 
-fn store_attestation(env: &Env, uid: &BytesN<32>, attestation: &Attestation) -> Result<(), Error> {
+fn store_attestation(env: &Env, uid: &BytesN<32>, attestation: &StoredAttestation) -> Result<(), Error> {
     let key = DataKey::Attestation(uid.clone());
     env.storage().instance().set(&key, attestation);
     Ok(())
@@ -245,7 +301,9 @@ mod test {
         let authority = register_default_authority(&env, &client);
         let schema_uid = register_default_schema(&env, &client, &authority);
         let recipient = Address::generate(&env);
-        let attestation_data = String::from_str(&env, "attestation data");
+        let attestation_data = Bytes::from_slice(&env, &[1, 2, 3]);
+        let ref_uid: Option<BytesN<32>> = None;
+        let value: Option<i128> = None;
 
         let attestation_uid = client.attest(
             &authority,
@@ -253,12 +311,13 @@ mod test {
             &recipient,
             &schema_uid,
             &Some(env.ledger().timestamp() + 1000),
+            &ref_uid,
+            &value,
             &true
         );
 
         let fetched_attestation = client.get_attest(&attestation_uid);
 
-        assert_eq!(fetched_attestation.uid, attestation_uid);
         assert_eq!(fetched_attestation.schema_uid, schema_uid);
         assert_eq!(fetched_attestation.recipient, recipient);
         assert_eq!(fetched_attestation.attester, authority);
@@ -274,7 +333,9 @@ mod test {
         let authority = register_default_authority(&env, &client);
         let schema_uid = register_default_schema(&env, &client, &authority);
         let recipient = Address::generate(&env);
-        let attestation_data = String::from_str(&env, "data to revoke");
+        let attestation_data = Bytes::from_slice(&env, &[4, 5, 6]);
+        let ref_uid: Option<BytesN<32>> = None;
+        let value: Option<i128> = None;
 
         let attestation_uid = client.attest(
             &authority,
@@ -282,6 +343,8 @@ mod test {
             &recipient,
             &schema_uid,
             &None,
+            &ref_uid,
+            &value,
             &true
         );
 
@@ -308,7 +371,9 @@ mod test {
          let schema_uid = register_default_schema(&env, &client, &authority);
          let non_authority = Address::generate(&env);
          let recipient = Address::generate(&env);
-         let attestation_data = String::from_str(&env, "attestation data");
+         let attestation_data = Bytes::from_slice(&env, &[7, 8, 9]);
+         let ref_uid: Option<BytesN<32>> = None;
+         let value: Option<i128> = None;
 
          let result = client.try_attest(
              &non_authority,
@@ -316,6 +381,8 @@ mod test {
              &recipient,
              &schema_uid,
              &None,
+             &ref_uid,
+             &value,
              &true
          );
 
