@@ -1,0 +1,6 @@
+target/
+/.sccache/
+.DS_Store
+.soroban
+test_snapshots
+Cargo.lock
