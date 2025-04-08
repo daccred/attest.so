@@ -4,6 +4,26 @@ use crate::errors::Error;
 use crate::utils;
 use crate::events;
 
+/// Creates a new attestation or updates an existing one for a given schema and subject.
+///
+/// Requires authorization from the caller, who must be the authority registered
+/// for the specified schema.
+///
+/// # Arguments
+/// * `env` - The Soroban environment.
+/// * `caller` - The address creating the attestation (must be the schema authority).
+/// * `schema_uid` - The UID of the schema this attestation conforms to.
+/// * `subject` - The address that is the subject of the attestation.
+/// * `value` - The string value or data of the attestation.
+/// * `reference` - An optional reference string to uniquely identify the attestation if
+///                 multiple attestations for the same schema and subject can exist.
+///
+/// # Returns
+/// * `Result<(), Error>` - An empty success value or an error.
+///
+/// # Errors
+/// * `Error::SchemaNotFound` - If the schema specified by `schema_uid` does not exist.
+/// * `Error::NotAuthorized` - If the `caller` is not the authority associated with the schema.
 pub fn attest(
     env: &Env,
     caller: Address,
@@ -44,6 +64,20 @@ pub fn attest(
     Ok(())
 }
 
+/// Retrieves an attestation record based on its schema, subject, and optional reference.
+///
+/// # Arguments
+/// * `env` - The Soroban environment.
+/// * `schema_uid` - The UID of the schema the attestation belongs to.
+/// * `subject` - The address that is the subject of the attestation.
+/// * `reference` - An optional reference string used to identify the specific attestation.
+///
+/// # Returns
+/// * `Result<AttestationRecord, Error>` - The `AttestationRecord` if found, otherwise an error.
+///
+/// # Errors
+/// * `Error::SchemaNotFound` - If the schema specified by `schema_uid` does not exist.
+/// * `Error::AttestationNotFound` - If no attestation matching the criteria exists.
 pub fn get_attest(
     env: &Env,
     schema_uid: BytesN<32>,

@@ -18,7 +18,6 @@ use instructions::{
     attest,
     revoke_attest,
     get_attest,
-    register_authority,
 };
 
 #[contract]
@@ -32,15 +31,6 @@ impl AttestationContract {
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
         Ok(())
-    }
-
-    pub fn reg_auth(
-        env: Env,
-        caller: Address,
-        auth_to_reg: Address,
-        metadata: SorobanString,
-    ) -> Result<(), errors::Error> {
-        register_authority(&env, caller, auth_to_reg, metadata)
     }
 
     pub fn register(

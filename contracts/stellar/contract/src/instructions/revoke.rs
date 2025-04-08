@@ -4,6 +4,29 @@ use crate::errors::Error;
 use crate::utils;
 use crate::events;
 
+/// Revokes an existing attestation.
+///
+/// Requires authorization from the caller, who must be the authority that
+/// originally issued the attestation (i.e., the authority associated with the schema).
+/// The schema associated with the attestation must also be revocable.
+///
+/// # Arguments
+/// * `env` - The Soroban environment.
+/// * `caller` - The address attempting to revoke the attestation (must be the schema authority).
+/// * `schema_uid` - The UID of the schema the attestation belongs to.
+/// * `subject` - The address that is the subject of the attestation.
+/// * `reference` - An optional reference string used to identify the specific attestation
+///                 if multiple attestations exist for the same schema and subject.
+///
+/// # Returns
+/// * `Result<(), Error>` - An empty success value or an error.
+///
+/// # Errors
+/// * `Error::AuthorityNotRegistered` - If the `caller` is not a registered authority.
+/// * `Error::SchemaNotFound` - If the schema specified by `schema_uid` does not exist.
+/// * `Error::NotAuthorized` - If the `caller` is not the authority associated with the schema.
+/// * `Error::AttestationNotFound` - If no attestation matching the criteria (schema, subject, reference) exists.
+/// * `Error::AttestationNotRevocable` - If the schema associated with the attestation is not marked as revocable.
 pub fn revoke_attest(
     env: &Env,
     caller: Address,

@@ -7,10 +7,10 @@ use crate::{AttestationContract, AttestationContractClient, errors};
 #[test]
 fn test_initialization() {
     // Setup environment
-    let env = Env::default();
+        let env = Env::default();
     let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
+        let client = AttestationContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
 
     // Initialize the contract with admin authorization
     let admin_clone_for_init_args = admin.clone();
@@ -43,13 +43,13 @@ fn test_initialization() {
     assert!(matches!(reinit_result.err().unwrap().unwrap(), errors::Error::AlreadyInitialized));
 }
 
-#[test]
+    #[test]
 fn test_authority_registration() {
     // Setup environment
-    let env = Env::default();
+        let env = Env::default();
     let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
+        let client = AttestationContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
     let university = Address::generate(&env);
 
     // Initialize the contract
@@ -63,7 +63,7 @@ fn test_authority_registration() {
             sub_invokes: &[],
         },
     }]);
-    client.initialize(&admin);
+        client.initialize(&admin);
 
     // Verify admin is set correctly (requires direct storage access or a helper function, cannot use client)
     // Let's assume initialization worked and proceed. We can add a get_admin function later if needed.
@@ -123,9 +123,9 @@ fn test_authority_registration() {
 
     let unauthorized_result = client.try_reg_auth(&unauthorized, &unauthorized_auth, &unauthorized_metadata_val);
     assert!(matches!(unauthorized_result.err().unwrap().unwrap(), errors::Error::NotAuthorized));
-}
+    }
 
-#[test]
+    #[test]
 fn test_schema_registration() {
     // Setup environment
     let env = Env::default();
@@ -222,7 +222,7 @@ fn test_schema_registration() {
     assert!(matches!(result.err().unwrap().unwrap(), errors::Error::AuthorityNotRegistered));
 }
 
-#[test]
+    #[test]
 fn test_attestation() {
     // Setup environment
     let env = Env::default();
@@ -326,9 +326,9 @@ fn test_attestation() {
 
     let unauthorized_result = client.try_attest(&unauthorized, &schema_uid, &student_alice, &attestation_value_val, &reference_option);
     assert!(matches!(unauthorized_result.err().unwrap().unwrap(), errors::Error::NotAuthorized));
-}
+    }
 
-#[test]
+    #[test]
 fn test_revocation() {
     // Setup environment
     let env = Env::default();
@@ -441,9 +441,9 @@ fn test_revocation() {
 
     let unauthorized_result = client.try_revoke_attestation(&unauthorized, &schema_uid, &student_alice, &reference_option);
     assert!(matches!(unauthorized_result.err().unwrap().unwrap(), errors::Error::AuthorityNotRegistered));
-}
+    }
 
-#[test]
+    #[test]
 fn test_multiple_attestations_same_subject() {
     // Setup environment
     let env = Env::default();
@@ -592,9 +592,9 @@ fn test_multiple_attestations_same_subject() {
     assert_eq!(employment_attestation.subject, student_alice);
     assert_eq!(employment_attestation.value, employment_value_val);
     assert!(!employment_attestation.revoked);
-}
-
-#[test]
+    }
+    
+    #[test]
 fn test_invalid_schema_validation() {
     // Setup environment
     let env = Env::default();
@@ -686,9 +686,9 @@ fn test_invalid_schema_validation() {
     // Verify the attestation was recorded
     let attestation = client.get_attestation(&schema_uid, &student, &reference_option);
     assert_eq!(attestation.value, invalid_attestation_val);
-}
-
-#[test]
+    }
+    
+    #[test]
 fn test_attestation_with_reference() {
     // Setup environment
     let env = Env::default();
@@ -805,15 +805,15 @@ fn test_attestation_with_reference() {
 
     let attestation2 = client.get_attestation(&schema_uid, &student_alice, &reference_val2);
     assert_eq!(attestation2.value, attestation_value_val2);
-}
-
-#[test]
+    }
+    
+    #[test]
 fn test_unauthorized_operations() {
     // Setup environment
-    let env = Env::default();
+        let env = Env::default();
     let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
+        let client = AttestationContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
     let university = Address::generate(&env);
     let unauthorized = Address::generate(&env);
     let student = Address::generate(&env);
@@ -828,8 +828,8 @@ fn test_unauthorized_operations() {
             sub_invokes: &[],
         },
     }]);
-    client.initialize(&admin);
-
+        client.initialize(&admin);
+        
     // Register authority
     let auth_metadata = "University Authority";
     let auth_metadata_val = SorobanString::from_str(&env, auth_metadata);
@@ -884,7 +884,7 @@ fn test_unauthorized_operations() {
     let result = client.try_reg_auth(&unauthorized, &unauthorized, &unauth_metadata_val);
     
     // Based on your contract's behavior, the error is likely NotAuthorized
-    assert!(result.is_err());
+        assert!(result.is_err());
     // Allowing for either error type to pass the test, as it depends on implementation
     let err = result.err().unwrap().unwrap();
     assert!(matches!(err, errors::Error::NotAuthorized) || 
@@ -925,14 +925,14 @@ fn test_unauthorized_operations() {
     assert!(matches!(result.err().unwrap().unwrap(), errors::Error::SchemaNotFound));
 }
 
-#[test]
+    #[test]
 fn test_schema_with_resolver() {
     // Setup environment
     let env = Env::default();
     let contract_id = env.register(AttestationContract {}, ());
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
-    let university = Address::generate(&env);
+        let university = Address::generate(&env);
     let resolver_contract = Address::generate(&env);
     let student = Address::generate(&env);
 
@@ -1010,7 +1010,7 @@ fn test_schema_with_resolver() {
     
     // Verify attestation was created correctly with a schema that has a resolver
     let attestation = client.get_attestation(&schema_uid, &student, &reference_option);
-    assert_eq!(attestation.schema_uid, schema_uid);
+        assert_eq!(attestation.schema_uid, schema_uid);
     assert_eq!(attestation.subject, student);
     assert_eq!(attestation.value, attestation_value_val);
     assert!(!attestation.revoked);

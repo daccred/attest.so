@@ -10,8 +10,3 @@ pub fn publish_revocation_event(env: &Env, _schema_uid: &BytesN<32>, _subject: &
     let topics = (symbol_short!("ATTEST"), symbol_short!("REVOKE"));
     env.events().publish(topics, ());
 }
-
-pub fn publish_authority_registration_event(env: &Env, _authority: &Authority) {
-    let topics = (symbol_short!("AUTH"), symbol_short!("REGISTER"));
-    env.events().publish(topics, ());
-} 
