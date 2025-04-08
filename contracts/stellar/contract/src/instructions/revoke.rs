@@ -11,6 +11,9 @@ pub fn revoke_attest(
     subject: Address,
     reference: Option<SorobanString>,
 ) -> Result<(), Error> {
+    // Require authorization from the caller
+    caller.require_auth();
+
     // Verify caller is a registered authority
     let _authority = utils::get_authority(env, &caller)
         .ok_or(Error::AuthorityNotRegistered)?;

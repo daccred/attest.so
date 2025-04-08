@@ -36,6 +36,9 @@ pub fn register_schema(
     resolver: Option<Address>,
     revocable: bool,
 ) -> Result<BytesN<32>, Error> {
+    // Require authorization from the caller
+    caller.require_auth();
+
     // Verify caller is a registered authority
     let _authority = utils::get_authority(env, &caller)
         .ok_or(Error::AuthorityNotRegistered)?;
