@@ -8,6 +8,14 @@ pub fn get_authority(env: &Env, address: &Address) -> Option<Authority> {
     env.storage().instance().get(&key)
 }
 
+/// Retrieves a schema record by its unique identifier (UID).
+///
+/// # Arguments
+/// * `env` - The Soroban environment.
+/// * `schema_uid` - The 32-byte unique identifier of the schema to retrieve.
+///
+/// # Returns
+/// * `Result<Schema, Error>` - The `Schema` record if found, otherwise an error.
 pub fn get_schema(env: &Env, schema_uid: &BytesN<32>) -> Option<Schema> {
     let key = DataKey::Schema(schema_uid.clone());
     env.storage().instance().get(&key)

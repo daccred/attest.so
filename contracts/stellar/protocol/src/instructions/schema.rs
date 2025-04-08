@@ -3,8 +3,9 @@ use crate::state::{DataKey, Schema};
 use crate::errors::Error;
 use crate::utils;
 
+////////////////////////////////////////////////////////////////////////////////////
 /// Generates a unique identifier (SHA256 hash) for a schema.
-///
+////////////////////////////////////////////////////////////////////////////////////
 /// The UID is derived from the schema definition, the registering authority,
 /// and the optional resolver address.
 ///
@@ -41,8 +42,9 @@ pub fn generate_uid(
     env.crypto().sha256(&schema_data_to_hash).into()
 }
 
+////////////////////////////////////////////////////////////////////////////////////
 /// Retrieves a schema record by its unique identifier (UID).
-///
+////////////////////////////////////////////////////////////////////////////////////
 /// # Arguments
 /// * `env` - The Soroban environment.
 /// * `schema_uid` - The 32-byte unique identifier of the schema to retrieve.
@@ -52,7 +54,7 @@ pub fn generate_uid(
 ///
 /// # Errors
 /// * `Error::SchemaNotFound` - If no schema with the given UID exists in storage.
-pub fn get_schema(
+pub fn get_schema_or_fail(
     env: &Env,
     schema_uid: &BytesN<32>,
 ) -> Result<Schema, Error> {
@@ -60,7 +62,12 @@ pub fn get_schema(
     env.storage().instance().get::<DataKey, Schema>(&schema_key)
         .ok_or(Error::SchemaNotFound)
 }
+
+
+////////////////////////////////////////////////////////////////////////////////////
 /// Registers a new schema definition in the contract.
+////////////////////////////////////////////////////////////////////////////////////
+/// 
 ///
 /// This function allows an entity to register a new schema for attestations. The schema defines
 /// the structure and format of data that can be attested to. Each schema is uniquely identified
