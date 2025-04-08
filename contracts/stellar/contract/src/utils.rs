@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, Bytes, BytesN, Env, String as SorobanString};
+use soroban_sdk::{Address, BytesN, Env, String as SorobanString};
 use crate::state::{DataKey, StoredAttestation, Schema, Authority};
 use crate::errors::Error;
 use crate::interfaces::resolver::ResolverAttestationRecord;
