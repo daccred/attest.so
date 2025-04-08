@@ -1,6 +1,5 @@
-// Remove crate-level attribute from non-root module
-
-use soroban_sdk::{contracttype, Address, Env, Bytes, BytesN};
+use soroban_sdk::{contracttype, Address, Bytes, BytesN};
+// Env is unused
 
 /************************************************
 * Attestation Struct (as specified for Resolver)

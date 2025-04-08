@@ -1,9 +1,7 @@
-use soroban_sdk::{
-    Address, Env, String as SorobanString, BytesN, Bytes,
-    xdr::ToXdr,
-};
-use crate::state::{DataKey, Schema as StateSchema};
+use soroban_sdk::{Address, Env, String as SorobanString, BytesN, Bytes, xdr::ToXdr};
+use crate::state::{DataKey, Schema};
 use crate::errors::Error;
+use crate::utils;
 
 pub fn register_schema(
     env: &Env,
@@ -13,7 +11,7 @@ pub fn register_schema(
     revocable: bool,
 ) -> Result<BytesN<32>, Error> {
     // Verify caller is a registered authority
-    let _authority = crate::utils::get_authority(env, &caller)
+    let _authority = utils::get_authority(env, &caller)
         .ok_or(Error::AuthorityNotRegistered)?;
 
     // Generate schema UID
@@ -26,7 +24,7 @@ pub fn register_schema(
     let schema_uid: BytesN<32> = env.crypto().sha256(&schema_data_to_hash).into();
 
     // Store schema
-    let schema = StateSchema {
+    let schema = Schema {
         authority: caller,
         definition: schema_definition,
         resolver,
