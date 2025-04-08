@@ -95,3 +95,6 @@ enum DataKey {
 pub enum Error {
     AlreadyInitialized = 1,
 }
+
+#[cfg(test)]
+mod test;
