@@ -2,9 +2,8 @@
 resolver = "2"
 
 members = [
-    "contract",
+    "protocol",
     "authority",
-    "schema",
 ]
 
 [workspace.package]

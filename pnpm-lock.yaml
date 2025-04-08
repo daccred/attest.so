@@ -10,16 +10,16 @@ importers:
     devDependencies:
       '@commitlint/cli':
         specifier: ^18.6.1
-        version: 18.6.1(@types/node@22.13.16)(typescript@5.8.2)
+        version: 18.6.1(@types/node@20.17.29)(typescript@5.8.2)
       '@commitlint/config-conventional':
         specifier: ^18.6.3
         version: 18.6.3
       commitizen:
         specifier: ^4.3.0
-        version: 4.3.1(@types/node@22.13.16)(typescript@5.8.2)
+        version: 4.3.1
       cz-conventional-changelog:
         specifier: ^3.3.0
-        version: 3.3.0(@types/node@22.13.16)(typescript@5.8.2)
+        version: 3.3.0
 
   apps/www:
     dependencies:
@@ -84,25 +84,6 @@ importers:
       typescript:
         specifier: ^5.5.4
         version: 5.8.2
-
-  contracts/__spl:
-    dependencies:
-      '@solana/web3.js':
-        specifier: ^1.95.3
-        version: 1.95.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
-      borsh:
-        specifier: ^2.0.0
-        version: 2.0.0
-      buffer:
-        specifier: ^6.0.3
-        version: 6.0.3
-      fs:
-        specifier: ^0.0.1-security
-        version: 0.0.1-security
-    devDependencies:
-      '@types/node':
-        specifier: ^22.13.10
-        version: 22.13.16
 
   contracts/solana:
     dependencies:
@@ -2986,9 +2967,6 @@ packages:
 
   borsh@0.7.0:
     resolution: {integrity: sha512-CLCsZGIBCFnPtkNnieW/a8wmreDmfUtjU2m9yHrzPXIlNbqVs0AQrSatSG6vdNYUqdc83tkQi2eHfF98ubzQLA==}
-
-  borsh@2.0.0:
-    resolution: {integrity: sha512-kc9+BgR3zz9+cjbwM8ODoUB4fs3X3I5A/HtX7LZKxCLaMrEeDFoBpnhZY//DTS1VZBSs6S5v46RZRbZjRFspEg==}
 
   bottleneck@2.19.5:
     resolution: {integrity: sha512-VHiNCbI1lKdl44tGrhNfU3lup0Tj/ZBMJB5/2ZbNXRCPuRCO7ed2mgcK4r17y+KB2EfuYuRaVlwNbAeaWGSpbw==}
@@ -8509,22 +8487,6 @@ snapshots:
       - '@types/node'
       - typescript
 
-  '@commitlint/cli@18.6.1(@types/node@22.13.16)(typescript@5.8.2)':
-    dependencies:
-      '@commitlint/format': 18.6.1
-      '@commitlint/lint': 18.6.1
-      '@commitlint/load': 18.6.1(@types/node@22.13.16)(typescript@5.8.2)
-      '@commitlint/read': 18.6.1
-      '@commitlint/types': 18.6.1
-      execa: 5.1.1
-      lodash.isfunction: 3.0.9
-      resolve-from: 5.0.0
-      resolve-global: 1.0.0
-      yargs: 17.7.2
-    transitivePeerDependencies:
-      - '@types/node'
-      - typescript
-
   '@commitlint/config-conventional@18.6.3':
     dependencies:
       '@commitlint/types': 18.6.1
@@ -8589,23 +8551,6 @@ snapshots:
       - '@types/node'
       - typescript
 
-  '@commitlint/load@18.6.1(@types/node@22.13.16)(typescript@5.8.2)':
-    dependencies:
-      '@commitlint/config-validator': 18.6.1
-      '@commitlint/execute-rule': 18.6.1
-      '@commitlint/resolve-extends': 18.6.1
-      '@commitlint/types': 18.6.1
-      chalk: 4.1.2
-      cosmiconfig: 8.3.6(typescript@5.8.2)
-      cosmiconfig-typescript-loader: 5.1.0(@types/node@22.13.16)(cosmiconfig@8.3.6(typescript@5.8.2))(typescript@5.8.2)
-      lodash.isplainobject: 4.0.6
-      lodash.merge: 4.6.2
-      lodash.uniq: 4.5.0
-      resolve-from: 5.0.0
-    transitivePeerDependencies:
-      - '@types/node'
-      - typescript
-
   '@commitlint/load@19.8.0(@types/node@20.17.29)(typescript@5.8.2)':
     dependencies:
       '@commitlint/config-validator': 19.8.0
@@ -8615,23 +8560,6 @@ snapshots:
       chalk: 5.4.1
       cosmiconfig: 9.0.0(typescript@5.8.2)
       cosmiconfig-typescript-loader: 6.1.0(@types/node@20.17.29)(cosmiconfig@9.0.0(typescript@5.8.2))(typescript@5.8.2)
-      lodash.isplainobject: 4.0.6
-      lodash.merge: 4.6.2
-      lodash.uniq: 4.5.0
-    transitivePeerDependencies:
-      - '@types/node'
-      - typescript
-    optional: true
-
-  '@commitlint/load@19.8.0(@types/node@22.13.16)(typescript@5.8.2)':
-    dependencies:
-      '@commitlint/config-validator': 19.8.0
-      '@commitlint/execute-rule': 19.8.0
-      '@commitlint/resolve-extends': 19.8.0
-      '@commitlint/types': 19.8.0
-      chalk: 5.4.1
-      cosmiconfig: 9.0.0(typescript@5.8.2)
-      cosmiconfig-typescript-loader: 6.1.0(@types/node@22.13.16)(cosmiconfig@9.0.0(typescript@5.8.2))(typescript@5.8.2)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -10897,8 +10825,6 @@ snapshots:
       bs58: 4.0.1
       text-encoding-utf-8: 1.0.2
 
-  borsh@2.0.0: {}
-
   bottleneck@2.19.5: {}
 
   brace-expansion@1.1.11:
@@ -11202,10 +11128,10 @@ snapshots:
 
   commander@7.2.0: {}
 
-  commitizen@4.3.1(@types/node@20.17.29)(typescript@5.8.2):
+  commitizen@4.3.1:
     dependencies:
       cachedir: 2.3.0
-      cz-conventional-changelog: 3.3.0(@types/node@20.17.29)(typescript@5.8.2)
+      cz-conventional-changelog: 3.3.0
       dedent: 0.7.0
       detect-indent: 6.1.0
       find-node-modules: 2.1.3
@@ -11222,10 +11148,10 @@ snapshots:
       - '@types/node'
       - typescript
 
-  commitizen@4.3.1(@types/node@22.13.16)(typescript@5.8.2):
+  commitizen@4.3.1(@types/node@20.17.29)(typescript@5.8.2):
     dependencies:
       cachedir: 2.3.0
-      cz-conventional-changelog: 3.3.0(@types/node@22.13.16)(typescript@5.8.2)
+      cz-conventional-changelog: 3.3.0(@types/node@20.17.29)(typescript@5.8.2)
       dedent: 0.7.0
       detect-indent: 6.1.0
       find-node-modules: 2.1.3
@@ -11311,24 +11237,9 @@ snapshots:
       jiti: 1.21.7
       typescript: 5.8.2
 
-  cosmiconfig-typescript-loader@5.1.0(@types/node@22.13.16)(cosmiconfig@8.3.6(typescript@5.8.2))(typescript@5.8.2):
-    dependencies:
-      '@types/node': 22.13.16
-      cosmiconfig: 8.3.6(typescript@5.8.2)
-      jiti: 1.21.7
-      typescript: 5.8.2
-
   cosmiconfig-typescript-loader@6.1.0(@types/node@20.17.29)(cosmiconfig@9.0.0(typescript@5.8.2))(typescript@5.8.2):
     dependencies:
       '@types/node': 20.17.29
-      cosmiconfig: 9.0.0(typescript@5.8.2)
-      jiti: 2.4.2
-      typescript: 5.8.2
-    optional: true
-
-  cosmiconfig-typescript-loader@6.1.0(@types/node@22.13.16)(cosmiconfig@9.0.0(typescript@5.8.2))(typescript@5.8.2):
-    dependencies:
-      '@types/node': 22.13.16
       cosmiconfig: 9.0.0(typescript@5.8.2)
       jiti: 2.4.2
       typescript: 5.8.2
@@ -11466,10 +11377,10 @@ snapshots:
 
   csstype@3.1.3: {}
 
-  cz-conventional-changelog@3.3.0(@types/node@20.17.29)(typescript@5.8.2):
+  cz-conventional-changelog@3.3.0:
     dependencies:
       chalk: 2.4.2
-      commitizen: 4.3.1(@types/node@20.17.29)(typescript@5.8.2)
+      commitizen: 4.3.1
       conventional-commit-types: 3.0.0
       lodash.map: 4.6.0
       longest: 2.0.1
@@ -11480,16 +11391,16 @@ snapshots:
       - '@types/node'
       - typescript
 
-  cz-conventional-changelog@3.3.0(@types/node@22.13.16)(typescript@5.8.2):
+  cz-conventional-changelog@3.3.0(@types/node@20.17.29)(typescript@5.8.2):
     dependencies:
       chalk: 2.4.2
-      commitizen: 4.3.1(@types/node@22.13.16)(typescript@5.8.2)
+      commitizen: 4.3.1(@types/node@20.17.29)(typescript@5.8.2)
       conventional-commit-types: 3.0.0
       lodash.map: 4.6.0
       longest: 2.0.1
       word-wrap: 1.2.5
     optionalDependencies:
-      '@commitlint/load': 19.8.0(@types/node@22.13.16)(typescript@5.8.2)
+      '@commitlint/load': 19.8.0(@types/node@20.17.29)(typescript@5.8.2)
     transitivePeerDependencies:
       - '@types/node'
       - typescript

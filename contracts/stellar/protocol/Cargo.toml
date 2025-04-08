@@ -1,5 +1,5 @@
 [package]
-name = "contract"
+name = "protocol"
 version.workspace = true
 edition = "2021"
 publish = false
