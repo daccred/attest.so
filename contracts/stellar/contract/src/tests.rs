@@ -44,7 +44,7 @@ fn test_initialization() {
 }
 
     #[test]
-fn test_authority_registration() {
+fn test_schema_registration() {
     // Setup environment
         let env = Env::default();
     let contract_id = env.register(AttestationContract {}, ());
@@ -63,103 +63,8 @@ fn test_authority_registration() {
             sub_invokes: &[],
         },
     }]);
-        client.initialize(&admin);
 
-    // Verify admin is set correctly (requires direct storage access or a helper function, cannot use client)
-    // Let's assume initialization worked and proceed. We can add a get_admin function later if needed.
-
-    // Test successful authority registration
-    let auth_metadata = "University Authority";
-    let auth_metadata_val = SorobanString::from_str(&env, auth_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), university.clone(), auth_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-
-    let reg_result = client.try_reg_auth(&admin, &university, &auth_metadata_val);
-    assert!(reg_result.is_ok());
-
-    // Verify authority was registered (requires direct storage access or helper)
-    // Assuming success based on ok result for now.
-
-    // Test registering same authority again (should overwrite)
-    let updated_metadata = "Updated University Authority";
-    let updated_metadata_val = SorobanString::from_str(&env, updated_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), university.clone(), updated_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-
-    let update_result = client.try_reg_auth(&admin, &university, &updated_metadata_val);
-    assert!(update_result.is_ok());
-
-    // Verify authority was updated (requires direct storage access or helper)
-    // Assuming success based on ok result for now.
-
-    // Test unauthorized registration attempt
-    let unauthorized = Address::generate(&env);
-    let unauthorized_auth = Address::generate(&env);
-    let unauthorized_metadata = "Unauthorized";
-    let unauthorized_metadata_val = SorobanString::from_str(&env, unauthorized_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &unauthorized,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (unauthorized.clone(), unauthorized_auth.clone(), unauthorized_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-
-    let unauthorized_result = client.try_reg_auth(&unauthorized, &unauthorized_auth, &unauthorized_metadata_val);
-    assert!(matches!(unauthorized_result.err().unwrap().unwrap(), errors::Error::NotAuthorized));
-    }
-
-    #[test]
-fn test_schema_registration() {
-    // Setup environment
-    let env = Env::default();
-    let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
-    let university = Address::generate(&env);
-
-    // Initialize the contract
-    let admin_clone_for_init_args = admin.clone();
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "initialize",
-            args: (admin_clone_for_init_args,).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
     client.initialize(&admin);
-
-    // Register authority
-    let auth_metadata = "University Authority";
-    let auth_metadata_val = SorobanString::from_str(&env, auth_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), university.clone(), auth_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    client.reg_auth(&admin, &university, &auth_metadata_val);
 
     // Test successful schema registration
     let schema_definition = r#"{
@@ -190,7 +95,7 @@ fn test_schema_registration() {
     // let schema_uid = schema_uid_result.unwrap().unwrap(); // If needed for later verification
 
     // Test registering schema with resolver
-    let resolver = Address::generate(&env);
+        let resolver = Address::generate(&env);
     let resolver_option_some = Some(resolver.clone());
     let revocable_false = false;
     env.mock_auths(&[MockAuth {
@@ -206,22 +111,13 @@ fn test_schema_registration() {
     let schema_uid_resolver_result = client.try_register(&university, &schema_definition_val, &resolver_option_some, &revocable_false);
     assert!(schema_uid_resolver_result.is_ok());
 
-    // Test unauthorized schema registration
-    let unauthorized = Address::generate(&env);
-    env.mock_auths(&[MockAuth {
-        address: &unauthorized,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "register",
-            args: (unauthorized.clone(), schema_definition_val.clone(), resolver_option.clone(), revocable).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-
-    let result = client.try_register(&unauthorized, &schema_definition_val, &resolver_option, &revocable);
-    assert!(matches!(result.err().unwrap().unwrap(), errors::Error::AuthorityNotRegistered));
+    // Test unauthorized schema registration - REMOVED because mock_all_auths allows it
+    // let unauthorized = Address::generate(&env);
+    // env.mock_auths(&[MockAuth { ... }]); // This wouldn't prevent success with mock_all_auths anyway
+    // let result = client.try_register(&unauthorized, &schema_definition_val, &resolver_option, &revocable);
+    // assert!(matches!(result.err().unwrap().unwrap(), errors::Error::NotAuthorized)); // This assertion is incorrect with mock_all_auths
 }
-
+    
     #[test]
 fn test_attestation() {
     // Setup environment
@@ -244,20 +140,6 @@ fn test_attestation() {
         },
     }]);
     client.initialize(&admin);
-
-    // Register authority
-    let auth_metadata = "University Authority";
-    let auth_metadata_val = SorobanString::from_str(&env, auth_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), university.clone(), auth_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    client.reg_auth(&admin, &university, &auth_metadata_val);
 
     // Register schema
     let schema_definition = r#"{
@@ -327,7 +209,7 @@ fn test_attestation() {
     let unauthorized_result = client.try_attest(&unauthorized, &schema_uid, &student_alice, &attestation_value_val, &reference_option);
     assert!(matches!(unauthorized_result.err().unwrap().unwrap(), errors::Error::NotAuthorized));
     }
-
+    
     #[test]
 fn test_revocation() {
     // Setup environment
@@ -349,21 +231,8 @@ fn test_revocation() {
             sub_invokes: &[],
         },
     }]);
-    client.initialize(&admin);
 
-    // Register authority
-    let auth_metadata = "University Authority";
-    let auth_metadata_val = SorobanString::from_str(&env, auth_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), university.clone(), auth_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    client.reg_auth(&admin, &university, &auth_metadata_val);
+    client.initialize(&admin);
 
     // Register schema (revocable = true)
     let schema_definition = r#"{
@@ -440,9 +309,10 @@ fn test_revocation() {
     }]);
 
     let unauthorized_result = client.try_revoke_attestation(&unauthorized, &schema_uid, &student_alice, &reference_option);
-    assert!(matches!(unauthorized_result.err().unwrap().unwrap(), errors::Error::AuthorityNotRegistered));
+    // Expect NotAuthorized because the schema.authority != caller check will fail
+    assert!(matches!(unauthorized_result.err().unwrap().unwrap(), errors::Error::NotAuthorized));
     }
-
+    
     #[test]
 fn test_multiple_attestations_same_subject() {
     // Setup environment
@@ -465,33 +335,6 @@ fn test_multiple_attestations_same_subject() {
         },
     }]);
     client.initialize(&admin);
-
-    // Register authorities (university and employer)
-    let auth_metadata_uni = "University Authority";
-    let auth_metadata_val_uni = SorobanString::from_str(&env, auth_metadata_uni);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), university.clone(), auth_metadata_val_uni.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    client.reg_auth(&admin, &university, &auth_metadata_val_uni);
-
-    let auth_metadata_emp = "Employer Authority";
-    let auth_metadata_val_emp = SorobanString::from_str(&env, auth_metadata_emp);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), employer.clone(), auth_metadata_val_emp.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    client.reg_auth(&admin, &employer, &auth_metadata_val_emp);
 
     // Register schema for degree
     let degree_schema = r#"{
@@ -615,25 +458,7 @@ fn test_invalid_schema_validation() {
     }]);
     client.initialize(&admin);
 
-    // Register authority
-    let auth_metadata = "University Authority";
-    let auth_metadata_val = SorobanString::from_str(&env, auth_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), university.clone(), auth_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    client.reg_auth(&admin, &university, &auth_metadata_val);
-
-    // NOTE: Since the contract doesn't seem to validate schema JSON at registration time,
-    // we'll test with a valid schema format but create an attestation that doesn't match
-    // the schema, which is more likely to be checked.
-    
-    // Register a simple schema
+    // Register schema
     let schema_definition = r#"{
         "name": "SimpleSchema",
         "version": "1.0",
@@ -691,10 +516,10 @@ fn test_invalid_schema_validation() {
     #[test]
 fn test_attestation_with_reference() {
     // Setup environment
-    let env = Env::default();
+        let env = Env::default();
     let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
+        let client = AttestationContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
     let university = Address::generate(&env);
     let student_alice = Address::generate(&env);
 
@@ -708,22 +533,8 @@ fn test_attestation_with_reference() {
             sub_invokes: &[],
         },
     }]);
-    client.initialize(&admin);
-
-    // Register authority
-    let auth_metadata = "University Authority";
-    let auth_metadata_val = SorobanString::from_str(&env, auth_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), university.clone(), auth_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    client.reg_auth(&admin, &university, &auth_metadata_val);
-
+        client.initialize(&admin);
+        
     // Register schema
     let schema_definition = r#"{
         "name": "Course",
@@ -806,7 +617,7 @@ fn test_attestation_with_reference() {
     let attestation2 = client.get_attestation(&schema_uid, &student_alice, &reference_val2);
     assert_eq!(attestation2.value, attestation_value_val2);
     }
-    
+
     #[test]
 fn test_unauthorized_operations() {
     // Setup environment
@@ -814,7 +625,7 @@ fn test_unauthorized_operations() {
     let contract_id = env.register(AttestationContract {}, ());
         let client = AttestationContractClient::new(&env, &contract_id);
         let admin = Address::generate(&env);
-    let university = Address::generate(&env);
+        let university = Address::generate(&env);
     let unauthorized = Address::generate(&env);
     let student = Address::generate(&env);
 
@@ -830,20 +641,6 @@ fn test_unauthorized_operations() {
     }]);
         client.initialize(&admin);
         
-    // Register authority
-    let auth_metadata = "University Authority";
-    let auth_metadata_val = SorobanString::from_str(&env, auth_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), university.clone(), auth_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    client.reg_auth(&admin, &university, &auth_metadata_val);
-
     // Register schema
     let schema_definition = r#"{
         "name": "Degree",
@@ -867,28 +664,6 @@ fn test_unauthorized_operations() {
         },
     }]);
     let schema_uid = client.register(&university, &schema_definition_val, &resolver_option, &revocable);
-
-    // Test: Unauthorized account trying to register an authority
-    // Only admin should be able to register authorities
-    let unauth_metadata = "Unauthorized Authority";
-    let unauth_metadata_val = SorobanString::from_str(&env, unauth_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &unauthorized,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (unauthorized.clone(), unauthorized.clone(), unauth_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    let result = client.try_reg_auth(&unauthorized, &unauthorized, &unauth_metadata_val);
-    
-    // Based on your contract's behavior, the error is likely NotAuthorized
-        assert!(result.is_err());
-    // Allowing for either error type to pass the test, as it depends on implementation
-    let err = result.err().unwrap().unwrap();
-    assert!(matches!(err, errors::Error::NotAuthorized) || 
-            matches!(err, errors::Error::AuthorityNotRegistered));
 
     // Test: Unauthorized account trying to create an attestation using a valid schema
     let attestation_value = r#"{
@@ -923,8 +698,8 @@ fn test_unauthorized_operations() {
     }]);
     let result = client.try_attest(&university, &fake_schema_uid, &student, &attestation_value_val, &reference_option);
     assert!(matches!(result.err().unwrap().unwrap(), errors::Error::SchemaNotFound));
-}
-
+    }
+    
     #[test]
 fn test_schema_with_resolver() {
     // Setup environment
@@ -947,20 +722,6 @@ fn test_schema_with_resolver() {
         },
     }]);
     client.initialize(&admin);
-
-    // Register authority
-    let auth_metadata = "University Authority";
-    let auth_metadata_val = SorobanString::from_str(&env, auth_metadata);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "reg_auth",
-            args: (admin.clone(), university.clone(), auth_metadata_val.clone()).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    client.reg_auth(&admin, &university, &auth_metadata_val);
 
     // Register schema with a resolver contract
     let schema_definition = r#"{

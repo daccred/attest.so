@@ -37,10 +37,6 @@ pub fn revoke_attest(
     // Require authorization from the caller
     caller.require_auth();
 
-    // Verify caller is a registered authority
-    let _authority = utils::get_authority(env, &caller)
-        .ok_or(Error::AuthorityNotRegistered)?;
-
     // Get schema
     let schema = utils::get_schema(env, &schema_uid)
         .ok_or(Error::SchemaNotFound)?;

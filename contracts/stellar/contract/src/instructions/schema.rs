@@ -78,10 +78,6 @@ pub fn register_schema(
     // Require authorization from the caller
     caller.require_auth();
 
-    // Verify caller is a registered authority
-    let _authority = utils::get_authority(env, &caller)
-        .ok_or(Error::AuthorityNotRegistered)?;
-
     // Generate schema UID
     let schema_uid = generate_uid(env, &schema_definition, &caller, &resolver);
 
