@@ -2,6 +2,7 @@ use soroban_sdk::{Address, Env, String as SorobanString, BytesN};
 use crate::state::{DataKey, AttestationRecord};
 use crate::errors::Error;
 use crate::utils;
+use crate::events;
 
 pub fn attest(
     env: &Env,
@@ -30,15 +31,33 @@ pub fn attest(
     let attestation = AttestationRecord {
         schema_uid: schema_uid.clone(), // Use cloned schema_uid
         subject: subject.clone(),       // Use cloned subject
-        value,
+        value: value.clone(),
         reference: reference.clone(),   // Use cloned reference
         revoked: false,
     };
 
     env.storage().instance().set(&attest_key, &attestation);
 
-    // Event publishing was removed/commented out, so events import is unused
-    // events::publish_attestation_event(env, &attestation); 
+    // Publish attestation event
+    events::publish_attestation_event(env, &attestation);
 
     Ok(())
+}
+
+pub fn get_attest(
+    env: &Env,
+    schema_uid: BytesN<32>,
+    subject: Address,
+    reference: Option<SorobanString>,
+) -> Result<AttestationRecord, Error> {
+    // Get schema
+    let _schema = utils::get_schema(env, &schema_uid)
+        .ok_or(Error::SchemaNotFound)?;
+
+    // Get attestation
+    let attest_key = DataKey::Attestation(schema_uid, subject, reference);
+    let attest = env.storage().instance().get::<DataKey, AttestationRecord>(&attest_key)
+        .ok_or(Error::AttestationNotFound)?;
+
+    Ok(attest)
 } 
