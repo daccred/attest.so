@@ -6,7 +6,7 @@ use soroban_sdk::{contracttype, Address, Bytes, BytesN};
 ************************************************/
 #[derive(Debug, Clone)]
 #[contracttype]
-pub struct AttestationRecord {
+pub struct ResolverAttestationRecord {
     pub uid: BytesN<32>,
     pub schema_uid: BytesN<32>,
     pub recipient: Address,

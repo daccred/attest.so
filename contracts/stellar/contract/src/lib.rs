@@ -11,10 +11,9 @@ mod state;
 mod instructions;
 mod utils;
 
-use state::AttestationRecord;
+use state::{AttestationRecord, DataKey};
 
 use instructions::{
-    initialize,
     register_schema,
     attest,
     revoke_attest,
@@ -28,7 +27,11 @@ pub struct AttestationContract;
 #[contractimpl]
 impl AttestationContract {
     pub fn initialize(env: Env, admin: Address) -> Result<(), errors::Error> {
-        initialize(&env, admin)
+        if env.storage().instance().has(&DataKey::Admin) {
+            return Err(errors::Error::AlreadyInitialized);
+        }
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        Ok(())
     }
 
     pub fn reg_auth(
@@ -40,7 +43,7 @@ impl AttestationContract {
         register_authority(&env, caller, auth_to_reg, metadata)
     }
 
-    pub fn register_schema(
+    pub fn register(
         env: Env,
         caller: Address,
         schema_definition: SorobanString,
@@ -61,7 +64,7 @@ impl AttestationContract {
         attest(&env, caller, schema_uid, subject, value, reference)
     }
 
-    pub fn revoke_attest(
+    pub fn revoke_attestation(
         env: Env,
         caller: Address,
         schema_uid: BytesN<32>,
@@ -71,7 +74,7 @@ impl AttestationContract {
         revoke_attest(&env, caller, schema_uid, subject, reference)
     }
 
-    pub fn get_attest(
+    pub fn get_attestation(
         env: Env,
         schema_uid: BytesN<32>,
         subject: Address,

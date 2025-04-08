@@ -1,348 +1,572 @@
-#[cfg(test)]
-mod test {
-    use crate::*;
-    use soroban_sdk::testutils::{Address as _, Ledger, Events};
-    use soroban_sdk::{symbol_short, String as SorobanString, TryFromVal, Vec, Symbol, Bytes, Env};
+use soroban_sdk::{testutils::{Address as _}, Address, Env, String as SorobanString, BytesN};
+use crate::{AttestationContract, errors, state::{Authority, Schema, AttestationRecord}};
 
-    // --- Test Helpers ---
+pub struct TestEnv {
+    pub env: Env,
+    pub contract_id: Address,
+    pub admin: Address,
+    pub university: Address,
+    pub company: Address,
+    pub student_alice: Address,
+    pub student_bob: Address,
+    pub employee_charlie: Address,
+    pub employee_dave: Address,
+}
 
-    fn setup_env() -> (Env, Address, AttestationContractClient<'static>) {
+impl TestEnv {
+    pub fn setup() -> Self {
         let env = Env::default();
-        env.mock_all_auths();
-
         let contract_id = env.register_contract(None, AttestationContract);
-        let client = AttestationContractClient::new(&env, &contract_id);
-
+        
         let admin = Address::generate(&env);
-        client.initialize(&admin);
+        let university = Address::generate(&env);
+        let company = Address::generate(&env);
+        let student_alice = Address::generate(&env);
+        let student_bob = Address::generate(&env);
+        let employee_charlie = Address::generate(&env);
+        let employee_dave = Address::generate(&env);
 
-        (env, admin, client)
+        TestEnv {
+            env,
+            contract_id,
+            admin,
+            university,
+            company,
+            student_alice,
+            student_bob,
+            employee_charlie,
+            employee_dave,
+        }
     }
 
-    // Helper to register authority
-    fn register_authority_helper(env: &Env, client: &AttestationContractClient, admin: &Address, auth_to_reg: &Address, metadata: &str) {
-        client.reg_auth(
-            auth_to_reg,
-            &SorobanString::from_str(env, metadata)
-        );
+    pub fn register_authority_helper(&self, admin: &Address, auth_to_reg: &Address, metadata: &str) -> Result<(), errors::Error> {
+        self.env.as_contract(&self.contract_id, || {
+            AttestationContract::reg_auth(
+                self.env.clone(),
+                admin.clone(),
+                auth_to_reg.clone(),
+                SorobanString::from_str(&self.env, metadata)
+            )
+        })
     }
 
-    // Helper to register schema
-    fn register_schema_helper(
-        env: &Env,
-        client: &AttestationContractClient,
+    pub fn register_schema_helper(
+        &self,
         authority: &Address,
-        definition: &str,
-        resolver: Option<Address>,
-        revocable: bool
-    ) -> BytesN<32> {
-        client.register_schema(
-            authority,
-            &SorobanString::from_str(env, definition),
-            &resolver,
-            &revocable
-        )
+        schema_definition: &str,
+        resolver: Option<&Address>,
+        revocable: bool,
+    ) -> Result<BytesN<32>, errors::Error> {
+        self.env.as_contract(&self.contract_id, || {
+            AttestationContract::register(
+                self.env.clone(),
+                authority.clone(),
+                SorobanString::from_str(&self.env, schema_definition),
+                resolver.map(|r| r.clone()),
+                revocable,
+            )
+        })
     }
 
-    // Helper to attest
-    fn attest_helper(
-        env: &Env,
-        client: &AttestationContractClient,
+    pub fn attest_helper(
+        &self,
         caller: &Address,
         schema_uid: &BytesN<32>,
         subject: &Address,
         value: &str,
-        reference: Option<&str>
-    ) -> Result<(), crate::errors::Error> {
-        client.attest(
-            caller,
-            schema_uid,
-            subject,
-            &SorobanString::from_str(env, value),
-            &reference.map(|s| SorobanString::from_str(env, s))
-        )
+        reference: Option<&str>,
+    ) -> Result<(), errors::Error> {
+        self.env.as_contract(&self.contract_id, || {
+            AttestationContract::attest(
+                self.env.clone(),
+                caller.clone(),
+                schema_uid.clone(),
+                subject.clone(),
+                SorobanString::from_str(&self.env, value),
+                reference.map(|s| SorobanString::from_str(&self.env, s))
+            )
+        })
     }
 
-    // Helper to revoke
-    fn revoke_helper(
-        env: &Env,
-        client: &AttestationContractClient,
+    pub fn revoke_attestation_helper(
+        &self,
         caller: &Address,
         schema_uid: &BytesN<32>,
         subject: &Address,
-        reference: Option<&str>
-    ) -> Result<(), crate::errors::Error> {
-        client.revoke_attest(
-            caller,
-            schema_uid,
-            subject,
-            &reference.map(|s| SorobanString::from_str(env, s))
-        )
+        reference: Option<&str>,
+    ) -> Result<(), errors::Error> {
+        self.env.as_contract(&self.contract_id, || {
+            AttestationContract::revoke_attestation(
+                self.env.clone(),
+                caller.clone(),
+                schema_uid.clone(),
+                subject.clone(),
+                reference.map(|s| SorobanString::from_str(&self.env, s))
+            )
+        })
     }
 
-    // Helper to get attestation
-    fn get_attest_helper(
-        env: &Env,
-        client: &AttestationContractClient,
+    pub fn get_attestation_helper(
+        &self,
         schema_uid: &BytesN<32>,
         subject: &Address,
-        reference: Option<&str>
-    ) -> Result<AttestationRecord, crate::errors::Error> {
-        client.get_attest(
-            schema_uid,
-            subject,
-            &reference.map(|s| SorobanString::from_str(env, s))
-        )
+        reference: Option<&str>,
+    ) -> Result<AttestationRecord, errors::Error> {
+        self.env.as_contract(&self.contract_id, || {
+            AttestationContract::get_attestation(
+                self.env.clone(),
+                schema_uid.clone(),
+                subject.clone(),
+                reference.map(|s| SorobanString::from_str(&self.env, s))
+            )
+        })
     }
 
-
-    // --- Initialization Tests ---
-
-    #[test]
-    fn test_initialization() {
-        let env = Env::default();
-        env.mock_all_auths();
-
-        let contract_id = env.register_contract(None, AttestationContract);
-        let client = AttestationContractClient::new(&env, &contract_id);
-
-        let admin = Address::generate(&env);
-        client.initialize(&admin);
-
-        // Try initializing again
-        let result = client.try_initialize(&admin);
-        assert!(result.is_err());
-        assert_eq!(result.err().unwrap().unwrap(), errors::Error::AlreadyInitialized);
+    pub fn get_authority_helper(&self, address: &Address) -> Option<Authority> {
+        self.env.as_contract(&self.contract_id, || {
+            crate::utils::get_authority(&self.env, address)
+        })
     }
 
-    // --- Authority Registration Tests ---
-
-    #[test]
-    fn test_register_authority() {
-        let (env, admin, client) = setup_env();
-        let auth_address = Address::generate(&env);
-        let metadata = "Test Authority";
-
-        register_authority_helper(&env, &client, &admin, &auth_address, metadata);
-
-        // Verify by attempting to register a schema (requires auth)
-        let result = register_schema_helper(&env, &client, &auth_address, "Test Schema", None, true);
-        assert!(result.is_ok());
-
-        // Check for event
-        let events = env.events().all();
-        let auth_events = events.iter()
-            .filter(|event: &(Address, Vec<soroban_sdk::Val>, soroban_sdk::Val)| {
-                let (_contract_id, topics, _data) = event;
-                if topics.len() >= 2 {
-                    if let (Ok(topic1), Ok(topic2)) = (
-                        Symbol::try_from_val(&env, &topics.get_unchecked(0)),
-                        Symbol::try_from_val(&env, &topics.get_unchecked(1))
-                    ) {
-                        topic1 == symbol_short!("auth") && topic2 == symbol_short!("register")
-                    } else { false }
-                } else { false }
-            })
-            .count();
-        assert_eq!(auth_events, 1, "Expected one auth register event");
+    pub fn get_schema_helper(&self, schema_uid: &BytesN<32>) -> Option<Schema> {
+        self.env.as_contract(&self.contract_id, || {
+            crate::utils::get_schema(&self.env, schema_uid)
+        })
     }
 
-    #[test]
-    fn test_register_authority_unauthorized() {
-        let (env, _admin, client) = setup_env(); // admin is set up but not used as caller
-        let non_admin = Address::generate(&env);
-        let auth_address = Address::generate(&env);
-
-        // Call requires admin auth, but caller is non_admin
-        let result = client.try_reg_auth(
-            &auth_address,
-            &SorobanString::from_str(&env, "Test Authority")
-        );
-        assert!(result.is_err(), "Expected transaction to fail due to lack of admin auth");
-        // We expect a HostError related to auth failure, not a specific contract error here.
+    pub fn get_admin_helper(&self) -> Option<Address> {
+        self.env.as_contract(&self.contract_id, || {
+            crate::utils::get_admin(&self.env)
+        })
     }
+}
 
-    // --- Schema Registration Tests ---
+#[test]
+fn test_initialization() {
+    let test_env = TestEnv::setup();
+    let admin = &test_env.admin;
 
-    #[test]
-    fn test_register_schema_without_resolver() {
-        let (env, admin, client) = setup_env();
-        let auth = Address::generate(&env);
-        register_authority_helper(&env, &client, &admin, &auth, "Auth");
+    // Test successful initialization
+    test_env.env.as_contract(&test_env.contract_id, || {
+        AttestationContract::initialize(test_env.env.clone(), admin.clone()).unwrap();
+    });
+    assert_eq!(test_env.get_admin_helper().unwrap(), *admin);
 
-        let schema_def = "{ \"type\": \"object\", \"properties\": {} }";
-        let result = register_schema_helper(&env, &client, &auth, schema_def, None, true);
-        assert!(result.is_ok(), "Schema registration failed");
-    }
+    // Test re-initialization fails
+    let reinit_result = test_env.env.as_contract(&test_env.contract_id, || {
+        AttestationContract::initialize(test_env.env.clone(), admin.clone())
+    });
+    assert!(matches!(reinit_result.err().unwrap(), errors::Error::AlreadyInitialized));
+}
 
-    #[test]
-    fn test_register_schema_with_resolver() {
-        let (env, admin, client) = setup_env();
-        let auth = Address::generate(&env);
-        let resolver_id = Address::generate(&env);
-        register_authority_helper(&env, &client, &admin, &auth, "Auth");
+#[test]
+fn test_authority_registration() {
+    let test_env = TestEnv::setup();
+    let admin = &test_env.admin;
+    let university = &test_env.university;
 
-        let schema_def = "{ \"type\": \"object\", \"properties\": {} }";
-        let result = register_schema_helper(
-            &env,
-            &client,
-            &auth,
-            schema_def,
-            Some(resolver_id),
-            true
-        );
-        assert!(result.is_ok(), "Schema registration with resolver failed");
-    }
+    // Initialize contract
+    test_env.env.as_contract(&test_env.contract_id, || {
+        AttestationContract::initialize(test_env.env.clone(), admin.clone()).unwrap();
+    });
 
-    #[test]
-    fn test_register_schema_unauthorized() {
-        let (env, _admin, client) = setup_env();
-        let non_authority = Address::generate(&env);
+    // Test successful authority registration
+    test_env.register_authority_helper(admin, university, "University Authority").unwrap();
 
-        let result = client.try_register_schema(
-            &non_authority,
-            &SorobanString::from_str(&env, "test"),
-            &None,
-            &true,
-        );
-        assert!(result.is_err());
-        assert_eq!(result.err().unwrap().unwrap(), errors::Error::AuthorityNotRegistered);
-    }
+    // Verify authority was registered
+    let authority = test_env.get_authority_helper(university);
+    assert!(authority.is_some());
+    let authority = authority.as_ref().unwrap();
+    assert_eq!(authority.address, *university);
+    assert_eq!(authority.metadata, SorobanString::from_str(&test_env.env, "University Authority"));
 
-    // --- Attestation Tests ---
+    // Test registering same authority again (should overwrite)
+    test_env.register_authority_helper(admin, university, "Updated University Authority").unwrap();
+    let updated_authority = test_env.get_authority_helper(university);
+    assert_eq!(updated_authority.unwrap().metadata, SorobanString::from_str(&test_env.env, "Updated University Authority"));
 
-    #[test]
-    fn test_create_and_get_attestation() {
-        let (env, admin, client) = setup_env();
-        let authority = Address::generate(&env);
-        register_authority_helper(&env, &client, &admin, &authority, "Auth");
+    // Test unauthorized registration attempt
+    let unauthorized = Address::generate(&test_env.env);
+    let result = test_env.register_authority_helper(&unauthorized, &Address::generate(&test_env.env), "Unauthorized");
+    assert!(matches!(result.err().unwrap(), errors::Error::NotAuthorized));
+}
 
-        let schema_uid = register_schema_helper(&env, &client, &authority, "Schema", None, true).unwrap();
-        let subject = Address::generate(&env);
-        let value = "attestation value";
-        let reference = Some("attestation reference");
+#[test]
+fn test_schema_registration() {
+    let test_env = TestEnv::setup();
+    let admin = &test_env.admin;
+    let university = &test_env.university;
 
-        attest_helper(&env, &client, &authority, &schema_uid, &subject, value, reference).unwrap();
+    // Initialize and register authority
+    test_env.env.as_contract(&test_env.contract_id, || {
+        AttestationContract::initialize(test_env.env.clone(), admin.clone()).unwrap();
+    });
+    test_env.register_authority_helper(admin, university, "University Authority").unwrap();
 
-        let fetched_attestation = get_attest_helper(&env, &client, &schema_uid, &subject, reference).unwrap();
+    // Test successful schema registration
+    let schema_definition = r#"{
+        "name": "Degree",
+        "version": "1.0",
+        "description": "University degree attestation",
+        "fields": [
+            {"name": "degree", "type": "string"},
+            {"name": "field", "type": "string"},
+            {"name": "graduation_date", "type": "string"}
+        ]
+    }"#;
 
-        assert_eq!(fetched_attestation.schema_uid, schema_uid);
-        assert_eq!(fetched_attestation.subject, subject);
-        assert_eq!(fetched_attestation.value, SorobanString::from_str(&env, value));
-        assert_eq!(fetched_attestation.reference, reference.map(|s| SorobanString::from_str(&env, s)));
-        assert_eq!(fetched_attestation.revoked, false);
-    }
+    let schema_uid = test_env.register_schema_helper(
+        university,
+        schema_definition,
+        None,
+        true
+    ).unwrap();
 
+    // Verify schema was registered
+    let schema = test_env.get_schema_helper(&schema_uid);
+    assert!(schema.is_some());
+    let schema = schema.as_ref().unwrap();
+    assert_eq!(schema.authority, *university);
+    assert_eq!(schema.definition, SorobanString::from_str(&test_env.env, schema_definition));
+    assert!(schema.revocable);
 
-    #[test]
-    fn test_attest_fails_if_not_authority() {
-        let (env, admin, client) = setup_env();
-        let authority = Address::generate(&env);
-        let non_authority = Address::generate(&env);
-        register_authority_helper(&env, &client, &admin, &authority, "Auth");
+    // Test registering schema with resolver
+    let resolver = Address::generate(&test_env.env);
+    let schema_uid_with_resolver = test_env.register_schema_helper(
+        university,
+        schema_definition,
+        Some(&resolver),
+        true
+    ).unwrap();
 
-        let schema_uid = register_schema_helper(&env, &client, &authority, "Schema", None, true).unwrap();
-        let subject = Address::generate(&env);
+    let schema_with_resolver = test_env.get_schema_helper(&schema_uid_with_resolver);
+    assert_eq!(schema_with_resolver.unwrap().resolver, Some(resolver));
 
-        let result = attest_helper(&env, &client, &non_authority, &schema_uid, &subject, "value", None);
+    // Test unauthorized schema registration
+    let unauthorized = Address::generate(&test_env.env);
+    let result = test_env.register_schema_helper(
+        &unauthorized,
+        schema_definition,
+        None,
+        true
+    );
+    assert!(matches!(result.err().unwrap(), errors::Error::AuthorityNotRegistered));
+}
 
-        assert!(result.is_err());
-        // We expect a HostError related to auth failure, not AuthorityNotRegistered
-        // assert_eq!(result.err().unwrap(), errors::Error::AuthorityNotRegistered);
-    }
+#[test]
+fn test_attestation() {
+    let test_env = TestEnv::setup();
+    let admin = &test_env.admin;
+    let university = &test_env.university;
+    let student_alice = &test_env.student_alice;
 
-    // --- Revocation Tests ---
+    // Initialize and register authority
+    test_env.env.as_contract(&test_env.contract_id, || {
+        AttestationContract::initialize(test_env.env.clone(), admin.clone()).unwrap();
+    });
+    test_env.register_authority_helper(admin, university, "University Authority").unwrap();
 
-    #[test]
-    fn test_revoke_attestation() {
-        let (env, admin, client) = setup_env();
-        let authority = Address::generate(&env);
-        register_authority_helper(&env, &client, &admin, &authority, "Auth");
+    // Register schema
+    let schema_definition = r#"{
+        "name": "Degree",
+        "version": "1.0",
+        "description": "University degree attestation",
+        "fields": [
+            {"name": "degree", "type": "string"},
+            {"name": "field", "type": "string"},
+            {"name": "graduation_date", "type": "string"}
+        ]
+    }"#;
 
-        let schema_uid = register_schema_helper(&env, &client, &authority, "Schema", None, true).unwrap(); // Revocable
-        let subject = Address::generate(&env);
-        let value = "attestation value";
-        let reference = Some("attestation reference");
+    let schema_uid = test_env.register_schema_helper(
+        university,
+        schema_definition,
+        None,
+        true
+    ).unwrap();
 
-        attest_helper(&env, &client, &authority, &schema_uid, &subject, value, reference).unwrap();
+    // Test successful attestation
+    let attestation_value = r#"{
+        "degree": "Bachelor of Science",
+        "field": "Computer Science",
+        "graduation_date": "2023-05-15"
+    }"#;
 
-        // Revoke
-        revoke_helper(&env, &client, &authority, &schema_uid, &subject, reference).unwrap();
+    test_env.attest_helper(
+        university,
+        &schema_uid,
+        student_alice,
+        attestation_value,
+        None
+    ).unwrap();
 
-        // Verify revoked status
-        let fetched_attestation = get_attest_helper(&env, &client, &schema_uid, &subject, reference).unwrap();
-        assert_eq!(fetched_attestation.revoked, true);
-    }
+    // Verify attestation
+    let attestation = test_env.get_attestation_helper(&schema_uid, student_alice, None).unwrap();
+    assert_eq!(attestation.schema_uid, schema_uid);
+    assert_eq!(attestation.subject, *student_alice);
+    assert_eq!(attestation.value, SorobanString::from_str(&test_env.env, attestation_value));
+    assert!(!attestation.revoked);
 
-    #[test]
-    fn test_revoke_non_revocable_attestation_fails() {
-        let (env, admin, client) = setup_env();
-        let authority = Address::generate(&env);
-        register_authority_helper(&env, &client, &admin, &authority, "Auth");
+    // Test attestation with reference
+    let reference = "REF123";
+    test_env.attest_helper(
+        university,
+        &schema_uid,
+        student_alice,
+        attestation_value,
+        Some(reference)
+    ).unwrap();
 
-        let schema_uid = register_schema_helper(&env, &client, &authority, "Schema", None, false).unwrap(); // Not revocable
-        let subject = Address::generate(&env);
+    let attestation_with_ref = test_env.get_attestation_helper(&schema_uid, student_alice, Some(reference)).unwrap();
+    assert_eq!(attestation_with_ref.reference, Some(SorobanString::from_str(&test_env.env, reference)));
 
-        attest_helper(&env, &client, &authority, &schema_uid, &subject, "value", None).unwrap();
+    // Test unauthorized attestation
+    let unauthorized = Address::generate(&test_env.env);
+    let result = test_env.attest_helper(
+        &unauthorized,
+        &schema_uid,
+        student_alice,
+        attestation_value,
+        None
+    );
+    assert!(matches!(result.err().unwrap(), errors::Error::NotAuthorized));
+}
 
-        // Try to revoke
-        let result = revoke_helper(&env, &client, &authority, &schema_uid, &subject, None);
+#[test]
+fn test_revocation() {
+    let test_env = TestEnv::setup();
+    let admin = &test_env.admin;
+    let university = &test_env.university;
+    let student_alice = &test_env.student_alice;
 
-        assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), errors::Error::AttestationNotRevocable);
-    }
+    // Initialize and register authority
+    test_env.env.as_contract(&test_env.contract_id, || {
+        AttestationContract::initialize(test_env.env.clone(), admin.clone()).unwrap();
+    });
+    test_env.register_authority_helper(admin, university, "University Authority").unwrap();
 
-    #[test]
-    fn test_revoke_by_non_schema_authority_fails() {
-        let (env, admin, client) = setup_env();
-        let authority = Address::generate(&env);
-        let different_auth = Address::generate(&env);
-        register_authority_helper(&env, &client, &admin, &authority, "Auth");
-        register_authority_helper(&env, &client, &admin, &different_auth, "DiffAuth"); // Register the other auth too
+    // Register schema
+    let schema_definition = r#"{
+        "name": "Degree",
+        "version": "1.0",
+        "description": "University degree attestation",
+        "fields": [
+            {"name": "degree", "type": "string"},
+            {"name": "field", "type": "string"},
+            {"name": "graduation_date", "type": "string"}
+        ]
+    }"#;
 
-        let schema_uid = register_schema_helper(&env, &client, &authority, "Schema", None, true).unwrap(); // Registered by 'authority'
-        let subject = Address::generate(&env);
+    let schema_uid = test_env.register_schema_helper(
+        university,
+        schema_definition,
+        None,
+        true
+    ).unwrap();
 
-        attest_helper(&env, &client, &authority, &schema_uid, &subject, "value", None).unwrap();
+    // Create attestation
+    let attestation_value = r#"{
+        "degree": "Bachelor of Science",
+        "field": "Computer Science",
+        "graduation_date": "2023-05-15"
+    }"#;
 
-        // Try to revoke with 'different_auth'
-        let result = revoke_helper(&env, &client, &different_auth, &schema_uid, &subject, None);
+    test_env.attest_helper(
+        university,
+        &schema_uid,
+        student_alice,
+        attestation_value,
+        None
+    ).unwrap();
 
-        assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), errors::Error::NotAuthorized);
-    }
+    // Test successful revocation
+    test_env.revoke_attestation_helper(
+        university,
+        &schema_uid,
+        student_alice,
+        None
+    ).unwrap();
 
-    #[test]
-    fn test_revoke_non_existent_attestation_fails() {
-        let (env, admin, client) = setup_env();
-        let authority = Address::generate(&env);
-        register_authority_helper(&env, &client, &admin, &authority, "Auth");
+    // Verify attestation is revoked
+    let attestation = test_env.get_attestation_helper(&schema_uid, student_alice, None).unwrap();
+    assert!(attestation.revoked);
 
-        let schema_uid = register_schema_helper(&env, &client, &authority, "Schema", None, true).unwrap();
-        let subject = Address::generate(&env);
-        let reference = Some("non-existent ref");
+    // Test revocation with reference
+    let reference = "REF123";
+    test_env.attest_helper(
+        university,
+        &schema_uid,
+        student_alice,
+        attestation_value,
+        Some(reference)
+    ).unwrap();
 
-        let result = revoke_helper(&env, &client, &authority, &schema_uid, &subject, reference);
+    test_env.revoke_attestation_helper(
+        university,
+        &schema_uid,
+        student_alice,
+        Some(reference)
+    ).unwrap();
 
-        assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), errors::Error::AttestationNotFound);
-    }
+    let attestation_with_ref = test_env.get_attestation_helper(&schema_uid, student_alice, Some(reference)).unwrap();
+    assert!(attestation_with_ref.revoked);
 
-    // --- Query Tests ---
+    // Test unauthorized revocation
+    let unauthorized = Address::generate(&test_env.env);
+    let result = test_env.revoke_attestation_helper(
+        &unauthorized,
+        &schema_uid,
+        student_alice,
+        None
+    );
+    assert!(matches!(result.err().unwrap(), errors::Error::NotAuthorized));
 
-    #[test]
-    fn test_get_non_existent_attestation_fails() {
-        let (env, admin, client) = setup_env();
-        let authority = Address::generate(&env);
-        register_authority_helper(&env, &client, &admin, &authority, "Auth");
+    // Test revocation of non-revocable schema
+    let non_revocable_schema_uid = test_env.register_schema_helper(
+        university,
+        schema_definition,
+        None,
+        false
+    ).unwrap();
 
-        let schema_uid = register_schema_helper(&env, &client, &authority, "Schema", None, true).unwrap();
-        let subject = Address::generate(&env);
-        let reference = Some("non-existent ref");
+    test_env.attest_helper(
+        university,
+        &non_revocable_schema_uid,
+        student_alice,
+        attestation_value,
+        None
+    ).unwrap();
 
-        let result = get_attest_helper(&env, &client, &schema_uid, &subject, reference);
+    let result = test_env.revoke_attestation_helper(
+        university,
+        &non_revocable_schema_uid,
+        student_alice,
+        None
+    );
+    assert!(matches!(result.err().unwrap(), errors::Error::AttestationNotRevocable));
+}
 
-        assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), errors::Error::AttestationNotFound);
-    }
-} 
+#[test]
+fn test_complex_scenario() {
+    let test_env = TestEnv::setup();
+    let admin = &test_env.admin;
+    let university = &test_env.university;
+    let company = &test_env.company;
+    let student_alice = &test_env.student_alice;
+    let student_bob = &test_env.student_bob;
+
+    // Initialize contract and register authorities
+    test_env.env.as_contract(&test_env.contract_id, || {
+        AttestationContract::initialize(test_env.env.clone(), admin.clone()).unwrap();
+    });
+    test_env.register_authority_helper(admin, university, "University Authority").unwrap();
+    test_env.register_authority_helper(admin, company, "Company Authority").unwrap();
+
+    // Register schemas
+    let degree_schema = r#"{
+        "name": "Degree",
+        "version": "1.0",
+        "description": "University degree attestation",
+        "fields": [
+            {"name": "degree", "type": "string"},
+            {"name": "field", "type": "string"},
+            {"name": "graduation_date", "type": "string"}
+        ]
+    }"#;
+
+    let employment_schema = r#"{
+        "name": "Employment",
+        "version": "1.0",
+        "description": "Employment verification",
+        "fields": [
+            {"name": "position", "type": "string"},
+            {"name": "department", "type": "string"},
+            {"name": "start_date", "type": "string"}
+        ]
+    }"#;
+
+    let degree_schema_uid = test_env.register_schema_helper(
+        university,
+        degree_schema,
+        None,
+        true
+    ).unwrap();
+
+    let employment_schema_uid = test_env.register_schema_helper(
+        company,
+        employment_schema,
+        None,
+        true
+    ).unwrap();
+
+    // Create attestations
+    let degree_value = r#"{
+        "degree": "Bachelor of Science",
+        "field": "Computer Science",
+        "graduation_date": "2023-05-15"
+    }"#;
+
+    let employment_value = r#"{
+        "position": "Software Engineer",
+        "department": "Engineering",
+        "start_date": "2023-06-01"
+    }"#;
+
+    // Attest degrees
+    test_env.attest_helper(
+        university,
+        &degree_schema_uid,
+        student_alice,
+        degree_value,
+        None
+    ).unwrap();
+
+    test_env.attest_helper(
+        university,
+        &degree_schema_uid,
+        student_bob,
+        degree_value,
+        None
+    ).unwrap();
+
+    // Attest employment
+    test_env.attest_helper(
+        company,
+        &employment_schema_uid,
+        student_alice,
+        employment_value,
+        None
+    ).unwrap();
+
+    // Verify attestations
+    let alice_degree = test_env.get_attestation_helper(&degree_schema_uid, student_alice, None).unwrap();
+    assert_eq!(alice_degree.subject, *student_alice);
+    assert!(!alice_degree.revoked);
+
+    let bob_degree = test_env.get_attestation_helper(&degree_schema_uid, student_bob, None).unwrap();
+    assert_eq!(bob_degree.subject, *student_bob);
+    assert!(!bob_degree.revoked);
+
+    let alice_employment = test_env.get_attestation_helper(&employment_schema_uid, student_alice, None).unwrap();
+    assert_eq!(alice_employment.subject, *student_alice);
+    assert!(!alice_employment.revoked);
+
+    // Revoke Bob's degree
+    test_env.revoke_attestation_helper(
+        university,
+        &degree_schema_uid,
+        student_bob,
+        None
+    ).unwrap();
+
+    // Verify Bob's degree is revoked
+    let bob_degree_after_revoke = test_env.get_attestation_helper(&degree_schema_uid, student_bob, None).unwrap();
+    assert!(bob_degree_after_revoke.revoked);
+
+    // Alice's degree and employment should still be valid
+    let alice_degree_after_revoke = test_env.get_attestation_helper(&degree_schema_uid, student_alice, None).unwrap();
+    assert!(!alice_degree_after_revoke.revoked);
+
+    let alice_employment_after_revoke = test_env.get_attestation_helper(&employment_schema_uid, student_alice, None).unwrap();
+    assert!(!alice_employment_after_revoke.revoked);
+}

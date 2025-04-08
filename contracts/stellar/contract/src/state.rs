@@ -40,8 +40,8 @@ pub struct Schema {
     pub revocable: bool,
 }
 
-#[contracttype]
 #[derive(Clone)]
+#[contracttype]
 pub struct AttestationRecord {
     pub schema_uid: BytesN<32>,
     pub subject: Address,

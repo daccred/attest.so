@@ -1,5 +1,5 @@
-use soroban_sdk::{contractimpl, Address, Env, BytesN, symbol_short};
-use crate::state::{DataKey, StoredAttestation, Schema};
+use soroban_sdk::{Address, Env, String as SorobanString, BytesN};
+use crate::state::{DataKey, AttestationRecord};
 use crate::errors::Error;
 use crate::utils;
 use crate::events;
@@ -7,40 +7,39 @@ use crate::events;
 pub fn revoke_attest(
     env: &Env,
     caller: Address,
-    uid: BytesN<32>,
+    schema_uid: BytesN<32>,
+    subject: Address,
+    reference: Option<SorobanString>,
 ) -> Result<(), Error> {
-    caller.require_auth();
+    // Verify caller is a registered authority
+    let _authority = utils::get_authority(env, &caller)
+        .ok_or(Error::AuthorityNotRegistered)?;
 
-    let attestation_key = DataKey::Attestation(uid.clone());
-    let mut attestation: StoredAttestation = env.storage().instance().get(&attestation_key)
-        .ok_or(Error::AttestationNotFound)?;
+    // Get schema
+    let schema = utils::get_schema(env, &schema_uid)
+        .ok_or(Error::SchemaNotFound)?;
 
-    let schema_key = DataKey::Schema(attestation.schema_uid.clone());
-    let schema: Schema = env.storage().instance().get(&schema_key)
-         .ok_or(Error::SchemaNotFound)?;
+    // Verify caller is the schema authority
     if schema.authority != caller {
-         return Err(Error::NotAuthorized);
-    }
-
-    if !attestation.revocable {
         return Err(Error::NotAuthorized);
     }
 
-    let original_attestation = attestation.clone();
-    attestation.revocation_time = Some(env.ledger().timestamp());
+    // Get attestation - Clone the values to avoid moving them
+    let attest_key = DataKey::Attestation(schema_uid.clone(), subject.clone(), reference.clone());
+    let mut attest = env.storage().instance().get::<DataKey, AttestationRecord>(&attest_key)
+        .ok_or(Error::AttestationNotFound)?;
 
-    if let Some(resolver_address) = &schema.resolver {
-        let attestation_record = utils::to_attestation_record(env, &uid, &original_attestation);
-        env.invoke_contract::<()>(
-            resolver_address,
-            &symbol_short!("revoke"),
-            soroban_sdk::vec![env, attestation_record.into_val(env)],
-        );
+    // Verify attestation is revocable
+    if !schema.revocable {
+        return Err(Error::AttestationNotRevocable);
     }
 
-    utils::store_attestation(env, &uid, &attestation)?;
-
-    events::publish_revocation_event(env, &uid);
+    // Revoke attestation
+    attest.revoked = true;
+    env.storage().instance().set(&attest_key, &attest);
+    
+    // Publish revocation event - Now we can use the original values because we cloned them above
+    events::publish_revocation_event(env, &schema_uid, &subject, &reference);
 
     Ok(())
 } 
