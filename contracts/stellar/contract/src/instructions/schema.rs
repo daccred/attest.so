@@ -9,13 +9,23 @@ use crate::utils;
 /// and the optional resolver address.
 ///
 /// # Arguments
-/// * `env` - The Soroban environment.
+/// * `env` - The Soroban environment providing access to cryptographic functions.
 /// * `schema_definition` - The string representation of the schema definition.
 /// * `authority` - The address of the authority registering the schema.
 /// * `resolver` - An optional address of a resolver contract associated with the schema.
 ///
 /// # Returns
-/// * `BytesN<32>` - The unique 32-byte identifier for the schema.
+/// * `BytesN<32>` - The unique 32-byte identifier (UID) for the schema.
+///
+/// # Example
+/// ```ignore
+/// let schema_uid = generate_uid(
+///     &env,
+///     &schema_definition,
+///     &authority_address,
+///     &Some(resolver_address)
+/// );
+/// ```
 pub fn generate_uid(
     env: &Env,
     schema_definition: &SorobanString,
@@ -50,24 +60,52 @@ pub fn get_schema(
     env.storage().instance().get::<DataKey, Schema>(&schema_key)
         .ok_or(Error::SchemaNotFound)
 }
-
 /// Registers a new schema definition in the contract.
 ///
-/// Requires authorization from the caller, who must be a registered authority.
-/// Generates a unique UID for the schema and stores it.
+/// This function allows an entity to register a new schema for attestations. The schema defines
+/// the structure and format of data that can be attested to. Each schema is uniquely identified
+/// by a UID generated from the schema definition, the registering authority, and the optional
+/// resolver address.
+///
+/// # Authorization
+/// Requires authorization from the caller, who becomes the authority for this schema.
 ///
 /// # Arguments
-/// * `env` - The Soroban environment.
-/// * `caller` - The address attempting to register the schema (must be a registered authority).
-/// * `schema_definition` - The string representation of the schema definition.
-/// * `resolver` - An optional address of a resolver contract for this schema.
-/// * `revocable` - A boolean indicating if attestations made against this schema can be revoked.
+/// * `env` - The Soroban environment providing access to blockchain services.
+/// * `caller` - The address registering the schema and becoming its authority.
+/// * `schema_definition` - The string representation of the schema definition, typically in JSON format
+///                        defining the fields and their types.
+/// * `resolver` - An optional address of a resolver contract that can provide additional
+///               validation or resolution services for attestations using this schema.
+/// * `revocable` - A boolean flag indicating whether attestations made against this schema
+///                can be revoked later by the authority.
 ///
 /// # Returns
-/// * `Result<BytesN<32>, Error>` - The unique 32-byte identifier (UID) of the newly registered schema, or an error.
+/// * `Result<BytesN<32>, Error>` - The unique 32-byte identifier (UID) of the newly registered schema,
+///                               or an error if the registration fails.
 ///
-/// # Errors
-/// * `Error::AuthorityNotRegistered` - If the `caller` is not a registered authority in the contract.
+/// # Example
+/// ```ignore
+/// let schema_definition = SorobanString::from_str(&env, 
+///     r#"{
+///         "name": "Degree",
+///         "version": "1.0",
+///         "description": "University degree attestation",
+///         "fields": [
+///             {"name": "degree", "type": "string"},
+///             {"name": "field", "type": "string"},
+///             {"name": "graduation_date", "type": "string"}
+///         ]
+///     }"#);
+/// 
+/// let schema_uid = register_schema(
+///     &env,
+///     university_address,
+///     schema_definition,
+///     None,
+///     true
+/// )?;
+/// ```
 pub fn register_schema(
     env: &Env,
     caller: Address,
@@ -92,4 +130,4 @@ pub fn register_schema(
     env.storage().instance().set(&schema_key, &schema);
 
     Ok(schema_uid)
-} 
+}

@@ -4,6 +4,7 @@ use crate::errors::Error;
 use crate::utils;
 use crate::events;
 
+
 /// Revokes an existing attestation.
 ///
 /// Requires authorization from the caller, who must be the authority that
@@ -22,7 +23,6 @@ use crate::events;
 /// * `Result<(), Error>` - An empty success value or an error.
 ///
 /// # Errors
-/// * `Error::AuthorityNotRegistered` - If the `caller` is not a registered authority.
 /// * `Error::SchemaNotFound` - If the schema specified by `schema_uid` does not exist.
 /// * `Error::NotAuthorized` - If the `caller` is not the authority associated with the schema.
 /// * `Error::AttestationNotFound` - If no attestation matching the criteria (schema, subject, reference) exists.

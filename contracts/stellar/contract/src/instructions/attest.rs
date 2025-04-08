@@ -6,24 +6,39 @@ use crate::events;
 
 /// Creates a new attestation or updates an existing one for a given schema and subject.
 ///
-/// Requires authorization from the caller, who must be the authority registered
-/// for the specified schema.
+/// This function allows a registered authority to create an attestation that conforms to a specific schema
+/// for a particular subject. If an attestation with the same identifiers already exists, it will be overwritten.
+///
+/// # Authorization
+/// Requires authorization from the caller, who must be the authority registered for the specified schema.
 ///
 /// # Arguments
-/// * `env` - The Soroban environment.
+/// * `env` - The Soroban environment providing access to blockchain services.
 /// * `caller` - The address creating the attestation (must be the schema authority).
-/// * `schema_uid` - The UID of the schema this attestation conforms to.
+/// * `schema_uid` - The unique identifier (UID) of the schema this attestation conforms to.
 /// * `subject` - The address that is the subject of the attestation.
-/// * `value` - The string value or data of the attestation.
-/// * `reference` - An optional reference string to uniquely identify the attestation if
+/// * `value` - The string value containing the attestation data, typically in JSON format.
+/// * `reference` - An optional reference string to uniquely identify the attestation when
 ///                 multiple attestations for the same schema and subject can exist.
 ///
 /// # Returns
 /// * `Result<(), Error>` - An empty success value or an error.
 ///
 /// # Errors
-/// * `Error::SchemaNotFound` - If the schema specified by `schema_uid` does not exist.
+/// * `Error::SchemaNotFound` - If no schema with the specified `schema_uid` exists.
 /// * `Error::NotAuthorized` - If the `caller` is not the authority associated with the schema.
+///
+/// # Example
+/// ```ignore
+/// let result = attest(
+///     &env,
+///     authority_address,
+///     schema_uid,
+///     subject_address,
+///     SorobanString::from_str(&env, "{\"field\": \"value\"}"),
+///     Some(SorobanString::from_str(&env, "reference-id"))
+/// );
+/// ```
 pub fn attest(
     env: &Env,
     caller: Address,
@@ -64,20 +79,37 @@ pub fn attest(
     Ok(())
 }
 
-/// Retrieves an attestation record based on its schema, subject, and optional reference.
+/// Retrieves an attestation record from storage based on its unique identifiers.
+///
+/// This function looks up and returns an attestation record by matching its schema UID,
+/// subject address, and optional reference string. The attestation must have been previously
+/// created using the `attest()` function.
 ///
 /// # Arguments
-/// * `env` - The Soroban environment.
-/// * `schema_uid` - The UID of the schema the attestation belongs to.
-/// * `subject` - The address that is the subject of the attestation.
-/// * `reference` - An optional reference string used to identify the specific attestation.
+/// * `env` - The Soroban environment object providing access to contract storage and other utilities
+/// * `schema_uid` - A 32-byte unique identifier for the schema this attestation belongs to
+/// * `subject` - The Stellar address of the entity that is the subject of this attestation
+/// * `reference` - An optional string identifier used to distinguish between multiple attestations
+///                for the same schema and subject
 ///
 /// # Returns
-/// * `Result<AttestationRecord, Error>` - The `AttestationRecord` if found, otherwise an error.
+/// * `Result<AttestationRecord, Error>` - Returns the attestation record if found, wrapped in Ok().
+///                                       Otherwise returns an error variant.
 ///
 /// # Errors
-/// * `Error::SchemaNotFound` - If the schema specified by `schema_uid` does not exist.
-/// * `Error::AttestationNotFound` - If no attestation matching the criteria exists.
+/// * `Error::SchemaNotFound` - Returned if no schema exists with the provided `schema_uid`
+/// * `Error::AttestationNotFound` - Returned if no attestation exists matching all the provided
+///                                  lookup criteria (schema_uid, subject, and reference)
+///
+/// # Example
+/// ```ignore
+/// let attestation = get_attest(
+///     &env,
+///     schema_uid,
+///     subject_address,
+///     Some("2023-degree".into())
+/// )?;
+/// ```
 pub fn get_attest(
     env: &Env,
     schema_uid: BytesN<32>,
