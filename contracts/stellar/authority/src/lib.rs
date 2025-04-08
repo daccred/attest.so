@@ -1,16 +1,32 @@
 #![no_std]
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Symbol,
+    Bytes, BytesN, log
 };
 
 const REGISTER: Symbol = symbol_short!("REGISTER");
 const VERIFY: Symbol = symbol_short!("VERIFY");
 
+#[derive(Debug, Clone)]
+#[contracttype]
+pub struct AttestationRecord {
+    pub uid: BytesN<32>,
+    pub schema_uid: BytesN<32>,
+    pub recipient: Address,
+    pub attester: Address,
+    pub time: u64,
+    pub expiration_time: Option<u64>,
+    pub revocable: bool,
+    pub ref_uid: Option<BytesN<32>>,
+    pub data: Bytes,
+    pub value: Option<i128>,
+}
+
 #[contract]
-pub struct AuthorityContract;
+pub struct AuthorityResolverContract;
 
 #[contractimpl]
-impl AuthorityContract {
+impl AuthorityResolverContract {
     pub fn __constructor(env: Env) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::Admin) {
             return Err(Error::AlreadyInitialized);
@@ -45,6 +61,20 @@ impl AuthorityContract {
 
         env.events().publish((VERIFY,), authority);
     }
+
+    pub fn attest(env: Env, attestation: AttestationRecord) -> Result<(), soroban_sdk::Error> {
+        log!(&env, "AuthorityResolver: Attest hook called for UID: {}", attestation.uid);
+        Ok(())
+    }
+
+    pub fn revoke(env: Env, attestation: AttestationRecord) -> Result<(), soroban_sdk::Error> {
+        log!(&env, "AuthorityResolver: Revoke hook called for UID: {}", attestation.uid);
+        Ok(())
+    }
+
+    pub fn is_payable(_env: Env) -> bool {
+        false
+    }
 }
 
 #[contracttype]
@@ -66,4 +96,5 @@ pub enum Error {
     AlreadyInitialized = 1,
 }
 
+#[cfg(test)]
 mod test;

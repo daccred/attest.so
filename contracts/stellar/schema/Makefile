@@ -1,16 +1,24 @@
-default: build
+# Makefile for building the schema contract
 
-all: test
+TARGET=wasm32-unknown-unknown
+# WASM=target/$(TARGET)/release/schema.wasm # Path might vary
 
+.PHONY: build
+build:
+	cargo build --target $(TARGET) --release
+	# ls $(WASM) # Removed ls check
+
+.PHONY: test
 test:
 	cargo test
 
-build:
-	stellar contract build
-	@ls -l target/wasm32-unknown-unknown/release/*.wasm
-
+.PHONY: fmt
 fmt:
-	cargo fmt --all
+	cargo fmt
 
-clean:
-	cargo clean
+.PHONY: lint
+lint:
+	cargo clippy -- -D warnings
+
+.PHONY: all
+all: fmt lint test build
