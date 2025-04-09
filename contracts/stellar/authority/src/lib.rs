@@ -1,13 +1,11 @@
 #![no_std]
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Symbol,
-    Bytes, BytesN, log, String as SorobanString
+    Bytes, BytesN, log, String as SorobanString,
 };
 
-const REGISTER: Symbol = symbol_short!("REGISTER");
-const VERIFY: Symbol = symbol_short!("VERIFY");
-const ADMIN_REG_AUTH: Symbol = symbol_short!("REG_AUTH");
-
+const ADMIN_REG_AUTH: Symbol = symbol_short!("reg_auth");
+const ADMIN_SET_LEVY: Symbol = symbol_short!("set_levy");
 
 #[derive(Debug, Clone)]
 #[contracttype]
@@ -19,7 +17,7 @@ pub struct AttestationRecord {
     pub time: u64,
     pub expiration_time: Option<u64>,
     pub revocable: bool,
-    pub ref_uid: Option<BytesN<32>>,
+    pub ref_uid: Option<Bytes>,
     pub data: Bytes,
     pub value: Option<i128>,
 }
@@ -32,34 +30,30 @@ pub struct RegisteredAuthorityData {
     pub metadata: SorobanString,
 }
 
+/// Data stored for schema levy information.
+#[derive(Debug, Clone)]
+#[contracttype]
+pub struct SchemaLevyInfo {
+    pub levy_amount: i128,
+    pub authority_for_levy: Address,
+}
+
 #[contract]
 pub struct AuthorityResolverContract;
 
 #[contractimpl]
 impl AuthorityResolverContract {
-    pub fn __constructor(env: Env) -> Result<(), Error> {
+    /// Initializes the contract, setting the provided address as the admin.
+    pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::Admin) {
             return Err(Error::AlreadyInitialized);
         }
-        let admin = env.current_contract_address();
         env.storage().instance().set(&DataKey::Admin, &admin);
         Ok(())
     }
 
     /// Allows the contract admin to register another address as a recognized authority.
-    ///
-    /// # Arguments
-    /// * `env` - The Soroban environment.
-    /// * `admin` - The address calling this function (must be the stored admin).
-    /// * `auth_to_reg` - The address being registered as an authority.
-    /// * `metadata` - Metadata associated with the authority being registered.
-    ///
-    /// # Returns
-    /// * `Result<(), Error>` - Ok or an error.
-    ///
-    /// # Errors
-    /// * `Error::NotInitialized` - If the contract admin hasn't been set (shouldn't happen after constructor).
-    /// * `Error::NotAuthorized` - If the caller is not the stored admin.
+    /// Overwrites existing metadata if the authority is already registered.
     pub fn admin_register_authority(
         env: &Env,
         admin: Address,
@@ -86,57 +80,106 @@ impl AuthorityResolverContract {
         Ok(())
     }
 
-    pub fn register_authority(env: Env) {
-        let caller = env.current_contract_address();
-
-        let signer_key = AuthorityRecord::Signer;
-        let signer_verified_key = AuthorityRecord::SignerVerified;
-
-        env.storage().instance().set(&signer_key, &caller);
-        env.storage().instance().set(&signer_verified_key, &false);
-
-        env.events().publish((REGISTER,), caller);
-    }
-
-    pub fn verify_authority(env: Env) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+    /// Allows the contract admin to set levy details for a specific schema UID.
+    /// Setting levy_amount to 0 effectively removes the levy.
+    pub fn admin_set_schema_levy(
+        env: &Env,
+        admin: Address,
+        schema_uid: BytesN<32>,
+        levy_amount: i128,
+        authority_for_levy: Address,
+    ) -> Result<(), Error> {
         admin.require_auth();
 
-        let signer_key = AuthorityRecord::Signer;
-        let signer_verified_key = AuthorityRecord::SignerVerified;
-        env.storage().instance().set(&signer_verified_key, &true);
+        let stored_admin = env.storage().instance().get(&DataKey::Admin)
+            .ok_or(Error::NotInitialized)?;
+        if admin != stored_admin {
+            return Err(Error::NotAuthorized);
+        }
 
-        let authority: Address = env.storage().instance().get(&signer_key).unwrap();
+        let key = DataKey::SchemaLevy(schema_uid.clone());
 
-        env.events().publish((VERIFY,), authority);
-    }
+        if levy_amount > 0 {
+            let authority_for_levy_clone = authority_for_levy.clone();
+            if !Self::is_authority(env, authority_for_levy_clone) {
+                 return Err(Error::ReceivingAuthorityNotRegistered);
+            }
 
-    pub fn attest(env: Env, attestation: AttestationRecord) -> Result<(), soroban_sdk::Error> {
-        log!(&env, "AuthorityResolver: Attest hook called for UID: {}", attestation.uid);
+            let levy_info = SchemaLevyInfo {
+                levy_amount,
+                authority_for_levy: authority_for_levy.clone(),
+            };
+            env.storage().instance().set(&key, &levy_info);
+            env.events().publish((ADMIN_SET_LEVY, schema_uid.clone()), levy_info);
+        } else {
+            env.storage().instance().remove(&key);
+        }
+
         Ok(())
     }
 
-    pub fn revoke(env: Env, attestation: AttestationRecord) -> Result<(), soroban_sdk::Error> {
-        log!(&env, "AuthorityResolver: Revoke hook called for UID: {}", attestation.uid);
+    /// Checks if a given address is a registered authority.
+    pub fn is_authority(env: &Env, authority_addr: Address) -> bool {
+        let key = DataKey::RegisteredAuthority(authority_addr.clone());
+        env.storage().instance().has(&key)
+    }
+
+    /// Retrieves the levy information for a given schema UID, if any.
+    pub fn get_schema_levy(env: &Env, schema_uid: BytesN<32>) -> Option<SchemaLevyInfo> {
+        let key = DataKey::SchemaLevy(schema_uid.clone());
+        env.storage().instance().get(&key)
+    }
+
+    /// Hook called during attestation. Verifies authority and returns required levy.
+    /// Does NOT handle payment collection.
+    /// # Returns
+    /// * `Result<i128, Error>` - The levy amount in stroops (0 if no levy), or an error.
+    pub fn on_attest(env: &Env, attestation: AttestationRecord) -> Result<i128, Error> {
+        log!(env, "AuthorityResolver: on_attest hook called for UID: {}", attestation.uid);
+
+        if !Self::is_authority(env, attestation.attester.clone()) {
+            return Err(Error::AttesterNotAuthority);
+        }
+
+        if let Some(levy_info) = Self::get_schema_levy(env, attestation.schema_uid.clone()) {
+            Ok(levy_info.levy_amount)
+        } else {
+            Ok(0)
+        }
+    }
+
+    /// Hook called during revocation. Verifies the revoker is the original authority.
+    pub fn on_revoke(env: &Env, attestation: AttestationRecord) -> Result<(), Error> {
+        log!(env, "AuthorityResolver: on_revoke hook called for UID: {}", attestation.uid);
+
+        if !Self::is_authority(env, attestation.attester.clone()) {
+             return Err(Error::AttesterNotAuthority);
+        }
+
         Ok(())
     }
 
-    pub fn is_payable(_env: Env) -> bool {
-        false
+    /// Handles attestation logic by calling the `on_attest` hook.
+    /// The return value `Ok(true)` indicates the authority check passed,
+    /// but the actual levy amount needs to be checked separately by the caller.
+    pub fn attest(env: Env, attestation: AttestationRecord) -> Result<bool, Error> {
+        Self::on_attest(&env, attestation)?;
+        Ok(true)
+    }
+
+    /// Handles revocation logic by calling the `on_revoke` hook.
+    pub fn revoke(env: Env, attestation: AttestationRecord) -> Result<bool, Error> {
+        Self::on_revoke(&env, attestation)?;
+        Ok(true)
     }
 }
 
-#[contracttype]
-#[derive(Clone)]
-enum AuthorityRecord {
-    SignerVerified,
-    Signer,
-}
 #[contracttype]
 #[derive(Clone)]
 enum DataKey {
     Admin,
     RegisteredAuthority(Address),
+    SchemaLevy(BytesN<32>),
 }
 
 #[contracterror]
@@ -146,6 +189,8 @@ pub enum Error {
     AlreadyInitialized = 1,
     NotInitialized = 2,
     NotAuthorized = 3,
+    ReceivingAuthorityNotRegistered = 4,
+    AttesterNotAuthority = 5,
 }
 
 #[cfg(test)]

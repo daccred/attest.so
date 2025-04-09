@@ -1,159 +1,122 @@
 #![cfg(test)]
-
-use super::*;
 use soroban_sdk::{
-    testutils::{Address as _, BytesN as _, Ledger, Events}, 
-    vec, IntoVal, Env,
+    testutils::{Address as _, BytesN as _, Events},
+    Address, Env, String as SorobanString, BytesN,
+    Bytes,
 };
+use crate::{AuthorityResolverContract, AuthorityResolverContractClient, Error, AttestationRecord, SchemaLevyInfo};
 
-// --- Test Setup ---
-
-fn setup_env() -> (Env, Address, AuthorityResolverContractClient) {
+fn setup_env<'a>() -> (Env, Address, Address, AuthorityResolverContractClient<'a>) {
     let env = Env::default();
     env.mock_all_auths();
-    
+    let admin = Address::generate(&env);
     let contract_id = env.register_contract(None, AuthorityResolverContract);
     let client = AuthorityResolverContractClient::new(&env, &contract_id);
-    
-    // Call constructor (which sets the contract itself as admin)
-    client.__constructor();
-    
-    (env, contract_id, client)
+    client.initialize(&admin);
+    (env, contract_id, admin, client)
 }
 
-// Create a mock attestation record for testing
-fn create_test_attestation(env: &Env) -> AttestationRecord {
+fn create_dummy_attestation(env: &Env, attester: &Address, schema_uid: &BytesN<32>) -> AttestationRecord {
     AttestationRecord {
-        uid: BytesN::random(env),
-        schema_uid: BytesN::random(env),
+        uid: BytesN::from_array(env, &[0; 32]), // Dummy UID
+        schema_uid: schema_uid.clone(),
         recipient: Address::generate(env),
-        attester: Address::generate(env),
+        attester: attester.clone(),
         time: env.ledger().timestamp(),
-        expiration_time: Some(env.ledger().timestamp() + 1000),
+        expiration_time: None,
         revocable: true,
         ref_uid: None,
-        data: Bytes::from_slice(env, &[1, 2, 3]),
-        value: Some(100),
+        data: Bytes::new(env),
+        value: None,
     }
 }
 
-// --- Initialization Tests ---
-
 #[test]
-fn test_constructor_sets_admin() {
-    let env = Env::default();
-    env.mock_all_auths();
-    
-    let contract_id = env.register_contract(None, AuthorityResolverContract);
-    let client = AuthorityResolverContractClient::new(&env, &contract_id);
-    
-    // Call constructor
-    client.__constructor();
-    
-    // Verify admin was set
-    // Note: Admin is stored in instance storage, and we're trusting that it was
-    // set correctly since verify_authority requires admin auth
+fn test_initialize() {
+    let (_env, _contract_id, admin, client) = setup_env();
+
+    let reinit_result = client.try_initialize(&admin);
+    assert!(matches!(reinit_result.err().unwrap().unwrap(), Error::AlreadyInitialized));
 }
 
 #[test]
-fn test_constructor_prevents_double_initialization() {
-    let env = Env::default();
-    env.mock_all_auths();
-    
-    let contract_id = env.register_contract(None, AuthorityResolverContract);
-    let client = AuthorityResolverContractClient::new(&env, &contract_id);
-    
-    // Call constructor first time
-    client.__constructor();
-    
-    // Call constructor second time - should fail
-    let result = client.try___constructor();
-    assert!(result.is_err());
-    assert_eq!(result.err().unwrap().unwrap(), Error::AlreadyInitialized);
-}
+fn test_admin_register_authority() {
+    let (env, contract_id, admin, client) = setup_env();
 
-// --- Authority Management Tests ---
+    let authority = Address::generate(&env);
+    let metadata = SorobanString::from_str(&env, "Test Authority Metadata");
 
-#[test]
-fn test_register_authority() {
-    let (env, contract_id, client) = setup_env();
-    
-    // Register authority
-    client.register_authority();
-    
-    // Verify storage (indirectly)
-    let events = env.events().all();
-    let reg_events: Vec<_> = events.iter()
-        .filter(|e| e.0.0 == REGISTER)
-        .collect();
-        
-    assert_eq!(reg_events.len(), 1);
-    // Verify the registered address matches the contract address
-    assert_eq!(reg_events[0].1.to_val(), contract_id.to_val());
+    client.admin_register_authority(&admin, &authority, &metadata);
+
+    assert!(client.is_authority(&authority));
+
+    let unauthorized_user = Address::generate(&env);
+
+    let env_unauth = Env::default();
+    let client_unauth = AuthorityResolverContractClient::new(&env_unauth, &contract_id);
 }
 
 #[test]
-fn test_verify_authority() {
-    let (env, _contract_id, client) = setup_env();
-    
-    // Register authority first
-    client.register_authority();
-    
-    // Verify authority (as admin)
-    client.verify_authority();
-    
-    // Verify storage (indirectly via events)
-    let events = env.events().all();
-    let verify_events: Vec<_> = events.iter()
-        .filter(|e| e.0.0 == VERIFY)
-        .collect();
-        
-    assert_eq!(verify_events.len(), 1);
-}
+fn test_admin_set_schema_levy() {
+    let (env, _contract_id, admin, client) = setup_env();
 
-// --- Resolver Hook Tests ---
+    let schema_uid = BytesN::random(&env);
+    let levy_amount: i128 = 100;
+    let authority_for_levy = Address::generate(&env);
+
+    client.admin_register_authority(&admin, &authority_for_levy, &SorobanString::from_str(&env, "Levy Authority"));
+    assert!(client.is_authority(&authority_for_levy));
+
+    client.admin_set_schema_levy(&admin, &schema_uid, &levy_amount, &authority_for_levy);
+
+    let levy_info_option = client.get_schema_levy(&schema_uid);
+    assert!(levy_info_option.is_some());
+    let levy_info = levy_info_option.unwrap();
+    assert_eq!(levy_info.levy_amount, levy_amount);
+    assert_eq!(levy_info.authority_for_levy, authority_for_levy);
+}
 
 #[test]
 fn test_attest_hook() {
-    let (env, _contract_id, client) = setup_env();
-    
-    // Create test attestation record
-    let attestation = create_test_attestation(&env);
-    
-    // Call attest hook
-    let result = client.attest(&attestation);
-    
-    // Verify success
-    assert!(result.is_ok());
-    // Note: Currently the hook just logs and returns success
-    // In a real implementation, we'd need to check that the 
-    // proper business logic was executed
+    let (env, _contract_id, admin, client) = setup_env();
+
+    let authority = Address::generate(&env);
+    let non_authority = Address::generate(&env);
+    let schema_uid_no_levy: BytesN<32> = BytesN::from_array(&env, &[1; 32]);
+    let schema_uid_with_levy: BytesN<32> = BytesN::from_array(&env, &[2; 32]);
+    let levy_amount = 5_000_000;
+
+    client.admin_register_authority(&admin, &authority, &SorobanString::from_str(&env, "Attester"));
+    client.admin_set_schema_levy(&admin, &schema_uid_with_levy, &levy_amount, &authority);
+
+    let attestation1 = create_dummy_attestation(&env, &authority, &schema_uid_no_levy);
+    let result1 = client.try_attest(&attestation1);
+    assert_eq!(result1, Ok(Ok(true)));
+
+    let attestation2 = create_dummy_attestation(&env, &authority, &schema_uid_with_levy);
+    let result2 = client.try_attest(&attestation2);
+    assert_eq!(result2, Ok(Ok(true)));
+
+    let attestation3 = create_dummy_attestation(&env, &non_authority, &schema_uid_no_levy);
+    let result3 = client.try_attest(&attestation3);
+    assert!(matches!(result3.err().unwrap().unwrap(), Error::AttesterNotAuthority));
 }
 
 #[test]
 fn test_revoke_hook() {
-    let (env, _contract_id, client) = setup_env();
-    
-    // Create test attestation record
-    let attestation = create_test_attestation(&env);
-    
-    // Call revoke hook
-    let result = client.revoke(&attestation);
-    
-    // Verify success
-    assert!(result.is_ok());
-    // Note: Currently the hook just logs and returns success
-    // In a real implementation, we'd need to check that the 
-    // proper business logic was executed
-}
+    let (env, _contract_id, admin, client) = setup_env();
 
-#[test]
-fn test_is_payable() {
-    let (env, _contract_id, client) = setup_env();
-    
-    // Check is_payable
-    let result = client.is_payable();
-    
-    // Verify it's false (default implementation)
-    assert_eq!(result, false);
+    let authority = Address::generate(&env);
+    let non_authority = Address::generate(&env);
+    let schema_uid: BytesN<32> = BytesN::from_array(&env, &[1; 32]);
+
+    client.admin_register_authority(&admin, &authority, &SorobanString::from_str(&env, "Revoker"));
+
+    let attestation1 = create_dummy_attestation(&env, &authority, &schema_uid);
+    let result1 = client.try_revoke(&attestation1);
+    assert_eq!(result1, Ok(Ok(true)));
+
+    let attestation2 = create_dummy_attestation(&env, &non_authority, &schema_uid);
+    let result2 = client.try_revoke(&attestation2);
+    assert!(matches!(result2.err().unwrap().unwrap(), Error::AttesterNotAuthority));
 } 
