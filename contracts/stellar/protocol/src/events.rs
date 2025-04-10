@@ -1,5 +1,5 @@
 use soroban_sdk::{Env, symbol_short, String as SorobanString, BytesN, Address};
-use crate::state::{AttestationRecord, Authority};
+use crate::state::{AttestationRecord};
 
 pub fn publish_attestation_event(env: &Env, _attestation: &AttestationRecord) {
     let topics = (symbol_short!("ATTEST"), symbol_short!("CREATE"));

@@ -1,8 +1,7 @@
-use soroban_sdk::{token, Address, BytesN, Env, String as SorobanString, log};
+use soroban_sdk::{token, Address, Env, String as SorobanString, log};
 use crate::errors::Error;
 use crate::state::{
-    AttestationRecord, RegisteredAuthorityData, SchemaRules, 
-    is_initialized, is_authority, get_schema_rules, 
+    AttestationRecord, RegisteredAuthorityData, is_authority, get_schema_rules, 
     get_collected_levy, set_collected_levy, remove_collected_levy,
     update_collected_levy, set_authority_data
 };
