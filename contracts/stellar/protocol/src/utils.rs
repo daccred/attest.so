@@ -15,7 +15,16 @@ pub fn get_authority(env: &Env, address: &Address) -> Option<Authority> {
 /// * `schema_uid` - The 32-byte unique identifier of the schema to retrieve.
 ///
 /// # Returns
-/// * `Result<Schema, Error>` - The `Schema` record if found, otherwise an error.
+/// * `Option<Schema>` - The `Schema` record if found, otherwise None.
+///
+/// # Example
+/// ```ignore
+/// if let Some(schema) = get_schema(&env, &schema_uid) {
+///     // Schema exists, use it
+/// } else {
+///     // Schema not found
+/// }
+/// ```
 pub fn get_schema(env: &Env, schema_uid: &BytesN<32>) -> Option<Schema> {
     let key = DataKey::Schema(schema_uid.clone());
     env.storage().instance().get(&key)

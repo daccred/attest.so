@@ -1,151 +1,133 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Symbol,
-    Bytes, BytesN, log, String as SorobanString
+    contract, contractimpl, Address, BytesN, Env, String as SorobanString
 };
 
-const REGISTER: Symbol = symbol_short!("REGISTER");
-const VERIFY: Symbol = symbol_short!("VERIFY");
-const ADMIN_REG_AUTH: Symbol = symbol_short!("REG_AUTH");
+// Import modules
+mod errors;
+mod events;
+mod state;
+mod instructions;
 
-
-#[derive(Debug, Clone)]
-#[contracttype]
-pub struct AttestationRecord {
-    pub uid: BytesN<32>,
-    pub schema_uid: BytesN<32>,
-    pub recipient: Address,
-    pub attester: Address,
-    pub time: u64,
-    pub expiration_time: Option<u64>,
-    pub revocable: bool,
-    pub ref_uid: Option<BytesN<32>>,
-    pub data: Bytes,
-    pub value: Option<i128>,
-}
-
-/// Data stored for an authority registered by the admin.
-#[derive(Debug, Clone)]
-#[contracttype]
-pub struct RegisteredAuthorityData {
-    pub address: Address,
-    pub metadata: SorobanString,
-}
+// Re-export types for external use
+pub use errors::Error;
+pub use state::{AttestationRecord, RegisteredAuthorityData, SchemaRules, DataKey};
+pub use events::{ADMIN_REG_AUTH, AUTHORITY_REGISTERED, SCHEMA_REGISTERED, LEVY_COLLECTED, LEVY_WITHDRAWN};
 
 #[contract]
 pub struct AuthorityResolverContract;
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ► Contract Implementation
+// ══════════════════════════════════════════════════════════════════════════════
 #[contractimpl]
 impl AuthorityResolverContract {
-    pub fn __constructor(env: Env) -> Result<(), Error> {
-        if env.storage().instance().has(&DataKey::Admin) {
+    // ──────────────────────────────────────────────────────────────────────────
+    //                           Initialization
+    // ──────────────────────────────────────────────────────────────────────────
+    pub fn initialize(env: Env, admin: Address, token_contract_id: Address) -> Result<(), Error> {
+        if state::is_initialized(&env) {
             return Err(Error::AlreadyInitialized);
         }
-        let admin = env.current_contract_address();
-        env.storage().instance().set(&DataKey::Admin, &admin);
+        admin.require_auth();
+        state::set_admin(&env, &admin);
+        state::set_token_id(&env, &token_contract_id);
+        env.storage().instance().extend_ttl(
+            env.storage().max_ttl() - 100,
+            env.storage().max_ttl(),
+        );
         Ok(())
     }
 
-    /// Allows the contract admin to register another address as a recognized authority.
-    ///
-    /// # Arguments
-    /// * `env` - The Soroban environment.
-    /// * `admin` - The address calling this function (must be the stored admin).
-    /// * `auth_to_reg` - The address being registered as an authority.
-    /// * `metadata` - Metadata associated with the authority being registered.
-    ///
-    /// # Returns
-    /// * `Result<(), Error>` - Ok or an error.
-    ///
-    /// # Errors
-    /// * `Error::NotInitialized` - If the contract admin hasn't been set (shouldn't happen after constructor).
-    /// * `Error::NotAuthorized` - If the caller is not the stored admin.
+    // ──────────────────────────────────────────────────────────────────────────
+    //                           Admin Functions
+    // ──────────────────────────────────────────────────────────────────────────
     pub fn admin_register_authority(
-        env: &Env,
+        env: Env,
         admin: Address,
         auth_to_reg: Address,
         metadata: SorobanString,
     ) -> Result<(), Error> {
-        admin.require_auth();
-
-        let stored_admin = env.storage().instance().get(&DataKey::Admin)
-            .ok_or(Error::NotInitialized)?;
-        if admin != stored_admin {
-            return Err(Error::NotAuthorized);
-        }
-
-        let authority_data = RegisteredAuthorityData {
-            address: auth_to_reg.clone(),
-            metadata,
-        };
-        let key = DataKey::RegisteredAuthority(auth_to_reg);
-        env.storage().instance().set(&key, &authority_data);
-
-        env.events().publish((ADMIN_REG_AUTH,), authority_data);
-
-        Ok(())
+        instructions::admin::admin_register_authority(&env, &admin, &auth_to_reg, &metadata)
     }
 
-    pub fn register_authority(env: Env) {
-        let caller = env.current_contract_address();
-
-        let signer_key = AuthorityRecord::Signer;
-        let signer_verified_key = AuthorityRecord::SignerVerified;
-
-        env.storage().instance().set(&signer_key, &caller);
-        env.storage().instance().set(&signer_verified_key, &false);
-
-        env.events().publish((REGISTER,), caller);
+    pub fn admin_register_schema(
+        env: Env,
+        admin: Address,
+        schema_uid: BytesN<32>,
+        rules: SchemaRules,
+    ) -> Result<(), Error> {
+        instructions::admin::admin_register_schema(&env, &admin, &schema_uid, &rules)
     }
 
-    pub fn verify_authority(env: Env) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
-        admin.require_auth();
-
-        let signer_key = AuthorityRecord::Signer;
-        let signer_verified_key = AuthorityRecord::SignerVerified;
-        env.storage().instance().set(&signer_verified_key, &true);
-
-        let authority: Address = env.storage().instance().get(&signer_key).unwrap();
-
-        env.events().publish((VERIFY,), authority);
+    pub fn admin_set_schema_levy(
+        env: Env,
+        admin: Address,
+        schema_uid: BytesN<32>,
+        levy_amount: i128,
+        levy_recipient: Address,
+    ) -> Result<(), Error> {
+        instructions::admin::admin_set_schema_levy(&env, &admin, &schema_uid, levy_amount, &levy_recipient)
     }
 
-    pub fn attest(env: Env, attestation: AttestationRecord) -> Result<(), soroban_sdk::Error> {
-        log!(&env, "AuthorityResolver: Attest hook called for UID: {}", attestation.uid);
-        Ok(())
+    pub fn admin_set_registration_fee(
+        env: Env,
+        admin: Address,
+        fee_amount: i128,
+        token_id: Address,
+    ) -> Result<(), Error> {
+        instructions::admin::admin_set_registration_fee(&env, &admin, &fee_amount, &token_id)
     }
 
-    pub fn revoke(env: Env, attestation: AttestationRecord) -> Result<(), soroban_sdk::Error> {
-        log!(&env, "AuthorityResolver: Revoke hook called for UID: {}", attestation.uid);
-        Ok(())
+    // ──────────────────────────────────────────────────────────────────────────
+    //                         Public/Hook Functions
+    // ──────────────────────────────────────────────────────────────────────────
+    pub fn register_authority(
+        env: Env,
+        caller: Address,
+        authority_to_reg: Address,
+        metadata: SorobanString,
+    ) -> Result<(), Error> {
+        instructions::resolver::register_authority(&env, &caller, &authority_to_reg, &metadata)
     }
 
-    pub fn is_payable(_env: Env) -> bool {
-        false
+    pub fn is_authority(env: Env, authority: Address) -> Result<bool, Error> {
+        instructions::admin::require_init(&env)?;
+        Ok(state::is_authority(&env, &authority))
     }
-}
 
-#[contracttype]
-#[derive(Clone)]
-enum AuthorityRecord {
-    SignerVerified,
-    Signer,
-}
-#[contracttype]
-#[derive(Clone)]
-enum DataKey {
-    Admin,
-    RegisteredAuthority(Address),
-}
+    pub fn attest(env: Env, attestation: AttestationRecord) -> Result<bool, Error> {
+        instructions::resolver::attest(&env, &attestation)
+    }
 
-#[contracterror]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-#[repr(u32)]
-pub enum Error {
-    AlreadyInitialized = 1,
-    NotInitialized = 2,
-    NotAuthorized = 3,
+    pub fn revoke(env: Env, attestation: AttestationRecord) -> Result<bool, Error> {
+        instructions::resolver::revoke(&env, &attestation)
+    }
+
+    pub fn withdraw_levies(env: Env, caller: Address) -> Result<(), Error> {
+        instructions::resolver::withdraw_levies(&env, &caller)
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    //                             Getter Functions
+    // ──────────────────────────────────────────────────────────────────────────
+    pub fn get_schema_rules(env: Env, schema_uid: BytesN<32>) -> Result<Option<SchemaRules>, Error> {
+        instructions::admin::require_init(&env)?;
+        Ok(state::get_schema_rules(&env, &schema_uid))
+    }
+
+    pub fn get_collected_levies(env: Env, authority: Address) -> Result<i128, Error> {
+        instructions::admin::require_init(&env)?;
+        Ok(state::get_collected_levy(&env, &authority))
+    }
+
+    pub fn get_token_id(env: Env) -> Result<Address, Error> {
+        instructions::admin::get_token_id(&env)
+    }
+
+    pub fn get_admin_address(env: Env) -> Result<Address, Error> {
+        instructions::admin::get_admin(&env)
+    }
 }
 
 #[cfg(test)]
