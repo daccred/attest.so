@@ -13,6 +13,8 @@ import {
 } from './types'
 import * as StellarSdk from '@stellar/stellar-sdk';
 
+const ATTEST_CONTRACT =  "CAF5SWYR7B7V5FYUXTGYXCRUNRQEIWEUZRDCARNMX456LRD64RX76BNN" 
+const AUTHORITY_CONTRACT = "CBORL365DYHJLIOUXR7GU6VIKXQ4X7DJTV6SR366O6ZWCF7C5PO2XESQ"
 
 
 /**
@@ -22,9 +24,8 @@ export class StellarAttestSDK extends AttestSDKBase {
   private server: StellarSdk.Horizon.Server
   private keypair: StellarSdk.Keypair
   private networkPassphrase: string
-  private ATTEST_CONTRACT =  "CAF5SWYR7B7V5FYUXTGYXCRUNRQEIWEUZRDCARNMX456LRD64RX76BNN" 
-  private AUTHORITY_CONTRACT = "CBORL365DYHJLIOUXR7GU6VIKXQ4X7DJTV6SR366O6ZWCF7C5PO2XESQ"
-  
+  private contractId: string
+
   /**
    * Creates a new instance of the Stellar Attest SDK
    * @param config SDK configuration options
@@ -36,6 +37,7 @@ export class StellarAttestSDK extends AttestSDKBase {
     this.server = new StellarSdk.Horizon.Server(config.url ?? 'https://horizon-testnet.stellar.org')
     this.keypair = StellarSdk.Keypair.fromSecret(config.secretKey)
     this.networkPassphrase = config.networkPassphrase ?? StellarSdk.Networks.TESTNET
+    this.contractId =  'CBXGBFZGT2UPL4U64FV4PNPQHQTL64ZDNVBVKM5LKARIHJW5M4SJDGAB'
   }
 
   /**
@@ -259,7 +261,7 @@ export class StellarAttestSDK extends AttestSDKBase {
       
       // Generate the attestation ID
       const attestationId = this.generateAttestationId(
-        props.schemaUID.toString(),
+        props.attestationUID.toString(),
         props.recipient.toString(),
         props.reference || null
       )

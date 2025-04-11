@@ -21,7 +21,7 @@ logger.log(
 logger.log(bold('Welcome to the ATTEST.SO command line interface\n\n'))
 
 for (const command of commands) {
-  run.command(command as CommandModule)
+  run.command(command as unknown as CommandModule)
 }
 
 run

@@ -117,3 +117,7 @@ dist
 bundle
 node_modules
 TODO
+
+keys/
+
+test*
