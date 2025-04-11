@@ -8,9 +8,8 @@ import {
   SolanaFetchAuthorityResult,
   SolanaFetchSchemaResult,
   SolanaFetchAttestationResult,
-  RevokeAttestationConfig,
+  SolanaRevokeAttestationConfig,
 } from './types'
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 
 import * as anchor from '@coral-xyz/anchor'
 import idl from './idl.json'
@@ -218,7 +217,7 @@ export class SolanaAttestSDK extends AttestSDKBase {
   }
 
   async revokeAttestation(
-    props: RevokeAttestationConfig
+    props: SolanaRevokeAttestationConfig
   ): Promise<AttestSDKResponse<anchor.web3.PublicKey>> {
     try {
       const { schemaUID, recipient } = props

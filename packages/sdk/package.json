@@ -15,7 +15,8 @@
   "scripts": {
     "build": "rm -rf dist && microbundle --tsconfig tsconfig.json --no-sourcemap",
     "dev": "microbundle --watch --tsconfig tsconfig.json --no-sourcemap",
-    "sdk-test": "ts-node ./test/run.ts"
+    "test-solana": "ts-node ./test/run-solana.ts",
+    "test-stellar": "ts-node ./test/run-stellar.ts"
   },
   "keywords": [],
   "author": "daccred",
@@ -26,11 +27,14 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
-    "@solana/web3.js": "^1.95.3",
     "@solana/spl-token": "^0.4.6",
+    "@solana/web3.js": "^1.95.3",
+    "@stellar/stellar-sdk": "^13.2.0",
     "isomorphic-unfetch": "^4.0.2"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {
     "test": "test"
   },
