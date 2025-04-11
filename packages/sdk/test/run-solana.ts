@@ -1,4 +1,4 @@
-import { AttestSDK } from '../src'
+import  AttestSDK from '../src'
 import * as anchor from '@coral-xyz/anchor'
 import { createMint, createAccount, mintTo } from '@solana/spl-token'
 
@@ -113,7 +113,7 @@ async function run() {
 
   const { data: revokedAttestation, error: revokedAttestationError } =
     await attesterSolana.revokeAttestation({
-      schemaUID: schema!,
+      attestationUID: attestation!,
       recipient: recipientKeypair.publicKey,
     })
 
