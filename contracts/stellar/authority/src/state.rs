@@ -1,5 +1,5 @@
 use soroban_sdk::{
-    contracttype, Bytes, BytesN, Address, Env, String as SorobanString
+    contracttype, Bytes, BytesN, Address, Env, String
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -25,7 +25,7 @@ pub struct AttestationRecord {
 #[contracttype]
 pub struct RegisteredAuthorityData {
     pub address: Address,
-    pub metadata: SorobanString,
+    pub metadata: String,
     pub registration_time: u64,
 }
 

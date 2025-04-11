@@ -1,6 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, Address, BytesN, Env, String as SorobanString
+    contract, contractimpl, Address, BytesN, Env, String
 };
 
 // Import modules
@@ -47,7 +47,7 @@ impl AuthorityResolverContract {
         env: Env,
         admin: Address,
         auth_to_reg: Address,
-        metadata: SorobanString,
+        metadata: String,
     ) -> Result<(), Error> {
         instructions::admin::admin_register_authority(&env, &admin, &auth_to_reg, &metadata)
     }
@@ -87,7 +87,7 @@ impl AuthorityResolverContract {
         env: Env,
         caller: Address,
         authority_to_reg: Address,
-        metadata: SorobanString,
+        metadata: String,
     ) -> Result<(), Error> {
         instructions::resolver::register_authority(&env, &caller, &authority_to_reg, &metadata)
     }
