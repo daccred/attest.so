@@ -56,6 +56,6 @@ The contracts work together to provide a complete attestation system with author
 
 ℹ️  Signing transaction: 98280fe8f2e2d843f319c95ed1568902a2cfd860e6217b9a0d491fe6f59b53b7
 🌎 Submitting deploy transaction…
-🔗 https://stellar.expert/explorer/testnet/contract/CBUVVPJQXLVHOA73Z6ZZR55RDHRON3OIFAECZG456XSDVRZSIGDPN4BA
-✅ Deployed!
-CBUVVPJQXLVHOA73Z6ZZR55RDHRON3OIFAECZG456XSDVRZSIGDPN4BA
+🔗 https://stellar.expert/explorer/testnet/contract/CAISGXYBRUUORH4BAWWQTUS3CWUEOUB7GK5NFLA3KXQ3AVGGJJIDQKD4
+CAISGXYBRUUORH4BAWWQTUS3CWUEOUB7GK5NFLA3KXQ3AVGGJJIDQKD4
+ 

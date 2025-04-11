@@ -1,13 +1,10 @@
 #![cfg(test)]
 extern crate std; // Needed for format!
-use std::format; // Import the format! macro
 
 use soroban_sdk::{
     testutils::{Address as _, BytesN as _, Events as _, Ledger, LedgerInfo},
     token, // Import token types
-    Address, Bytes, BytesN, Env, IntoVal, String as SorobanString, Symbol,
-    TryIntoVal, Vec, Val,
-    symbol_short,
+    Address, Bytes, BytesN, Env, IntoVal, String as SorobanString,
 };
 
 // Import types AND CONSTANTS from the contract crate
@@ -728,7 +725,7 @@ fn test_withdraw_levies() {
         max_entry_ttl: 365 * 60 * 60 * 24,
     });
     let admin = Address::generate(&env);
-    let attester_auth = Address::generate(&env);
+    let _attester_auth = Address::generate(&env);
     let recipient_auth = Address::generate(&env);
     let levy_amount1 = 5_0000000;
     let levy_amount2 = 3_0000000;
@@ -781,7 +778,7 @@ fn test_withdraw_levies() {
 
     // --- Directly Set Levy Balance in Storage --- RESTORED
     env.as_contract(&resolver_address, || { 
-        let balance_key = DataKey::CollectedLevy(recipient_auth.clone());
+        let balance_key = (DataKey::CollLevyPrefix, recipient_auth.clone()); // Use the correct prefix
         env.storage().persistent().set(&balance_key, &total_levy);
     });
     let withdraw_levies = resolver_client.get_collected_levies(&recipient_auth);

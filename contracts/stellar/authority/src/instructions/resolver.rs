@@ -1,4 +1,4 @@
-use soroban_sdk::{token, Address, Env, String as SorobanString, log};
+use soroban_sdk::{token, Address, Env, String, log};
 use crate::errors::Error;
 use crate::state::{
     AttestationRecord, RegisteredAuthorityData, is_authority, get_schema_rules, 
@@ -17,7 +17,7 @@ pub fn register_authority(
     env: &Env,
     caller: &Address,
     authority_to_reg: &Address,
-    metadata: &SorobanString,
+    metadata: &String,
 ) -> Result<(), Error> {
     require_init(env)?;
     caller.require_auth();

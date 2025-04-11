@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, BytesN, Env, String as SorobanString};
+use soroban_sdk::{Address, BytesN, Env, String};
 use crate::errors::Error;
 use crate::state::{SchemaRules, RegisteredAuthorityData, set_authority_data, set_schema_rules, set_registration_fee, is_authority};
 use crate::events;
@@ -32,7 +32,7 @@ pub fn admin_register_authority(
     env: &Env,
     admin: &Address,
     auth_to_reg: &Address,
-    metadata: &SorobanString,
+    metadata: &String,
 ) -> Result<(), Error> {
     require_init(env)?;
     require_admin(env, admin)?;
