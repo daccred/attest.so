@@ -27,11 +27,14 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
-    "@solana/web3.js": "^1.95.3",
     "@solana/spl-token": "^0.4.6",
+    "@solana/web3.js": "^1.95.3",
+    "@stellar/stellar-sdk": "^13.2.0",
     "isomorphic-unfetch": "^4.0.2"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {
     "test": "test"
   },

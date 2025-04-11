@@ -1,31 +1,35 @@
 import { AttestSDK } from '../src'
-import StellarSdk from 'stellar-sdk'
+import * as StellarSdk from '@stellar/stellar-sdk'
 
 async function run() {
   console.log('Starting Stellar attestation test...')
 
   // Initialize test accounts
   const url = 'https://horizon-testnet.stellar.org'
-  
+
   // These are test keypairs - in a real app you would use real keypairs or secret keys
   const authorityKeypair = StellarSdk.Keypair.random()
   const recipientKeypair = StellarSdk.Keypair.random()
-  
+
   console.log('Authority public key:', authorityKeypair.publicKey())
   console.log('Recipient public key:', recipientKeypair.publicKey())
-  
+
   // Fund accounts on testnet - this would be done externally in a real app
   // You can use the Stellar Laboratory or Friendbot to fund accounts in testnet
-  console.log(`Fund the authority account at: https://laboratory.stellar.org/#account-creator?network=test`)
-  console.log(`Or use Friendbot: https://friendbot.stellar.org/?addr=${encodeURIComponent(authorityKeypair.publicKey())}`)
-  
+  console.log(
+    `Fund the authority account at: https://laboratory.stellar.org/#account-creator?network=test`
+  )
+  console.log(
+    `Or use Friendbot: https://friendbot.stellar.org/?addr=${encodeURIComponent(
+      authorityKeypair.publicKey()
+    )}`
+  )
+
   // Initialize the Stellar SDK
   const stellarSDK = await AttestSDK.initializeStellar({
     url,
     secretKey: authorityKeypair.secret(),
     networkPassphrase: StellarSdk.Networks.TESTNET,
-    // You would provide a real contract ID in production
-    contractId: 'CCUSTOM_CONTRACT_ID_PLACEHOLDER',
   })
 
   console.log('SDK initialized')
@@ -78,7 +82,7 @@ async function run() {
         data: JSON.stringify({
           name: 'John Doe',
           email: 'john@example.com',
-          verification_level: 2
+          verification_level: 2,
         }),
         // Reference to another attestation (optional)
         refUID: null,
@@ -109,10 +113,12 @@ async function run() {
 
         // Revoke the attestation
         console.log('Revoking attestation...')
-        const { data: revokedAttestation, error: revokeError } = await stellarSDK.revokeAttestation({
-          schemaUID: schema,
-          recipient: recipientKeypair.publicKey(),
-        })
+        const { data: revokedAttestation, error: revokeError } = await stellarSDK.revokeAttestation(
+          {
+            schemaUID: schema,
+            recipient: recipientKeypair.publicKey(),
+          }
+        )
 
         if (revokeError || !revokedAttestation) {
           console.error('Failed to revoke attestation:', revokeError)
@@ -140,4 +146,3 @@ async function run() {
 run().catch((err) => {
   console.error('Error running test:', err)
 })
-

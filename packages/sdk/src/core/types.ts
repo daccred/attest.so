@@ -48,7 +48,6 @@ export interface StarknetConfig extends ChainConfig {
 export interface StellarConfig extends ChainConfig {
   secretKey: string
   networkPassphrase?: string
-  contractId?: string
 }
 
 /**
