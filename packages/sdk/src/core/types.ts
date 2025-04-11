@@ -48,6 +48,7 @@ export interface StarknetConfig extends ChainConfig {
 export interface StellarConfig extends ChainConfig {
   secretKey: string
   networkPassphrase?: string
+  contractId?: string
 }
 
 /**
@@ -86,6 +87,19 @@ export interface AttestationConfig {
   }
 }
 
+export interface StellarAttestationConfig {
+  schemaData: string
+  data: string
+  refUID?: string | null 
+  expirationTime?: number | null
+  revocable?: boolean
+  accounts: {
+    recipient: string
+    levyReceipent: string
+    mintAccount: string
+  }
+}
+
 export interface SolanaFetchAuthorityResult {
   authority: anchor.web3.PublicKey
   isVerified: boolean
@@ -118,7 +132,44 @@ export interface SolanaFetchAttestationResult {
   uid: anchor.web3.PublicKey
 }
 
-export interface RevokeAttestationConfig {
+export interface SolanaRevokeAttestationConfig {
   schemaUID: anchor.web3.PublicKey
   recipient: anchor.web3.PublicKey
+  reference?: string | null
+}
+
+/**
+ * Stellar fetch authority result
+ */
+export interface StellarFetchAuthorityResult {
+  address: string
+  metadata: string
+}
+
+/**
+ * Stellar fetch schema result
+ */
+export interface StellarFetchSchemaResult {
+  uid: string
+  definition: string
+  authority: string
+  revocable: boolean
+  resolver: string | null
+}
+
+/**
+ * Stellar fetch attestation result
+ */
+export interface StellarFetchAttestationResult {
+  schemaUid: string
+  subject: string
+  value: string
+  reference: string | null
+  revoked: boolean
+}
+
+export interface RevokeAttestationConfig {
+  schemaUID: string
+  recipient: string
+  reference?: string | null
 }

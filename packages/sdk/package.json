@@ -15,7 +15,8 @@
   "scripts": {
     "build": "rm -rf dist && microbundle --tsconfig tsconfig.json --no-sourcemap",
     "dev": "microbundle --watch --tsconfig tsconfig.json --no-sourcemap",
-    "sdk-test": "ts-node ./test/run.ts"
+    "test-solana": "ts-node ./test/run-solana.ts",
+    "test-stellar": "ts-node ./test/run-stellar.ts"
   },
   "keywords": [],
   "author": "daccred",
