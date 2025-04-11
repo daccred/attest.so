@@ -1,16 +1,17 @@
 {
   "name": "@attestso/stellar",
   "version": "1.0.0",
-  "main": "scripts/index.js",
+  "main": "scripts/run.mjs",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node scripts/run.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "description": "",
   "dependencies": {
-    "@stellar/stellar-sdk": "^13.2.0",
-    "soroban-client": "^1.0.1"
+    "@stellar/stellar-sdk": "^12.0.0"
   }
 }

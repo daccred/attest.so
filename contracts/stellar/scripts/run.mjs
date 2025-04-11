@@ -1,7 +1,11 @@
-// Import necessary stellar SDK modules
-const { SorobanRpc, Address, Contract, TransactionBuilder, Keypair, Networks, xdr } = require('@stellar/stellar-sdk');
-const fs = require('fs');
-const path = require('path');
+import { Address, Contract, TransactionBuilder, Keypair, Networks, xdr, SorobanRpc, Operation } from '@stellar/stellar-sdk';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname in ES module scope
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Function to parse .sh-style env file
 function parseShEnv(filePath) {
@@ -86,22 +90,23 @@ async function initializeContract() {
         const adminAddr = createAccountAddress(ADMIN_ADDRESS);
         const tokenAddr = createContractAddress(TOKEN_CONTRACT_ID);
         
-        // Build transaction
+        // Construct the operation correctly
+        const operation = Operation.invokeHostFunction({
+            func: xdr.HostFunction.hostFunctionTypeInvokeContract(new xdr.InvokeContractArgs({
+                contractAddress: contractId.toScAddress(),
+                functionName: "initialize",
+                args: [adminAddr.toScVal(), tokenAddr.toScVal()]
+            })),
+            auth: []
+        });
+        
+        // Build transaction with higher fee
         const tx = new TransactionBuilder(account, {
-            fee: "100000", // 0.01 XLM
+            fee: "1000000", // 0.1 XLM
             networkPassphrase: NETWORK_PASSPHRASE,
         })
-            .addOperation({
-                type: 'invokeHostFunction',
-                func: xdr.HostFunction.hostFunctionTypeInvokeContract(),
-                parameters: [
-                    contractId.toScVal(),
-                    xdr.ScVal.scvSymbol("initialize"),
-                    adminAddr.toScVal(),
-                    tokenAddr.toScVal()
-                ]
-            })
-            .setTimeout(30)
+            .addOperation(operation)
+            .setTimeout(60)
             .build();
 
         // Simulate transaction
@@ -117,7 +122,7 @@ async function initializeContract() {
 
             // If simulation succeeds, prepare and sign the transaction
             console.log('Preparing transaction...');
-            const preparedTx = SorobanRpc.assembleTransaction(tx, sim);
+            const preparedTx = SorobanRpc.assembleTransaction(tx, sim).build();
             
             // Sign the transaction
             console.log('Signing transaction...');
@@ -131,16 +136,16 @@ async function initializeContract() {
             if (response.status === 'PENDING') {
                 console.log('Transaction is pending. Waiting for confirmation...');
                 
-                // Wait for transaction to complete (simple polling approach)
+                // Wait for transaction to complete with longer timeout
                 let status = response.status;
-                let attempts = 10;
+                let attempts = 30; // Increased from 10 to 30
                 let txResponse;
                 
-                while (status === 'PENDING' && attempts > 0) {
-                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+                while (status === 'PENDING' || status === 'NOT_FOUND' && attempts > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 3000)); // Increased to 3 seconds
                     txResponse = await server.getTransaction(response.hash);
                     status = txResponse.status;
-                    console.log(`Transaction status check (${11-attempts}/10): ${status}`);
+                    console.log(`Transaction status check (${31-attempts}/30): ${status}`);
                     attempts--;
                 }
                 
@@ -149,6 +154,9 @@ async function initializeContract() {
                     console.log('Result:', txResponse.resultXdr);
                 } else {
                     console.error('Transaction failed or timed out:', status);
+                    if (txResponse && txResponse.resultXdr) {
+                        console.error('Result XDR:', txResponse.resultXdr);
+                    }
                 }
             } else {
                 console.error('Transaction submission failed:', response.status);
