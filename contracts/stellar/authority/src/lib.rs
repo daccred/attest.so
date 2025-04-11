@@ -32,6 +32,7 @@ impl AuthorityResolverContract {
         admin.require_auth();
         state::set_admin(&env, &admin);
         state::set_token_id(&env, &token_contract_id);
+        state::set_initialized(&env);
         env.storage().instance().extend_ttl(
             env.storage().max_ttl() - 100,
             env.storage().max_ttl(),

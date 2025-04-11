@@ -1,0 +1,16 @@
+{
+  "name": "@attestso/stellar",
+  "version": "1.0.0",
+  "main": "scripts/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "dependencies": {
+    "@stellar/stellar-sdk": "^13.2.0",
+    "soroban-client": "^1.0.1"
+  }
+}
