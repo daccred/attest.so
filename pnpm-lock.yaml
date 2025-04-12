@@ -10,7 +10,7 @@ importers:
     devDependencies:
       '@commitlint/cli':
         specifier: ^18.6.1
-        version: 18.6.1(@types/node@22.13.16)(typescript@5.8.2)
+        version: 18.6.1(@types/node@20.17.29)(typescript@5.8.2)
       '@commitlint/config-conventional':
         specifier: ^18.6.3
         version: 18.6.3
@@ -273,6 +273,9 @@ importers:
       '@solana/web3.js':
         specifier: ^1.95.3
         version: 1.95.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      '@stellar/stellar-sdk':
+        specifier: ^13.2.0
+        version: 13.2.0
       isomorphic-unfetch:
         specifier: ^4.0.2
         version: 4.0.2
@@ -2473,8 +2476,16 @@ packages:
   '@stellar/stellar-base@12.1.1':
     resolution: {integrity: sha512-gOBSOFDepihslcInlqnxKZdIW9dMUO1tpOm3AtJR33K2OvpXG6SaVHCzAmCFArcCqI9zXTEiSoh70T48TmiHJA==}
 
+  '@stellar/stellar-base@13.1.0':
+    resolution: {integrity: sha512-90EArG+eCCEzDGj3OJNoCtwpWDwxjv+rs/RNPhvg4bulpjN/CSRj+Ys/SalRcfM4/WRC5/qAfjzmJBAuquWhkA==}
+    engines: {node: '>=18.0.0'}
+
   '@stellar/stellar-sdk@12.3.0':
     resolution: {integrity: sha512-F2DYFop/M5ffXF0lvV5Ezjk+VWNKg0QDX8gNhwehVU3y5LYA3WAY6VcCarMGPaG9Wdgoeh1IXXzOautpqpsltw==}
+
+  '@stellar/stellar-sdk@13.2.0':
+    resolution: {integrity: sha512-azxeh1+mS28h96Q+vl41ffytQvWdudRl1KtjYO0TRZb/9u0/lH57oYBeJ+gvcQr+T7s02wTayFdHbKru5V5/XA==}
+    engines: {node: '>=18.0.0'}
 
   '@surma/rollup-plugin-off-main-thread@2.2.3':
     resolution: {integrity: sha512-lR8q/9W7hZpMWweNiAKU7NQerBnzQQLvi8qnTDU/fxItPhtZVMbPV3lbCwjhIlNBe9Bbr5V+KHshvWmVSG9cxQ==}
@@ -4074,6 +4085,9 @@ packages:
       picomatch:
         optional: true
 
+  feaxios@0.0.23:
+    resolution: {integrity: sha512-eghR0A21fvbkcQBgZuMfQhrXxJzC0GNUGC9fXhBge33D+mFDTwl0aJ35zoQQn575BhyjQitRc5N4f+L4cP708g==}
+
   fetch-blob@3.2.0:
     resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
     engines: {node: ^12.20 || >= 14.13}
@@ -4812,6 +4826,10 @@ packages:
   is-regex@1.2.1:
     resolution: {integrity: sha512-MjYsKHO5O7mCsmRGxWcLWheFqN9DJ/2TmngvjKXihe6efViPqc274+Fx/4fYj/r03+ESvBdTXK0V6tA3rgez1g==}
     engines: {node: '>= 0.4'}
+
+  is-retry-allowed@3.0.0:
+    resolution: {integrity: sha512-9xH0xvoggby+u0uGF7cZXdrutWiBiaFG8ZT4YFPXL8NzkyAwX3AKGLeFQLvzDpM430+nDFBZ1LHkie/8ocL06A==}
+    engines: {node: '>=12'}
 
   is-set@2.0.3:
     resolution: {integrity: sha512-iPAjerrse27/ygGLxw+EBR9agv9Y6uLeYVJMu+QNCoouJ1/1ri0mGrcWpfCqFZuzzx3WjtwxG098X+n4OuRkPg==}
@@ -8644,22 +8662,6 @@ snapshots:
       - '@types/node'
       - typescript
 
-  '@commitlint/cli@18.6.1(@types/node@22.13.16)(typescript@5.8.2)':
-    dependencies:
-      '@commitlint/format': 18.6.1
-      '@commitlint/lint': 18.6.1
-      '@commitlint/load': 18.6.1(@types/node@22.13.16)(typescript@5.8.2)
-      '@commitlint/read': 18.6.1
-      '@commitlint/types': 18.6.1
-      execa: 5.1.1
-      lodash.isfunction: 3.0.9
-      resolve-from: 5.0.0
-      resolve-global: 1.0.0
-      yargs: 17.7.2
-    transitivePeerDependencies:
-      - '@types/node'
-      - typescript
-
   '@commitlint/config-conventional@18.6.3':
     dependencies:
       '@commitlint/types': 18.6.1
@@ -8716,23 +8718,6 @@ snapshots:
       chalk: 4.1.2
       cosmiconfig: 8.3.6(typescript@5.8.2)
       cosmiconfig-typescript-loader: 5.1.0(@types/node@20.17.29)(cosmiconfig@8.3.6(typescript@5.8.2))(typescript@5.8.2)
-      lodash.isplainobject: 4.0.6
-      lodash.merge: 4.6.2
-      lodash.uniq: 4.5.0
-      resolve-from: 5.0.0
-    transitivePeerDependencies:
-      - '@types/node'
-      - typescript
-
-  '@commitlint/load@18.6.1(@types/node@22.13.16)(typescript@5.8.2)':
-    dependencies:
-      '@commitlint/config-validator': 18.6.1
-      '@commitlint/execute-rule': 18.6.1
-      '@commitlint/resolve-extends': 18.6.1
-      '@commitlint/types': 18.6.1
-      chalk: 4.1.2
-      cosmiconfig: 8.3.6(typescript@5.8.2)
-      cosmiconfig-typescript-loader: 5.1.0(@types/node@22.13.16)(cosmiconfig@8.3.6(typescript@5.8.2))(typescript@5.8.2)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -10484,12 +10469,36 @@ snapshots:
     optionalDependencies:
       sodium-native: 4.3.3
 
+  '@stellar/stellar-base@13.1.0':
+    dependencies:
+      '@stellar/js-xdr': 3.1.2
+      base32.js: 0.1.0
+      bignumber.js: 9.1.2
+      buffer: 6.0.3
+      sha.js: 2.4.11
+      tweetnacl: 1.0.3
+    optionalDependencies:
+      sodium-native: 4.3.3
+
   '@stellar/stellar-sdk@12.3.0':
     dependencies:
       '@stellar/stellar-base': 12.1.1
       axios: 1.8.4
       bignumber.js: 9.1.2
       eventsource: 2.0.2
+      randombytes: 2.1.0
+      toml: 3.0.0
+      urijs: 1.19.11
+    transitivePeerDependencies:
+      - debug
+
+  '@stellar/stellar-sdk@13.2.0':
+    dependencies:
+      '@stellar/stellar-base': 13.1.0
+      axios: 1.8.4
+      bignumber.js: 9.1.2
+      eventsource: 2.0.2
+      feaxios: 0.0.23
       randombytes: 2.1.0
       toml: 3.0.0
       urijs: 1.19.11
@@ -11558,13 +11567,6 @@ snapshots:
       jiti: 1.21.7
       typescript: 5.8.2
 
-  cosmiconfig-typescript-loader@5.1.0(@types/node@22.13.16)(cosmiconfig@8.3.6(typescript@5.8.2))(typescript@5.8.2):
-    dependencies:
-      '@types/node': 22.13.16
-      cosmiconfig: 8.3.6(typescript@5.8.2)
-      jiti: 1.21.7
-      typescript: 5.8.2
-
   cosmiconfig-typescript-loader@6.1.0(@types/node@20.17.29)(cosmiconfig@9.0.0(typescript@5.8.2))(typescript@5.8.2):
     dependencies:
       '@types/node': 20.17.29
@@ -12339,6 +12341,10 @@ snapshots:
   fdir@6.4.3(picomatch@4.0.2):
     optionalDependencies:
       picomatch: 4.0.2
+
+  feaxios@0.0.23:
+    dependencies:
+      is-retry-allowed: 3.0.0
 
   fetch-blob@3.2.0:
     dependencies:
@@ -13238,6 +13244,8 @@ snapshots:
       gopd: 1.2.0
       has-tostringtag: 1.0.2
       hasown: 2.0.2
+
+  is-retry-allowed@3.0.0: {}
 
   is-set@2.0.3: {}
 

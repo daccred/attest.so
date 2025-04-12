@@ -22,18 +22,23 @@ jobs:
         with:
           fetch-depth: 0 # Need full history for semantic-release
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9 # Specify pnpm version if needed
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
-          cache: 'npm'
+          cache: 'pnpm' # Change cache to pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile # Use pnpm install
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Provide NPM_TOKEN once we start publishing to npm 
           # NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npx semantic-release 
+        run: pnpm exec semantic-release # Use pnpm exec 
