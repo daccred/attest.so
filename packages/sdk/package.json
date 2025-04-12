@@ -1,5 +1,5 @@
 {
-  "name": "@peke65/attest-sdk",
+  "name": "@attestprotocol/sdk",
   "version": "0.0.3",
   "description": "`npm run build`",
   "main": "dist/index.js",

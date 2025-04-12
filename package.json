@@ -1,5 +1,5 @@
 {
-  "name": "attest.so",
+  "name": "attestprotocol",
   "private": true,
   "workspaces": [
     "packages/*",
