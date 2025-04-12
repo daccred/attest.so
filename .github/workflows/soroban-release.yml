@@ -26,7 +26,7 @@ jobs:
     with:
       release_name: ${{ github.ref_name }}
       release_description: 'Authority Contract Release'
-      relative_path: '["contracts/stellar/authority"]'
+      relative_path: 'contracts/stellar/authority'
       package: 'authority'
     secrets:
       release_token: ${{ secrets.GITHUB_TOKEN }}
@@ -36,7 +36,7 @@ jobs:
     with:
       release_name: ${{ github.ref_name }}
       release_description: 'Protocol Contract Release'
-      relative_path: '["contracts/stellar/protocol"]'
+      relative_path: 'contracts/stellar/protocol'
       package: 'protocol'
     secrets:
       release_token: ${{ secrets.GITHUB_TOKEN }}

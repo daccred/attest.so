@@ -1,10 +1,19 @@
 {
   "name": "attest.so",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "contracts/stellar/*",
+    "contracts/solana/*",
+    "contracts/starknet/*",
+    "contracts/sui/*"
+  ],
   "scripts": {
     "build": "pnpm run --recursive build",
     "dev": "pnpm run --recursive dev",
     "lint": "pnpm run -r lint",
-    "filter": " pnpm --filter",
+    "filter": "pnpm --filter",
+    "format": "pnpm run -r format",
     "test": "pnpm run -r test",
     "commit": "cz",
     "semantic-release": "semantic-release",
