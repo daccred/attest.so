@@ -23,5 +23,6 @@
     "@semantic-release/github": "^11.0.1",
     "conventional-changelog-conventionalcommits": "^8.0.0",
     "semantic-release": "^23.1.1"
-  }
+  },
+  "version": "1.1.1"
 }
