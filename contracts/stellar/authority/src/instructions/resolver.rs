@@ -25,10 +25,10 @@ pub fn register_authority(
     const REGISTRATION_FEE: i128 = 100_0000000; // 100 XLM in stroops
 
     let token_id = get_token_id(env)?;
-    let token_client = token::Client::new(&env, &token_id);
+    let token_client = token::Client::new(env, &token_id);
 
     token_client.transfer(
-        &caller,
+        caller,
         &env.current_contract_address(),
         &REGISTRATION_FEE
     );
@@ -76,7 +76,7 @@ pub fn attest(env: &Env, attestation: &AttestationRecord) -> Result<bool, Error>
 
             // Transfer levy from attester to contract
             let token_id = get_token_id(env)?;
-            let token_client = token::Client::new(&env, &token_id);
+            let token_client = token::Client::new(env, &token_id);
 
             token_client.transfer(
                 &attestation.attester,
@@ -136,14 +136,14 @@ pub fn withdraw_levies(env: &Env, caller: &Address) -> Result<(), Error> {
     log!(env, "Attempting withdrawal for {}: amount {}", caller, balance);
 
     let token_id = get_token_id(env)?;
-    let token_client = token::Client::new(&env, &token_id);
+    let token_client = token::Client::new(env, &token_id);
 
     // Reset balance before transfer to prevent reentrancy issues
     set_collected_levy(env, caller, &0i128);
 
     token_client.transfer(
         &env.current_contract_address(),
-        &caller,
+        caller,
         &balance
     );
 
