@@ -3,8 +3,8 @@ name: Semantic Release
 on:
   push:
     branches:
-      - main
       - canary
+      - main
 
 permissions:
   contents: write # to be able to publish a GitHub release
