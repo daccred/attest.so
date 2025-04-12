@@ -1,0 +1,42 @@
+# Push new git tag to the repository to trigger the action
+# Download compiled contract binary from the "Releases" section
+# Deploy the contract on Stellar Network
+# StellarExpert immediately displays the repository link on the contract page
+name: SorobanRelease
+on:
+  push:
+    tags:
+      - 'v*'  # triggered whenever a new tag (prefixed with "v") is pushed to the repository
+jobs:
+  release-authority:
+    uses: stellar-expert/soroban-build-workflow/.github/workflows/release.yml@main
+    with:
+      release_name: ${{ github.ref_name }}-stellar-attestation-authority   # Use git tag + suffix as release name
+      release_description: 'Authority Contract Release' # Description for this specific contract
+      relative_path: 'contracts/stellar/authority'     # Path to the authority contract
+      package: 'authority'                             # Package name for authority contract
+      # make_target: ''  # Optional: Uncomment and set if a specific make target is needed
+    secrets:
+      release_token: ${{ secrets.GITHUB_TOKEN }}      # Use the default GitHub token
+
+  release-protocol:
+    uses: stellar-expert/soroban-build-workflow/.github/workflows/release.yml@main
+    with:
+      release_name: ${{ github.ref_name }}-stellar-attestation-protocol   # Use git tag + suffix as release name
+      release_description: 'Protocol Contract Release' # Description for this specific contract
+      relative_path: 'contracts/stellar/protocol'     # Path to the protocol contract
+      package: 'protocol'                              # Package name for protocol contract
+      # make_target: ''  # Optional: Uncomment and set if a specific make target is needed
+    secrets:
+      release_token: ${{ secrets.GITHUB_TOKEN }}      # Use the default GitHub token
+
+# Notes:
+# - Pushing a tag like 'v1.0.0' will trigger this workflow and create two releases: 'v1.0.0-authority' and 'v1.0.0-protocol'.
+# - You can customize 'release_description' further if needed.
+
+# The workflow expects the following inputs:
+# release_name (required) - release name template (should include a release version variable)
+# package (optional) - package name to build, builds contract in working directory by default
+# relative_path (optional) - relative path to the contract source directory, defaults to the repository root directory
+# make_target (optional) - make target to invoke, empty by default (useful for contracts with dependencies that must be built before the main contract)
+# For more examples (building multiple contracts, alternative trigger conditions, custom workflow permissions), please refer to the workflow documentation.

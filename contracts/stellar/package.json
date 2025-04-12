@@ -1,0 +1,17 @@
+{
+  "name": "@attestso/stellar",
+  "version": "1.0.0",
+  "main": "scripts/run.mjs",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node scripts/run.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "dependencies": {
+    "@stellar/stellar-sdk": "^12.0.0"
+  }
+}

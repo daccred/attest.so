@@ -1,5 +1,5 @@
 [package]
-name = "schema"
+name = "protocol"
 version.workspace = true
 edition = "2021"
 publish = false
@@ -15,4 +15,4 @@ testutils = []
 soroban-sdk = { workspace = true }
 
 [dev-dependencies]
-soroban-sdk = { workspace = true, features = ["testutils"] }
+soroban-sdk = { workspace = true, features = ["testutils"] } 

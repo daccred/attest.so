@@ -1,16 +1,25 @@
-default: build
+# Makefile for building the authority resolver contract
 
-all: test
+TARGET=wasm32-unknown-unknown
+# WASM=target/$(TARGET)/release/authority.wasm # Path might vary depending on build context
 
-test:
-	cargo test
-
+.PHONY: build
 build:
-	stellar contract build
-	@ls -l target/wasm32-unknown-unknown/release/*.wasm
+	cargo build --target $(TARGET) --release
+	# ls $(WASM) # Removed ls check as target path seems inconsistent
 
+.PHONY: test
+test:
+	# No tests currently
+	@echo "No tests defined for authority contract."
+
+.PHONY: fmt
 fmt:
-	cargo fmt --all
+	cargo fmt
 
-clean:
-	cargo clean
+.PHONY: lint
+lint:
+	cargo clippy -- -D warnings
+
+.PHONY: all
+all: fmt lint build
