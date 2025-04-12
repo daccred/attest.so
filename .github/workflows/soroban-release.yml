@@ -2,7 +2,7 @@
 # Download compiled contract binary from the "Releases" section
 # Deploy the contract on Stellar Network
 # StellarExpert immediately displays the repository link on the contract page
-name: Build and Release Contracts
+name: SorobanRelease
 on:
   push:
     tags:
