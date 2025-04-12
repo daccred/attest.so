@@ -55,21 +55,22 @@ The contracts work together to provide a complete attestation system with author
 
 
 ### Deployment
-The `deploy.sh` script provides flexible options for deploying the Attestation Protocol and Authority Resolver contracts.
+The `deploy.sh` script provides flexible options for deploying the Attestation Protocol and Authority Resolver contracts. Remember to ensure jq is installed (brew install jq or similar).
 
 #### Basic Usage Examples:
-# Deploy both contracts to testnet (using default 'drew' identity)
-./contracts/stellar/scripts/deploy.sh --authority --protocol
+# Default mode (build, deploy) - deploys both contracts to testnet
+./deploy.sh --authority --protocol
 
-# Deploy only Authority contract (using 'alice' identity) 
-./contracts/stellar/scripts/deploy.sh --authority --source alice
+# Clean mode (clean, test, build, deploy) - full deployment cycle
+./deploy.sh --authority --protocol --mode clean
 
-# Deploy Protocol contract to mainnet (using 'deployer_key')
-./contracts/stellar/scripts/deploy.sh --protocol --network mainnet --source deployer_key
+# Deploy only authority in clean mode to mainnet
+./deploy.sh --authority --mode clean --network mainnet --source your_mainnet_key
 
 #### Available Options:
 --authority        Deploy the Authority Resolver contract
 --protocol        Deploy the Attestation Protocol contract  
 --network         Target network (default: testnet)
 --source          Source account identity (default: drew)
+--mode            Deployment mode (default: default, options: default|clean)
 --help            Show usage information
