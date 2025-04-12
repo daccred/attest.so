@@ -201,10 +201,10 @@ pnpm run deploy:local
 ```bash
 # Build Soroban contracts
 cd contracts/stellar
-cargo build --release
+stellar contract build
 
 # Deploy to Stellar testnet
-stellar contract deploy --wasm target/wasm32-unknown-unknown/release/soroban_authority_contract.wasm --network testnet --source <source>
+stellar contract deploy --wasm target/wasm32-unknown-unknown/release/authority.wasm --network testnet --source <source>
 ```
 
 ## 🤝 Contributing
@@ -216,6 +216,46 @@ Contributions are welcome! Please see our [CONTRIBUTING.md](./CONTRIBUTING.md) f
 3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+---
+
+## Setting up Rust Analyzer
+Rust Analyzer is an official language server for Rust that provides features like code completion, inline type hints, and much more.
+
+### Installation
+
+1. Install Rust Analyzer in one of the following ways:
+   - **Cursor**: Install the “Rust Analyzer” extension through Cursor’s Extensions panel (or equivalent).
+   - **VS Code**: Install it from the [vsmarketplace](https://marketplace.visualstudio.com/items?itemName=matklad.rust-analyzer) or the built-in VS Code Extensions marketplace.
+
+2. Ensure you have a working Rust toolchain installed via [rustup](https://rustup.rs/). This includes the `cargo`, `rustc`, and `rustfmt` tools.
+
+### Configuring Linked Projects
+
+With Rust Analyzer installed, add the following configuration to your settings so that it recognizes the additional contract projects (for example, `contracts/stellar` and `contracts/solana`). Adjust these paths if your project structure differs.
+ 
+
+#### VS Code or Cursor
+
+1. Open the **Preference & Settings** (`Cmd + ,` on macOS or `Ctrl + ,` on Windows/Linux).
+2. Type "rust-analyzer" and press Enter.
+3. Add or update the `rust-analyzer.linkedProjects` setting in the JSON file with the following snippet:
+
+```json
+{
+    "rust-analyzer.linkedProjects": [
+        "contracts/stellar/Cargo.toml",
+        "contracts/solana/Cargo.toml",
+        "contracts/starknet/Cargo.toml",
+        "contracts/sui/Cargo.toml"
+    ]
+}
+```
+
+Optionally you can create a `.vscode/settings.json` file in the root of the project to automatically configure Rust Analyzer for VS Code with the above configuration.
+
+---
+
 
 ## 📚 Resources & Links
 
