@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, Env, String as SorobanString, BytesN};
+use soroban_sdk::{Address, Env, String, BytesN};
 use crate::state::{DataKey, AttestationRecord};
 use crate::errors::Error;
 use crate::utils;
@@ -32,7 +32,7 @@ pub fn revoke_attest(
     caller: Address,
     schema_uid: BytesN<32>,
     subject: Address,
-    reference: Option<SorobanString>,
+    reference: Option<String>,
 ) -> Result<(), Error> {
     // Require authorization from the caller
     caller.require_auth();
