@@ -54,8 +54,22 @@ The contracts work together to provide a complete attestation system with author
 - Account Generator: https://lab.stellar.org/account/create
 
 
-ℹ️  Signing transaction: 98280fe8f2e2d843f319c95ed1568902a2cfd860e6217b9a0d491fe6f59b53b7
-🌎 Submitting deploy transaction…
-🔗 https://stellar.expert/explorer/testnet/contract/CAISGXYBRUUORH4BAWWQTUS3CWUEOUB7GK5NFLA3KXQ3AVGGJJIDQKD4
-CAISGXYBRUUORH4BAWWQTUS3CWUEOUB7GK5NFLA3KXQ3AVGGJJIDQKD4
- 
+### Deployment
+The `deploy.sh` script provides flexible options for deploying the Attestation Protocol and Authority Resolver contracts.
+
+#### Basic Usage Examples:
+# Deploy both contracts to testnet (using default 'drew' identity)
+./contracts/stellar/scripts/deploy.sh --authority --protocol
+
+# Deploy only Authority contract (using 'alice' identity) 
+./contracts/stellar/scripts/deploy.sh --authority --source alice
+
+# Deploy Protocol contract to mainnet (using 'deployer_key')
+./contracts/stellar/scripts/deploy.sh --protocol --network mainnet --source deployer_key
+
+#### Available Options:
+--authority        Deploy the Authority Resolver contract
+--protocol        Deploy the Attestation Protocol contract  
+--network         Target network (default: testnet)
+--source          Source account identity (default: drew)
+--help            Show usage information
