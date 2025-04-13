@@ -5,7 +5,7 @@ import AttestSDK, {
   SchemaConfig,
   SolanaAttestSDK,
   SolanaRevokeAttestationConfig,
-} from '../../../../sdk/dist'
+} from '../../../sdk/dist'
 import { BaseHandler } from './base'
 import * as anchor from '@coral-xyz/anchor'
 import { validateSolanaSchema, validateSolanaAttestation } from '../utils'
