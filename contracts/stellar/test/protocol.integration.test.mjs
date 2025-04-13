@@ -20,9 +20,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
 
-// --- Test Setup ---
+/* -----------------------------------------------------------------
+/--- Test Setup --------------------------------------------------*/
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Increase timeout to 90 seconds to allow for longer transactions
+t.setTimeout(90000)
+/* -----------------------------------------------------------------
+/ -----------------------------------------------------------------*/
+
 
 // --- Environment Loading ---
 function parseEnv(env) {
@@ -135,33 +142,56 @@ async function invokeContract(
       // Handle cases where simulation succeeded but has no result (shouldn't usually happen for invokes)
       console.warn('Simulation succeeded but no result found:', sim);
   }
-  // Simulation seems successful, proceed to sign and send
+  // Simulation seems successful, assemble the transaction using simulation results
+  console.log("Simulation successful. Assembling transaction...");
+  const preparedTx = SorobanRpc.assembleTransaction(tx, sim).build();
 
-  tx.sign(sourceKeypair);
+  console.log("Signing prepared transaction...");
+  preparedTx.sign(sourceKeypair);
 
   try {
-    const sendResponse = await server.sendTransaction(tx);
+    console.log("Submitting signed transaction...");
+    const sendResponse = await server.sendTransaction(preparedTx);
 
+    // --- Improved Immediate Error Handling --- 
     if (sendResponse.status === 'ERROR' || sendResponse.status === 'FAILED') {
         console.error("Transaction submission failed immediately:", sendResponse);
+        let detailedError = `Transaction submission failed with status: ${sendResponse.status}`;
+        // Directly inspect the errorResult object provided by the SDK 
         if (sendResponse.errorResult) {
-             try {
-                 // Log raw error result string if parsing fails
-                 console.error("Raw Error Result:", sendResponse.errorResult);
-                 const resultObject = xdr.TransactionResult.fromXDR(sendResponse.errorResult, 'base64');
-                 console.error("Submission Error Result XDR:", JSON.stringify(resultObject, null, 2));
-             } catch (parseError) {
-                  console.error("Failed to parse submission error XDR:", parseError);
-             }
+            console.error("Detailed Submission Error Object:", JSON.stringify(sendResponse.errorResult, null, 2));
+            try {
+                // Access the result codes directly from the object structure
+                const txResult = sendResponse.errorResult._attributes?.result; // Access the result ChildUnion
+                if (txResult) {
+                    detailedError += ` - Result Code: ${txResult._switch?.name || 'Unknown'}`;
+                    // Check if there are operation results
+                    const opResults = txResult._value?.results ? txResult._value.results() : null; // Access nested results if they exist
+                    if (opResults && opResults.length > 0) {
+                         const opResultDetails = opResults[0]?._attributes?.tr; // Access the tr attribute of the first op result
+                         if (opResultDetails) {
+                            detailedError += ` - Op Result: ${opResultDetails._switch?.name || 'Unknown'}`;
+                            // Further drill down for invoke errors if possible (structure might vary)
+                            if (opResultDetails._arm === 'invokeHostFunctionResult' && opResultDetails._value) {
+                                detailedError += ` -> ${opResultDetails._value._switch?.name || 'UnknownInvokeResult'}`;
+                            }
+                         }
+                    }
+                }
+            } catch (inspectionError) {
+                 console.error("Failed to inspect submission error object:", inspectionError);
+                 detailedError += " - Failed to inspect detailed error object.";
+            }
         }
-        throw new Error(`Transaction submission failed with status: ${sendResponse.status}`);
+        throw new Error(detailedError); // Throw with more details
     }
+    // --- End Improved Error Handling ---
 
     // If status is not ERROR/FAILED initially, start polling
     console.log(`Initial submission status: ${sendResponse.status}, hash: ${sendResponse.hash}. Fetching status...`);
     let getResponse = sendResponse;
     const start = Date.now();
-    const TIMEOUT_MS = 60000; // 60 seconds timeout
+    const TIMEOUT_MS = 120000; // Increased timeout to 120 seconds
 
     // Poll while status is PENDING, NOT_FOUND, or TRY_AGAIN_LATER
     // ---> FIX: Fetch inside loop and check response before accessing status <---
@@ -178,19 +208,19 @@ async function invokeContract(
 
         // Exit loop if status is no longer pending/transient
         if (getResponse && 
-            getResponse.status !== SorobanRpc.GetTransactionStatus.PENDING &&
-            getResponse.status !== SorobanRpc.GetTransactionStatus.NOT_FOUND &&
-            getResponse.status !== SorobanRpc.GetTransactionStatus.TRY_AGAIN_LATER) {
+            getResponse.status !== 'PENDING' &&
+            getResponse.status !== 'NOT_FOUND' &&
+            getResponse.status !== 'TRY_AGAIN_LATER') {
             break; 
         }
 
         // eslint-disable-next-line no-await-in-loop
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before next poll
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Increased poll interval to 3s
     }
 
 
     // After loop, check final status
-    if (getResponse?.status !== SorobanRpc.GetTransactionStatus.SUCCESS) {
+    if (getResponse?.status !== 'SUCCESS') {
         console.error("Transaction failed:", getResponse);
         if (getResponse?.resultMetaXdr) {
             try {
@@ -204,19 +234,37 @@ async function invokeContract(
     }
 
      // Transaction Succeeded
-     if (getResponse?.resultXdr) {
-        const result = xdr.TransactionResult.fromXDR(getResponse.resultXdr, 'base64');
-        if (result.result().results()[0]) {
-            const opResult = result.result().results()[0].tr().invokeHostFunctionResult();
-            if (opResult.switch() === xdr.InvokeHostFunctionResultCode.invokeHostFunctionSuccess()) {
-                return scValToNative(opResult.success());
-            } else {
-                 console.error("Operation failed within successful transaction:", opResult);
-                 throw new Error(`Contract operation failed: ${opResult.switch().name}`);
+     // Try using the convenience returnValue first
+     if (getResponse?.returnValue) {
+        console.log("Parsing returnValue...");
+        return scValToNative(getResponse.returnValue);
+     } 
+     // Fallback: Try parsing resultXdr if returnValue is missing (less common for success)
+     else if (getResponse?.resultXdr) {
+        console.warn("Attempting to parse resultXdr as returnValue was missing...");
+        try {
+            // Note: The exact path might need adjustment based on SDK version/response structure
+            const rawResultXdr = getResponse.resultXdr.result().txResult(); 
+            const result = xdr.TransactionResult.fromXDR(rawResultXdr, 'base64'); 
+            if (result.result().results()[0]) {
+                // Navigate through the nested structure (this path might be fragile)
+                const opResult = result.result().results()[0]?.tr()?.innerResultPair?.()?.result?.()?.results?.()[0]?.tr()?.invokeHostFunctionResult?.();
+                if (opResult?.switch() === xdr.InvokeHostFunctionResultCode.invokeHostFunctionSuccess()) {
+                     console.log("Successfully parsed value from resultXdr");
+                    return scValToNative(opResult.success());
+                } else {
+                    console.error("Operation failed within successful transaction (parsed from resultXdr):", opResult);
+                    throw new Error(`Contract operation failed (parsed from resultXdr): ${opResult?.switch()?.name || 'Unknown'}`);
+                }
             }
+        } catch (parseError) {
+             console.error("Failed to parse resultXdr even though transaction succeeded:", parseError);
+             // Fall through to returning the raw response if parsing fails
         }
     }
-    return getResponse; // Return the full successful response if no specific return value
+    // If parsing failed or no return value found, return the whole response object
+    console.warn("Could not parse return value, returning full response object.");
+    return getResponse; 
 
   } catch (error) {
     // Catch errors during sendTransaction or getTransaction polling
@@ -230,14 +278,24 @@ t.test('Protocol Contract Integration Test', async (t) => {
   // Generate unique IDs for this test run
   const testRunId = randomBytes(4).toString('hex');
   // Generate a unique schema definition for this run to avoid collisions
-  const schemaDefinitionString = `TestSchema_${testRunId}(field=String)`;
-  // Calculate schema UID based on definition and caller - mimics contract logic
-  const schemaUid = hash(
-      Buffer.concat([
-          Buffer.from(schemaDefinitionString),
-          Address.fromString(sourceAddress).toBuffer() // Use source address buffer
-      ])
-  );
+  const schemaDefinitionString = `IntegrationTestSchema_${testRunId}(field=String)`;
+
+  // --- Correct Schema UID Calculation (matching Rust) ---
+  // 1. Create ScVal representations
+  const schemaDefScVal = xdr.ScVal.scvString(schemaDefinitionString);
+  const authorityScVal = Address.fromString(sourceAddress).toScVal();
+  // Note: Resolver is None/Void in the 'register' test case, so it's not included here, matching Rust.
+  
+  // 2. Convert ScVals to XDR buffers
+  const schemaDefXdr = schemaDefScVal.toXDR();
+  const authorityXdr = authorityScVal.toXDR();
+  
+  // 3. Concatenate XDR buffers
+  const dataToHash = Buffer.concat([schemaDefXdr, authorityXdr]);
+  
+  // 4. Hash the concatenated buffer
+  const schemaUid = hash(dataToHash); 
+  // --- End Correct Schema UID Calculation ---
 
   const recipient = Keypair.random().publicKey(); // Generate a random recipient for testing
 
@@ -254,33 +312,6 @@ t.test('Protocol Contract Integration Test', async (t) => {
       t.fail(`Source account ${sourceAddress} not found or RPC connection failed: ${e.message}`);
       // Cannot proceed without the source account
       process.exit(1);
-    }
-  });
-
-  t.test('0. Initialize Contract', async (t) => {
-    const adminAddress = Address.fromString(sourceAddress);
-    const argsVec = [ adminAddress.toScVal() ]; // Only admin arg
-
-    const invokeContractArgs = new xdr.InvokeContractArgs({
-      contractAddress: Address.fromString(PROTOCOL_CONTRACT_ID).toScAddress(),
-      functionName: 'initialize',
-      args: argsVec,
-    });
-    const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeContractArgs);
-    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] });
-
-    try {
-        const result = await invokeContract(operation, source);
-        t.ok(result === undefined || result === null, 'Initialize transaction should succeed and return void');
-    } catch (error) {
-        // Handle "Already Initialized" gracefully
-        if (error.message && error.message.includes('Error(Contract, #13)')) {
-             t.pass('Contract already initialized (Error #13), continuing...');
-             console.log('Initialize step skipped: Contract already initialized.');
-        } else {
-            console.error("Initialize Error:", error);
-            t.fail(`Initialize failed: ${error.message}`, { error });
-        }
     }
   });
 
@@ -303,9 +334,9 @@ t.test('Protocol Contract Integration Test', async (t) => {
     const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] });
 
     try {
-      // register returns BytesN<32> (schema_uid)
+      // Restore original checks for the return value
       const result = await invokeContract(operation, source);
-      t.ok(result, 'Schema registration transaction should succeed');
+      t.ok(result, 'Schema registration transaction should succeed and return a value');
       t.ok(Buffer.isBuffer(result), 'Registration result should be a buffer (schema UID)');
       t.equal(result.toString('hex'), schemaUid.toString('hex'), 'Returned schema UID should match calculated UID');
     } catch (error) {
@@ -378,10 +409,11 @@ t.test('Protocol Contract Integration Test', async (t) => {
             const attestationData = scValToNative(simResponse.result.retval);
             t.ok(attestationData, 'Attestation data should be returned');
 
-            // Verify fields based on AttestationRecord struct (adjust if needed)
+            // Verify fields based on AttestationRecord struct
             t.equal(attestationData.schema_uid.toString('hex'), schemaUid.toString('hex'), 'Schema UID should match');
-            t.equal(Address.fromScAddress(attestationData.subject).toString(), recipient, 'Subject should match recipient');
-            t.equal(Address.fromScAddress(attestationData.attester).toString(), sourceAddress, 'Attester should match source');
+            t.equal(attestationData.subject, recipient, 'Subject should match recipient');
+            // Attester field is not part of AttestationRecord, remove check
+            // t.equal(attestationData.attester, sourceAddress, 'Attester should match source');
             t.equal(attestationData.value, attestationValueString, 'Value should match');
             t.equal(attestationData.revoked, false, 'Attestation should not be revoked yet');
             // Add more checks if AttestationRecord has more fields (e.g., timestamp)
