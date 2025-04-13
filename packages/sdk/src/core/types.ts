@@ -48,6 +48,8 @@ export interface StarknetConfig extends ChainConfig {
 export interface StellarConfig extends ChainConfig {
   secretKey: string
   networkPassphrase?: string
+  protocolContractId?: string
+  authorityContractId?: string
 }
 
 /**
@@ -89,13 +91,11 @@ export interface AttestationConfig {
 export interface StellarAttestationConfig {
   schemaData: string
   data: string
-  refUID?: string | null 
+  refUID?: string | null
   expirationTime?: number | null
   revocable?: boolean
   accounts: {
     recipient: string
-    levyReceipent: string
-    mintAccount: string
   }
 }
 
@@ -168,7 +168,7 @@ export interface StellarFetchAttestationResult {
 }
 
 export interface RevokeAttestationConfig {
-  schemaUID: string
+  attestationUID: string
   recipient: string
   reference?: string | null
 }
