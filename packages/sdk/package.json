@@ -5,13 +5,11 @@
   "main": "dist/main/index.js",
   "module": "dist/module/index.js",
   "types": "dist/module/index.d.ts",
-  "jsdelivr": "dist/umd/attestsdk.js",
-  "unpkg": "dist/umd/attestsdk.js",
+  "jsdelivr": "dist/umd/attestprotocol.js",
+  "unpkg": "dist/umd/attestprotocol.js",
   "exports": {
-    "require": "./dist/index.js",
-    "default": "./dist/index.modern.js",
-    "import": "./dist/index.js",
-    "types": "./dist/index.d.ts"
+    "import": "./dist/index.modern.js",
+    "require": "./dist/index.js"
   },
   "scripts": {
     "clean": "rimraf dist docs/v2",

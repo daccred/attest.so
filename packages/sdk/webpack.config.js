@@ -6,10 +6,10 @@ module.exports = {
   entry: './src/index.ts',
   output: {
     path: path.resolve(__dirname, 'dist/umd'),
-    filename: 'attestsdk.js',
+    filename: 'attestprotocol.js',
     library: {
       type: 'umd',
-      name: 'attestsdk',
+      name: 'attestprotocol',
     },
   },
   module: {

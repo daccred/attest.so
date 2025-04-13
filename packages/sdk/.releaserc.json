@@ -10,7 +10,7 @@
           "dist/main/lib/version.d.ts",
           "dist/module/lib/version.js",
           "dist/module/lib/version.d.ts",
-          "dist/umd/attestsdk.js"
+          "dist/umd/attestprotocol.js"
         ],
         "placeholder": "0.0.15"
       }
