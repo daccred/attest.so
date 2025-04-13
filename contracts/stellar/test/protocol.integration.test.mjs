@@ -103,7 +103,10 @@ async function invokeContract(
   sourceKeypair,
   expectSuccess = true
 ) {
+  console.log("Fetching latest account details for sequence number...");
   const account = await server.getAccount(sourceKeypair.publicKey());
+  console.log(`Using account sequence number: ${account.sequenceNumber()}`);
+  
   const tx = new TransactionBuilder(account, {
     fee: "1000000", // Keep increased fee
     networkPassphrase: Networks.TESTNET,
