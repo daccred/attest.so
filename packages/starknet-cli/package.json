@@ -1,7 +1,8 @@
 {
-  "name": "@attest/starknet-cli",
+  "name": "@attestprotocol/starknet-cli",
   "version": "1.0.0",
   "description": "Attest CLI for StarkNet blockchain",
+  "type": "commonjs",
   "bin": {
     "attest-starknet": "./bin/run"
   },
@@ -9,10 +10,7 @@
     "lib": "src",
     "bin": "bin"
   },
-  "files": [
-    "dist",
-    "bin"
-  ],
+  "files": ["dist", "bin"],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/daccred/attest.so.git"
@@ -35,12 +33,7 @@
     "prepare": "husky",
     "release": "semantic-release"
   },
-  "keywords": [
-    "starknet",
-    "blockchain",
-    "attestation",
-    "cli"
-  ],
+  "keywords": ["starknet", "blockchain", "attestation", "cli"],
   "author": "Andrew Miracle <andrew@daccred.co>",
   "license": "MIT",
   "devDependencies": {
@@ -73,7 +66,6 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@peke65/attest-sdk": "^0.0.17",
     "consola": "^3.2.3",
     "dotenv": "^16.4.5",
     "picocolors": "^1.0.1",
@@ -83,5 +75,10 @@
     "commitizen": {
       "path": "cz-conventional-changelog"
     }
-  }
+  },
+  "main": "./bin/run.js",
+  "bugs": {
+    "url": "https://github.com/daccred/attest.so/issues"
+  },
+  "homepage": "https://github.com/daccred/attest.so#readme"
 }
