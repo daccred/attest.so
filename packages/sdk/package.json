@@ -1,6 +1,6 @@
 {
-  "name": "@peke65/attest-sdk",
-  "version": "0.0.17",
+  "name": "@attestprotocol/sdk",
+  "version": "0.0.3",
   "description": "`npm run build`",
   "main": "dist/main/index.js",
   "module": "dist/module/index.js",

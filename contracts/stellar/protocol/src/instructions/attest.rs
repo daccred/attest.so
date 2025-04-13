@@ -60,7 +60,7 @@ pub fn attest(
     let attest_key = DataKey::Attestation(schema_uid.clone(), subject.clone(), reference.clone());
     if env.storage().instance().has(&attest_key) {
         // Decide whether to error or overwrite. Current impl overwrites.
-        // return Err(Error::AttestationExists);
+        return Err(Error::AttestationExists);
     }
 
     let attestation = AttestationRecord {

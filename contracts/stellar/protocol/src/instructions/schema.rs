@@ -1,7 +1,6 @@
 use soroban_sdk::{Address, Env, String as SorobanString, BytesN, Bytes, xdr::ToXdr};
 use crate::state::{DataKey, Schema};
 use crate::errors::Error;
-use crate::utils;
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// Generates a unique identifier (SHA256 hash) for a schema.

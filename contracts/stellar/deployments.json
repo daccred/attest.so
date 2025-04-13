@@ -1,0 +1,14 @@
+{
+  "testnet": {
+    "protocol": {
+      "id": "CABQOIA5V4HN7LD5STHMNGBY3ZU6JSR6RMDJNKVZL4TWYP7XCNHTHGFQ",
+      "hash": "23a26c803d40bb9d244b13f24854195b3d5cb99a1f4a6863d958661c69d6d422",
+      "timestamp": "2025-04-12T13:21:14Z"
+    },
+    "authority": {
+      "id": "CAS7Y4BGSNCWVD2Q7EHHVNYU4HAK56BYF5A5NPXGMQLHEF72CTNP2WBY",
+      "hash": "30129d657645334c844a02064a3f4432c0229a9b0d759ea1f0ba08c1f960ef33",
+      "timestamp": "2025-04-12T13:21:06Z"
+    }
+  }
+}

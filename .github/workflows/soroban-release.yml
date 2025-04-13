@@ -1,0 +1,60 @@
+# ----------------------------------------
+# Soroban Contract Release Workflow
+# ----------------------------------------
+#
+# This workflow automates the release process for Soroban smart contracts:
+# 1. Triggers on new version tag push (v*)
+# 2. Builds and releases contract binaries
+# 3. Makes them available in GitHub Releases
+# 4. Enables immediate contract verification on StellarExpert
+#
+name: Soroban Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on any tag starting with 'v'
+
+permissions:
+  id-token: write
+  contents: write
+  attestations: write
+
+jobs:
+  release-authority:
+    uses: stellar-expert/soroban-build-workflow/.github/workflows/release.yml@main
+    with:
+      release_name: ${{ github.ref_name }}
+      release_description: 'Authority Contract Release'
+      relative_path: 'contracts/stellar/authority'
+      package: 'authority'
+    secrets:
+      release_token: ${{ secrets.GITHUB_TOKEN }}
+
+  release-protocol:
+    uses: stellar-expert/soroban-build-workflow/.github/workflows/release.yml@main
+    with:
+      release_name: ${{ github.ref_name }}
+      release_description: 'Protocol Contract Release'
+      relative_path: 'contracts/stellar/protocol'
+      package: 'protocol'
+    secrets:
+      release_token: ${{ secrets.GITHUB_TOKEN }}
+
+# ----------------------------------------
+# Usage Notes
+# ----------------------------------------
+#
+# Release Process:
+# - Push a tag (e.g., 'v1.0.0') to create two releases:
+#   * v1.0.0-authority
+#   * v1.0.0-protocol
+#
+# Configuration Options:
+# - release_name (required): Template for release naming
+# - package (optional): Target package name (defaults to working directory)
+# - relative_path (optional): Contract source location (defaults to root)
+# - make_target (optional): Custom make target for complex builds
+#
+# For detailed documentation and examples, visit:
+# https://github.com/stellar-expert/soroban-build-workflow/blob/main/README.md
