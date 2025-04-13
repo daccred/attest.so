@@ -14,7 +14,7 @@
     "lint": "pnpm run -r lint",
     "filter": "pnpm --filter",
     "format": "pnpm run -r format",
-    "test": "pnpm run -r test",
+    "test": "pnpm run -r test && cargo test",
     "commit": "cz",
     "semantic-release": "semantic-release",
     "release-it": "npx release-it"
