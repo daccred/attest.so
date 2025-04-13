@@ -8,7 +8,7 @@ interface AuthorityArgv {
   r: boolean
   fetch: boolean
   f: boolean
-  keypair: string
+  signerKey: string
   _: string[]
   url: string
 }
@@ -16,7 +16,7 @@ interface AuthorityArgv {
 export const command = 'authority'
 export const describe = `Manage attestation authorities (register, fetch)
  
-See -> attest-stellar authority --[register|fetch] --keypair=./keys/stellar-auth.json [--url="custom-url"]
+See -> attest-stellar authority --[register|fetch] --signer-key=./keys/stellar-auth.json [--url="custom-url"]
 
 `
 
@@ -32,9 +32,9 @@ export function builder(yargs: Argv<AuthorityArgv>): Argv {
       type: 'boolean',
       describe: 'Fetch authority',
     })
-    .option('keypair', {
+    .option('signer-key', {
       type: 'string',
-      describe: 'Path to keypair file',
+      describe: 'Path to signer key file',
       normalize: true,
       demandOption: true,
     })
@@ -55,12 +55,12 @@ export function builder(yargs: Argv<AuthorityArgv>): Argv {
 
 export async function handler(argv: AuthorityArgv) {
   try {
-    if (!argv.keypair) {
-      logger.log(red('Keypair not specified'))
+    if (!argv.signerKey) {
+      logger.log(red('signer key not specified'))
       return
     }
 
-    const chainHandler = await getHandler(argv.keypair, argv.url)
+    const chainHandler = await getHandler(argv.signerKey, argv.url)
 
     if (!chainHandler) {
       logger.log(red(`Failed to initialize Stellar handler`))

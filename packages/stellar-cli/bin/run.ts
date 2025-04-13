@@ -28,6 +28,6 @@ run
   .demandCommand(
     1,
     'You need at least one command before moving on\n\nSuggested Command: ' +
-      yellow(bold('attest-stellar schema --action=create --json-file=sample.json --keypair=<keypair>')),
+      yellow(bold('attest-stellar schema --action=create --json-file=sample.json --signer-key=<signer-key>')),
   )
   .help().argv

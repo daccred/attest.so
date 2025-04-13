@@ -9,7 +9,7 @@ interface AttestationArgv {
   uid?: string;
   schemaUid?: string;
   jsonFile?: string;
-  keypair: string;
+  signerKey: string;
   content?: any;
 }
 
@@ -40,9 +40,9 @@ export function builder(yargs: Argv<AttestationArgv>): Argv {
       describe: 'Path to JSON data file for attestation (required for create)',
       normalize: true,
     })
-    .option('keypair', {
+    .option('signer-key', {
       type: 'string',
-      describe: 'Path to keypair file',
+      describe: 'Path to signer key file',
       normalize: true,
       demandOption: true,
     })
@@ -64,7 +64,7 @@ export async function handler(argv: AttestationArgv) {
       argv.content = await handleJsonFile(argv.jsonFile);
     }
     
-    const chainHandler = await getHandler(argv.keypair);
+    const chainHandler = await getHandler(argv.signerKey);
     
     if (!chainHandler) {
       logger.log(red(`Failed to initialize Stellar handler`));

@@ -2089,9 +2089,9 @@ var BaseHandler = class {
   client;
   constructor() {
   }
-  async initialize(keypairPath, url) {
+  async initialize(signerKeyPath, url) {
     try {
-      this.secretKey = await handleJsonFile(keypairPath);
+      this.secretKey = await handleJsonFile(signerKeyPath);
       await this.initializeClient(this.secretKey, url);
       return true;
     } catch (error) {
@@ -2351,11 +2351,11 @@ var StellarHandler = class extends BaseHandler {
 };
 
 // src/handlers/index.ts
-var getHandler = async (keypair, url) => {
+var getHandler = async (signerKey, url) => {
   let handler4;
-  console.log(`Using keypair: ${keypair}`);
+  console.log(`Using signer key: ${signerKey}`);
   handler4 = new StellarHandler();
-  const initialized = await handler4.initialize(keypair, url);
+  const initialized = await handler4.initialize(signerKey, url);
   if (!initialized) {
     return null;
   }
@@ -2379,9 +2379,9 @@ function builder(yargs2) {
     type: "string",
     describe: "Path to JSON schema file (required for create)",
     normalize: true
-  }).option("keypair", {
+  }).option("signer-key", {
     type: "string",
-    describe: "Path to keypair file",
+    describe: "Path to the signer key file",
     normalize: true,
     demandOption: true
   }).check((argv) => {
@@ -2399,7 +2399,7 @@ async function handler(argv) {
     if (argv.action === "create" && argv.jsonFile) {
       argv.content = await handleJsonFile(argv.jsonFile);
     }
-    const chainHandler = await getHandler(argv.keypair);
+    const chainHandler = await getHandler(argv.signerKey);
     if (!chainHandler) {
       logger.log((0, import_picocolors3.red)(`Failed to initialize Stellar handler`));
       return;
@@ -2429,7 +2429,7 @@ var import_picocolors4 = require("picocolors");
 var command2 = "authority";
 var describe2 = `Manage attestation authorities (register, fetch)
  
-See -> attest-stellar authority --[register|fetch] --keypair=./keys/stellar-auth.json [--url="custom-url"]
+See -> attest-stellar authority --[register|fetch] --signer-key=./keys/stellar-auth.json [--url="custom-url"]
 
 `;
 function builder2(yargs2) {
@@ -2441,9 +2441,9 @@ function builder2(yargs2) {
     alias: "f",
     type: "boolean",
     describe: "Fetch authority"
-  }).option("keypair", {
+  }).option("signer-key", {
     type: "string",
-    describe: "Path to keypair file",
+    describe: "Path to signer key file",
     normalize: true,
     demandOption: true
   }).option("url", {
@@ -2461,11 +2461,11 @@ function builder2(yargs2) {
 }
 async function handler2(argv) {
   try {
-    if (!argv.keypair) {
-      logger.log((0, import_picocolors4.red)("Keypair not specified"));
+    if (!argv.signerKey) {
+      logger.log((0, import_picocolors4.red)("signer key not specified"));
       return;
     }
-    const chainHandler = await getHandler(argv.keypair, argv.url);
+    const chainHandler = await getHandler(argv.signerKey, argv.url);
     if (!chainHandler) {
       logger.log((0, import_picocolors4.red)(`Failed to initialize Stellar handler`));
       return;
@@ -2515,9 +2515,9 @@ function builder3(yargs2) {
     type: "string",
     describe: "Path to JSON data file for attestation (required for create)",
     normalize: true
-  }).option("keypair", {
+  }).option("signer-key", {
     type: "string",
-    describe: "Path to keypair file",
+    describe: "Path to signer key file",
     normalize: true,
     demandOption: true
   }).check((argv) => {
@@ -2535,7 +2535,7 @@ async function handler3(argv) {
     if (argv.action === "create" && argv.jsonFile) {
       argv.content = await handleJsonFile(argv.jsonFile);
     }
-    const chainHandler = await getHandler(argv.keypair);
+    const chainHandler = await getHandler(argv.signerKey);
     if (!chainHandler) {
       logger.log((0, import_picocolors5.red)(`Failed to initialize Stellar handler`));
       return;
@@ -2580,5 +2580,5 @@ for (const command4 of commands) {
 }
 run.demandCommand(
   1,
-  "You need at least one command before moving on\n\nSuggested Command: " + (0, import_picocolors6.yellow)((0, import_picocolors6.bold)("attest-stellar schema --action=create --json-file=sample.json --keypair=<keypair>"))
+  "You need at least one command before moving on\n\nSuggested Command: " + (0, import_picocolors6.yellow)((0, import_picocolors6.bold)("attest-stellar schema --action=create --json-file=sample.json --signer-key=<signer-key>"))
 ).help().argv;

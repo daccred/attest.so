@@ -2090,9 +2090,9 @@ var BaseHandler = class {
   client;
   constructor() {
   }
-  async initialize(keypairPath, url) {
+  async initialize(signerKeyPath, url) {
     try {
-      this.secretKey = await handleJsonFile(keypairPath);
+      this.secretKey = await handleJsonFile(signerKeyPath);
       await this.initializeClient(this.secretKey, url);
       return true;
     } catch (error) {
@@ -2352,11 +2352,11 @@ var StellarHandler = class extends BaseHandler {
 };
 
 // src/handlers/index.ts
-var getHandler = async (keypair, url) => {
+var getHandler = async (signerKey, url) => {
   let handler4;
-  console.log(`Using keypair: ${keypair}`);
+  console.log(`Using signer key: ${signerKey}`);
   handler4 = new StellarHandler();
-  const initialized = await handler4.initialize(keypair, url);
+  const initialized = await handler4.initialize(signerKey, url);
   if (!initialized) {
     return null;
   }
@@ -2380,9 +2380,9 @@ function builder(yargs) {
     type: "string",
     describe: "Path to JSON schema file (required for create)",
     normalize: true
-  }).option("keypair", {
+  }).option("signer-key", {
     type: "string",
-    describe: "Path to keypair file",
+    describe: "Path to the signer key file",
     normalize: true,
     demandOption: true
   }).check((argv) => {
@@ -2400,7 +2400,7 @@ async function handler(argv) {
     if (argv.action === "create" && argv.jsonFile) {
       argv.content = await handleJsonFile(argv.jsonFile);
     }
-    const chainHandler = await getHandler(argv.keypair);
+    const chainHandler = await getHandler(argv.signerKey);
     if (!chainHandler) {
       logger.log(red3(`Failed to initialize Stellar handler`));
       return;
@@ -2430,7 +2430,7 @@ import { red as red4 } from "picocolors";
 var command2 = "authority";
 var describe2 = `Manage attestation authorities (register, fetch)
  
-See -> attest-stellar authority --[register|fetch] --keypair=./keys/stellar-auth.json [--url="custom-url"]
+See -> attest-stellar authority --[register|fetch] --signer-key=./keys/stellar-auth.json [--url="custom-url"]
 
 `;
 function builder2(yargs) {
@@ -2442,9 +2442,9 @@ function builder2(yargs) {
     alias: "f",
     type: "boolean",
     describe: "Fetch authority"
-  }).option("keypair", {
+  }).option("signer-key", {
     type: "string",
-    describe: "Path to keypair file",
+    describe: "Path to signer key file",
     normalize: true,
     demandOption: true
   }).option("url", {
@@ -2462,11 +2462,11 @@ function builder2(yargs) {
 }
 async function handler2(argv) {
   try {
-    if (!argv.keypair) {
-      logger.log(red4("Keypair not specified"));
+    if (!argv.signerKey) {
+      logger.log(red4("signer key not specified"));
       return;
     }
-    const chainHandler = await getHandler(argv.keypair, argv.url);
+    const chainHandler = await getHandler(argv.signerKey, argv.url);
     if (!chainHandler) {
       logger.log(red4(`Failed to initialize Stellar handler`));
       return;
@@ -2516,9 +2516,9 @@ function builder3(yargs) {
     type: "string",
     describe: "Path to JSON data file for attestation (required for create)",
     normalize: true
-  }).option("keypair", {
+  }).option("signer-key", {
     type: "string",
-    describe: "Path to keypair file",
+    describe: "Path to signer key file",
     normalize: true,
     demandOption: true
   }).check((argv) => {
@@ -2536,7 +2536,7 @@ async function handler3(argv) {
     if (argv.action === "create" && argv.jsonFile) {
       argv.content = await handleJsonFile(argv.jsonFile);
     }
-    const chainHandler = await getHandler(argv.keypair);
+    const chainHandler = await getHandler(argv.signerKey);
     if (!chainHandler) {
       logger.log(red5(`Failed to initialize Stellar handler`));
       return;

@@ -8,7 +8,7 @@ interface SchemaArgv {
   action: string;
   uid?: string;
   jsonFile?: string;
-  keypair: string;
+  signerKey: string;
   content?: any;
 }
 
@@ -33,9 +33,9 @@ export function builder(yargs: Argv<SchemaArgv>): Argv {
       describe: 'Path to JSON schema file (required for create)',
       normalize: true,
     })
-    .option('keypair', {
+    .option('signer-key', {
       type: 'string',
-      describe: 'Path to keypair file',
+      describe: 'Path to the signer key file',
       normalize: true,
       demandOption: true,
     })
@@ -57,7 +57,7 @@ export async function handler(argv: SchemaArgv) {
       argv.content = await handleJsonFile(argv.jsonFile);
     }
     
-    const chainHandler = await getHandler(argv.keypair);
+    const chainHandler = await getHandler(argv.signerKey);
     
     if (!chainHandler) {
       logger.log(red(`Failed to initialize Stellar handler`));

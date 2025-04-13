@@ -9,9 +9,9 @@ export abstract class BaseHandler {
 
   constructor() {}
 
-  async initialize(keypairPath: string, url?: string): Promise<boolean> {
+  async initialize(signerKeyPath: string, url?: string): Promise<boolean> {
     try {
-      this.secretKey = await handleJsonFile(keypairPath)
+      this.secretKey = await handleJsonFile(signerKeyPath)
       await this.initializeClient(this.secretKey, url)
       return true
     } catch (error: any) {
