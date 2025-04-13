@@ -67,10 +67,15 @@ The `deploy.sh` script provides flexible options for deploying the Attestation P
 # Deploy only authority in clean mode to mainnet
 ./deploy.sh --authority --mode clean --network mainnet --source your_mainnet_key
 
+# Deploy both and initialize them on testnet (requires TOKEN_CONTRACT_ID in env.sh or --token-id flag)
+./deploy.sh --authority --protocol --initialize --source your_testnet_key --token-id <YOUR_TOKEN_CONTRACT_ID>
+
 #### Available Options:
 --authority        Deploy the Authority Resolver contract
---protocol        Deploy the Attestation Protocol contract  
---network         Target network (default: testnet)
---source          Source account identity (default: drew)
+--protocol        Deploy the Attestation Protocol contract
+--network         Target network (default: testnet, or from SOROBAN_NETWORK in env.sh)
+--source          Source account identity (Can be set via SOURCE_IDENTITY in env.sh)
 --mode            Deployment mode (default: default, options: default|clean)
+--initialize      Initialize deployed contracts using the source identity as admin (default: false)
+--token-id <id>   Token contract ID for authority initialization (required if --initialize and --authority). (Can be set via TOKEN_CONTRACT_ID in env.sh)
 --help            Show usage information
