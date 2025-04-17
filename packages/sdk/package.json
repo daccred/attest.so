@@ -2,18 +2,22 @@
   "name": "@attestprotocol/sdk",
   "version": "0.0.3",
   "description": "`npm run build`",
-  "main": "dist/index.js",
-  "module": "dist/index.m.js",
-  "unpkg": "dist/index.umd.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/main/index.js",
+  "module": "dist/module/index.js",
+  "types": "dist/module/index.d.ts",
+  "jsdelivr": "dist/umd/attestprotocol.js",
+  "unpkg": "dist/umd/attestprotocol.js",
   "exports": {
-    "require": "./dist/index.js",
-    "default": "./dist/index.modern.js",
-    "import": "./dist/index.js",
-    "types": "./dist/index.d.ts"
+    "import": "./dist/index.modern.js",
+    "require": "./dist/index.js"
   },
   "scripts": {
-    "build": "rm -rf dist && microbundle --tsconfig tsconfig.json --no-sourcemap",
+    "clean": "rimraf dist docs/v2",
+    "format": "prettier --write \"{src,test}/**/*.ts\"",
+    "build": "yarn clean && yarn build:main && yarn build:module && yarn build:umd",
+    "build:main": "tsc -p tsconfig.json",
+    "build:module": "tsc -p tsconfig.module.json",
+    "build:umd": "webpack",
     "dev": "microbundle --watch --tsconfig tsconfig.json --no-sourcemap",
     "test-solana": "ts-node ./test/run-solana.ts",
     "test-stellar": "ts-node ./test/run-stellar.ts"
@@ -22,19 +26,28 @@
   "author": "daccred",
   "license": "MIT",
   "devDependencies": {
+    "@sebbo2002/semantic-release-jsr": "^2.0.5",
+    "@semantic-release/exec": "^7.0.3",
+    "@types/bn.js": "^5.1.6",
+    "@types/json-schema": "^7.0.15",
+    "@types/urijs": "^1.19.25",
     "microbundle": "^0.15.1",
-    "ts-node": "^10.9.2"
+    "rimraf": "^6.0.1",
+    "semantic-release-plugin-update-version-in-files": "^2.0.0",
+    "ts-node": "^10.9.2",
+    "webpack": "^5.99.5",
+    "webpack-cli": "^6.0.1"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
     "@solana/spl-token": "^0.4.6",
     "@solana/web3.js": "^1.95.3",
     "@stellar/stellar-sdk": "^13.2.0",
-    "isomorphic-unfetch": "^4.0.2"
+    "isomorphic-unfetch": "^4.0.2",
+    "json-schema": "^0.4.0",
+    "ts-loader": "^9.5.2"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist", "src"],
   "directories": {
     "test": "test"
   },
