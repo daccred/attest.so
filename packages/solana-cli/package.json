@@ -66,10 +66,6 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-<<<<<<< HEAD:packages/cli/package.json
-    "@attestprotocol/sdk": "workspace:^",
-=======
->>>>>>> canary:packages/solana-cli/package.json
     "@solana/web3.js": "1.95.3",
     "consola": "^3.2.3",
     "dotenv": "^16.4.5",
