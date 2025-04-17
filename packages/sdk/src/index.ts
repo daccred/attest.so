@@ -22,13 +22,11 @@ export default class AttestSDK {
     await stellarClient.initialize()
     return stellarClient
   }
-
   static async initializeSolana(config: SolanaConfig): Promise<SolanaAttestSDK> {
     const solanaClient = new SolanaAttestSDK(config)
     await solanaClient.initialize()
     return solanaClient
   }
-
   // static async initializeStarknet(config: StarknetConfig): Promise<StarknetAttestSDK> {
   //   const starknetClient = new StarknetAttestSDK(config)
   //   await starknetClient.initialize()
