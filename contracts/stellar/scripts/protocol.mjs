@@ -80,7 +80,7 @@ const networkPassphrase = process.env.SOROBAN_NETWORK_PASSPHRASE || Networks.TES
 console.log('-------------------------------------------------------');
 console.log('Configuration:');
 console.log('RPC URL:', rpcUrl);
-console.log('Network Passphrase:', networkPassphrase);
+console.log('Network Passphrase: [REDACTED]');
 console.log('Protocol Contract ID:', PROTOCOL_CONTRACT_ID);
 console.log('Admin Address:', ADMIN_ADDRESS || 'Not Set');
 console.log('-------------------------------------------------------');
