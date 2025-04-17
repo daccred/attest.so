@@ -158,7 +158,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@peke65/attest-sdk':
+      '@attestprotocol/sdk':
         specifier: workspace:^
         version: link:../sdk
       '@solana/web3.js':

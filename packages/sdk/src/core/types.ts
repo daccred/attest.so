@@ -132,7 +132,7 @@ export interface SolanaFetchAttestationResult {
 }
 
 export interface SolanaRevokeAttestationConfig {
-  schemaUID: anchor.web3.PublicKey
+  attestationUID: anchor.web3.PublicKey
   recipient: anchor.web3.PublicKey
   reference?: string | null
 }
