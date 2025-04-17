@@ -1,0 +1,7 @@
+{
+    "name": "@attestprotocol/sdk",
+    "version": "0.0.14",
+    "exports": "./src/index.ts",
+    "exclude": ["test"]
+  }
+  
