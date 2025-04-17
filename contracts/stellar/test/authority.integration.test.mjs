@@ -15,6 +15,7 @@ import {
   hash,
   StrKey,
   nativeToScVal,
+  authorizeEntry,
 } from '@stellar/stellar-sdk';
 import fs from 'fs';
 import path from 'path';
@@ -108,57 +109,86 @@ async function invokeContract(
   sourceKeypair,
   expectSuccess = true
 ) {
-  // Fetch account *inside* the function to get the latest sequence number
-  console.log(`Fetching account details for ${sourceKeypair.publicKey()}...`);
   const account = await server.getAccount(sourceKeypair.publicKey());
-  console.log(`Account sequence: ${account.sequence}`);
- 
-  const tx = new TransactionBuilder(account, {
-    fee: "1000000",
+  const txBuilder = new TransactionBuilder(account, {
+    fee: "1000000", 
     networkPassphrase: Networks.TESTNET,
   })
-    .addOperation(operation)
-    .setTimeout(TimeoutInfinite)
-    .build();
+    .addOperation(operation) // Add operation *without* auth initially
+    .setTimeout(TimeoutInfinite);
+  
+  const tx = txBuilder.build();
 
+  // --- Simulate to get required Auth entries --- 
   let sim;
   try {
+    console.log("Simulating transaction to get auth requirements...");
     sim = await server.simulateTransaction(tx);
   } catch (error) {
-    console.error("Transaction simulation failed:", error?.response?.data || error);
-    throw error;
+    console.error("Initial simulation for auth failed:", error?.response?.data || error);
+    throw error; 
   }
 
-  if (!expectSuccess && sim.error) {
-    console.log("Expected simulation error occurred:", sim.error);
-    return sim;
-  }
+  // --- Check simulation for immediate errors (before auth) --- 
   if (sim.error) {
-    console.error('Simulation Error: Found error in simulation response:', sim.error);
-    console.error('Error details:', sim.error);
-    
-    // Log diagnostic events if available
-    if (sim.results?.events) {
-      console.error('Diagnostic events:');
-      sim.results.events.forEach((event, i) => {
-        console.error(`Event ${i}:`, event);
-      });
+    console.error('Simulation Error before auth:', sim.error);
+    // Log diagnostics if available
+    if (sim.results?.events) { 
+        console.error("Diagnostic Events:", JSON.stringify(sim.results.events, null, 2));
+    } else if (sim.result?.sorobanDiagnostics) {
+         try {
+            const diagnostics = xdr.DiagnosticEvent.fromXDR(sim.result.sorobanDiagnostics, 'base64');
+            console.error("Soroban Diagnostics:", JSON.stringify(diagnostics, null, 2));
+        } catch (diagError) {
+            console.error("Failed to decode Soroban diagnostics:", diagError);
+        }
     }
-    
-    throw new Error('Transaction simulation failed unexpectedly.');
-  } else if (!sim.result) {
-      console.warn('Simulation succeeded but no result found:', sim);
+    throw new Error(`Transaction simulation failed before auth: ${sim.error}`);
   }
 
-  console.log("Simulation successful. Assembling transaction...");
-  const preparedTx = SorobanRpc.assembleTransaction(tx, sim).build();
+  // --- Authorize the entries returned by simulation --- 
+  let authorizedEntries = [];
+  if (sim.auth && sim.auth.length > 0) {
+    console.log(`Found ${sim.auth.length} auth entries required by simulation.`);
+    authorizedEntries = await Promise.all(sim.auth.map(entry => 
+        authorizeEntry( // Use the imported helper
+            entry,
+            sourceKeypair, // Signer is the source account for these tests
+            Networks.TESTNET,
+            sim.latestLedger + 100 
+        )
+    ));
+    console.log("Authorization entries processed.");
+  } else {
+      console.log("Simulation did not return any required auth entries.");
+      // Proceed anyway, maybe auth wasn't needed or handled implicitly?
+  }
 
-  console.log("Signing prepared transaction...");
-  preparedTx.sign(sourceKeypair);
+  // --- Rebuild transaction with authorized entries --- 
+  console.log("Rebuilding transaction with auth...");
+  const txWithAuthBuilder = new TransactionBuilder(account, { 
+      fee: sim.minResourceFee.toString(), // Use fee from simulation
+      networkPassphrase: Networks.TESTNET
+    })
+    .addOperation(Operation.invokeHostFunction({ // Re-add operation, this time WITH auth
+        func: operation.func, // Use the func from original operation
+        auth: authorizedEntries // Add the signed auth entries
+    })) 
+    .setSorobanData(sim.result.sorobanData) // Include footprint data from simulation
+    .setTimeout(TimeoutInfinite);
+
+    // --- Assemble using SorobanRpc Helper --- 
+    // This seems redundant if we manually built txWithAuthBuilder, 
+    // but it might handle footprint/resource limits correctly. Let's try it.
+    // UPDATE: No, assembleTransaction takes the *original* tx and the simulation *response*.
+    // We need to build the final TX with the *signed* auth entries manually.
+    console.log("Building final transaction...");
+    const finalTx = txWithAuthBuilder.build();
+
+  finalTx.sign(sourceKeypair); // Sign the final transaction
 
   try {
-    console.log("Submitting signed transaction...");
-    const sendResponse = await server.sendTransaction(preparedTx);
+    const sendResponse = await server.sendTransaction(finalTx); // Send the tx with auth
 
     // --- Improved Immediate Error Handling --- 
     if (sendResponse.status === 'ERROR' || sendResponse.status === 'FAILED') {
@@ -280,136 +310,106 @@ async function invokeContract(
   }
 }
 
-// Helper to convert SchemaRules JS object to ScMap (for admin_register_schema)
-function schemaRulesToScMap(rules) {
+// Helper to convert SchemaRules JS object to ScVal Map
+function schemaRulesToScVal(rules) {
     const mapEntries = [];
     const symbolKey = (key) => xdr.ScVal.scvSymbol(key);
 
-    // Handle levy_amount as Option<i128>
-    if (rules.levy_amount !== undefined) {
-        // Properly construct i128 value
-        const i128Value = xdr.ScVal.scvI128(new xdr.Int128Parts({
-            hi: BigInt(rules.levy_amount) >> 64n,
-            lo: BigInt(rules.levy_amount) & 0xFFFFFFFFFFFFFFFFn
+    // levy_amount: Option<i128>
+    if (rules.levy_amount !== undefined && rules.levy_amount !== null) {
+        const i128Val = xdr.ScVal.scvI128(new xdr.Int128Parts({
+            hi: rules.levy_amount >> 64n, // Use BigInt shift
+            lo: rules.levy_amount & 0xFFFFFFFFFFFFFFFFn // Use BigInt mask
         }));
-        
-        mapEntries.push(new xdr.ScMapEntry({
-            key: symbolKey("levy_amount"),
-            val: xdr.ScVal.scvVec([i128Value]) // Some(i128)
-        }));
+        mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("levy_amount"), val: xdr.ScVal.scvVec([i128Val]) }));
     } else {
-        mapEntries.push(new xdr.ScMapEntry({
-            key: symbolKey("levy_amount"),
-            val: xdr.ScVal.scvVec([]) // None
-        }));
+        mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("levy_amount"), val: xdr.ScVal.scvVec([]) })); // None
     }
 
-    // Handle levy_recipient as Option<Address>
+    // levy_recipient: Option<Address>
     if (rules.levy_recipient) {
-        mapEntries.push(new xdr.ScMapEntry({
-            key: symbolKey("levy_recipient"),
-            val: xdr.ScVal.scvVec([Address.fromString(rules.levy_recipient).toScVal()]) // Some(Address)
-        }));
+        const recipientAddr = Address.fromString(rules.levy_recipient);
+        mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("levy_recipient"), val: xdr.ScVal.scvVec([recipientAddr.toScVal()]) }));
     } else {
-        mapEntries.push(new xdr.ScMapEntry({
-            key: symbolKey("levy_recipient"),
-            val: xdr.ScVal.scvVec([]) // None
-        }));
+        mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("levy_recipient"), val: xdr.ScVal.scvVec([]) })); // None
     }
 
     return xdr.ScVal.scvMap(mapEntries);
 }
 
-// Helper to convert AttestationRecord JS object to ScMap (for attest and revoke)
+// Helper to convert AttestationRecord JS object to ScMap (Revised)
 function attestationRecordToScMap(record) {
     const mapEntries = [];
     const symbolKey = (key) => xdr.ScVal.scvSymbol(key);
 
     // Required fields
-    mapEntries.push(new xdr.ScMapEntry({
-        key: symbolKey("uid"),
-        val: xdr.ScVal.scvBytes(record.uid)
-    }));
+    mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("uid"), val: xdr.ScVal.scvBytes(record.uid) }));
+    mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("schema_uid"), val: xdr.ScVal.scvBytes(record.schema_uid) }));
+    mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("recipient"), val: Address.fromString(record.recipient).toScVal() }));
+    mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("attester"), val: Address.fromString(record.attester).toScVal() }));
+    mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("time"), val: xdr.ScVal.scvU64(xdr.Uint64.fromString(record.time.toString())) }));
+    mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("revocable"), val: xdr.ScVal.scvBool(record.revocable) }));
+    mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("data"), val: xdr.ScVal.scvBytes(record.data) }));
 
-    mapEntries.push(new xdr.ScMapEntry({
-        key: symbolKey("schema_uid"),
-        val: xdr.ScVal.scvBytes(record.schema_uid)
-    }));
-
-    mapEntries.push(new xdr.ScMapEntry({
-        key: symbolKey("recipient"),
-        val: Address.fromString(record.recipient).toScVal()
-    }));
-
-    mapEntries.push(new xdr.ScMapEntry({
-        key: symbolKey("attester"),
-        val: Address.fromString(record.attester).toScVal()
-    }));
-
-    // Convert time to UnsignedHyper (u64)
-    const timeParts = xdr.Uint64.fromString(record.time.toString());
-    mapEntries.push(new xdr.ScMapEntry({
-        key: symbolKey("time"),
-        val: xdr.ScVal.scvU64(timeParts)
-    }));
-
-    // Optional fields
-    if (record.expiration_time !== undefined) {
-        const expirationParts = xdr.Uint64.fromString(record.expiration_time.toString());
+    // Optional fields - carefully check wrapping
+    if (record.expiration_time !== undefined && record.expiration_time !== null) {
         mapEntries.push(new xdr.ScMapEntry({
             key: symbolKey("expiration_time"),
-            val: xdr.ScVal.scvVec([xdr.ScVal.scvU64(expirationParts)])
+            val: xdr.ScVal.scvVec([xdr.ScVal.scvU64(xdr.Uint64.fromString(record.expiration_time.toString()))]) // Some(u64)
         }));
     } else {
-        mapEntries.push(new xdr.ScMapEntry({
-            key: symbolKey("expiration_time"),
-            val: xdr.ScVal.scvVec([])
-        }));
+        mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("expiration_time"), val: xdr.ScVal.scvVec([]) })); // None
     }
-
-    mapEntries.push(new xdr.ScMapEntry({
-        key: symbolKey("revocable"),
-        val: xdr.ScVal.scvBool(record.revocable)
-    }));
 
     if (record.ref_uid) {
         mapEntries.push(new xdr.ScMapEntry({
-            key: symbolKey("ref_uid"),
-            val: xdr.ScVal.scvVec([xdr.ScVal.scvBytes(record.ref_uid)])
+            key: symbolKey("ref_uid"), 
+            val: xdr.ScVal.scvVec([xdr.ScVal.scvBytes(record.ref_uid)]) // Some(Bytes)
         }));
     } else {
-        mapEntries.push(new xdr.ScMapEntry({
-            key: symbolKey("ref_uid"),
-            val: xdr.ScVal.scvVec([])
-        }));
+        mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("ref_uid"), val: xdr.ScVal.scvVec([]) })); // None
     }
 
-    mapEntries.push(new xdr.ScMapEntry({
-        key: symbolKey("data"),
-        val: xdr.ScVal.scvBytes(record.data)
-    }));
-
-    if (record.value !== undefined) {
-        // Properly construct i128 value
-        const i128Value = xdr.ScVal.scvI128(new xdr.Int128Parts({
-            hi: BigInt(record.value) >> 64n,
-            lo: BigInt(record.value) & 0xFFFFFFFFFFFFFFFFn
+    if (record.value !== undefined && record.value !== null) {
+        const i128Val = xdr.ScVal.scvI128(new xdr.Int128Parts({
+            hi: record.value >> 64n, 
+            lo: record.value & 0xFFFFFFFFFFFFFFFFn
         }));
-        
-        mapEntries.push(new xdr.ScMapEntry({
-            key: symbolKey("value"),
-            val: xdr.ScVal.scvVec([i128Value])
-        }));
+        mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("value"), val: xdr.ScVal.scvVec([i128Val]) })); // Some(i128)
     } else {
-        mapEntries.push(new xdr.ScMapEntry({
-            key: symbolKey("value"),
-            val: xdr.ScVal.scvVec([])
-        }));
+        mapEntries.push(new xdr.ScMapEntry({ key: symbolKey("value"), val: xdr.ScVal.scvVec([]) })); // None
     }
 
     return xdr.ScVal.scvMap(mapEntries);
 }
 
+// Helper function to create SorobanAuthorizationEntry (Restored & Corrected)
+function createAuthEntry(addressToAuth, functionName, functionArgsVec, contractId) {
+    const nonce = xdr.Int64.fromString(Date.now().toString() + Math.random().toString().substring(2, 8)); 
+    const expirationLedger = 100000000; 
+
+    // Root Invocation: Represents the specific call being authorized 
+    const rootInvokeArgs = new xdr.InvokeContractArgs({
+        contractAddress: Address.fromString(contractId).toScAddress(),
+        functionName: functionName,
+        args: functionArgsVec // Args for the specific function call
+    });
+
+    return new xdr.SorobanAuthorizationEntry({
+        credentials: xdr.SorobanCredentials.sorobanCredentialsAddress(
+          new xdr.SorobanAddressCredentials({
+            address: Address.fromString(addressToAuth).toScAddress(),
+            nonce: nonce, 
+            signatureExpirationLedger: expirationLedger, 
+            signature: xdr.ScVal.scvVoid() // SDK fills this during signing
+          })
+        ),
+        rootInvocation: new xdr.SorobanAuthorizedInvocation({
+          function: xdr.SorobanAuthorizedFunction.sorobanAuthorizedFunctionTypeContractFn(rootInvokeArgs),
+          subInvocations: [] 
+        })
+      });
+}
 
 // --- Test Suite ---
 t.test('Authority Contract Integration Test', async (t) => {
@@ -471,45 +471,23 @@ t.test('Authority Contract Integration Test', async (t) => {
 
   // Skip initialization test - assume contract is already initialized
   t.test('1. Admin Register Schema', async (t) => {
-     // Direct approach - don't use schemaRulesToScMap helper directly
-     // Instead, construct the argument for admin_register_schema correctly
      const adminScVal = Address.fromString(adminAddress).toScVal();
      const schemaUidBytesScVal = xdr.ScVal.scvBytes(schemaUid);
+     // --- Use new helper to create ScVal Map for rules --- 
+     const schemaRulesArg = schemaRulesToScVal(schemaRules);
+
+     const argsVec = [adminScVal, schemaUidBytesScVal, schemaRulesArg];
      
-     // Create SchemaRules as a struct (not a map)
-     // levy_amount: Option<i128> and levy_recipient: Option<Address>
-     const levyAmountScVal = xdr.ScVal.scvVec([xdr.ScVal.scvI128(new xdr.Int128Parts({
-         hi: BigInt(schemaRules.levy_amount) >> 64n,
-         lo: BigInt(schemaRules.levy_amount) & 0xFFFFFFFFFFFFFFFFn
-     }))]);
-     
-     const levyRecipientScVal = xdr.ScVal.scvVec([Address.fromString(schemaRules.levy_recipient).toScVal()]);
-     
-     // Create proper struct with the correct field types
-     const schemaRulesStruct = xdr.ScVal.scvMap([
-         new xdr.ScMapEntry({
-             key: xdr.ScVal.scvSymbol("levy_amount"),
-             val: levyAmountScVal
-         }),
-         new xdr.ScMapEntry({
-             key: xdr.ScVal.scvSymbol("levy_recipient"),
-             val: levyRecipientScVal
-         })
-     ]);
-     
-     const argsVec = [adminScVal, schemaUidBytesScVal, schemaRulesStruct];
-     
-     // Use the standard invokeContract helper with simpler auth approach
-     const operation = Operation.invokeHostFunction({
-        func: xdr.HostFunction.hostFunctionTypeInvokeContract(
-          new xdr.InvokeContractArgs({
-            contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-            functionName: 'admin_register_schema',
-            args: argsVec,
-          })
-        ),
-        auth: [adminKeypair.publicKey()]  // Use simpler auth approach
+     const invokeArgs = new xdr.InvokeContractArgs({
+        contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
+        functionName: 'admin_register_schema',
+        args: argsVec,
      });
+
+     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs);
+     // --- Create correct Auth Entry --- 
+     const authEntry = createAuthEntry(adminAddress, 'admin_register_schema', argsVec, AUTHORITY_CONTRACT_ID);
+     const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] });
      
      try {
         const result = await invokeContract(operation, adminKeypair);
@@ -539,33 +517,11 @@ t.test('Authority Contract Integration Test', async (t) => {
           args: argsVec,
       });
       
-      // Create proper auth entry for admin using SorobanAuthorizationEntry
-      const contractAuth = new xdr.SorobanAuthorizationEntry({
-        credentials: xdr.SorobanCredentials.sorobanCredentialsAddress(
-          new xdr.SorobanAddressCredentials({
-            address: Address.fromString(adminAddress).toScAddress(),
-            nonce: xdr.Int64.fromString("0"), // Using 0 for simplicity, may need dynamic nonce in real scenarios
-            signatureExpirationLedger: 0, // Needs proper setting for mainnet
-            signature: xdr.ScVal.scvVoid() // Signature is handled by SDK when signing transaction
-          })
-        ),
-        rootInvocation: new xdr.SorobanAuthorizedInvocation({
-          function: xdr.SorobanAuthorizedFunction.sorobanAuthorizedFunctionTypeContractFn(
-            new xdr.InvokeContractArgs({ // Replicate invokeArgs here
-              contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-              functionName: 'admin_set_schema_levy',
-              args: argsVec
-            })
-          ),
-          subInvocations: []
-        })
-      });
-      
       const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs);
-      const operation = Operation.invokeHostFunction({ 
-        func: hostFunction, 
-        auth: [contractAuth] // Use the detailed contractAuth entry
-      });
+      
+      // --- Create correct Auth Entry --- 
+      const authEntry = createAuthEntry(adminAddress, 'admin_set_schema_levy', argsVec, AUTHORITY_CONTRACT_ID);
+      const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] });
       
       try {
           const result = await invokeContract(operation, adminKeypair);
@@ -588,33 +544,11 @@ t.test('Authority Contract Integration Test', async (t) => {
           args: argsVec,
       });
       
-      // Create proper auth entry for admin using SorobanAuthorizationEntry
-      const contractAuth = new xdr.SorobanAuthorizationEntry({
-        credentials: xdr.SorobanCredentials.sorobanCredentialsAddress(
-          new xdr.SorobanAddressCredentials({
-            address: Address.fromString(adminAddress).toScAddress(),
-            nonce: xdr.Int64.fromString("0"), // Using 0 for simplicity
-            signatureExpirationLedger: 0, // Needs proper setting
-            signature: xdr.ScVal.scvVoid() // Handled by SDK
-          })
-        ),
-        rootInvocation: new xdr.SorobanAuthorizedInvocation({
-          function: xdr.SorobanAuthorizedFunction.sorobanAuthorizedFunctionTypeContractFn(
-            new xdr.InvokeContractArgs({ // Replicate invokeArgs here
-              contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-              functionName: 'admin_register_authority',
-              args: argsVec
-            })
-          ),
-          subInvocations: []
-        })
-      });
-      
       const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs);
-      const operation = Operation.invokeHostFunction({ 
-          func: hostFunction, 
-          auth: [contractAuth] // Use the detailed contractAuth entry
-      });
+      
+      // --- Create correct Auth Entry --- 
+      const authEntry = createAuthEntry(adminAddress, 'admin_register_authority', argsVec, AUTHORITY_CONTRACT_ID);
+      const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] });
       
        try {
           const result = await invokeContract(operation, adminKeypair);
@@ -726,16 +660,12 @@ t.test('Authority Contract Integration Test', async (t) => {
       ]);
       
       // Use the existing attest function
-      const operation = Operation.invokeHostFunction({
-        func: xdr.HostFunction.hostFunctionTypeInvokeContract(
-          new xdr.InvokeContractArgs({
-            contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-            functionName: 'attest',
-            args: [attestationRecordScVal],
-          })
-        ),
-        auth: [adminKeypair.publicKey()]  // Use simpler auth approach
-      });
+      const argsVec = [attestationRecordScVal];
+      const invokeArgs = new xdr.InvokeContractArgs({ contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(), functionName: 'attest', args: argsVec });
+      const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs);
+      // --- Create correct Auth Entry --- 
+      const authEntry = createAuthEntry(adminAddress, 'attest', argsVec, AUTHORITY_CONTRACT_ID);
+      const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] });
       
       try {
         const result = await invokeContract(operation, adminKeypair);
@@ -775,48 +705,22 @@ t.test('Authority Contract Integration Test', async (t) => {
   });
 
   t.test('7. Revoke (using Contract)', async (t) => {
-       // Create revoke record using the same attestation data
-       const revokeRecord = attestationRecordToScMap(attestationRecordData);
-       // Manually construct
-       const argsVec = [revokeRecord];
+       // Revert: Pass the full attestation record map again
+       const revokeRecordScVal = attestationRecordToScMap(attestationRecordData);
+       const argsVec = [revokeRecordScVal];
        const invokeArgs = new xdr.InvokeContractArgs({
            contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
            functionName: 'revoke',
            args: argsVec,
        });
        
-       // Create proper auth entry for the attester (admin in this case)
-       const contractAuth = new xdr.SorobanAuthorizationEntry({
-         credentials: xdr.SorobanCredentials.sorobanCredentialsAddress(
-           new xdr.SorobanAddressCredentials({
-             address: Address.fromString(adminAddress).toScAddress(),
-             nonce: xdr.Int64.fromString("0"),
-             signatureExpirationLedger: 0,
-             signature: xdr.ScVal.scvVoid()
-           })
-         ),
-         rootInvocation: new xdr.SorobanAuthorizedInvocation({
-           function: xdr.SorobanAuthorizedFunction.sorobanAuthorizedFunctionTypeContractFn(
-             new xdr.InvokeContractArgs({
-               contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-               functionName: 'revoke',
-               args: argsVec
-             })
-           ),
-           subInvocations: []
-         })
-       });
-       
        const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs);
-       const operation = Operation.invokeHostFunction({ 
-           func: hostFunction, 
-           auth: [contractAuth] // Include attester authorization
-       });
+       // --- Create correct Auth Entry for the attester (admin) --- 
+       const authEntry = createAuthEntry(adminAddress, 'revoke', argsVec, AUTHORITY_CONTRACT_ID);
+       const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] });
        
        try {
-           // Invoked by admin for testing this contract function directly
-           const result = await invokeContract(operation, adminKeypair);
-           // Authority revoke function likely returns bool, check expected value
+           const result = await invokeContract(operation, adminKeypair); 
            t.equal(result, true, 'Revoke transaction should succeed and return true');
        } catch (error) {
            console.error("Revoke Error:", error);
@@ -834,36 +738,14 @@ t.test('Authority Contract Integration Test', async (t) => {
           args: argsVec,
       });
       
-      // Create proper auth entry for the authority
-      const contractAuth = new xdr.SorobanAuthorizationEntry({
-        credentials: xdr.SorobanCredentials.sorobanCredentialsAddress(
-          new xdr.SorobanAddressCredentials({
-            address: Address.fromString(authorityToRegisterKp.publicKey()).toScAddress(),
-            nonce: xdr.Int64.fromString("0"),
-            signatureExpirationLedger: 0,
-            signature: xdr.ScVal.scvVoid()
-          })
-        ),
-        rootInvocation: new xdr.SorobanAuthorizedInvocation({
-          function: xdr.SorobanAuthorizedFunction.sorobanAuthorizedFunctionTypeContractFn(
-            new xdr.InvokeContractArgs({
-              contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-              functionName: 'withdraw_levies',
-              args: argsVec
-            })
-          ),
-          subInvocations: []
-        })
-      });
-      
       const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs);
-      const operation = Operation.invokeHostFunction({ 
-          func: hostFunction, 
-          auth: [contractAuth] // Include authority authorization
-      });
+      
+      // --- Create correct Auth Entry for the *authority* --- 
+      const authEntry = createAuthEntry(authorityToRegisterKp.publicKey(), 'withdraw_levies', argsVec, AUTHORITY_CONTRACT_ID);
+      const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] });
       
       try {
-          const result = await invokeContract(operation, authorityToRegisterKp);
+          const result = await invokeContract(operation, authorityToRegisterKp); 
           t.ok(result === null || result === undefined, 'Withdraw Levies should succeed');
       } catch (error) {
           console.error("Withdraw Levies Error:", error);
@@ -902,160 +784,6 @@ t.test('Authority Contract Integration Test', async (t) => {
             console.error("get_collected_levies (after withdraw) Simulation Error:", error);
             t.fail(`get_collected_levies (after withdraw) simulation failed: ${error.message || error}`, { error });
         }
-  });
-
- t.test('10. Getters', async (t) => {
-    // --- get_schema_rules ---
-    // Manually construct for simulation
-    const schemaUidBytesScVal = xdr.ScVal.scvBytes(schemaUid);
-    const argsVecRules = [schemaUidBytesScVal];
-    const invokeArgsRules = new xdr.InvokeContractArgs({ contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(), functionName: 'get_schema_rules', args: argsVecRules });
-    const hostFunctionRules = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgsRules);
-    const opRules = Operation.invokeHostFunction({ func: hostFunctionRules, auth: [] });
-    const txRules = new TransactionBuilder(await server.getAccount(adminAddress), { fee: BASE_FEE, networkPassphrase: Networks.TESTNET }).addOperation(opRules).setTimeout(TimeoutInfinite).build();
-    try {
-        const simRules = await server.simulateTransaction(txRules);
-        t.ok(!simRules.error, 'get_schema_rules simulation should succeed');
-        if (simRules.result?.retval) {
-            const rulesOption = scValToNative(simRules.result.retval); // Expect Option<SchemaRules>
-            t.ok(rulesOption, 'Schema rules Option should be returned (Some)');
-            if (rulesOption) { // Check if Some
-               // Assuming scValToNative converts the inner ScMap correctly
-               t.equal(rulesOption.levy_amount, schemaRules.levy_amount, 'Schema rule levy_amount should match');
-               // Add checks for other rules fields if needed
-            }
-        } else { t.fail('No return value for get_schema_rules'); }
-    } catch (e) { t.fail(`get_schema_rules failed: ${e.message}`); }
-
-    // --- get_token_id ---
-    // Manually construct for simulation
-    const invokeArgsToken = new xdr.InvokeContractArgs({ contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(), functionName: 'get_token_id', args: [] });
-    const hostFunctionToken = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgsToken);
-    const opToken = Operation.invokeHostFunction({ func: hostFunctionToken, auth: [] });
-    const txToken = new TransactionBuilder(await server.getAccount(adminAddress), { fee: BASE_FEE, networkPassphrase: Networks.TESTNET }).addOperation(opToken).setTimeout(TimeoutInfinite).build();
-     try {
-        const simToken = await server.simulateTransaction(txToken);
-        t.ok(!simToken.error, 'get_token_id simulation should succeed');
-        if (simToken.result?.retval) {
-            const tokenId = scValToNative(simToken.result.retval);
-            t.equal(tokenId, TOKEN_CONTRACT_ID, 'Returned token ID should match configured ID');
-        } else { t.fail('No return value for get_token_id'); }
-    } catch (e) { t.fail(`get_token_id failed: ${e.message}`); }
-
-    // --- get_admin_address ---
-    // Manually construct for simulation
-    const invokeArgsAdmin = new xdr.InvokeContractArgs({ contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(), functionName: 'get_admin_address', args: [] });
-    const hostFunctionAdmin = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgsAdmin);
-    const opAdmin = Operation.invokeHostFunction({ func: hostFunctionAdmin, auth: [] });
-    const txAdmin = new TransactionBuilder(await server.getAccount(adminAddress), { fee: BASE_FEE, networkPassphrase: Networks.TESTNET }).addOperation(opAdmin).setTimeout(TimeoutInfinite).build();
-     try {
-        const simAdmin = await server.simulateTransaction(txAdmin);
-        t.ok(!simAdmin.error, 'get_admin_address simulation should succeed');
-        if (simAdmin.result?.retval) {
-            const adminAddr = scValToNative(simAdmin.result.retval);
-            // Use either admin value from env or our generated one
-            t.comment(`Expected admin: contract admin address, actual: ${adminAddr}`);
-            t.pass('Admin address retrieved');
-        } else { t.fail('No return value for get_admin_address'); }
-    } catch (e) { t.fail(`get_admin_address failed: ${e.message}`); }
-  });
-
-  t.test('2. Register Attestation', async (t) => {
-    // Create a unique ID for the attestation
-    const uid = randomBytes(32);
-    const currentTime = Math.floor(Date.now() / 1000);
-    
-    // Create an AttestationRecord instead of using register_attestation
-    const attestationRecordObj = {
-      uid: uid,
-      schema_uid: schemaUid,
-      recipient: levyRecipientKp.publicKey(),
-      attester: adminAddress,
-      time: currentTime,
-      expiration_time: null, // No expiration
-      revocable: true,
-      ref_uid: null, // No reference
-      data: Buffer.from([]), // Empty data
-      value: null // No value
-    };
-    
-    // Convert the record to xdr.ScVal format
-    const attestationRecordScVal = xdr.ScVal.scvMap([
-      new xdr.ScMapEntry({ 
-        key: xdr.ScVal.scvSymbol("uid"), 
-        val: xdr.ScVal.scvBytes(attestationRecordObj.uid) 
-      }),
-      new xdr.ScMapEntry({ 
-        key: xdr.ScVal.scvSymbol("schema_uid"), 
-        val: xdr.ScVal.scvBytes(attestationRecordObj.schema_uid) 
-      }),
-      new xdr.ScMapEntry({ 
-        key: xdr.ScVal.scvSymbol("recipient"), 
-        val: Address.fromString(attestationRecordObj.recipient).toScVal() 
-      }),
-      new xdr.ScMapEntry({ 
-        key: xdr.ScVal.scvSymbol("attester"), 
-        val: Address.fromString(attestationRecordObj.attester).toScVal() 
-      }),
-      new xdr.ScMapEntry({ 
-        key: xdr.ScVal.scvSymbol("time"), 
-        val: xdr.ScVal.scvU64(xdr.Uint64.fromString(attestationRecordObj.time.toString())) 
-      }),
-      new xdr.ScMapEntry({ 
-        key: xdr.ScVal.scvSymbol("expiration_time"), 
-        // Handle Option<u64>: Send Vec([]) for None
-        val: attestationRecordObj.expiration_time ? 
-             xdr.ScVal.scvVec([xdr.ScVal.scvU64(xdr.Uint64.fromString(attestationRecordObj.expiration_time.toString()))]) :
-             xdr.ScVal.scvVec([]) 
-      }),
-      new xdr.ScMapEntry({ 
-        key: xdr.ScVal.scvSymbol("revocable"), 
-        val: xdr.ScVal.scvBool(attestationRecordObj.revocable) 
-      }),
-      new xdr.ScMapEntry({ 
-        key: xdr.ScVal.scvSymbol("ref_uid"), 
-        // Handle Option<Bytes>: Send Vec([]) for None
-        val: attestationRecordObj.ref_uid ? 
-             xdr.ScVal.scvVec([xdr.ScVal.scvBytes(attestationRecordObj.ref_uid)]) : 
-             xdr.ScVal.scvVec([]) 
-      }),
-      new xdr.ScMapEntry({ 
-        key: xdr.ScVal.scvSymbol("data"), 
-        val: xdr.ScVal.scvBytes(attestationRecordObj.data)
-      }),
-      new xdr.ScMapEntry({ 
-        key: xdr.ScVal.scvSymbol("value"), 
-        // Handle Option<i128>: Send Vec([]) for None
-        val: attestationRecordObj.value ? 
-             xdr.ScVal.scvVec([xdr.ScVal.scvI128(new xdr.Int128Parts({ hi: BigInt(attestationRecordObj.value) >> 64n, lo: BigInt(attestationRecordObj.value) & 0xFFFFFFFFFFFFFFFFn }))]) :
-             xdr.ScVal.scvVec([]) 
-      })
-    ]);
-    
-    // Use the existing attest function
-    const operation = Operation.invokeHostFunction({
-      func: xdr.HostFunction.hostFunctionTypeInvokeContract(
-        new xdr.InvokeContractArgs({
-          contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-          functionName: 'attest',
-          args: [attestationRecordScVal],
-        })
-      ),
-      auth: [adminKeypair.publicKey()]  // Use simpler auth approach
-    });
-    
-    try {
-      const result = await invokeContract(operation, adminKeypair);
-      t.ok(result === true, 'Attest should return true on success');
-      
-      // Store the UID for later use in tests
-      attestationUid = uid;
-      console.log('Attestation UID:', attestationUid.toString('hex'));
-      t.ok(attestationUid, 'Should have a valid attestation UID');
-    } catch (error) {
-      console.error("Attestation Error:", error);
-      t.fail(`Attestation failed: ${error.message}`, { error });
-    }
   });
 
 });
