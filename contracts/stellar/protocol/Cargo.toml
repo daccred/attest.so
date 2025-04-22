@@ -18,7 +18,3 @@ soroban-sdk = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] } 
-
-[package]
-name = "smart-wallet-interface"
-version = "0.4.5"
