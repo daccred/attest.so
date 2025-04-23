@@ -5,7 +5,7 @@
   "private": false,
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "tap",
     "start": "node scripts/run.mjs"
   },
   "keywords": [],
@@ -13,6 +13,10 @@
   "license": "MIT",
   "description": "",
   "dependencies": {
-    "@stellar/stellar-sdk": "^12.0.0"
+    "@stellar/stellar-sdk": "^12.0.0",
+    "@tapjs/typescript": "^3.1.0"
+  },
+  "devDependencies": {
+    "tap": "^21.1.0"
   }
 }

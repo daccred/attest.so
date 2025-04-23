@@ -3,4 +3,5 @@ target/
 .DS_Store
 .soroban
 test_snapshots
-*.tap
+.tap
+env.sh.bak

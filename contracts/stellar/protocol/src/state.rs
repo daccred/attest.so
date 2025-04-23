@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Bytes, BytesN, String as SorobanString};
+use soroban_sdk::{contracttype, Address, Bytes, BytesN, String};
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                                 DataKey                                   ║
@@ -21,7 +21,7 @@ pub enum DataKey {
     /// 
     /// Indexed by schema UID, recipient address, and optional reference string
     /// to allow for efficient lookups.
-    Attestation(BytesN<32>, Address, Option<SorobanString>),
+    Attestation(BytesN<32>, Address, Option<String>),
 }
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
@@ -79,7 +79,7 @@ pub struct Authority {
     /// Metadata describing the authority
     /// 
     /// Typically in JSON format, containing information about the authority.
-    pub metadata: SorobanString,
+    pub metadata: String,
 }
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
@@ -98,7 +98,7 @@ pub struct Schema {
     /// The schema definition
     /// 
     /// Typically in JSON format, describing the structure and rules for attestations.
-    pub definition: SorobanString,
+    pub definition: String,
     /// Optional address of a resolver contract for this schema
     /// 
     /// If present, this contract will be called to handle attestation operations.
@@ -123,11 +123,11 @@ pub struct AttestationRecord {
     /// The address of the entity that is the subject of this attestation
     pub subject: Address,
     /// The value or content of the attestation
-    pub value: SorobanString,
+    pub value: String,
     /// Optional reference string to distinguish between multiple attestations
     /// 
     /// Allows for multiple attestations of the same schema for the same subject.
-    pub reference: Option<SorobanString>,
+    pub reference: Option<String>,
     /// Whether this attestation has been revoked
     pub revoked: bool,
 } 
