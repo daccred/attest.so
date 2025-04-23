@@ -4,3 +4,4 @@ target/
 .soroban
 test_snapshots
 .tap
+env.sh.bak
