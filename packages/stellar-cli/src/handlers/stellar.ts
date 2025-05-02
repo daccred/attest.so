@@ -1,8 +1,13 @@
 import { logger } from '../logger'
 import { green, red, yellow } from 'picocolors'
-import AttestSDK, { SchemaConfig, StellarAttestationConfig, StellarAttestSDK } from '../../../sdk/dist'
+// import AttestSDK, { SchemaConfig, StellarAttestationConfig, StellarAttestSDK } from '../../../sdk/dist'
 import { BaseHandler } from './base'
 import { validateStellarSchema, validateStellarAttestation } from '../utils'
+import { Command } from 'commander'
+import { Keypair } from '@stellar/stellar-sdk'
+import AttestSDK, { StellarAttestationConfig, SchemaConfig, StellarAttestSDK } from '@attestprotocol/sdk' // Changed import path
+import { readAttestationConfig } from '../config/config'
+import { log } from '../log'
 
 export class StellarHandler extends BaseHandler {
   declare protected client: StellarAttestSDK

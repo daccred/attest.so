@@ -14,7 +14,7 @@
   "scripts": {
     "clean": "rimraf dist docs/v2",
     "format": "prettier --write \"{src,test}/**/*.ts\"",
-    "build": "yarn clean && yarn build:main && yarn build:module && yarn build:umd",
+    "build": "pnpm clean && microbundle --tsconfig tsconfig.json --no-sourcemap",
     "build:main": "tsc -p tsconfig.json",
     "build:module": "tsc -p tsconfig.module.json",
     "build:umd": "webpack",
