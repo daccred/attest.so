@@ -1,0 +1,24 @@
+{
+  "name": "horizon-indexer",
+  "version": "1.0.0",
+  "description": "Express server that interacts with the Stellar Horizon RPC and listens to events.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "stellar",
+    "horizon",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "@stellar/stellar-sdk": "^13.2.0" 
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
