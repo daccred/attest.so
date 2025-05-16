@@ -9,17 +9,18 @@
   "jsdelivr": "dist/umd/attestprotocol.js",
   "unpkg": "dist/umd/attestprotocol.js",
   "exports": {
-    "import": "./dist/index.modern.js",
-    "require": "./dist/index.js"
+    "require": "./dist/index.js",
+    "import": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "default": "./dist/index.js"
   },
   "scripts": {
     "clean": "rimraf dist docs/v2",
     "format": "prettier --write \"{src,test}/**/*.ts\"",
-    "build": "pnpm clean && microbundle --tsconfig tsconfig.json --no-sourcemap",
+    "build": "pnpm clean && pnpm build:main && pnpm build:module && pnpm build:umd",
     "build:main": "tsc -p tsconfig.json",
     "build:module": "tsc -p tsconfig.module.json",
     "build:umd": "webpack",
-    "dev": "microbundle --watch --tsconfig tsconfig.json --no-sourcemap",
     "test-solana": "ts-node ./test/run-solana.ts",
     "test-stellar": "ts-node ./test/run-stellar.ts"
   },
@@ -32,7 +33,6 @@
     "@types/bn.js": "^5.1.6",
     "@types/json-schema": "^7.0.15",
     "@types/urijs": "^1.19.25",
-    "microbundle": "^0.15.1",
     "rimraf": "^6.0.1",
     "semantic-release-plugin-update-version-in-files": "^2.0.0",
     "ts-node": "^10.9.2",
@@ -43,7 +43,7 @@
     "@coral-xyz/anchor": "^0.30.1",
     "@solana/spl-token": "^0.4.6",
     "@solana/web3.js": "^1.95.3",
-    "@stellar/stellar-sdk": "^13.2.0",
+    "@stellar/stellar-sdk": "12.3.0",
     "isomorphic-unfetch": "^4.0.2",
     "json-schema": "^0.4.0",
     "ts-loader": "^9.5.2"

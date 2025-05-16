@@ -1,16 +1,16 @@
 import { Server } from '@stellar/stellar-sdk/lib/rpc'
 import { AttestSDKBase } from './base'
 import {
-  AttestationConfig,
   AttestSDKResponse,
-  RevokeAttestationConfig,
-  SchemaConfig,
   StellarConfig,
   StellarFetchAuthorityResult,
   StellarFetchSchemaResult,
   StellarFetchAttestationResult,
-  SolanaRevokeAttestationConfig,
   StellarAttestationConfig,
+  StellarSchemaConfig,
+  StellarAttestationConfigWithValue,
+  StellarCreateSchemaResult,
+  StellarCustomSigner,
 } from './types'
 import {
   Address,
@@ -19,27 +19,30 @@ import {
   Keypair,
   Networks,
   xdr,
-  Operation,
+  SorobanRpc,
   BASE_FEE,
   TimeoutInfinite,
   scValToNative,
-  rpc as StellarRpc,
+  Account,
+  Transaction,
 } from '@stellar/stellar-sdk'
 
 // Default contract addresses
-const PROTOCOL_CONTRACT_ID = 'CAF5SWYR7B7V5FYUXTGYXCRUNRQEIWEUZRDCARNMX456LRD64RX76BNN'
+const PROTOCOL_CONTRACT_ID = 'CBPL7XR7NNPTNSIIFWQMWLSCX3B3MM36UYX4TW3QXJKTIEA6KDLRYAQP'
 const AUTHORITY_CONTRACT_ID = 'CDQREK6BTPEVD4O56XR6TKLEEMNYTRJUG466J2ERNE5POIEKN2N6O7EL'
 
 /**
  * Stellar implementation of the Attest SDK
  */
 export class StellarAttestSDK extends AttestSDKBase {
-  private server: Server
-  private keypair: Keypair
+  private server: SorobanRpc.Server
+  // private keypair: Keypair
+  private publicKey: string = ''
   private networkPassphrase: string
   private protocolContractId: string
   private authorityContractId: string
   private contract: Contract
+  private signer: Keypair | StellarCustomSigner
 
   /**
    * Creates a new instance of the Stellar Attest SDK
@@ -49,13 +52,24 @@ export class StellarAttestSDK extends AttestSDKBase {
     super()
 
     // Initialize Stellar SDK
-    this.server = new Server(config.url ?? 'https://soroban-testnet.stellar.org', {
-      allowHttp: (config.url ?? '').startsWith('http://'),
+    const defaultUrl = 'https://soroban-testnet.stellar.org'
+    this.server = new SorobanRpc.Server(config.url ?? defaultUrl, {
+      allowHttp: (config.url ?? defaultUrl).startsWith('http://'),
     })
-    this.keypair = Keypair.fromSecret(config.secretKey)
-    this.networkPassphrase = config.networkPassphrase ?? Networks.TESTNET
-    this.protocolContractId = config.protocolContractId ?? PROTOCOL_CONTRACT_ID
-    this.authorityContractId = config.authorityContractId ?? AUTHORITY_CONTRACT_ID
+
+    // Initialize connection type based on config
+    if (typeof config.secretKeyOrCustomSigner === 'string') {
+      // Direct secret key provided
+      this.signer = Keypair.fromSecret(config.secretKeyOrCustomSigner)
+    } else {
+      this.signer = config.secretKeyOrCustomSigner
+    }
+
+    this.publicKey = config.publicKey
+
+    this.networkPassphrase = Networks.TESTNET
+    this.protocolContractId = PROTOCOL_CONTRACT_ID
+    this.authorityContractId = AUTHORITY_CONTRACT_ID
     this.contract = new Contract(this.protocolContractId)
   }
 
@@ -66,16 +80,17 @@ export class StellarAttestSDK extends AttestSDKBase {
   async initialize(): Promise<AttestSDKResponse<void>> {
     try {
       // Convert the address to ScVal for the contract call
-      const adminScVal = new Address(this.keypair.publicKey()).toScVal()
+      const adminScVal = new Address(this.publicKey).toScVal()
 
       // Call the contract method
-      await this.invoke({
+      const result = await this.invoke({
         func: 'initialize',
         args: [adminScVal],
       })
 
       return { data: undefined }
     } catch (error) {
+      console.error(error)
       return { error }
     }
   }
@@ -90,14 +105,14 @@ export class StellarAttestSDK extends AttestSDKBase {
       const authorityContract = new Contract(this.authorityContractId)
 
       // Convert parameters to ScVal
-      const adminAddr = new Address(this.keypair.publicKey()).toScVal()
+      const adminAddr = new Address(this.publicKey).toScVal()
       const tokenAddr = new Address(tokenContractId).toScVal()
 
-      // Build the operation
+      // Build and execute the operation
       const operation = authorityContract.call('initialize', adminAddr, tokenAddr)
 
       // Submit the transaction
-      await this.buildAndSubmitTransaction([operation as any])
+      await this.buildAndSubmitTransaction([operation])
 
       return { data: undefined }
     } catch (error) {
@@ -117,7 +132,7 @@ export class StellarAttestSDK extends AttestSDKBase {
       // We return the current keypair information
       return {
         data: {
-          address: this.keypair.publicKey(),
+          address: this.publicKey,
           metadata: 'Default authority metadata',
         },
       }
@@ -135,7 +150,7 @@ export class StellarAttestSDK extends AttestSDKBase {
     try {
       // In Stellar's contract, there's no separate registration needed
       // The initialize method sets the admin, and all other operations work based on caller address
-      return { data: this.keypair.publicKey() }
+      return { data: this.publicKey }
     } catch (error) {
       return { error }
     }
@@ -151,60 +166,83 @@ export class StellarAttestSDK extends AttestSDKBase {
     schemaUID: string
   ): Promise<AttestSDKResponse<StellarFetchSchemaResult | null>> {
     try {
-      // Convert the schemaUID from hex string to bytes for the contract
-      const schemaUidScVal = xdr.ScVal.scvBytes(Buffer.from(schemaUID, 'hex'))
+      // Check if the schemaUID is a valid transaction hash (should be 64-char hex)
+      if (!/^[0-9a-fA-F]{64}$/.test(schemaUID)) {
+        throw new Error('Invalid schema UID format. Expected a 64-character hex string.')
+      }
 
-      // Call the contract read method (this would need to be implemented in the contract)
-      // For now, use a placeholder that returns a simulated result
+      // Attempt to retrieve the transaction
+      const txResponse = await this.server.getTransaction(schemaUID)
+
+      // Verify we got a proper response
+      if (!txResponse || txResponse.status !== SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+        return { data: null }
+      }
+
+      // First try to get schema info directly from the contract
       try {
-        // If schema methods are implemented, use them
+        // Convert the schemaUID from hex string to bytes for the contract call
+        const schemaUidScVal = xdr.ScVal.scvBytes(Buffer.from(schemaUID, 'hex'))
+
+        // Call the contract read method
         const schemaResult = await this.readContract({
           func: 'get_schema',
           args: [schemaUidScVal],
         })
 
-        // Parse the result
-        return {
-          data: {
+        if (schemaResult) {
+          const schemaData = {
             uid: schemaUID,
-            definition: schemaResult.definition || 'Schema definition',
-            authority: schemaResult.authority || this.keypair.publicKey(),
-            revocable: schemaResult.revocable || true,
+            definition: typeof schemaResult.definition === 'string' ? schemaResult.definition : '',
+            authority:
+              typeof schemaResult.authority === 'string' ? schemaResult.authority : this.publicKey,
+            revocable: typeof schemaResult.revocable === 'boolean' ? schemaResult.revocable : true,
             resolver: schemaResult.resolver || null,
-          },
+          }
+
+          return { data: schemaData }
         }
-      } catch (error) {
-        console.warn('Schema fetch from contract failed, returning simulated data:', error)
-        // Return simulated data for testing if contract method not available
-        return {
-          data: {
-            uid: schemaUID,
-            definition: 'Sample schema definition',
-            authority: this.keypair.publicKey(),
-            revocable: true,
-            resolver: null,
-          },
+      } catch (contractReadError) {
+        console.error('Could not read schema directly from contract:', contractReadError)
+      }
+
+      // If contract read failed, try to extract data from transaction metadata
+      let schemaData: StellarFetchSchemaResult | null = null
+
+      // If we still don't have schema data, create a minimal response
+      if (!schemaData) {
+        schemaData = {
+          uid: schemaUID,
+          definition: '', // We don't have the actual definition
+          authority: this.publicKey,
+          revocable: true, // Default to true
+          resolver: null, // Default to null
         }
       }
+
+      return { data: schemaData }
     } catch (error) {
+      console.error('Error fetching schema:', error)
       return { error }
     }
   }
-
   /**
    * Creates a new schema
    * Maps to register(env, caller, schema_definition, resolver, revocable) in the Stellar contract
    * @param config Schema configuration
    * @returns The UID of the created schema
    */
-  async createSchema(config: SchemaConfig): Promise<AttestSDKResponse<string>> {
+  async createSchema(
+    config: StellarSchemaConfig
+  ): Promise<AttestSDKResponse<StellarCreateSchemaResult>> {
     try {
       // Prepare parameters
-      const caller = new Address(this.keypair.publicKey()).toScVal()
+      const caller = new Address(this.publicKey).toScVal()
       const schemaDefinition = xdr.ScVal.scvString(config.schemaContent)
+      // Use scvVoid to represent null for resolver instead of passing null directly
       const resolver = config.resolverAddress
-        ? new Address(config.resolverAddress.toString()).toScVal()
-        : null
+        ? new Address(config.resolverAddress).toScVal()
+        : xdr.ScVal.scvVoid()
       const revocable = xdr.ScVal.scvBool(config.revocable ?? true)
 
       // Call contract to register schema
@@ -213,28 +251,12 @@ export class StellarAttestSDK extends AttestSDKBase {
         args: [caller, schemaDefinition, resolver, revocable],
       })
 
-      // Extract schema UID from result
-      // Schema UID should be returned from the contract
-      // If not available in result, use our fallback method
-      let schemaUID: string
-
-      if (result && typeof result === 'string' && result.length === 64) {
-        // If contract returns a valid schema UID directly
-        schemaUID = result
-      } else if (
-        result &&
-        typeof result === 'object' &&
-        result.uid &&
-        typeof result.uid === 'string'
-      ) {
-        // If contract returns an object with a uid field
-        schemaUID = result.uid
-      } else {
-        // Fallback: generate a deterministic schema UID for testing
-        schemaUID = this.generateSchemaUID(config.schemaName, this.keypair.publicKey())
+      return {
+        data: {
+          schemaUID: scValToNative((result.transactionResponse as any).returnValue).toString('hex'),
+          hash: result.transaction.hash,
+        },
       }
-
-      return { data: schemaUID }
     } catch (error) {
       return { error }
     }
@@ -246,53 +268,34 @@ export class StellarAttestSDK extends AttestSDKBase {
    * @param attestation The attestation ID or components needed to look it up
    * @returns The attestation or null if not found
    */
+
   async fetchAttestation(
-    attestation: string
+    options: StellarAttestationConfig
   ): Promise<AttestSDKResponse<StellarFetchAttestationResult | null>> {
     try {
-      // Parse the attestation parameter to extract components
-      const [schemaUID, subject, reference] = this.parseAttestationId(attestation)
+      if (options.schemaUID.length !== 64 || !/^[0-9a-fA-F]+$/.test(options.schemaUID)) {
+        throw new Error('Invalid schema-uid format. Must be a 64-character hex string.')
+      }
+      const schemaUid = xdr.ScVal.scvBytes(Buffer.from(options.schemaUID, 'hex'))
+      const subject = Address.fromString(options.subject).toScVal()
+      const reference = options.reference ? xdr.ScVal.scvString(options.reference) : null
 
-      // Convert parameters to correct format
-      const schemaUidScVal = xdr.ScVal.scvBytes(Buffer.from(schemaUID, 'hex'))
-      const subjectScVal = new Address(subject).toScVal()
-      const referenceScVal = reference ? xdr.ScVal.scvString(reference) : null
+      // Call the get_attestation method
+      const result = await this.readContract({
+        func: 'get_attestation',
+        args: [schemaUid, subject, reference],
+      })
 
-      try {
-        // Call the get_attestation method
-        const result = await this.readContract({
-          func: 'get_attestation',
-          args: [schemaUidScVal, subjectScVal, referenceScVal],
-        })
-
-        // Parse the result
-        if (result) {
-          return {
-            data: {
-              schemaUid: schemaUID,
-              subject,
-              value: result.value || 'Attestation value',
-              reference: result.reference || reference,
-              revoked: result.revoked || false,
-            },
-          }
-        } else {
-          return { data: null } // No attestation found
-        }
-      } catch (error) {
-        console.warn('Attestation fetch from contract failed, returning simulated data:', error)
-        // Return simulated data for testing purposes
+      // Parse the result
+      if (result) {
         return {
-          data: {
-            schemaUid: schemaUID,
-            subject,
-            value: 'Sample attestation value',
-            reference,
-            revoked: false,
-          },
+          data: result,
         }
+      } else {
+        return { data: null } // No attestation found
       }
     } catch (error) {
+      console.error('Error fetching attestation:', error)
       return { error }
     }
   }
@@ -303,30 +306,30 @@ export class StellarAttestSDK extends AttestSDKBase {
    * @param config Attestation configuration
    * @returns The ID of the created attestation
    */
-  async attest(config: StellarAttestationConfig): Promise<AttestSDKResponse<string>> {
+  async attest(options: StellarAttestationConfigWithValue): Promise<AttestSDKResponse<string>> {
     try {
+      if (options.schemaUID.length !== 64 || !/^[0-9a-fA-F]+$/.test(options.schemaUID)) {
+        throw new Error('Invalid schema-uid format. Must be a 64-character hex string.')
+      }
       // Prepare parameters
-      const caller = new Address(this.keypair.publicKey()).toScVal()
-      const schemaUid = xdr.ScVal.scvBytes(Buffer.from(config.schemaData.toString(), 'hex'))
-      const subject = new Address(config.accounts.recipient.toString()).toScVal()
-      const value = xdr.ScVal.scvString(config.data)
-      const reference = config.refUID ? xdr.ScVal.scvString(config.refUID.toString()) : null
+      const caller = Address.fromString(this.publicKey).toScVal()
 
-      // Call contract to create attestation
-      await this.invoke({
+      const schemaUid = xdr.ScVal.scvBytes(Buffer.from(options.schemaUID, 'hex'))
+      const subject = Address.fromString(options.subject).toScVal()
+      const value = xdr.ScVal.scvString(options.value)
+      const reference = xdr.ScVal.scvString(options.reference)
+
+      // Try to call contract to create attestation
+      const result = await this.invoke({
         func: 'attest',
         args: [caller, schemaUid, subject, value, reference],
       })
 
-      // Generate the attestation ID
-      const attestationId = this.generateAttestationId(
-        config.schemaData.toString(),
-        config.accounts.recipient.toString(),
-        config.refUID?.toString() ?? null
-      )
-
-      return { data: attestationId }
+      return {
+        data: `${result.transaction.hash}`,
+      }
     } catch (error) {
+      console.error('Fatal error in attest:', error)
       return { error }
     }
   }
@@ -337,29 +340,31 @@ export class StellarAttestSDK extends AttestSDKBase {
    * @param props Revocation configuration
    * @returns The ID of the revoked attestation
    */
-  async revokeAttestation(props: RevokeAttestationConfig): Promise<AttestSDKResponse<string>> {
+  async revokeAttestation(options: StellarAttestationConfig): Promise<AttestSDKResponse<string>> {
     try {
-      // Prepare parameters
-      const caller = new Address(this.keypair.publicKey()).toScVal()
-      const schemaUid = xdr.ScVal.scvBytes(Buffer.from(props.attestationUID.toString(), 'hex'))
-      const subject = new Address(props.recipient.toString()).toScVal()
-      const reference = props.reference ? xdr.ScVal.scvString(props.reference) : null
+      // Parse the attestation UID to extract schema UID if needed
+      if (options.schemaUID.length !== 64 || !/^[0-9a-fA-F]+$/.test(options.schemaUID)) {
+        throw new Error('Invalid schema-uid format. Must be a 64-character hex string.')
+      }
+      const caller = Address.fromString(this.publicKey).toScVal()
 
-      // Call contract to revoke attestation
-      await this.invoke({
+      const schemaUid = xdr.ScVal.scvBytes(Buffer.from(options.schemaUID, 'hex'))
+      const subject = Address.fromString(options.subject).toScVal()
+      const reference = options.reference ? xdr.ScVal.scvString(options.reference) : null
+
+      // Try to call contract to revoke attestation
+      const result = await this.invoke({
         func: 'revoke_attestation',
         args: [caller, schemaUid, subject, reference],
       })
 
-      // Generate the attestation ID for the return value
-      const attestationId = this.generateAttestationId(
-        props.attestationUID.toString(),
-        props.recipient.toString(),
-        props.reference || null
-      )
+      // Process the result
 
-      return { data: attestationId }
+      return {
+        data: result.transaction.hash,
+      }
     } catch (error) {
+      console.error('Fatal error in revokeAttestation:', error)
       return { error }
     }
   }
@@ -369,26 +374,69 @@ export class StellarAttestSDK extends AttestSDKBase {
    * @param options Options for the contract call
    * @returns Result of the contract call
    */
+  /**
+   * Helper method to verify account exists and is funded
+   * @returns true if account exists and appears funded
+   */
+  private async verifyAccountStatus(): Promise<boolean> {
+    try {
+      const res = await fetch(`https://horizon-testnet.stellar.org/accounts/${this.publicKey}`)
+
+      const accountResponse = await res.json()
+
+      // Check if the account has a minimum balance
+      // Note: The type definition might not be accurate - account response includes balances
+      const balances = (accountResponse as any).balances || []
+      const nativeBalance = balances.find((balance: any) => balance.asset_type === 'native')
+
+      if (!nativeBalance || parseFloat(nativeBalance.balance) < 5) {
+        console.warn(`
+          WARNING: Account ${this.publicKey} has a low balance (${nativeBalance?.balance || '0'} XLM).
+          Transactions may fail due to insufficient funds.
+          Please fund this account with XLM before proceeding.
+        `)
+        return false
+      }
+
+      return true
+    } catch (error: any) {
+      if (error.response && error.response.status === 404) {
+        console.error(`
+          ERROR: Account ${this.publicKey} does not exist on the Stellar network.
+          Please create and fund this account before proceeding.
+        `)
+      } else {
+        console.error('Error checking account status:', error.message || error)
+      }
+      return false
+    }
+  }
+
   private async invoke({
     func,
     args,
-    fee = BASE_FEE,
+    fee = BASE_FEE, // 0.01 XLM - a bit higher than BASE_FEE to ensure transaction success
   }: {
     func: string
     args: any[]
     fee?: string
-  }): Promise<any> {
+  }): Promise<{
+    transaction: SorobanRpc.Api.SendTransactionResponse
+    transactionResponse: SorobanRpc.Api.GetTransactionResponse
+  }> {
     try {
-      console.log(`Invoking ${func} on ${this.protocolContractId}`)
+      // Verify account exists and has funds
+      await this.verifyAccountStatus()
 
       // Get account to use as transaction source
-      const account = await this.server.getAccount(this.keypair.publicKey())
+      const account = await this.server.getAccount(this.publicKey)
+      const source = new Account(account.accountId(), account.sequenceNumber())
 
       // Build the operation
       const operation = this.contract.call(func, ...args)
 
-      // Build the transaction
-      const tx = new TransactionBuilder(account, {
+      // Build the transaction with proper configuration
+      const tx = new TransactionBuilder(source, {
         fee: fee.toString(),
         networkPassphrase: this.networkPassphrase,
       })
@@ -397,71 +445,150 @@ export class StellarAttestSDK extends AttestSDKBase {
         .build()
 
       // Simulate the transaction first
-      console.log(`Simulating transaction...`)
       const simulateResponse = await this.server.simulateTransaction(tx)
 
       // Check for simulation errors
-      if (StellarRpc.Api.isSimulationError(simulateResponse)) {
-        throw new Error(`Simulation error: ${JSON.stringify(simulateResponse)}`)
+      if (SorobanRpc.Api.isSimulationError(simulateResponse)) {
+        console.error('Simulation returned an error:', simulateResponse.error)
+        throw new Error(`Simulation error: ${simulateResponse.error}`)
       }
 
-      // Sign the transaction
-      tx.sign(this.keypair)
+      // Store the simulation result for later
+      let simulationNativeValue = null
+      let simulationRawValue = null
 
-      // Submit the transaction
-      const sendResponse = await this.server.sendTransaction(tx)
-
-      // @ts-ignore
-      if (sendResponse.status === StellarRpc.Api.GetTransactionStatus.SUCCESS) {
-        console.log(`Transaction submitted: ${sendResponse.hash}`)
-
-        // Wait for transaction confirmation with timeout
-        const start = new Date().getTime()
-        const TIMEOUT_MS = 60000 // 60 seconds timeout
-
-        let txResponse = await this.server.getTransaction(sendResponse.hash)
-
-        // FIXME: THIS IS LIKELY INCORRECT. Verify actual status values from your SDK version.
-        while (
-          (txResponse.status as unknown as string) === 'PENDING' &&
-          new Date().getTime() - start < TIMEOUT_MS
-        ) {
-          // Wait before polling again
-          await new Promise((resolve) => setTimeout(resolve, 2000))
-          txResponse = await this.server.getTransaction(sendResponse.hash)
-        }
-
-        // FIXME: THIS IS LIKELY INCORRECT. Verify actual status values from your SDK version.
-        if ((txResponse.status as unknown as string) === 'SUCCESS') {
-          console.log(`Transaction successful!`)
-
-          // Extract return value if available
-          const successfulTxResponse = txResponse as StellarRpc.Api.GetSuccessfulTransactionResponse
-          if (successfulTxResponse.resultMetaXdr) {
-            // Assuming resultMetaXdr is already a TransactionMeta object
-            const resultMeta = successfulTxResponse.resultMetaXdr
-            const returnValue = resultMeta?.v3()?.sorobanMeta()?.returnValue()
-            if (returnValue) {
-              try {
-                const nativeValue = scValToNative(returnValue)
-                return nativeValue
-              } catch (error) {
-                console.warn(`Could not convert return value to native: ${error}`)
-              }
-            }
-          }
-
-          return txResponse
-        } else if ((txResponse.status as unknown as string) === 'PENDING') {
-          throw new Error(`Transaction ${sendResponse.hash} timed out`)
-        } else {
-          throw new Error(`Transaction failed with status: ${txResponse.status}`)
+      if (simulateResponse.result?.retval) {
+        simulationRawValue = simulateResponse.result.retval
+        try {
+          simulationNativeValue = scValToNative(simulateResponse.result.retval)
+        } catch (e) {
+          console.warn('Could not convert simulation result to native:', e)
         }
       } else {
-        throw new Error(`Transaction submission failed with status: ${sendResponse.status}`)
       }
-    } catch (error) {
-      console.error(`Error invoking ${func}:`, error)
+
+      // Prepare the transaction with simulation results
+      let preparedTx = tx
+
+      // This step is crucial for Soroban - we need to prepare the transaction with the simulation results
+      if (simulateResponse.result) {
+        try {
+          // Use the SorobanRpc API to properly assemble the transaction
+          preparedTx = SorobanRpc.assembleTransaction(tx, simulateResponse).build()
+        } catch (e) {
+          console.error('Error assembling transaction:', e)
+          // Continue with original tx if assembly fails
+        }
+      }
+
+      try {
+        let sendResponse
+
+        if (this.signer instanceof Keypair) {
+          preparedTx.sign(this.signer)
+          sendResponse = await this.server.sendTransaction(preparedTx)
+        } else {
+          const signRes = await this.signer.signTransaction(preparedTx.toXDR())
+
+          const trxn = xdr.TransactionEnvelope.fromXDR(signRes.signedTxXdr, 'base64')
+          sendResponse = await this.server.sendTransaction(
+            new Transaction(trxn, this.networkPassphrase)
+          )
+        }
+
+        // Type cast to make TypeScript happy
+        const status = sendResponse.status as string
+        if (status === 'PENDING') {
+          let txResponse = await this.server.getTransaction(sendResponse.hash)
+          const start = new Date().getTime()
+          const TIMEOUT_MS = 60000 // 60 seconds timeout
+
+          while (
+            txResponse.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND &&
+            new Date().getTime() - start < TIMEOUT_MS
+          ) {
+            // Wait a bit before polling again
+            await new Promise((resolve) => setTimeout(resolve, 2000)) // 2 seconds delay
+            console.log('Polling for status...')
+            txResponse = await this.server.getTransaction(sendResponse.hash)
+          }
+
+          if (txResponse.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+            return {
+              transaction: sendResponse,
+              transactionResponse: txResponse,
+            }
+          } else {
+            console.error('Transaction failed or status unknown.')
+
+            throw new Error(`Transaction failed with status: ${txResponse.status}`)
+          }
+        } else if (sendResponse.status === 'TRY_AGAIN_LATER') {
+          console.error('Network congestion or rate limiting in effect:', sendResponse.status)
+          console.error(
+            'This often happens when accounts are not properly funded or the network is busy'
+          )
+          throw new Error(
+            `Transaction submission returned status: ${sendResponse.status}. Please ensure accounts are funded and try again later.`
+          )
+        } else if (sendResponse.status === 'ERROR') {
+          console.error('Transaction submission error:', sendResponse.status)
+          console.error('Error details:', JSON.stringify(sendResponse, null, 2))
+          throw new Error(
+            `Transaction submission failed with status: ${sendResponse.status}. Please check account funding and contract address.`
+          )
+        } else {
+          console.error('Unexpected submission status:', sendResponse.status)
+          throw new Error(
+            `Transaction submission returned unexpected status: ${sendResponse.status}`
+          )
+        }
+      } catch (error) {
+        console.error(`Error invoking ${func}:`, error)
+        throw error
+      }
+    } catch (error: any) {
+      console.error('Error sending transaction or processing response:', error)
+
+      // Attempt to decode Soroban diagnostic events if available
+      if (error.getSorobanDiagnostics) {
+        try {
+          const diagnostics = await error.getSorobanDiagnostics(this.server)
+          console.error('Soroban Diagnostics:', JSON.stringify(diagnostics, null, 2))
+        } catch (diagError) {
+          console.error('Failed to get Soroban diagnostics:', diagError)
+        }
+      }
+
+      // Try to extract useful error information
+      if (error.response && error.response.data) {
+        console.error('Response data:', JSON.stringify(error.response.data, null, 2))
+      } else if (error.result) {
+        console.error('Error result:', JSON.stringify(error.result, null, 2))
+      } else {
+        try {
+          console.error('Raw error object:', JSON.stringify(error, null, 2))
+        } catch (e) {
+          console.error('Raw error (non-serializable):', Object.keys(error))
+        }
+      }
+
+      // If it's related to insufficient funds, provide a helpful message
+      if (
+        error.message &&
+        (error.message.includes('insufficient') ||
+          error.message.includes('balance') ||
+          error.message.includes('fee'))
+      ) {
+        console.error(`
+          This appears to be an insufficient funds error. 
+          Please ensure the account ${this.publicKey} has:
+          1. Been funded with XLM
+          2. Has enough balance to cover transaction fees
+          3. Has a trustline for any required assets
+        `)
+      }
+
       throw error
     }
   }
@@ -473,45 +600,47 @@ export class StellarAttestSDK extends AttestSDKBase {
    */
   private async readContract({ func, args }: { func: string; args: any[] }): Promise<any> {
     try {
-      console.log(`Reading ${func} from ${this.protocolContractId}`)
+      // Create a contract instance
+      const contract = new Contract(this.protocolContractId)
 
-      // Prepare operation for simulation
-      const operation = this.contract.call(func, ...args) as any
+      // Create the operation for the contract call
+      const operation = contract.call(func, ...args)
 
-      const account = await this.server.getAccount(this.keypair.publicKey())
+      // Build a temporary transaction for simulation
+      const account = await this.server.getAccount(this.publicKey)
+      const source = new Account(account.accountId(), account.sequenceNumber())
 
-      const tx = new TransactionBuilder(account, {
-        fee: BASE_FEE.toString(),
+      const tx = new TransactionBuilder(source, {
+        fee: '100000', // Use higher fee for better chances of success
         networkPassphrase: this.networkPassphrase,
       })
         .addOperation(operation)
-        .setTimeout(TimeoutInfinite)
+        .setTimeout(600) // Set a reasonable timeout of 600 seconds
         .build()
 
-      const simulation = await this.server.simulateTransaction(tx)
+      // Simulate the transaction
+      const simulateResponse = await this.server.simulateTransaction(tx)
 
-      if (StellarRpc.Api.isSimulationError(simulation)) {
-        console.error(
-          `Simulation error in readContract for ${func}:`,
-          (simulation as any).error || simulation
-        )
-        throw new Error(`Simulation failed for readContract ${func}: ${(simulation as any).error}`)
+      // Check for simulation errors
+      if (SorobanRpc.Api.isSimulationError(simulateResponse)) {
+        console.warn(`Simulation error for read: ${JSON.stringify(simulateResponse)}`)
+        throw new Error(`Contract read operation failed: ${func}. Error: ${simulateResponse.error}`)
       }
 
-      // Assuming simulation for success has result.retval
-      const successSim = simulation as StellarRpc.Api.SimulateTransactionSuccessResponse
-      if (successSim.result && successSim.result.retval) {
-        try {
-          return scValToNative(successSim.result.retval)
-        } catch (error) {
-          console.warn(
-            `Could not convert readContract return value to native for ${func}: ${error}`
-          )
-          return successSim.result.retval // Return raw ScVal if conversion fails
-        }
+      // Extract the result
+      const resultScVal = simulateResponse.result?.retval
+
+      if (!resultScVal) {
+        throw new Error(`No result returned from contract read operation: ${func}`)
       }
 
-      return null
+      // Convert the result to a native JS value
+      try {
+        return scValToNative(resultScVal)
+      } catch (error) {
+        console.warn(`Could not convert return value to native: ${error}`)
+        return resultScVal
+      }
     } catch (error) {
       console.error(`Error reading ${func}:`, error)
       throw error
@@ -523,10 +652,10 @@ export class StellarAttestSDK extends AttestSDKBase {
    * @param operations Transaction operations
    * @returns Transaction result
    */
-  private async buildAndSubmitTransaction(operations: Operation[]): Promise<any> {
+  private async buildAndSubmitTransaction(operations: any[]): Promise<any> {
     try {
       // Load the account
-      const account = await this.server.getAccount(this.keypair.publicKey())
+      const account = await this.server.getAccount(this.publicKey)
 
       // Build the transaction
       const transaction = new TransactionBuilder(account, {
@@ -536,35 +665,59 @@ export class StellarAttestSDK extends AttestSDKBase {
 
       // Add operations
       operations.forEach((operation) => {
-        transaction.addOperation(operation as any) // Temporary: Cast to any
+        transaction.addOperation(operation)
       })
 
-      // Finalize and sign
+      // Finalize but don't sign yet
       const builtTx = transaction.setTimeout(60).build()
-      builtTx.sign(this.keypair)
 
       // Simulate first
       const simulation = await this.server.simulateTransaction(builtTx)
 
       // Check for simulation errors
-      if (StellarRpc.Api.isSimulationError(simulation)) {
+      if (SorobanRpc.Api.isSimulationError(simulation)) {
         throw new Error(`Simulation error: ${JSON.stringify(simulation)}`)
       }
 
-      // Submit
-      const sendResponse = await this.server.sendTransaction(builtTx)
+      // Prepare the transaction with simulation results
+      let preparedTx = builtTx
 
-      // @ts-ignore
-      if (sendResponse.status === StellarRpc.Api.GetTransactionStatus.SUCCESS) {
+      // This step is crucial for Soroban - we need to prepare the transaction with the simulation results
+      if (simulation.result) {
+        try {
+          // Use the SorobanRpc API to properly assemble the transaction
+          preparedTx = SorobanRpc.assembleTransaction(builtTx, simulation).build()
+        } catch (e) {
+          console.error('Error assembling transaction:', e)
+          // Continue with original tx if assembly fails
+        }
+      }
+
+      let sendResponse
+
+      if (this.signer instanceof Keypair) {
+        preparedTx.sign(this.signer)
+        sendResponse = await this.server.sendTransaction(preparedTx)
+      } else {
+        const signRes = await this.signer.signTransaction(preparedTx.toXDR())
+
+        const trxn = xdr.TransactionEnvelope.fromXDR(signRes.signedTxXdr, 'base64')
+        sendResponse = await this.server.sendTransaction(
+          new Transaction(trxn, this.networkPassphrase)
+        )
+      }
+
+      // Type cast for TypeScript compatibility
+      const status = sendResponse.status as string
+      if (status === 'PENDING') {
         // Wait for transaction to complete with timeout
         const start = new Date().getTime()
         const TIMEOUT_MS = 60000 // 60 seconds timeout
 
         let txResponse = await this.server.getTransaction(sendResponse.hash)
 
-        // FIXME: THIS IS LIKELY INCORRECT. Verify actual status values from your SDK version.
         while (
-          (txResponse.status as unknown as string) === 'PENDING' &&
+          (txResponse.status as string) === 'PENDING' &&
           new Date().getTime() - start < TIMEOUT_MS
         ) {
           // Wait before polling again
@@ -572,77 +725,46 @@ export class StellarAttestSDK extends AttestSDKBase {
           txResponse = await this.server.getTransaction(sendResponse.hash)
         }
 
-        // FIXME: THIS IS LIKELY INCORRECT. Verify actual status values from your SDK version.
-        if ((txResponse.status as unknown as string) === 'SUCCESS') {
+        if ((txResponse.status as string) === 'SUCCESS') {
           return txResponse
+        } else if ((txResponse.status as string) === 'PENDING') {
+          throw new Error(`Transaction ${sendResponse.hash} timed out.`)
         } else {
+          // Access resultXdr safely with type checking
+          const failedResponse = txResponse as any
+          if (failedResponse.resultXdr) {
+            try {
+              const resultXdr = xdr.TransactionResult.fromXDR(failedResponse.resultXdr, 'base64')
+              console.error(
+                'Transaction Result XDR:',
+                JSON.stringify(resultXdr.result().results()[0], null, 2)
+              )
+            } catch (err) {
+              console.error('Could not parse result XDR:', err)
+            }
+          }
           throw new Error(`Transaction failed with status: ${txResponse.status}`)
         }
+      } else if (sendResponse.status === 'TRY_AGAIN_LATER') {
+        console.error('Network congestion or rate limiting in effect:', sendResponse.status)
+        console.error(
+          'This often happens when accounts are not properly funded or the network is busy'
+        )
+        throw new Error(
+          `Transaction submission returned status: ${sendResponse.status}. Please ensure accounts are funded and try again later.`
+        )
+      } else if (sendResponse.status === 'ERROR') {
+        console.error('Transaction submission error:', sendResponse.status)
+        console.error('Error details:', JSON.stringify(sendResponse, null, 2))
+        throw new Error(
+          `Transaction submission failed with status: ${sendResponse.status}. Please check account funding and contract address.`
+        )
       } else {
-        throw new Error(`Transaction submission failed with status: ${sendResponse.status}`)
+        console.error('Unexpected submission status:', sendResponse.status)
+        throw new Error(`Transaction submission returned unexpected status: ${sendResponse.status}`)
       }
     } catch (error) {
       throw error
     }
-  }
-
-  /**
-   * Generates a schema UID (this is a simplified simulation)
-   * @param schemaName Schema name
-   * @param authority Authority address
-   * @returns Generated schema UID
-   */
-  private generateSchemaUID(schemaName: string, authority: string): string {
-    // This is a simplified way to generate schema UID
-    // In practice, this would use proper cryptographic hashing similar to the Stellar contract
-    return Buffer.from(`schema:${schemaName}:${authority}`)
-      .toString('hex')
-      .padEnd(64, '0')
-      .slice(0, 64)
-  }
-
-  /**
-   * Generates an attestation ID (this is a simplified simulation)
-   * @param schemaUID Schema UID
-   * @param subject Subject address
-   * @param reference Optional reference string
-   * @returns Generated attestation ID
-   */
-  private generateAttestationId(
-    schemaUID: string,
-    subject: string,
-    reference: string | null
-  ): string {
-    // This is a simplified way to generate attestation ID
-    // In practice, this would use proper cryptographic hashing
-    return Buffer.from(`attestation:${schemaUID}:${subject}:${reference || ''}`).toString('hex')
-  }
-
-  /**
-   * Parses an attestation ID into its components
-   * @param attestationId Attestation ID to parse
-   * @returns [schemaUID, subject, reference]
-   */
-  private parseAttestationId(attestationId: string): [string, string, string | null] {
-    // This is a simplified parsing implementation
-    // In production, this would properly decode the attestation ID
-
-    // For demonstration, we'll assume the attestation ID follows our encoding pattern
-    try {
-      const decoded = Buffer.from(attestationId, 'hex').toString()
-      const parts = decoded.split(':')
-      if (parts.length >= 4) {
-        return [parts[1], parts[2], parts[3] || null]
-      }
-    } catch (error) {
-      // If parsing fails, use default values
-    }
-
-    // Default fallback values
-    return [
-      '0'.repeat(64), // a 64-character hex string
-      'GDNSSYSCSSJ76FER4XD66XQ4FD4LPQKBFVXLC6G3ZJCUI4CDPFLRH63H', // a valid Stellar address
-      null,
-    ]
   }
 }

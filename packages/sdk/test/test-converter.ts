@@ -1,20 +1,39 @@
-const dataTypesMap: Record<string, string> = {
-  b: 'bool',
-  c: 'char',
-  s: 'string',
-  by: 'byte',
-  i8: 'int8',
-  i16: 'int16',
-  i32: 'int32',
-  i64: 'int64',
-  u8: 'uint8',
-  u16: 'uint16',
-  u32: 'uint32',
-  u64: 'uint64',
-  f: 'float',
-  d: 'double',
-  dt: 'datetime',
-  ts: 'timestamp',
+enum DataTypes {
+  Bool = 'bool',
+  Char = 'char',
+  String = 'string',
+  Byte = 'byte',
+  Int8 = 'int8',
+  Int16 = 'int16',
+  Int32 = 'int32',
+  Int64 = 'int64',
+  Uint8 = 'uint8',
+  Uint16 = 'uint16',
+  Uint32 = 'uint32',
+  Uint64 = 'uint64',
+  Float = 'float',
+  Double = 'double',
+  DateTime = 'datetime',
+  Timestamp = 'timestamp',
+}
+
+const dataTypesMap: Record<string, DataTypes> = {
+  b: DataTypes.Bool,
+  c: DataTypes.Char,
+  s: DataTypes.String,
+  by: DataTypes.Byte,
+  i8: DataTypes.Int8,
+  i16: DataTypes.Int16,
+  i32: DataTypes.Int32,
+  i64: DataTypes.Int64,
+  u8: DataTypes.Uint8,
+  u16: DataTypes.Uint16,
+  u32: DataTypes.Uint32,
+  u64: DataTypes.Uint64,
+  f: DataTypes.Float,
+  d: DataTypes.Double,
+  dt: DataTypes.DateTime,
+  ts: DataTypes.Timestamp,
 }
 
 // Reverse the mapping for full-to-short conversion
@@ -27,7 +46,7 @@ const reverseDataTypesMap = Object.fromEntries(
  * @param obj The object to convert.
  * @returns A compressed string representation of the object.
  */
-function convertToString(obj: Record<string, string>): string {
+function convertToString(obj: Record<string, DataTypes>): string {
   return Object.entries(obj)
     .map(([key, value]) => `${reverseDataTypesMap[value] || value} ${key}`)
     .join(', ')
@@ -49,10 +68,10 @@ function convertToObject(str: string): Record<string, string> {
 
 // Example Usage
 const exampleObject = {
-  'name dsd': 'string',
-  age: 'int32',
-  5: 'bool',
-  createdAt: 'datetime',
+  'name dsd': DataTypes.String,
+  age: DataTypes.Int32,
+  5: DataTypes.Bool,
+  createdAt: DataTypes.DateTime,
 }
 
 const compressed = convertToString(exampleObject)

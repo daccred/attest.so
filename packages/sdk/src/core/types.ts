@@ -42,14 +42,19 @@ export interface StarknetConfig extends ChainConfig {
   contractAddress?: string
 }
 
+export interface StellarCustomSigner {
+  signTransaction: (xdr: string) => Promise<{
+    signedTxXdr: string
+    signerAddress?: string
+  }>
+}
+
 /**
  * Stellar-specific configuration
  */
 export interface StellarConfig extends ChainConfig {
-  secretKey: string
-  networkPassphrase?: string
-  protocolContractId?: string
-  authorityContractId?: string
+  secretKeyOrCustomSigner: string | StellarCustomSigner
+  publicKey: string
 }
 
 /**
@@ -72,6 +77,13 @@ export interface SchemaConfig {
   levy?: LevyConfig | null
 }
 
+export interface StellarSchemaConfig {
+  schemaName: string
+  schemaContent: string
+  resolverAddress?: string
+  revocable?: boolean
+}
+
 /**
  * Configuration for creating an attestation
  */
@@ -89,14 +101,14 @@ export interface AttestationConfig {
 }
 
 export interface StellarAttestationConfig {
-  schemaData: string
-  data: string
-  refUID?: string | null
-  expirationTime?: number | null
-  revocable?: boolean
-  accounts: {
-    recipient: string
-  }
+  schemaUID: string
+  subject: string
+  reference?: string
+}
+
+export interface StellarAttestationConfigWithValue extends StellarAttestationConfig {
+  value: string
+  reference: string
 }
 
 export interface SolanaFetchAuthorityResult {
@@ -154,6 +166,11 @@ export interface StellarFetchSchemaResult {
   authority: string
   revocable: boolean
   resolver: string | null
+}
+
+export interface StellarCreateSchemaResult {
+  schemaUID: string
+  hash: string
 }
 
 /**
