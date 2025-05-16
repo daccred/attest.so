@@ -19,12 +19,13 @@ import {
   Keypair,
   Networks,
   xdr,
-  SorobanRpc,
+  Soroban,
   BASE_FEE,
   TimeoutInfinite,
   scValToNative,
   Account,
   Transaction,
+  rpc
 } from '@stellar/stellar-sdk'
 
 // Default contract addresses
@@ -35,7 +36,7 @@ const AUTHORITY_CONTRACT_ID = 'CDQREK6BTPEVD4O56XR6TKLEEMNYTRJUG466J2ERNE5POIEKN
  * Stellar implementation of the Attest SDK
  */
 export class StellarAttestSDK extends AttestSDKBase {
-  private server: SorobanRpc.Server
+  private server: rpc.Server
   // private keypair: Keypair
   private publicKey: string = ''
   private networkPassphrase: string
@@ -53,7 +54,7 @@ export class StellarAttestSDK extends AttestSDKBase {
 
     // Initialize Stellar SDK
     const defaultUrl = 'https://soroban-testnet.stellar.org'
-    this.server = new SorobanRpc.Server(config.url ?? defaultUrl, {
+    this.server = new rpc.Server(config.url ?? defaultUrl, {
       allowHttp: (config.url ?? defaultUrl).startsWith('http://'),
     })
 
@@ -175,7 +176,7 @@ export class StellarAttestSDK extends AttestSDKBase {
       const txResponse = await this.server.getTransaction(schemaUID)
 
       // Verify we got a proper response
-      if (!txResponse || txResponse.status !== SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+      if (!txResponse || txResponse.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
         return { data: null }
       }
 
@@ -421,8 +422,8 @@ export class StellarAttestSDK extends AttestSDKBase {
     args: any[]
     fee?: string
   }): Promise<{
-    transaction: SorobanRpc.Api.SendTransactionResponse
-    transactionResponse: SorobanRpc.Api.GetTransactionResponse
+    transaction: rpc.Api.SendTransactionResponse
+    transactionResponse: rpc.Api.GetTransactionResponse
   }> {
     try {
       // Verify account exists and has funds
@@ -448,7 +449,7 @@ export class StellarAttestSDK extends AttestSDKBase {
       const simulateResponse = await this.server.simulateTransaction(tx)
 
       // Check for simulation errors
-      if (SorobanRpc.Api.isSimulationError(simulateResponse)) {
+      if (rpc.Api.isSimulationError(simulateResponse)) {
         console.error('Simulation returned an error:', simulateResponse.error)
         throw new Error(`Simulation error: ${simulateResponse.error}`)
       }
@@ -474,7 +475,7 @@ export class StellarAttestSDK extends AttestSDKBase {
       if (simulateResponse.result) {
         try {
           // Use the SorobanRpc API to properly assemble the transaction
-          preparedTx = SorobanRpc.assembleTransaction(tx, simulateResponse).build()
+          preparedTx = rpc.assembleTransaction(tx, simulateResponse).build()
         } catch (e) {
           console.error('Error assembling transaction:', e)
           // Continue with original tx if assembly fails
@@ -504,7 +505,7 @@ export class StellarAttestSDK extends AttestSDKBase {
           const TIMEOUT_MS = 60000 // 60 seconds timeout
 
           while (
-            txResponse.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND &&
+            txResponse.status === rpc.Api.GetTransactionStatus.NOT_FOUND &&
             new Date().getTime() - start < TIMEOUT_MS
           ) {
             // Wait a bit before polling again
@@ -513,7 +514,7 @@ export class StellarAttestSDK extends AttestSDKBase {
             txResponse = await this.server.getTransaction(sendResponse.hash)
           }
 
-          if (txResponse.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+          if (txResponse.status === rpc.Api.GetTransactionStatus.SUCCESS) {
             return {
               transaction: sendResponse,
               transactionResponse: txResponse,
@@ -622,7 +623,7 @@ export class StellarAttestSDK extends AttestSDKBase {
       const simulateResponse = await this.server.simulateTransaction(tx)
 
       // Check for simulation errors
-      if (SorobanRpc.Api.isSimulationError(simulateResponse)) {
+      if (rpc.Api.isSimulationError(simulateResponse)) {
         console.warn(`Simulation error for read: ${JSON.stringify(simulateResponse)}`)
         throw new Error(`Contract read operation failed: ${func}. Error: ${simulateResponse.error}`)
       }
@@ -675,7 +676,7 @@ export class StellarAttestSDK extends AttestSDKBase {
       const simulation = await this.server.simulateTransaction(builtTx)
 
       // Check for simulation errors
-      if (SorobanRpc.Api.isSimulationError(simulation)) {
+      if (rpc.Api.isSimulationError(simulation)) {
         throw new Error(`Simulation error: ${JSON.stringify(simulation)}`)
       }
 
@@ -686,7 +687,7 @@ export class StellarAttestSDK extends AttestSDKBase {
       if (simulation.result) {
         try {
           // Use the SorobanRpc API to properly assemble the transaction
-          preparedTx = SorobanRpc.assembleTransaction(builtTx, simulation).build()
+          preparedTx = rpc.assembleTransaction(builtTx, simulation).build()
         } catch (e) {
           console.error('Error assembling transaction:', e)
           // Continue with original tx if assembly fails
