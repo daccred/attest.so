@@ -1,6 +1,6 @@
 {
   "name": "@attestprotocol/sdk",
-  "version": "0.0.3",
+  "version": "1.3.0",
   "private": false,
   "description": "`npm run build`",
   "main": "dist/main/index.js",
