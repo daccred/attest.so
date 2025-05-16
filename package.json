@@ -19,7 +19,15 @@
     "semantic-release": "semantic-release",
     "release-it": "npx release-it"
   },
-  "keywords": ["monorepo", "pnpm", "stellar", "soroban", "solana", "attest", "attestation-service"],
+  "keywords": [
+    "monorepo",
+    "pnpm",
+    "stellar",
+    "soroban",
+    "solana",
+    "attest",
+    "attestation-service"
+  ],
   "author": "Andrew Miracle <andrew@daccred.co>",
   "devDependencies": {
     "@commitlint/cli": "^18.6.1",
@@ -31,5 +39,5 @@
     "dotenv": "^16.4.5",
     "semantic-release": "^24.2.3"
   },
-  "version": "1.2.0"
+  "version": "1.3.0"
 }
