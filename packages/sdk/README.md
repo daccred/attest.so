@@ -1,94 +1,145 @@
 # AttestSDK
 
-AttestSDK is a JavaScript library for interacting with the Attest API, enabling easy management of schemas within the Solana blockchain.
+AttestSDK is a JavaScript library for creating and managing attestations across multiple blockchains, currently supporting Solana and Stellar networks.
 
 ## Installation
-
-You can install the package via npm:
 
 ```bash
 npm install @attestprotocol/sdk
 ```
 
+## Supported Chains
+
+The SDK currently supports:
+
+- **Solana** - Full support for creating schemas and attestations
+- **Stellar** - Support for Soroban smart contracts
+
 ## Usage
 
-To use the SDK, you need to import it and create an instance of the `AttestSDK` class:
+### Solana Usage
 
 ```ts
-import AttestSDK from '@attestprotocol/sdk'
+import { AttestSDK } from '@attestprotocol/sdk'
+import * as anchor from '@coral-xyz/anchor'
 
 async function run() {
-  const secretKey = [
-    /* your secret key here */
-  ]
-
+  // Initialize with secret key or wallet
+  const secretKey = [ /* your secret key here */ ]
+  
   const client = await AttestSDK.initializeSolana({
-    url,
-    walletOrSecretKey: secretKey,
+    url: 'https://api.devnet.solana.com', // or your RPC endpoint
+    walletOrSecretKey: secretKey, // or a wallet adapter
   })
 
-  const { data: schema, error: schemaError } = await client.createSchema({
-    schemaName: 'test-schema',
+  // Register as an authority (if needed)
+  const { data: authority } = await client.registerAuthority()
+  
+  // Create a schema
+  const { data: schema } = await client.createSchema({
+    schemaName: 'user-verification',
     schemaContent: 'string name, string email, uint8 verification_level',
     revocable: true,
     levy: {
       amount: new anchor.BN(10),
-      asset: mintAcount,
-      recipient: authorityKeypair.publicKey,
+      asset: mintAccount, // SPL token mint account
+      recipient: authorityPublicKey,
     },
   })
 
-  console.log({ schema })
-
-  const fetchSchema = await client.fetchSchema(schema!)
-
-  console.log({ fetchSchema })
+  // Fetch schema details
+  const { data: schemaDetails } = await client.fetchSchema(schema)
+  
+  // Create an attestation
+  const { data: attestation } = await client.attest({
+    schemaData: schema,
+    data: 'User attestation data',
+    revocable: true,
+    accounts: {
+      recipient: recipientPublicKey,
+      levyReceipent: levyRecipientPublicKey,
+      mintAccount: mintAccount,
+    },
+  })
+  
+  // Fetch attestation details
+  const { data: attestationDetails } = await client.fetchAttestation(attestation)
+  
+  // Revoke an attestation
+  const { data: revokedAttestation } = await client.revokeAttestation({
+    attestationUID: attestation,
+    recipient: recipientPublicKey,
+  })
 }
-
-run()
 ```
 
-## Features
+### Stellar Usage
 
-- **Register Schema:** Register a new schema with a name and content.
-- **Fetch Schema:** Retrieve an existing schema by its ID.
-- **Create Attestation:** Create an attestation based on a schema.
-- **Revoke Attestation:** Revoke an attestation.
+```ts
+import { AttestSDK } from '@attestprotocol/sdk'
+import * as StellarSdk from '@stellar/stellar-sdk'
 
-## Running Tests
-
-### Solana Tests
-```bash
-yarn test-solana
+async function run() {
+  // Create a keypair or use an existing one
+  const keypair = StellarSdk.Keypair.fromSecret('YOUR_STELLAR_SECRET_KEY')
+  
+  const client = await AttestSDK.initializeStellar({
+    secretKeyOrCustomSigner: keypair.secret(), // or a custom signer
+    publicKey: keypair.publicKey(),
+  })
+  
+  // Create a schema
+  const { data: schema } = await client.createSchema({
+    schemaName: 'identity-schema',
+    schemaContent: 'IdentitySchema(Name=string, Age=u32, Address=string)',
+    revocable: true,
+  })
+  
+  // Create an attestation
+  const attestData = {
+    schemaUID: schema.schemaUID,
+    subject: recipientPublicKey,
+    value: JSON.stringify({
+      Name: 'John Doe',
+      Age: 30,
+      Address: '123 Main St'
+    }),
+    reference: 'reference-id-12345'
+  }
+  
+  const { data: attestation } = await client.attest(attestData)
+  
+  // Fetch the attestation
+  const { data: fetchedAttestation } = await client.fetchAttestation(attestData)
+  
+  // Revoke the attestation
+  const { data: revokedAttestation } = await client.revokeAttestation(attestData)
+}
 ```
 
-### Stellar Tests
-Stellar tests require funded accounts on the Stellar Testnet and access to deployed Soroban contracts. Before running the tests:
+## API Reference
 
-1. Fund the test accounts using the Stellar Friendbot:
-   - Authority Account: https://friendbot.stellar.org/?addr=GBULAMIEKTTBKNV44XSC3SQZ7P2YU5BTBZI3WG3ZDYBPIH7N74D3SXAA
-   - Recipient Account: https://friendbot.stellar.org/?addr=GCBG6NXX3TNAYFSJMJ6XZWJOZHIUSEHIXTTZ3HHRVPWLBIH427OYGZ4C
+### Common Methods
 
-2. Verify contract deployment:
-   - The default Protocol Contract ID is: CBPL7XR7NNPTNSIIFWQMWLSCX3B3MM36UYX4TW3QXJKTIEA6KDLRYAQP
-   - The default Authority Contract ID is: CDQREK6BTPEVD4O56XR6TKLEEMNYTRJUG466J2ERNE5POIEKN2N6O7EL
-   - You can override these addresses using command-line arguments (see below)
+All chains implement these core methods:
 
-3. Run the tests:
-```bash
-yarn test-stellar
-```
+- `fetchAuthority()` - Get the authority record
+- `registerAuthority()` - Register as an authority
+- `createSchema()` - Create a new schema
+- `fetchSchema()` - Fetch schema details
+- `attest()` - Create a new attestation
+- `fetchAttestation()` - Fetch attestation details
+- `revokeAttestation()` - Revoke an attestation
 
-Command-line options:
-- `--force-continue`: Bypass the funding check (test will likely fail with unfunded accounts)
-- `--protocol=<address>`: Override the protocol contract address
-- `--authority=<address>`: Override the authority contract address
-- `--token=<address>`: Set a token contract address for authority initialization
-- `--testnet`: Specify that you're using the Stellar testnet
+### Solana-specific Methods
 
-```bash
-# Example with custom contracts
-yarn test-stellar -- --protocol=CBFL7XR7NNPTNSIIFWQMWLSCX3B3MM36UYX4TW3QXJKTIEA6KDLRYAQZ --authority=CDQR4K6BTPEVD4O56XR6TKLEEMNYTRJUG466J2ERNE5POIEKN2N6O7EM
-```
+- `getWalletBalance()` - Get the balance of the connected wallet
 
+### Stellar-specific Methods
 
+- `initialize()` - Initialize the protocol contract
+- `initializeAuthority()` - Initialize the authority resolver contract
+
+## License
+
+MIT
