@@ -1,6 +1,6 @@
 {
   "name": "attestprotocol",
-  "private": true,
+  "private": "false",
   "workspaces": [
     "packages/*",
     "contracts/stellar/*",

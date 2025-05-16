@@ -1,7 +1,6 @@
 {
-  "name": "@attestso/solana-attestation-service",
+  "name": "@attestprotocol/solana-attestation-service",
   "license": "ISC",
-  "private": true,
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
