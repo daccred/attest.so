@@ -4,7 +4,6 @@ import { SolanaAttestSDK } from './core/solana'
 import { StellarAttestSDK } from './core/stellar'
 // import { StarknetAttestSDK } from './core/starknet'
 
-
 export * from './core/types'
 export * from './core/stellar'
 export * from './core/solana'
@@ -15,11 +14,20 @@ export * from './core/solana'
  * Factory function to create the appropriate AttestSDKBase implementation
  * based on the provided configuration
  */
-export default class AttestSDK {
+export class AttestSDK {
   static async initializeStellar(config: StellarConfig): Promise<StellarAttestSDK> {
     const stellarClient = new StellarAttestSDK(config)
-    // Initialize will return an AttestSDKResponse<void>
-    await stellarClient.initialize()
+    // try {
+    //   // Initialize will return an AttestSDKResponse<void>
+    //   const result = await stellarClient.initialize()
+    //   if (result.error) {
+    //     console.warn("Initialization completed with warnings:", result.error)
+    //     // Continue anyway since some errors might be recoverable
+    //   }
+    // } catch (error) {
+    //   console.error("Fatal error during Stellar SDK initialization:", error)
+    //   throw error
+    // }
     return stellarClient
   }
   static async initializeSolana(config: SolanaConfig): Promise<SolanaAttestSDK> {

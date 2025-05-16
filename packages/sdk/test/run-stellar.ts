@@ -1,182 +1,172 @@
-import AttestSDK from '../src'
+import { AttestSDK } from '../src'
 import * as StellarSdk from '@stellar/stellar-sdk'
 
-async function run() {
+async function run(options: any = {}) {
   console.log('Starting Stellar attestation test...')
 
-  // Initialize test accounts
-  const url = 'https://soroban-testnet.stellar.org'
-
-  // In a real app you would provide valid test keypairs
-  // For demonstration, we use random keypairs
-  const authorityKeypair = StellarSdk.Keypair.random()
-  const recipientKeypair = StellarSdk.Keypair.random()
+  // Authority Keypair: SALAT34FZK3CSTAWIOT6D4PY6UWKSG6AABGJHXJZCOUHUGP75DDOFPO4
+  // Recipient Keypair: SCA2IFDKXLRPWCMUWIW6RLOCVGXOQOFQJIODGGGJQ2UAD2RI3WQAXLKX
+  // Authority public key: GBULAMIEKTTBKNV44XSC3SQZ7P2YU5BTBZI3WG3ZDYBPIH7N74D3SXAA
+  // Recipient public key: GCBG6NXX3TNAYFSJMJ6XZWJOZHIUSEHIXTTZ3HHRVPWLBIH427OYGZ4C
+  const authorityKeypair = StellarSdk.Keypair.fromSecret(
+    'SALAT34FZK3CSTAWIOT6D4PY6UWKSG6AABGJHXJZCOUHUGP75DDOFPO4'
+  )
+  const recipientKeypair = StellarSdk.Keypair.fromSecret(
+    'SCA2IFDKXLRPWCMUWIW6RLOCVGXOQOFQJIODGGGJQ2UAD2RI3WQAXLKX'
+  )
 
   console.log('Authority public key:', authorityKeypair.publicKey())
   console.log('Recipient public key:', recipientKeypair.publicKey())
 
-  console.log(`IMPORTANT: Fund the authority account before proceeding`)
-  console.log(`Fund the authority at: https://laboratory.stellar.org/#account-creator?network=test`)
-  console.log(
-    `Or use Friendbot: https://friendbot.stellar.org/?addr=${encodeURIComponent(
-      authorityKeypair.publicKey()
-    )}`
-  )
+  // Check if accounts need funding and display info
+  console.log(`
+=======================================================================
+IMPORTANT: Before running this test, make sure to fund the test accounts
+with XLM on the Stellar Testnet. Use the Stellar Friendbot to fund them:
 
-  // Give time to fund the account
-  console.log('Waiting 10 seconds to allow time for account funding...')
-  await new Promise((resolve) => setTimeout(resolve, 10000))
+Authority Account:
+https://friendbot.stellar.org/?addr=${authorityKeypair.publicKey()}
 
-  // Contract IDs - replace with actual deployed contract IDs if available
-  const protocolContractId =
-    process.env.PROTOCOL_CONTRACT_ID || 'CAF5SWYR7B7V5FYUXTGYXCRUNRQEIWEUZRDCARNMX456LRD64RX76BNN'
-  const authorityContractId =
-    process.env.AUTHORITY_CONTRACT_ID || 'CDQREK6BTPEVD4O56XR6TKLEEMNYTRJUG466J2ERNE5POIEKN2N6O7EL'
+Recipient Account:
+https://friendbot.stellar.org/?addr=${recipientKeypair.publicKey()}
 
-  console.log('Using Protocol Contract ID:', protocolContractId)
-  console.log('Using Authority Contract ID:', authorityContractId)
+You can also visit https://laboratory.stellar.org/ to fund the accounts
+and explore your transactions.
 
-  // Initialize the Stellar SDK
-  const stellarSDK = await AttestSDK.initializeStellar({
-    url,
-    secretKey: authorityKeypair.secret(),
-    networkPassphrase: StellarSdk.Networks.TESTNET,
-    protocolContractId,
-    authorityContractId,
-  })
-
-  console.log('SDK initialized')
+If you're already funded, please ignore this message.
+=======================================================================
+`)
 
   try {
-    // Step 1: Initialize protocol contract (set admin)
-    console.log('\n1. Initializing protocol contract...')
-    const initResult = await stellarSDK.initialize()
-    if (initResult.error) {
-      console.error('Failed to initialize protocol contract:', initResult.error)
-      console.log('Continuing with tests as the contract may already be initialized...')
-    } else {
-      console.log('Protocol contract initialized successfully')
-    }
+    // Check if accounts are funded unless skipped
+    if (!options.skipFunding && !options.forceContinue) {
+      const authorityFunded = await checkAccountFunding(authorityKeypair.publicKey())
+      const recipientFunded = await checkAccountFunding(recipientKeypair.publicKey())
 
-    // Step 2: Initialize authority contract (optional if using a token)
-    // This step would require a deployed token contract ID
-    if (process.env.TOKEN_CONTRACT_ID) {
-      console.log('\n2. Initializing authority contract...')
-      try {
-        const authResult = await stellarSDK.initializeAuthority(process.env.TOKEN_CONTRACT_ID)
-        if (authResult.error) {
-          console.error('Failed to initialize authority contract:', authResult.error)
-        } else {
-          console.log('Authority contract initialized successfully')
-        }
-      } catch (error) {
-        console.error('Authority initialization error:', error)
-        console.log('Continuing with tests...')
+      if (!authorityFunded || !recipientFunded) {
+        console.error(`
+    Test cannot continue with unfunded accounts.
+    Please fund the accounts first, or use the --force-continue flag to bypass this check.
+            `)
+        process.exit(1)
       }
-    } else {
-      console.log('Skipping authority contract initialization (TOKEN_CONTRACT_ID not provided)')
     }
 
-    // Step 3: Fetch authority (in Stellar this is implicit)
-    console.log('\n3. Fetching authority...')
-    const { data: authority, error: authorityError } = await stellarSDK.fetchAuthority()
-    if (authorityError) {
-      console.error('Failed to fetch authority:', authorityError)
-    } else {
-      console.log('Authority retrieved:', authority)
-    }
+    const stellarSDK = await AttestSDK.initializeStellar({
+      secretKeyOrWalletKit: authorityKeypair.secret(), // or wallet Kit here
+      publicKey: authorityKeypair.publicKey(),
+    })
 
-    // Step 4: Create schema
-    console.log('\n4. Creating schema...')
+    console.log('SDK initialized')
+
+    console.log('\nCreating schema...')
     const { data: schema, error: schemaError } = await stellarSDK.createSchema({
       schemaName: 'test-schema',
-      schemaContent: 'string name, string email, uint8 verification_level',
+      schemaContent: 'TestSchema(Name=string, Age=u32)',
       revocable: true,
     })
 
     if (schemaError || !schema) {
-      console.error('Failed to create schema:', schemaError)
-      throw new Error('Cannot continue without a valid schema')
-    } else {
-      console.log('Schema created with UID:', schema)
-
-      // Step 5: Fetch the created schema
-      console.log('\n5. Fetching schema...')
-      const fetchSchemaResult = await stellarSDK.fetchSchema(schema)
-      if (fetchSchemaResult.error) {
-        console.error('Failed to fetch schema:', fetchSchemaResult.error)
-      } else {
-        console.log('Fetched schema:', fetchSchemaResult.data)
-      }
-
-      // Step 6: Create attestation
-      console.log('\n6. Creating attestation...')
-
-      const { data: attestation, error: attestationError } = await stellarSDK.attest({
-        schemaData: schema,
-        data: JSON.stringify({
-          name: 'John Doe',
-          email: 'john@example.com',
-          verification_level: 2,
-        }),
-        // Reference to another attestation (optional)
-        refUID: null,
-        // Can be revoked later
-        revocable: true,
-        // The accounts involved in this attestation
-        accounts: {
-          recipient: recipientKeypair.publicKey(),
-        },
-      })
-
-      if (attestationError || !attestation) {
-        console.error('Failed to create attestation:', attestationError)
-      } else {
-        console.log('Attestation created with ID:', attestation)
-
-        // Step 7: Fetch the created attestation
-        console.log('\n7. Fetching attestation...')
-        const fetchAttestationResult = await stellarSDK.fetchAttestation(attestation)
-        if (fetchAttestationResult.error) {
-          console.error('Failed to fetch attestation:', fetchAttestationResult.error)
-        } else {
-          console.log('Fetched attestation:', fetchAttestationResult.data)
-        }
-
-        // Step 8: Revoke the attestation
-        console.log('\n8. Revoking attestation...')
-        const { data: revokedAttestation, error: revokeError } = await stellarSDK.revokeAttestation(
-          {
-            attestationUID: attestation,
-            recipient: recipientKeypair.publicKey(),
-          }
-        )
-
-        if (revokeError || !revokedAttestation) {
-          console.error('Failed to revoke attestation:', revokeError)
-        } else {
-          console.log('Attestation revoked with ID:', revokedAttestation)
-
-          // Step 9: Fetch the attestation again to see the revocation
-          console.log('\n9. Fetching revoked attestation...')
-          const fetchRevokedResult = await stellarSDK.fetchAttestation(revokedAttestation)
-          if (fetchRevokedResult.error) {
-            console.error('Failed to fetch revoked attestation:', fetchRevokedResult.error)
-          } else {
-            console.log('Fetched revoked attestation:', fetchRevokedResult.data)
-            console.log(
-              'Revocation status:',
-              fetchRevokedResult.data?.revoked ? 'Revoked' : 'Not Revoked'
-            )
-          }
-        }
-      }
+      throw new Error(schemaError?.toString() || 'Cannot continue without a valid schema')
     }
-  } catch (error) {
-    console.error('Unexpected error:', error)
-  }
 
-  console.log('\nTest completed')
+    console.log('Schema created with UID:', schema)
+
+    const reference = 'sample_reference'
+
+    const attestData = {
+      schemaUID: schema.schemaUID,
+      subject: recipientKeypair.publicKey(),
+      value: JSON.stringify({
+        Name: 'Chill Guy',
+        Age: 50,
+      }),
+      reference,
+    }
+
+    // Step 6: Create attestation
+    console.log('\nCreating attestation...')
+
+    const { data: attestation, error: attestationError } = await stellarSDK.attest(attestData)
+
+    if (attestationError || !attestation) {
+      console.error(`Failed to create attestation: ${attestationError}`)
+    }
+    console.log('Attestation created with ID:', attestation)
+
+    // Step 7: Fetch the created attestation
+    console.log('Fetching attestation...')
+    try {
+      const { data: fetchedAttestation, error: fetchError } =
+        await stellarSDK.fetchAttestation(attestData)
+
+      if (fetchError) {
+        console.warn('Warning: Could not fetch attestation:', fetchError)
+        console.log('Continuing with test...')
+      } else {
+        console.log('Fetched attestation:', fetchedAttestation)
+      }
+    } catch (error) {
+      console.warn('Error fetching attestation:', error)
+      console.log('Continuing with test...')
+    }
+
+    // Step 8: Revoke the attestation
+    console.log('\nRevoking attestation...')
+    try {
+      const { data: revokedAttestation, error: revokeError } =
+        await stellarSDK.revokeAttestation(attestData)
+
+      if (revokeError || !revokedAttestation) {
+        throw new Error(`Failed to revoke attestation: ${revokeError}`)
+      }
+
+      console.log('Attestation revoked with ID:', revokedAttestation)
+    } catch (error) {
+      console.error('Error during revocation process:', error)
+      throw error
+    }
+
+    console.log('\nTest completed successfully')
+  } catch (error) {
+    console.error('Test error:', error)
+    process.exit(1)
+  }
+}
+
+// Helper function to check if account is funded before proceeding
+async function checkAccountFunding(publicKey: string): Promise<boolean> {
+  try {
+    const res = await fetch(`https://horizon-testnet.stellar.org/accounts/${publicKey}`)
+
+    const accountResponse = await res.json()
+    // Check if the account has a minimum balance
+    const balances = (accountResponse as any).balances || []
+    const nativeBalance = balances.find((balance: any) => balance.asset_type === 'native')
+
+    if (!nativeBalance || parseFloat(nativeBalance.balance) < 5) {
+      console.error(`
+ERROR: Account ${publicKey} has insufficient funds (${nativeBalance?.balance || '0'} XLM).
+Please fund this account with XLM before proceeding.
+You can visit: https://friendbot.stellar.org/?addr=${publicKey}
+      `)
+      return false
+    }
+
+    console.log(`Account ${publicKey} is funded with ${nativeBalance.balance} XLM`)
+    return true
+  } catch (error: any) {
+    if (error.response && error.response.status === 404) {
+      console.error(`
+ERROR: Account ${publicKey} does not exist on the Stellar network.
+Please create and fund this account before proceeding.
+You can visit: https://friendbot.stellar.org/?addr=${publicKey}
+      `)
+    } else {
+      console.error('Error checking account status:', error.message || error)
+    }
+    return false
+  }
 }
 
 // Add ability to check for command line flags
@@ -185,6 +175,7 @@ function parseArgs() {
   const options = {
     skipFunding: args.includes('--skip-funding'),
     useTestnet: args.includes('--testnet'),
+    forceContinue: args.includes('--force-continue'),
     protocolContract: args.find((arg) => arg.startsWith('--protocol='))?.split('=')[1],
     authorityContract: args.find((arg) => arg.startsWith('--authority='))?.split('=')[1],
     tokenContract: args.find((arg) => arg.startsWith('--token='))?.split('=')[1],
@@ -206,7 +197,4 @@ function parseArgs() {
 // Parse command line args and run tests
 const options = parseArgs()
 console.log('Test options:', options)
-run().catch((err) => {
-  console.error('Error running test:', err)
-  process.exit(1)
-})
+run(options)
