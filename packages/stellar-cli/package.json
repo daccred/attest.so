@@ -1,6 +1,7 @@
 {
   "name": "@attestprotocol/stellar-cli",
   "version": "1.0.0",
+  "private": false,
   "description": "Attest CLI for Stellar blockchain",
   "type": "commonjs",
   "bin": {
