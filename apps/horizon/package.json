@@ -1,0 +1,50 @@
+{
+  "name": "@attestprotocol/horizon",
+  "version": "0.3.0",
+  "description": "Stellar Horizon Indexer for monitoring and processing blockchain events",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "start": "node dist/src/index.js",
+    "start:ts": "ts-node src/index.ts",
+    "lint": "eslint --fix src test",
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "stellar",
+    "horizon",
+    "indexer",
+    "blockchain",
+    "soroban"
+  ],
+  "author": "Attest Protocol",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/attestprotocol/horizon.git"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^13.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "helmet": "^8.0.0",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.20",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.7.5",
+    "@typescript-eslint/eslint-plugin": "^7.16.1",
+    "@typescript-eslint/parser": "^7.16.1",
+    "eslint": "^8.57.0",
+    "eslint-config-airbnb-typescript": "^18.0.0",
+    "eslint-import-resolver-typescript": "^3.6.3",
+    "eslint-plugin-import": "^2.31.0",
+    "nodemon": "^3.1.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}
