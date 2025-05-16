@@ -222,7 +222,7 @@ export class SolanaHandler extends BaseHandler {
 
   private async handleAuthority(action: string): Promise<boolean> {
     if (action === 'register') {
-      console.log(await this.client.getWalletBalance());
+      console.log(await this.client.getWalletBalance())
       const result = await this.client.registerAuthority()
 
       if (result.error) {
@@ -257,10 +257,12 @@ export class SolanaHandler extends BaseHandler {
             id: result.data.authority.toBase58(),
           },
           null,
-          2,
-        ),
+          2
+        )
       )
-      logger.log(`URL Link: https://solscan.io/account/${result.data.authority.toBase58()}?cluster=${this.network}`)
+      logger.log(
+        `URL Link: https://solscan.io/account/${result.data.authority.toBase58()}?cluster=${this.network}`
+      )
       return true
     }
 

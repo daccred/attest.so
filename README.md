@@ -37,12 +37,12 @@ Our framework addresses critical challenges in Web3:
 
 attest.so is designed with cross-chain compatibility as a primary goal:
 
-| Blockchain | Contract Language | Status      | Key Features                               |
-|------------|-------------------|-------------|-------------------------------------------|
+| Blockchain | Contract Language | Status      | Key Features                                            |
+| ---------- | ----------------- | ----------- | ------------------------------------------------------- |
 | Stellar    | Soroban (Rust)    | Active      | Fee management, levy collection, verifiable authorities |
-| Solana     | Anchor (Rust)     | Development | High throughput, scalable attestation storage |
-| Starknet   | Cairo             | Planned     | ZK-friendly proofs, privacy-preserving attestations |
-| Aptos      | Move              | Research    | Resource-oriented attestation model |
+| Solana     | Anchor (Rust)     | Development | High throughput, scalable attestation storage           |
+| Starknet   | Cairo             | Planned     | ZK-friendly proofs, privacy-preserving attestations     |
+| Aptos      | Move              | Research    | Resource-oriented attestation model                     |
 
 ## 🧩 Key Components
 
@@ -63,6 +63,7 @@ contracts/stellar/
 ```
 
 **Key Features:**
+
 - Authority registration and verification
 - Schema definition and validation
 - Attestation issuance and verification
@@ -79,23 +80,24 @@ A TypeScript SDK that provides a unified interface for interacting with attestat
 
 ```typescript
 // Example SDK usage
-import { AttestClient } from '@attest.so/sdk';
+import { AttestClient } from '@attest.so/sdk'
 
 // Initialize client
-const client = new AttestClient({ 
-  chain: 'stellar', 
-  network: 'testnet' 
-});
+const client = new AttestClient({
+  chain: 'stellar',
+  network: 'testnet',
+})
 
 // Create attestation
 const attestation = await client.createAttestation({
   schema: 'did:attest:identity',
   subject: 'G...', // Subject address
-  claims: { verified: true, level: 2 }
-});
+  claims: { verified: true, level: 2 },
+})
 ```
 
 **Core Functionality:**
+
 - Blockchain connection management
 - Schema creation and registration
 - Attestation lifecycle management
@@ -156,7 +158,7 @@ See [NAMING.md](./NAMING.md) for detailed information about naming conventions a
 
 - **Frontend**: Next.js, React, Tailwind CSS
 - **SDK/CLI**: TypeScript, Node.js
-- **Smart Contracts**: 
+- **Smart Contracts**:
   - Rust/Soroban (Stellar)
   - Rust/Anchor (Solana)
   - Cairo (Starknet)
@@ -220,11 +222,13 @@ Contributions are welcome! Please see our [CONTRIBUTING.md](./CONTRIBUTING.md) f
 ---
 
 ## Setting up Rust Analyzer
+
 Rust Analyzer is an official language server for Rust that provides features like code completion, inline type hints, and much more.
 
 ### Installation
 
 1. Install Rust Analyzer in one of the following ways:
+
    - **Cursor**: Install the “Rust Analyzer” extension through Cursor’s Extensions panel (or equivalent).
    - **VS Code**: Install it from the [vsmarketplace](https://marketplace.visualstudio.com/items?itemName=matklad.rust-analyzer) or the built-in VS Code Extensions marketplace.
 
@@ -233,7 +237,6 @@ Rust Analyzer is an official language server for Rust that provides features lik
 ### Configuring Linked Projects
 
 With Rust Analyzer installed, add the following configuration to your settings so that it recognizes the additional contract projects (for example, `contracts/stellar` and `contracts/solana`). Adjust these paths if your project structure differs.
- 
 
 #### VS Code or Cursor
 
@@ -243,19 +246,18 @@ With Rust Analyzer installed, add the following configuration to your settings s
 
 ```json
 {
-    "rust-analyzer.linkedProjects": [
-        "contracts/stellar/Cargo.toml",
-        "contracts/solana/Cargo.toml",
-        "contracts/starknet/Cargo.toml",
-        "contracts/sui/Cargo.toml"
-    ]
+  "rust-analyzer.linkedProjects": [
+    "contracts/stellar/Cargo.toml",
+    "contracts/solana/Cargo.toml",
+    "contracts/starknet/Cargo.toml",
+    "contracts/sui/Cargo.toml"
+  ]
 }
 ```
 
 Optionally you can create a `.vscode/settings.json` file in the root of the project to automatically configure Rust Analyzer for VS Code with the above configuration.
 
 ---
-
 
 ## 📚 Resources & Links
 

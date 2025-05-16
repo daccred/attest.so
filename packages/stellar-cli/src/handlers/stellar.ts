@@ -5,7 +5,11 @@ import { BaseHandler } from './base'
 import { validateStellarSchema, validateStellarAttestation } from '../utils'
 import { Command } from 'commander'
 import { Keypair } from '@stellar/stellar-sdk'
-import AttestSDK, { StellarAttestationConfig, SchemaConfig, StellarAttestSDK } from '@attestprotocol/sdk' // Changed import path
+import AttestSDK, {
+  StellarAttestationConfig,
+  SchemaConfig,
+  StellarAttestSDK,
+} from '@attestprotocol/sdk' // Changed import path
 import { readAttestationConfig } from '../config/config'
 import { log } from '../log'
 
@@ -308,8 +312,8 @@ export class StellarHandler extends BaseHandler {
             id: result.data,
           },
           null,
-          2,
-        ),
+          2
+        )
       )
 
       // Add Stellar account explorer link if applicable

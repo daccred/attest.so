@@ -17,7 +17,8 @@ The tests use a hierarchical account model with the admin from the environment:
    - **general-user** (1 XLM) - Additional account for general testing
 
 This approach provides a good balance:
-- The admin keypair is controlled via environment variables 
+
+- The admin keypair is controlled via environment variables
 - Test accounts are created automatically for each test run
 - Only one Friendbot call is needed for the auxiliary accounts
 
@@ -26,6 +27,7 @@ This approach provides a good balance:
 The implementation is split across two files:
 
 1. **authority.integration.test.mjs**:
+
    - Loads ADMIN_SECRET_KEY from env.sh
    - Creates Keypair from the secret key
    - Verifies it matches ADMIN_ADDRESS
@@ -41,23 +43,17 @@ To use this approach in your tests:
 
 ```javascript
 // In your test file
-import { setupTestAccounts } from './account-setup.mjs';
+import { setupTestAccounts } from './account-setup.mjs'
 
 // 1. Load admin keypair directly from environment
-const adminKeypair = Keypair.fromSecret(env.ADMIN_SECRET_KEY);
-const adminAddress = adminKeypair.publicKey();
+const adminKeypair = Keypair.fromSecret(env.ADMIN_SECRET_KEY)
+const adminAddress = adminKeypair.publicKey()
 
 // 2. Setup the other test accounts (doesn't include admin)
-const accounts = await setupTestAccounts(server);
+const accounts = await setupTestAccounts(server)
 
 // 3. Extract test accounts (but not admin - that comes from env)
-const { 
-  parentKeypair,
-  authorityToRegisterKp,
-  levyRecipientKp,
-  subjectKp, 
-  userKp 
-} = accounts;
+const { parentKeypair, authorityToRegisterKp, levyRecipientKp, subjectKp, userKp } = accounts
 
 // 4. Use adminKeypair and test accounts in your tests
 ```
@@ -67,19 +63,14 @@ const {
 If you need to create specific accounts manually:
 
 ```javascript
-import { fundAccountWithFriendbot, createAccount } from './account-setup.mjs';
+import { fundAccountWithFriendbot, createAccount } from './account-setup.mjs'
 
 // Create and fund a parent account
-const parentKeypair = Keypair.random();
-await fundAccountWithFriendbot(parentKeypair.publicKey());
+const parentKeypair = Keypair.random()
+await fundAccountWithFriendbot(parentKeypair.publicKey())
 
 // Create a new named account using the parent account
-const newAccount = await createAccount(
-  server, 
-  parentKeypair, 
-  "authority", 
-  "3"          
-);
+const newAccount = await createAccount(server, parentKeypair, 'authority', '3')
 ```
 
 ## Running Tests
@@ -102,4 +93,4 @@ SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
 TOKEN_CONTRACT_ID=your_token_contract_id
 ```
 
-The admin account is sourced directly from the environment in the test file. 
+The admin account is sourced directly from the environment in the test file.

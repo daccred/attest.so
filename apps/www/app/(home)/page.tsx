@@ -33,7 +33,6 @@ export default function Page(): React.ReactElement {
             }
           }
         >
-
           <div className="relative">
             <StarsIcon
               className="absolute -left-2 -top-2 z-10 size-4 xl:scale-[200%]"
@@ -48,17 +47,12 @@ export default function Page(): React.ReactElement {
             <section className="flex flex-col min-h-screen">
               {/* <HeroBackdrop /> */}
 
-              <div className='py-6'>
-
-              {/* <Footer /> */}
-              </div>
+              <div className="py-6">{/* <Footer /> */}</div>
               <PreFooter />
 
-
-              <footer className='py-4'>
-
-<ReverseHeader />
-</footer>
+              <footer className="py-4">
+                <ReverseHeader />
+              </footer>
             </section>
           </div>
         </div>
@@ -134,4 +128,3 @@ function PreFooter(): React.ReactElement {
     </div>
   )
 }
-

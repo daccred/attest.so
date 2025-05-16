@@ -1,12 +1,7 @@
 {
   "name": "www",
   "description": "The attest.so documentation",
-  "keywords": [
-    "attestation",
-    "trust",
-    "blockchain",
-    "schema"
-  ],
+  "keywords": ["attestation", "trust", "blockchain", "schema"],
   "version": "0.0.0",
   "scripts": {
     "build": "next build",

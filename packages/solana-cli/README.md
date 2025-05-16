@@ -19,11 +19,13 @@ npm install -g @attest/solana-cli
 ### Schema Operations
 
 Create a schema:
+
 ```bash
 attest-solana schema --action=create --json-file=sample.json --keypair=<keypair>
 ```
 
 Fetch a schema:
+
 ```bash
 attest-solana schema --action=fetch --uid=<schema-uid> --keypair=<keypair>
 ```
@@ -31,16 +33,19 @@ attest-solana schema --action=fetch --uid=<schema-uid> --keypair=<keypair>
 ### Attestation Operations
 
 Create an attestation:
+
 ```bash
 attest-solana attestation --action=create --schema-uid=<schema-uid> --json-file=<attestation-data.json> --keypair=<keypair>
 ```
 
 Fetch an attestation:
+
 ```bash
 attest-solana attestation --action=fetch --uid=<attestation-uid> --keypair=<keypair>
 ```
 
 Revoke an attestation:
+
 ```bash
 attest-solana attestation --action=revoke --uid=<attestation-uid> --keypair=<keypair>
 ```
@@ -48,11 +53,13 @@ attest-solana attestation --action=revoke --uid=<attestation-uid> --keypair=<key
 ### Authority Operations
 
 Register an authority:
+
 ```bash
 attest-solana authority --register --keypair=<keypair> [--url=<custom-url>]
 ```
 
 Fetch an authority:
+
 ```bash
 attest-solana authority --fetch --keypair=<keypair> [--url=<custom-url>]
 ```

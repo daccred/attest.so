@@ -17,14 +17,18 @@ export default function Header() {
               {new Date().toLocaleTimeString(undefined, {
                 hour: 'numeric',
                 minute: '2-digit',
-                timeZoneName: 'short'
+                timeZoneName: 'short',
               })}
             </h3>
             <div className="flex flex-col md:flex-row gap-6 items-center">
               <a href="mailto:gm@attestprotocol.org">
                 <Icons.Email className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
               </a>
-              <a href="https://warpcast.com/@attestprotocol" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://warpcast.com/@attestprotocol"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Icons.Instagram className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
               </a>
               <a href="https://x.com/attestprotocol" target="_blank" rel="noopener noreferrer">

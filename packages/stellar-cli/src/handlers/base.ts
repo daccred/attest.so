@@ -1,7 +1,7 @@
 import { logger } from '../logger'
 import { green, red } from 'picocolors'
 import { handleJsonFile } from '../utils'
-import  AttestSDK  from '../../../sdk/dist'
+import AttestSDK from '../../../sdk/dist'
 
 export abstract class BaseHandler {
   protected secretKey: any

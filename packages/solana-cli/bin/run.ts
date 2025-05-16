@@ -16,7 +16,7 @@ logger.log(
  ██╔══██║   ██║      ██║   ██╔══╝  ╚════██║   ██║     ╚════██║██║   ██║
  ██║  ██║   ██║      ██║   ███████╗███████║   ██║  ██╗███████║╚██████╔╝
  ╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚══════╝╚══════╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝ 
- `,
+ `
 )
 logger.log(bold('Welcome to the ATTEST.SO Solana CLI\n\n'))
 
@@ -28,6 +28,8 @@ run
   .demandCommand(
     1,
     'You need at least one command before moving on\n\nSuggested Command: ' +
-      yellow(bold('attest-solana schema --action=create --json-file=sample.json --keypair=<keypair>')),
+      yellow(
+        bold('attest-solana schema --action=create --json-file=sample.json --keypair=<keypair>')
+      )
   )
   .help().argv

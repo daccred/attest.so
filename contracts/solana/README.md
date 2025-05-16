@@ -87,8 +87,6 @@ Resolvers should be CPI by default.
 
 > the logical flow will be one of such, if a schema provides us it's own custom resolver, we will use it, otherwise we will route the attestation to the internal resolver which implements the interface for resolvers.
 
-
-
 ### Deployments
 
 ```bash
