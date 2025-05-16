@@ -33,6 +33,7 @@ export default function Page(): React.ReactElement {
             }
           }
         >
+
           <div className="relative">
             <StarsIcon
               className="absolute -left-2 -top-2 z-10 size-4 xl:scale-[200%]"
@@ -45,18 +46,19 @@ export default function Page(): React.ReactElement {
               fill="currentColor"
             />
             <section className="flex flex-col min-h-screen">
-              <HeroBackdrop />
+              {/* <HeroBackdrop /> */}
 
               <div className='py-6'>
 
-              <Footer />
+              {/* <Footer /> */}
               </div>
               <PreFooter />
 
+
               <footer className='py-4'>
 
-              <ReverseHeader />
-              </footer>
+<ReverseHeader />
+</footer>
             </section>
           </div>
         </div>
@@ -77,13 +79,13 @@ function PreFooter(): React.ReactElement {
       </p>
       <div className="inline-flex items-center gap-3">
         <Link
-          href="/docs/solana"
+          href="https://github.com/daccred/attest.so"
           className={cn(buttonVariants({ size: 'lg', className: 'rounded-full' }))}
         >
-          Getting Started
+          Star on Github
         </Link>
         <a
-          href="https://explorer.attest.so"
+          href="https://x.com/attestprotocol"
           className={cn(
             buttonVariants({
               size: 'lg',
@@ -92,7 +94,7 @@ function PreFooter(): React.ReactElement {
             })
           )}
         >
-          Open explorer
+          Follow us on X
         </a>
       </div>
       <svg
@@ -132,3 +134,4 @@ function PreFooter(): React.ReactElement {
     </div>
   )
 }
+
