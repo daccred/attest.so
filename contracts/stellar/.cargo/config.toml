@@ -1,0 +1,3 @@
+# Add flags specifically for the wasm32 target
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=-reference-types"] 

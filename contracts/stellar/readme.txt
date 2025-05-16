@@ -54,8 +54,28 @@ The contracts work together to provide a complete attestation system with author
 - Account Generator: https://lab.stellar.org/account/create
 
 
-ℹ️  Signing transaction: 98280fe8f2e2d843f319c95ed1568902a2cfd860e6217b9a0d491fe6f59b53b7
-🌎 Submitting deploy transaction…
-🔗 https://stellar.expert/explorer/testnet/contract/CAISGXYBRUUORH4BAWWQTUS3CWUEOUB7GK5NFLA3KXQ3AVGGJJIDQKD4
-CAISGXYBRUUORH4BAWWQTUS3CWUEOUB7GK5NFLA3KXQ3AVGGJJIDQKD4
- 
+### Deployment
+The `deploy.sh` script provides flexible options for deploying the Attestation Protocol and Authority Resolver contracts. Remember to ensure jq is installed (brew install jq or similar).
+
+#### Basic Usage Examples:
+# Default mode (build, deploy) - deploys both contracts to testnet
+./deploy.sh --authority --protocol
+
+# Clean mode (clean, test, build, deploy) - full deployment cycle
+./deploy.sh --authority --protocol --mode clean
+
+# Deploy only authority in clean mode to mainnet
+./deploy.sh --authority --mode clean --network mainnet --source your_mainnet_key
+
+# Deploy both and initialize them on testnet (requires TOKEN_CONTRACT_ID in env.sh or --token-id flag)
+./deploy.sh --authority --protocol --initialize --source your_testnet_key --token-id <YOUR_TOKEN_CONTRACT_ID>
+
+#### Available Options:
+--authority        Deploy the Authority Resolver contract
+--protocol        Deploy the Attestation Protocol contract
+--network         Target network (default: testnet, or from SOROBAN_NETWORK in env.sh)
+--source          Source account identity (Can be set via SOURCE_IDENTITY in env.sh)
+--mode            Deployment mode (default: default, options: default|clean)
+--initialize      Initialize deployed contracts using the source identity as admin (default: false)
+--token-id <id>   Token contract ID for authority initialization (required if --initialize and --authority). (Can be set via TOKEN_CONTRACT_ID in env.sh)
+--help            Show usage information

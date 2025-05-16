@@ -48,3 +48,5 @@
 //     return { error: 'Not implemented' as T }
 //   }
 // }
+
+export {}

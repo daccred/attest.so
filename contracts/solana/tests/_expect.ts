@@ -70,17 +70,15 @@ export class Expectation<T> {
     // Array inclusion
     include: (expected: any) => {
       if (!Array.isArray(this.actual) && typeof this.actual !== 'string') {
-      throw new Error('Can only check inclusion on arrays or strings')
+        throw new Error('Can only check inclusion on arrays or strings')
       }
       if (Array.isArray(this.actual) && !this.actual.includes(expected)) {
-      throw new Error(
-        `Expected ${JSON.stringify(this.actual)} to include ${JSON.stringify(expected)}`
-      )
+        throw new Error(
+          `Expected ${JSON.stringify(this.actual)} to include ${JSON.stringify(expected)}`
+        )
       }
       if (typeof this.actual === 'string' && !this.actual.includes(String(expected))) {
-      throw new Error(
-        `Expected "${this.actual}" to include "${expected}"`
-      )
+        throw new Error(`Expected "${this.actual}" to include "${expected}"`)
       }
       return true
     },

@@ -500,19 +500,19 @@ fn test_attest_hook_with_levy() {
     let mint_invoke = soroban_sdk::testutils::MockAuthInvoke {
         contract: &token_address,
         fn_name: "mint",
-        args: (attester_auth.clone(), INITIAL_MINT_AMOUNT.clone()).into_val(&env),
+        args: (attester_auth.clone(), INITIAL_MINT_AMOUNT).into_val(&env),
         sub_invokes: &[],
     };
     let approve_invoke = soroban_sdk::testutils::MockAuthInvoke {
         contract: &token_address,
         fn_name: "approve",
-        args: (attester_auth.clone(), resolver_address.clone(), LEVY_AMOUNT.clone(), (env.storage().max_ttl()/2).clone()).into_val(&env),
+        args: (attester_auth.clone(), resolver_address.clone(), LEVY_AMOUNT, (env.storage().max_ttl()/2)).into_val(&env),
         sub_invokes: &[],
     };
     let transfer_invoke = soroban_sdk::testutils::MockAuthInvoke { // Internal transfer
         contract: &token_address,
         fn_name: "transfer",
-        args: (attester_auth.clone(), resolver_address.clone(), LEVY_AMOUNT.clone()).into_val(&env),
+        args: (attester_auth.clone(), resolver_address.clone(), LEVY_AMOUNT).into_val(&env),
         sub_invokes: &[],
     };
     let attestation = create_dummy_attestation(&env, &attester_auth, &schema_uid, None);
@@ -657,7 +657,7 @@ fn test_attest_hook_with_levy_no_allowance() {
             invoke: &soroban_sdk::testutils::MockAuthInvoke {
                 contract: &setup.token_address,
                 fn_name: "mint",
-                args: (attester_auth.clone(), MINT_AMOUNT.clone()).into_val(&setup.env),
+                args: (attester_auth.clone(), MINT_AMOUNT).into_val(&setup.env),
                 sub_invokes: &[],
             }
         },
@@ -738,7 +738,7 @@ fn test_withdraw_levies() {
     let transfer_withdraw_invoke = soroban_sdk::testutils::MockAuthInvoke { 
         contract: &token_address,
         fn_name: "transfer",
-        args: (resolver_address.clone(), recipient_auth.clone(), total_levy.clone()).into_val(&env),
+        args: (resolver_address.clone(), recipient_auth.clone(), total_levy).into_val(&env),
         sub_invokes: &[],
     };
     let withdraw_invoke = soroban_sdk::testutils::MockAuthInvoke { 
@@ -788,7 +788,7 @@ fn test_withdraw_levies() {
     let mint_collected_invoke = soroban_sdk::testutils::MockAuthInvoke {
         contract: &token_address,
         fn_name: "mint",
-        args: (resolver_address.clone(), total_levy.clone()).into_val(&env),
+        args: (resolver_address.clone(), total_levy).into_val(&env),
         sub_invokes: &[],
     };
     env.mock_auths(&[
@@ -979,7 +979,7 @@ fn test_collect_levies() {
             invoke: &soroban_sdk::testutils::MockAuthInvoke {
                 contract: &token_address,
                 fn_name: "approve",
-                args: (authority.clone(), resolver_address.clone(), LEVY_AMOUNT1.clone(), (env.storage().max_ttl()/2).clone()).into_val(&env),
+                args: (authority.clone(), resolver_address.clone(), LEVY_AMOUNT1, (env.storage().max_ttl()/2)).into_val(&env),
                 sub_invokes: &[],
             }
         },
@@ -988,7 +988,7 @@ fn test_collect_levies() {
             invoke: &soroban_sdk::testutils::MockAuthInvoke {
                 contract: &token_address,
                 fn_name: "approve",
-                args: (authority.clone(), resolver_address.clone(), LEVY_AMOUNT2.clone(), (env.storage().max_ttl()/2).clone()).into_val(&env),
+                args: (authority.clone(), resolver_address.clone(), LEVY_AMOUNT2, (env.storage().max_ttl()/2)).into_val(&env),
                 sub_invokes: &[],
             }
         }
@@ -1008,7 +1008,7 @@ fn test_collect_levies() {
             invoke: &soroban_sdk::testutils::MockAuthInvoke {
                 contract: &token_address,
                 fn_name: "transfer",
-                args: (authority.clone(), resolver_address.clone(), LEVY_AMOUNT1.clone()).into_val(&env),
+                args: (authority.clone(), resolver_address.clone(), LEVY_AMOUNT1).into_val(&env),
                 sub_invokes: &[],
             }
         }, 
@@ -1017,7 +1017,7 @@ fn test_collect_levies() {
             invoke: &soroban_sdk::testutils::MockAuthInvoke {
                 contract: &token_address,
                 fn_name: "transfer",
-                args: (authority.clone(), resolver_address.clone(), LEVY_AMOUNT2.clone()).into_val(&env),
+                args: (authority.clone(), resolver_address.clone(), LEVY_AMOUNT2).into_val(&env),
                 sub_invokes: &[],
             }
         },
@@ -1041,7 +1041,7 @@ fn test_collect_levies() {
                 sub_invokes: &[soroban_sdk::testutils::MockAuthInvoke { 
                     contract: &token_address,
                     fn_name: "transfer",
-                    args: (resolver_address.clone(), levy_recipient.clone(), TOTAL_LEVY.clone()).into_val(&env),
+                    args: (resolver_address.clone(), levy_recipient.clone(), TOTAL_LEVY).into_val(&env),
                     sub_invokes: &[],
                 }],
             }

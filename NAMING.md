@@ -28,6 +28,7 @@ ROOT/
 Within the `contracts/` directory, each blockchain platform has its own subdirectory. Each platform-specific directory contains the implementations for the protocols (e.g., attestation service, resolver, and schema registry) relevant to that platform.
 
 The general structure within each blockchain directory will include:
+
 - **`attestation-service/`**: Handles attestation-related functionality.
 - **`resolver/`**: Manages schema resolution logic.
 - **`schema-registry/`**: Handles schema registration and management.
@@ -72,6 +73,7 @@ Each blockchain platform (e.g., Solana, Starknet, Cosmos) will have its own subd
 #### b. **Protocol-Specific Directory Names**
 
 Inside each platform-specific directory, use **concise protocol names** without repeating the platform name. The directory names should describe the protocol functionality:
+
 - `attestation-service/`
 - `resolver/`
 - `schema-registry/`
@@ -79,6 +81,7 @@ Inside each platform-specific directory, use **concise protocol names** without 
 This avoids redundancy. For example, instead of `solana-attestation-service/`, just use `attestation-service/` since it's already inside the `solana/` directory.
 
 #### Example (Solana):
+
 ```bash
 contracts/solana/programs/
 ├── attestation-service/
@@ -95,6 +98,7 @@ The `packages/` directory is used for shared logic and reusable modules across m
 Each package should be named clearly to indicate its purpose, with no reference to a specific platform (e.g., `attestation-common/`, `resolver-common/`).
 
 #### Packages Structure Example:
+
 ```bash
 packages/
 ├── attestation-common/
@@ -105,15 +109,20 @@ packages/
 ### 5. **Redundant Naming: Pitfall & Solution**
 
 #### **Pitfall:**
+
 Redundant naming patterns can occur when platform-specific prefixes (e.g., `solana-`, `starknet-`) are used in both the directory and subdirectory names. For example, having `solana/solana-attestation-service/` repeats the platform name unnecessarily, leading to longer and more verbose file paths.
 
 #### **Solution:**
+
 To avoid redundant naming:
-- **Do not prefix subdirectories** inside platform-specific directories with the platform name. 
+
+- **Do not prefix subdirectories** inside platform-specific directories with the platform name.
 - **Use concise, protocol-specific names** (e.g., `attestation-service/`, `resolver/`, `schema-registry/`) inside the platform directory. The platform context is already provided by the parent folder.
 
 #### Example of Avoiding Redundancy:
+
 Instead of this redundant structure:
+
 ```bash
 contracts/
 ├── solana/
@@ -124,6 +133,7 @@ contracts/
 ```
 
 Use this simplified, non-redundant structure:
+
 ```bash
 contracts/
 ├── solana/
@@ -140,6 +150,7 @@ While each blockchain platform may have unique requirements, it is important to 
 - **Use the same protocol names across platforms**: For example, always use `attestation-service/`, `resolver/`, and `schema-registry/` for those protocols, regardless of the blockchain platform.
 
 #### Example:
+
 ```bash
 contracts/
 ├── solana/
@@ -171,6 +182,7 @@ For version control, ensure that changes in shared packages (inside `packages/`)
 This naming convention is designed to reduce redundancy, enhance clarity, and ensure scalability across multiple blockchain platforms. By following these guidelines, contributors can maintain consistency, avoid verbose file paths, and create a modular, maintainable structure as the project grows.
 
 #### Key Points:
+
 - **Avoid platform-specific prefixes** inside platform directories to reduce redundancy.
 - **Keep protocol-specific directory names concise** and consistent across platforms.
 - Use the `packages/` directory for shared logic and utilities.

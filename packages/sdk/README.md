@@ -7,43 +7,48 @@ AttestSDK is a JavaScript library for interacting with the Attest API, enabling 
 You can install the package via npm:
 
 ```bash
-npm install @peke65/attest-sdk
+npm install @attestprotocol/sdk
 ```
-
-
 
 ## Usage
 
 To use the SDK, you need to import it and create an instance of the `AttestSDK` class:
 
 ```ts
-import AttestSDK from '@peke65/attest-sdk';
+import AttestSDK from '@attestprotocol/sdk'
 
 async function run() {
-  const secretKey = [/* your secret key here */];
+  const secretKey = [
+    /* your secret key here */
+  ]
 
-  const client = new AttestSDK({
-    secretKey,
-  });
+  const client = await AttestSDK.initializeSolana({
+    url,
+    walletOrSecretKey: secretKey,
+  })
 
-  const res = await client.schema.register({
-    schemaName: 'schema-name',
-    schemaContent: '{"name": "example", "type": "object"}',
-  });
+  const { data: schema, error: schemaError } = await client.createSchema({
+    schemaName: 'test-schema',
+    schemaContent: 'string name, string email, uint8 verification_level',
+    revocable: true,
+    levy: {
+      amount: new anchor.BN(10),
+      asset: mintAcount,
+      recipient: authorityKeypair.publicKey,
+    },
+  })
 
-  console.log({ res });
+  console.log({ schema })
 
-  const res2 = await client.schema.fetch(res.data!.toBase58());
+  const fetchSchema = await client.fetchSchema(schema!)
 
-  console.log({ res2 });
+  console.log({ fetchSchema })
 }
 
-run();
-
+run()
 ```
 
 ## Features
+
 - **Register Schema:** Register a new schema with a name and content.
 - **Fetch Schema:** Retrieve an existing schema by its ID.
-
-

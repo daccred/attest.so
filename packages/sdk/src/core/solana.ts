@@ -55,6 +55,15 @@ export class SolanaAttestSDK extends AttestSDKBase {
    */
   async initialize() {}
 
+  async getWalletBalance(): Promise<AttestSDKResponse<{ balance: number; address: PublicKey }>> {
+    try {
+      const balance = await this.connection.getBalance(this.wallet.publicKey)
+      return { data: { balance, address: this.wallet.publicKey } }
+    } catch (err) {
+      return { error: err }
+    }
+  }
+
   private async _signTransaction(tx: Transaction): Promise<anchor.web3.TransactionSignature> {
     const latestBlockhash = await this.connection.getLatestBlockhash()
 
@@ -182,7 +191,7 @@ export class SolanaAttestSDK extends AttestSDKBase {
       // }
 
       // Find the attestation PDA
-      const [attestationPDA] =  PublicKey.findProgramAddressSync(
+      const [attestationPDA] = PublicKey.findProgramAddressSync(
         [
           Buffer.from('attestation'),
           config.schemaData.toBuffer(),
@@ -220,12 +229,12 @@ export class SolanaAttestSDK extends AttestSDKBase {
     props: SolanaRevokeAttestationConfig
   ): Promise<AttestSDKResponse<anchor.web3.PublicKey>> {
     try {
-      const { schemaUID, recipient } = props
+      const { attestationUID, recipient } = props
 
       const [attestationPDA] = PublicKey.findProgramAddressSync(
         [
           Buffer.from('attestation'),
-          schemaUID.toBuffer(),
+          attestationUID.toBuffer(),
           recipient.toBuffer(),
           this.wallet.publicKey.toBuffer(),
         ],
@@ -240,7 +249,7 @@ export class SolanaAttestSDK extends AttestSDKBase {
 
       // Revoke the attestation
       const tx = await this.program.methods
-        .revokeAttestation(schemaUID, recipient)
+        .revokeAttestation(attestationUID, recipient)
         .accounts({
           attester: this.wallet.publicKey,
           attestation: attestationPDA,
