@@ -1,4 +1,4 @@
-import localFont from 'next/font/local';
+import localFont from 'next/font/local'
 
 export const monaSans = localFont({
   src: [
@@ -84,7 +84,7 @@ export const monaSans = localFont({
     },
   ],
   variable: '--font-mona-sans',
-});
+})
 
 export const ppSupplyMono = localFont({
   src: [
@@ -100,7 +100,7 @@ export const ppSupplyMono = localFont({
     },
   ],
   variable: '--font-pp-supply-mono',
-});
+})
 
 export const ppSupplySans = localFont({
   src: [
@@ -116,4 +116,4 @@ export const ppSupplySans = localFont({
     },
   ],
   variable: '--font-pp-supply-sans',
-});
+})

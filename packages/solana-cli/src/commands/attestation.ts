@@ -1,21 +1,21 @@
-import { Argv } from 'yargs';
-import { logger } from '../logger';
-import { red } from 'picocolors';
-import { handleJsonFile } from '../utils';
-import { getHandler } from '../handlers';
+import { Argv } from 'yargs'
+import { logger } from '../logger'
+import { red } from 'picocolors'
+import { handleJsonFile } from '../utils'
+import { getHandler } from '../handlers'
 
 interface AttestationArgv {
-  action: string;
-  uid?: string;
-  schemaUid?: string;
-  jsonFile?: string;
-  keypair: string;
-  content?: any;
+  action: string
+  uid?: string
+  schemaUid?: string
+  jsonFile?: string
+  keypair: string
+  content?: any
 }
 
-export const command = 'attestation';
-export const describe = 'Manage attestations (create, fetch, revoke)';
-export const aliases = ['attest'];
+export const command = 'attestation'
+export const describe = 'Manage attestations (create, fetch, revoke)'
+export const aliases = ['attest']
 
 export function builder(yargs: Argv<AttestationArgv>): Argv {
   return yargs
@@ -48,40 +48,40 @@ export function builder(yargs: Argv<AttestationArgv>): Argv {
     })
     .check((argv) => {
       if ((argv.action === 'fetch' || argv.action === 'revoke') && !argv.uid) {
-        throw new Error('UID is required for fetch and revoke actions');
+        throw new Error('UID is required for fetch and revoke actions')
       }
       if (argv.action === 'create' && (!argv.schemaUid || !argv.jsonFile)) {
-        throw new Error('Schema UID and JSON file are required for create action');
+        throw new Error('Schema UID and JSON file are required for create action')
       }
-      return true;
-    });
+      return true
+    })
 }
 
 export async function handler(argv: AttestationArgv) {
   try {
     // Load JSON content for create action
     if (argv.action === 'create' && argv.jsonFile) {
-      argv.content = await handleJsonFile(argv.jsonFile);
+      argv.content = await handleJsonFile(argv.jsonFile)
     }
-    
-    const chainHandler = await getHandler(argv.keypair);
-    
+
+    const chainHandler = await getHandler(argv.keypair)
+
     if (!chainHandler) {
-      logger.log(red(`Failed to initialize Solana handler`));
-      return;
+      logger.log(red(`Failed to initialize Solana handler`))
+      return
     }
-    
+
     const args = {
       ...argv,
-      type: 'attestation'
-    };
-    
-    const success = await chainHandler.check(argv.action, args);
-    
+      type: 'attestation',
+    }
+
+    const success = await chainHandler.check(argv.action, args)
+
     if (success) {
-      logger.log('Done ✨');
+      logger.log('Done ✨')
     }
   } catch (error: any) {
-    logger.log(red(`Error: ${error.message}`));
+    logger.log(red(`Error: ${error.message}`))
   }
 }

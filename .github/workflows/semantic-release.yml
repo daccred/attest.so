@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "lts/*"
+          node-version: 'lts/*'
           cache: 'pnpm' # Change cache to pnpm
 
       - name: Install dependencies
@@ -39,6 +39,6 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Provide NPM_TOKEN once we start publishing to npm 
+          # Provide NPM_TOKEN once we start publishing to npm
           # NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm exec semantic-release # Use pnpm exec 
+        run: pnpm exec semantic-release # Use pnpm exec

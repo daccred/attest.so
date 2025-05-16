@@ -19,11 +19,13 @@ npm install -g @attest/starknet-cli
 ### Schema Operations
 
 Create a schema:
+
 ```bash
 attest-starknet schema --action=create --json-file=sample.json --keypair=<keypair>
 ```
 
 Fetch a schema:
+
 ```bash
 attest-starknet schema --action=fetch --uid=<schema-uid> --keypair=<keypair>
 ```
@@ -31,16 +33,19 @@ attest-starknet schema --action=fetch --uid=<schema-uid> --keypair=<keypair>
 ### Attestation Operations
 
 Create an attestation:
+
 ```bash
 attest-starknet attestation --action=create --schema-uid=<schema-uid> --json-file=<attestation-data.json> --keypair=<keypair>
 ```
 
 Fetch an attestation:
+
 ```bash
 attest-starknet attestation --action=fetch --uid=<attestation-uid> --keypair=<keypair>
 ```
 
 Revoke an attestation:
+
 ```bash
 attest-starknet attestation --action=revoke --uid=<attestation-uid> --keypair=<keypair>
 ```
@@ -48,11 +53,13 @@ attest-starknet attestation --action=revoke --uid=<attestation-uid> --keypair=<k
 ### Authority Operations
 
 Register an authority:
+
 ```bash
 attest-starknet authority --register --keypair=<keypair> [--url=<custom-url>]
 ```
 
 Fetch an authority:
+
 ```bash
 attest-starknet authority --fetch --keypair=<keypair> [--url=<custom-url>]
 ```

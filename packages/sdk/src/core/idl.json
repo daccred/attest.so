@@ -9,22 +9,11 @@
   "instructions": [
     {
       "name": "attest",
-      "discriminator": [
-        83,
-        148,
-        120,
-        119,
-        144,
-        139,
-        117,
-        160
-      ],
+      "discriminator": [83, 148, 120, 119, 144, 139, 117, 160],
       "accounts": [
         {
           "name": "attester",
-          "docs": [
-            "The attester who is creating the attestation."
-          ],
+          "docs": ["The attester who is creating the attestation."],
           "writable": true,
           "signer": true
         },
@@ -33,15 +22,11 @@
         },
         {
           "name": "levy_receipent",
-          "docs": [
-            "CHECK just a chill account"
-          ]
+          "docs": ["CHECK just a chill account"]
         },
         {
           "name": "deployer",
-          "relations": [
-            "schema_data"
-          ]
+          "relations": ["schema_data"]
         },
         {
           "name": "mint_account",
@@ -59,38 +44,8 @@
               {
                 "kind": "const",
                 "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
+                  6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                  180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
                 ]
               },
               {
@@ -101,38 +56,8 @@
             "program": {
               "kind": "const",
               "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
+                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19,
+                153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
               ]
             }
           }
@@ -149,38 +74,8 @@
               {
                 "kind": "const",
                 "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
+                  6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                  180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
                 ]
               },
               {
@@ -191,47 +86,15 @@
             "program": {
               "kind": "const",
               "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
+                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19,
+                153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
               ]
             }
           }
         },
         {
           "name": "schema_data",
-          "docs": [
-            "The schema data account; must match the schema UID."
-          ]
+          "docs": ["The schema data account; must match the schema UID."]
         },
         {
           "name": "attestation",
@@ -240,19 +103,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  97,
-                  116,
-                  116,
-                  101,
-                  115,
-                  116,
-                  97,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
+                "value": [97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110]
               },
               {
                 "kind": "account",
@@ -307,22 +158,11 @@
     },
     {
       "name": "create_schema",
-      "discriminator": [
-        105,
-        171,
-        40,
-        140,
-        30,
-        91,
-        30,
-        134
-      ],
+      "discriminator": [105, 171, 40, 140, 30, 91, 30, 134],
       "accounts": [
         {
           "name": "deployer",
-          "docs": [
-            "Deployer who creates the schema."
-          ],
+          "docs": ["Deployer who creates the schema."],
           "writable": true,
           "signer": true
         },
@@ -332,22 +172,13 @@
         },
         {
           "name": "schema_data",
-          "docs": [
-            "Schema data stored at the derived PDA."
-          ],
+          "docs": ["Schema data stored at the derived PDA."],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  99,
-                  104,
-                  101,
-                  109,
-                  97
-                ]
+                "value": [115, 99, 104, 101, 109, 97]
               },
               {
                 "kind": "account",
@@ -398,16 +229,7 @@
     },
     {
       "name": "delegated_attest",
-      "discriminator": [
-        253,
-        38,
-        166,
-        213,
-        168,
-        72,
-        220,
-        143
-      ],
+      "discriminator": [253, 38, 166, 213, 168, 72, 220, 143],
       "accounts": [
         {
           "name": "delegated_attester",
@@ -416,15 +238,11 @@
         },
         {
           "name": "levy_receipent",
-          "docs": [
-            "CHECK just a chill account"
-          ]
+          "docs": ["CHECK just a chill account"]
         },
         {
           "name": "deployer",
-          "relations": [
-            "schema_data"
-          ]
+          "relations": ["schema_data"]
         },
         {
           "name": "mint_account",
@@ -442,38 +260,8 @@
               {
                 "kind": "const",
                 "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
+                  6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                  180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
                 ]
               },
               {
@@ -484,38 +272,8 @@
             "program": {
               "kind": "const",
               "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
+                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19,
+                153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
               ]
             }
           }
@@ -532,38 +290,8 @@
               {
                 "kind": "const",
                 "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
+                  6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                  180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
                 ]
               },
               {
@@ -574,47 +302,15 @@
             "program": {
               "kind": "const",
               "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
+                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19,
+                153, 218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
               ]
             }
           }
         },
         {
           "name": "schema_data",
-          "docs": [
-            "The schema data account; must match the schema UID."
-          ]
+          "docs": ["The schema data account; must match the schema UID."]
         },
         {
           "name": "attestation",
@@ -623,19 +319,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  97,
-                  116,
-                  116,
-                  101,
-                  115,
-                  116,
-                  97,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
+                "value": [97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110]
               },
               {
                 "kind": "account",
@@ -698,16 +382,7 @@
     },
     {
       "name": "register_authority",
-      "discriminator": [
-        142,
-        245,
-        45,
-        213,
-        198,
-        12,
-        231,
-        91
-      ],
+      "discriminator": [142, 245, 45, 213, 198, 12, 231, 91],
       "accounts": [
         {
           "name": "authority_record",
@@ -716,17 +391,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
+                "value": [97, 117, 116, 104, 111, 114, 105, 116, 121]
               },
               {
                 "kind": "account",
@@ -749,51 +414,24 @@
     },
     {
       "name": "revoke_attestation",
-      "discriminator": [
-        12,
-        156,
-        103,
-        161,
-        194,
-        246,
-        211,
-        179
-      ],
+      "discriminator": [12, 156, 103, 161, 194, 246, 211, 179],
       "accounts": [
         {
           "name": "attester",
-          "docs": [
-            "The attester who is revoking the attestation."
-          ],
+          "docs": ["The attester who is revoking the attestation."],
           "writable": true,
           "signer": true,
-          "relations": [
-            "attestation"
-          ]
+          "relations": ["attestation"]
         },
         {
           "name": "attestation",
-          "docs": [
-            "The attestation account to be revoked."
-          ],
+          "docs": ["The attestation account to be revoked."],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  97,
-                  116,
-                  116,
-                  101,
-                  115,
-                  116,
-                  97,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
+                "value": [97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110]
               },
               {
                 "kind": "arg",
@@ -824,16 +462,7 @@
     },
     {
       "name": "verify_authority",
-      "discriminator": [
-        73,
-        197,
-        140,
-        96,
-        127,
-        246,
-        175,
-        87
-      ],
+      "discriminator": [73, 197, 140, 96, 127, 246, 175, 87],
       "accounts": [
         {
           "name": "authority_record",
@@ -855,109 +484,37 @@
   "accounts": [
     {
       "name": "Attestation",
-      "discriminator": [
-        152,
-        125,
-        183,
-        86,
-        36,
-        146,
-        121,
-        73
-      ]
+      "discriminator": [152, 125, 183, 86, 36, 146, 121, 73]
     },
     {
       "name": "AuthorityRecord",
-      "discriminator": [
-        177,
-        116,
-        28,
-        129,
-        149,
-        56,
-        73,
-        128
-      ]
+      "discriminator": [177, 116, 28, 129, 149, 56, 73, 128]
     },
     {
       "name": "SchemaData",
-      "discriminator": [
-        193,
-        151,
-        116,
-        128,
-        165,
-        185,
-        163,
-        24
-      ]
+      "discriminator": [193, 151, 116, 128, 165, 185, 163, 24]
     }
   ],
   "events": [
     {
       "name": "Attested",
-      "discriminator": [
-        184,
-        102,
-        113,
-        199,
-        220,
-        197,
-        96,
-        50
-      ]
+      "discriminator": [184, 102, 113, 199, 220, 197, 96, 50]
     },
     {
       "name": "NewAuthoritySignal",
-      "discriminator": [
-        96,
-        61,
-        229,
-        248,
-        174,
-        134,
-        19,
-        116
-      ]
+      "discriminator": [96, 61, 229, 248, 174, 134, 19, 116]
     },
     {
       "name": "Revoked",
-      "discriminator": [
-        113,
-        216,
-        148,
-        99,
-        124,
-        184,
-        0,
-        65
-      ]
+      "discriminator": [113, 216, 148, 99, 124, 184, 0, 65]
     },
     {
       "name": "SchemaCreated",
-      "discriminator": [
-        78,
-        195,
-        195,
-        2,
-        80,
-        75,
-        53,
-        86
-      ]
+      "discriminator": [78, 195, 195, 2, 80, 75, 53, 86]
     },
     {
       "name": "VerifiedAuthoritySignal",
-      "discriminator": [
-        29,
-        89,
-        201,
-        80,
-        124,
-        83,
-        72,
-        169
-      ]
+      "discriminator": [29, 89, 201, 80, 124, 83, 72, 169]
     }
   ],
   "errors": [
@@ -1025,78 +582,58 @@
         "fields": [
           {
             "name": "schema",
-            "docs": [
-              "Schema UID (PDA) associated with this attestation."
-            ],
+            "docs": ["Schema UID (PDA) associated with this attestation."],
             "type": "pubkey"
           },
           {
             "name": "recipient",
-            "docs": [
-              "The recipient of the attestation."
-            ],
+            "docs": ["The recipient of the attestation."],
             "type": "pubkey"
           },
           {
             "name": "attester",
-            "docs": [
-              "The attester who created the attestation."
-            ],
+            "docs": ["The attester who created the attestation."],
             "type": "pubkey"
           },
           {
             "name": "data",
-            "docs": [
-              "Custom data associated with the attestation."
-            ],
+            "docs": ["Custom data associated with the attestation."],
             "type": "string"
           },
           {
             "name": "time",
-            "docs": [
-              "Timestamp of when the attestation was created."
-            ],
+            "docs": ["Timestamp of when the attestation was created."],
             "type": "u64"
           },
           {
             "name": "ref_uid",
-            "docs": [
-              "Reference to another attestation UID, if any."
-            ],
+            "docs": ["Reference to another attestation UID, if any."],
             "type": {
               "option": "pubkey"
             }
           },
           {
             "name": "expiration_time",
-            "docs": [
-              "Optional expiration time of the attestation."
-            ],
+            "docs": ["Optional expiration time of the attestation."],
             "type": {
               "option": "u64"
             }
           },
           {
             "name": "revocation_time",
-            "docs": [
-              "Timestamp of when the attestation was revoked, if revoked."
-            ],
+            "docs": ["Timestamp of when the attestation was revoked, if revoked."],
             "type": {
               "option": "u64"
             }
           },
           {
             "name": "revocable",
-            "docs": [
-              "Indicates whether the attestation is revocable."
-            ],
+            "docs": ["Indicates whether the attestation is revocable."],
             "type": "bool"
           },
           {
             "name": "uid",
-            "docs": [
-              "Unique identifier (PDA) of this attestation."
-            ],
+            "docs": ["Unique identifier (PDA) of this attestation."],
             "type": "pubkey"
           }
         ]
@@ -1110,10 +647,7 @@
           {
             "name": "schema_uid",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1154,37 +688,27 @@
         "fields": [
           {
             "name": "schema",
-            "docs": [
-              "Schema UID associated with the attestation."
-            ],
+            "docs": ["Schema UID associated with the attestation."],
             "type": "pubkey"
           },
           {
             "name": "recipient",
-            "docs": [
-              "The recipient of the attestation."
-            ],
+            "docs": ["The recipient of the attestation."],
             "type": "pubkey"
           },
           {
             "name": "attester",
-            "docs": [
-              "The attester who created the attestation."
-            ],
+            "docs": ["The attester who created the attestation."],
             "type": "pubkey"
           },
           {
             "name": "uid",
-            "docs": [
-              "Unique identifier (PDA) of the attestation."
-            ],
+            "docs": ["Unique identifier (PDA) of the attestation."],
             "type": "pubkey"
           },
           {
             "name": "time",
-            "docs": [
-              "Timestamp of when the attestation was created."
-            ],
+            "docs": ["Timestamp of when the attestation was created."],
             "type": "u64"
           }
         ]
@@ -1202,19 +726,13 @@
           {
             "name": "pubkey",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "signature",
             "type": {
-              "array": [
-                "u8",
-                64
-              ]
+              "array": ["u8", 64]
             }
           }
         ]
@@ -1247,25 +765,19 @@
         "fields": [
           {
             "name": "amount",
-            "docs": [
-              "8 bytes"
-            ],
+            "docs": ["8 bytes"],
             "type": "u64"
           },
           {
             "name": "asset",
-            "docs": [
-              "32 bytes (Asset address)"
-            ],
+            "docs": ["32 bytes (Asset address)"],
             "type": {
               "option": "pubkey"
             }
           },
           {
             "name": "recipient",
-            "docs": [
-              "32 bytes (Recipient of the levy)"
-            ],
+            "docs": ["32 bytes (Recipient of the levy)"],
             "type": "pubkey"
           }
         ]
@@ -1298,37 +810,27 @@
         "fields": [
           {
             "name": "schema",
-            "docs": [
-              "Schema UID associated with the attestation."
-            ],
+            "docs": ["Schema UID associated with the attestation."],
             "type": "pubkey"
           },
           {
             "name": "recipient",
-            "docs": [
-              "The recipient of the attestation."
-            ],
+            "docs": ["The recipient of the attestation."],
             "type": "pubkey"
           },
           {
             "name": "attester",
-            "docs": [
-              "The attester who revoked the attestation."
-            ],
+            "docs": ["The attester who revoked the attestation."],
             "type": "pubkey"
           },
           {
             "name": "uid",
-            "docs": [
-              "Unique identifier (PDA) of the attestation."
-            ],
+            "docs": ["Unique identifier (PDA) of the attestation."],
             "type": "pubkey"
           },
           {
             "name": "time",
-            "docs": [
-              "Timestamp of when the attestation was revoked."
-            ],
+            "docs": ["Timestamp of when the attestation was revoked."],
             "type": "u64"
           }
         ]
@@ -1341,16 +843,12 @@
         "fields": [
           {
             "name": "uid",
-            "docs": [
-              "The generated UID for the schema (PDA)."
-            ],
+            "docs": ["The generated UID for the schema (PDA)."],
             "type": "pubkey"
           },
           {
             "name": "schema_data",
-            "docs": [
-              "Full schema data including schema, resolver, revocable, and deployer."
-            ],
+            "docs": ["Full schema data including schema, resolver, revocable, and deployer."],
             "type": {
               "defined": {
                 "name": "SchemaData"
@@ -1367,39 +865,29 @@
         "fields": [
           {
             "name": "uid",
-            "docs": [
-              "Generate PDA as reference key."
-            ],
+            "docs": ["Generate PDA as reference key."],
             "type": "pubkey"
           },
           {
             "name": "schema",
-            "docs": [
-              "The actual schema data (e.g., JSON, XML, etc.)."
-            ],
+            "docs": ["The actual schema data (e.g., JSON, XML, etc.)."],
             "type": "string"
           },
           {
             "name": "resolver",
-            "docs": [
-              "Resolver address (another contract) for schema verification."
-            ],
+            "docs": ["Resolver address (another contract) for schema verification."],
             "type": {
               "option": "pubkey"
             }
           },
           {
             "name": "revocable",
-            "docs": [
-              "Indicates whether the schema is revocable."
-            ],
+            "docs": ["Indicates whether the schema is revocable."],
             "type": "bool"
           },
           {
             "name": "deployer",
-            "docs": [
-              "The deployer/authority who created the schema."
-            ],
+            "docs": ["The deployer/authority who created the schema."],
             "type": "pubkey"
           },
           {

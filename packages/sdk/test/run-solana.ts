@@ -1,4 +1,4 @@
-import  AttestSDK from '../src'
+import AttestSDK from '../src'
 import * as anchor from '@coral-xyz/anchor'
 import { createMint, createAccount, mintTo } from '@solana/spl-token'
 

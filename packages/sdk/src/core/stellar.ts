@@ -1,3 +1,4 @@
+import { Server } from '@stellar/stellar-sdk/lib/rpc'
 import { AttestSDKBase } from './base'
 import {
   AttestSDKResponse,
@@ -9,6 +10,7 @@ import {
   StellarSchemaConfig,
   StellarAttestationConfigWithValue,
   StellarCreateSchemaResult,
+  StellarCustomSigner,
 } from './types'
 import {
   Address,
@@ -25,8 +27,6 @@ import {
   Transaction,
 } from '@stellar/stellar-sdk'
 
-import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit'
-
 // Default contract addresses
 const PROTOCOL_CONTRACT_ID = 'CBPL7XR7NNPTNSIIFWQMWLSCX3B3MM36UYX4TW3QXJKTIEA6KDLRYAQP'
 const AUTHORITY_CONTRACT_ID = 'CDQREK6BTPEVD4O56XR6TKLEEMNYTRJUG466J2ERNE5POIEKN2N6O7EL'
@@ -42,7 +42,7 @@ export class StellarAttestSDK extends AttestSDKBase {
   private protocolContractId: string
   private authorityContractId: string
   private contract: Contract
-  private signer: Keypair | StellarWalletsKit
+  private signer: Keypair | StellarCustomSigner
 
   /**
    * Creates a new instance of the Stellar Attest SDK
@@ -58,11 +58,11 @@ export class StellarAttestSDK extends AttestSDKBase {
     })
 
     // Initialize connection type based on config
-    if (typeof config.secretKeyOrWalletKit === 'string') {
+    if (typeof config.secretKeyOrCustomSigner === 'string') {
       // Direct secret key provided
-      this.signer = Keypair.fromSecret(config.secretKeyOrWalletKit)
+      this.signer = Keypair.fromSecret(config.secretKeyOrCustomSigner)
     } else {
-      this.signer = config.secretKeyOrWalletKit
+      this.signer = config.secretKeyOrCustomSigner
     }
 
     this.publicKey = config.publicKey

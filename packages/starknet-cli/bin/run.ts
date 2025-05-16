@@ -16,7 +16,7 @@ logger.log(
  ██╔══██║   ██║      ██║   ██╔══╝  ╚════██║   ██║     ╚════██║██║   ██║
  ██║  ██║   ██║      ██║   ███████╗███████║   ██║  ██╗███████║╚██████╔╝
  ╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚══════╝╚══════╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝ 
- `,
+ `
 )
 logger.log(bold('Welcome to the ATTEST.SO StarkNet CLI\n\n'))
 
@@ -28,6 +28,8 @@ run
   .demandCommand(
     1,
     'You need at least one command before moving on\n\nSuggested Command: ' +
-      yellow(bold('attest-starknet schema --action=create --json-file=sample.json --keypair=<keypair>')),
+      yellow(
+        bold('attest-starknet schema --action=create --json-file=sample.json --keypair=<keypair>')
+      )
   )
   .help().argv

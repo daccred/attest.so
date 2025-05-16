@@ -14,7 +14,7 @@ The integration test script (`integration-test.mjs`) performs a full lifecycle t
 
 ### Prerequisites
 
-- Node.js v16+ 
+- Node.js v16+
 - Environment variables set with the proper credentials:
   - `ADMIN_SECRET_KEY`: Secret key of an account with admin privileges
   - `SOROBAN_RPC_URL` (optional): RPC URL for the Soroban API (defaults to Testnet)
@@ -54,4 +54,4 @@ If the test fails, check:
 
 1. That your `ADMIN_SECRET_KEY` has sufficient funds on the network
 2. That the Protocol contract ID in `deployments.json` is correct
-3. The console output for specific error messages from the Soroban RPC 
+3. The console output for specific error messages from the Soroban RPC

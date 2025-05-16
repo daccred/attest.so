@@ -358,15 +358,8 @@ t.test('Protocol Contract Integration Test', async (t) => {
       // Restore original checks for the return value
       const result = await invokeContract(operation, source)
       t.ok(result, 'Schema registration transaction should succeed and return a value')
-      console.log(result, 'Schema registration transaction should succeed and return a value')
       t.ok(Buffer.isBuffer(result), 'Registration result should be a buffer (schema UID)')
-      console.log(Buffer.isBuffer(result), 'Registration result should be a buffer (schema UID)')
       t.equal(
-        result.toString('hex'),
-        schemaUid.toString('hex'),
-        'Returned schema UID should match calculated UID'
-      )
-      console.log(
         result.toString('hex'),
         schemaUid.toString('hex'),
         'Returned schema UID should match calculated UID'
@@ -379,146 +372,156 @@ t.test('Protocol Contract Integration Test', async (t) => {
 
   t.test('2. Attest to Schema', async (t) => {
     // Match Rust signature: caller, schema_uid, subject, value, reference
-    const callerAddress = Address.fromString(sourceAddress);
-    const subjectAddress = Address.fromString(recipient); // Use random recipient as subject
+    const callerAddress = Address.fromString(sourceAddress)
+    const subjectAddress = Address.fromString(recipient) // Use random recipient as subject
     const argsVec = [
-        callerAddress.toScVal(),                             // caller: Address
-        xdr.ScVal.scvBytes(schemaUid),                       // schema_uid: BytesN<32>
-        subjectAddress.toScVal(),                            // subject: Address
-        xdr.ScVal.scvString(attestationValueString),         // value: String
-        xdr.ScVal.scvString(attestationReferenceString),     // reference: Option<String> -> Some(String)
-    ];
+      callerAddress.toScVal(), // caller: Address
+      xdr.ScVal.scvBytes(schemaUid), // schema_uid: BytesN<32>
+      subjectAddress.toScVal(), // subject: Address
+      xdr.ScVal.scvString(attestationValueString), // value: String
+      xdr.ScVal.scvString(attestationReferenceString), // reference: Option<String> -> Some(String)
+    ]
 
     const invokeContractArgs = new xdr.InvokeContractArgs({
       contractAddress: Address.fromString(PROTOCOL_CONTRACT_ID).toScAddress(),
       functionName: 'attest', // Correct function name
       args: argsVec,
-    });
-    const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeContractArgs);
-    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] });
+    })
+    const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeContractArgs)
+    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
 
     try {
-        // attest returns Result<(), Error> -> void on success
-        const result = await invokeContract(operation, source);
-        t.ok(result === undefined || result === null, 'Attestation transaction should succeed and return void');
+      // attest returns Result<(), Error> -> void on success
+      const result = await invokeContract(operation, source)
+      t.ok(
+        result === undefined || result === null,
+        'Attestation transaction should succeed and return void'
+      )
     } catch (error) {
-        console.error("Attest Error Details:", error);
-        t.fail(`Attestation failed: ${error.message}`, { error });
+      console.error('Attest Error Details:', error)
+      t.fail(`Attestation failed: ${error.message}`, { error })
     }
-  });
+  })
 
   t.test('3. Read Attestation', async (t) => {
-     // Match Rust signature: schema_uid, subject, reference
-     const subjectAddress = Address.fromString(recipient);
-     const argsVec = [
-        xdr.ScVal.scvBytes(schemaUid),                       // schema_uid: BytesN<32>
-        subjectAddress.toScVal(),                            // subject: Address
-        xdr.ScVal.scvString(attestationReferenceString),     // reference: Option<String> -> Some(String)
-     ];
+    // Match Rust signature: schema_uid, subject, reference
+    const subjectAddress = Address.fromString(recipient)
+    const argsVec = [
+      xdr.ScVal.scvBytes(schemaUid), // schema_uid: BytesN<32>
+      subjectAddress.toScVal(), // subject: Address
+      xdr.ScVal.scvString(attestationReferenceString), // reference: Option<String> -> Some(String)
+    ]
 
     const invokeContractArgs = new xdr.InvokeContractArgs({
       contractAddress: Address.fromString(PROTOCOL_CONTRACT_ID).toScAddress(),
       functionName: 'get_attestation', // Correct function name
       args: argsVec,
-    });
-    const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeContractArgs);
-    const invokeHostFnOp = Operation.invokeHostFunction({ func: hostFunction, auth: [] });
+    })
+    const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeContractArgs)
+    const invokeHostFnOp = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
 
     // Fetch account fresh for simulation tx building
-    const account = await server.getAccount(source.publicKey());
+    const account = await server.getAccount(source.publicKey())
     const tx = new TransactionBuilder(account, {
       fee: BASE_FEE,
       networkPassphrase: Networks.TESTNET,
     })
       .addOperation(invokeHostFnOp)
       .setTimeout(TimeoutInfinite)
-      .build();
+      .build()
 
     try {
-        const simResponse = await server.simulateTransaction(tx);
-        t.ok(!simResponse.error, 'Read attestation simulation should succeed');
-        if (simResponse.result?.retval) {
-            const attestationData = scValToNative(simResponse.result.retval);
-            t.ok(attestationData, 'Attestation data should be returned');
+      const simResponse = await server.simulateTransaction(tx)
+      t.ok(!simResponse.error, 'Read attestation simulation should succeed')
+      if (simResponse.result?.retval) {
+        const attestationData = scValToNative(simResponse.result.retval)
+        t.ok(attestationData, 'Attestation data should be returned')
 
-            // Verify fields based on AttestationRecord struct
-            t.equal(attestationData.schema_uid.toString('hex'), schemaUid.toString('hex'), 'Schema UID should match');
-            t.equal(attestationData.subject, recipient, 'Subject should match recipient');
-            // Attester field is not part of AttestationRecord, remove check
-            // t.equal(attestationData.attester, sourceAddress, 'Attester should match source');
-            t.equal(attestationData.value, attestationValueString, 'Value should match');
-            t.equal(attestationData.revoked, false, 'Attestation should not be revoked yet');
-            // Add more checks if AttestationRecord has more fields (e.g., timestamp)
-
-        } else {
-            t.fail('Simulation response did not contain return value for get_attestation', { simResponse });
-        }
-
+        // Verify fields based on AttestationRecord struct
+        t.equal(
+          attestationData.schema_uid.toString('hex'),
+          schemaUid.toString('hex'),
+          'Schema UID should match'
+        )
+        t.equal(attestationData.subject, recipient, 'Subject should match recipient')
+        // Attester field is not part of AttestationRecord, remove check
+        // t.equal(attestationData.attester, sourceAddress, 'Attester should match source');
+        t.equal(attestationData.value, attestationValueString, 'Value should match')
+        t.equal(attestationData.revoked, false, 'Attestation should not be revoked yet')
+        // Add more checks if AttestationRecord has more fields (e.g., timestamp)
+      } else {
+        t.fail('Simulation response did not contain return value for get_attestation', {
+          simResponse,
+        })
+      }
     } catch (error) {
-        console.error("Read Attestation Simulation Error:", error);
-        t.fail(`Read attestation simulation failed: ${error.message || error}`, { error });
+      console.error('Read Attestation Simulation Error:', error)
+      t.fail(`Read attestation simulation failed: ${error.message || error}`, { error })
     }
-  });
+  })
 
   t.test('4. Revoke Attestation', async (t) => {
     // Match Rust signature: caller, schema_uid, subject, reference
-    const callerAddress = Address.fromString(sourceAddress);
-    const subjectAddress = Address.fromString(recipient);
+    const callerAddress = Address.fromString(sourceAddress)
+    const subjectAddress = Address.fromString(recipient)
     const argsVec = [
-        callerAddress.toScVal(),                            // caller: Address
-        xdr.ScVal.scvBytes(schemaUid),                      // schema_uid: BytesN<32>
-        subjectAddress.toScVal(),                           // subject: Address
-        xdr.ScVal.scvString(attestationReferenceString),    // reference: Option<String> -> Some(String)
-    ];
+      callerAddress.toScVal(), // caller: Address
+      xdr.ScVal.scvBytes(schemaUid), // schema_uid: BytesN<32>
+      subjectAddress.toScVal(), // subject: Address
+      xdr.ScVal.scvString(attestationReferenceString), // reference: Option<String> -> Some(String)
+    ]
 
     const invokeContractArgs = new xdr.InvokeContractArgs({
-        contractAddress: Address.fromString(PROTOCOL_CONTRACT_ID).toScAddress(),
-        functionName: 'revoke_attestation', // Correct function name
-        args: argsVec,
-    });
-    const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeContractArgs);
-    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] });
+      contractAddress: Address.fromString(PROTOCOL_CONTRACT_ID).toScAddress(),
+      functionName: 'revoke_attestation', // Correct function name
+      args: argsVec,
+    })
+    const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeContractArgs)
+    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
 
     try {
       // revoke_attestation returns Result<(), Error> -> void on success
-      const result = await invokeContract(operation, source);
-      t.ok(result === undefined || result === null, 'Revocation transaction should succeed and return void');
+      const result = await invokeContract(operation, source)
+      t.ok(
+        result === undefined || result === null,
+        'Revocation transaction should succeed and return void'
+      )
 
       // --- Verify revocation by reading again ---
-       // Match Rust signature: schema_uid, subject, reference
-       const readArgsVec = [
-           xdr.ScVal.scvBytes(schemaUid),
-           subjectAddress.toScVal(),
-           xdr.ScVal.scvString(attestationReferenceString),
-       ];
-       const readInvokeContractArgs = new xdr.InvokeContractArgs({
-           contractAddress: Address.fromString(PROTOCOL_CONTRACT_ID).toScAddress(),
-           functionName: 'get_attestation', // Correct function name
-           args: readArgsVec,
-       });
-       const readHostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(readInvokeContractArgs);
-       const readOp = Operation.invokeHostFunction({ func: readHostFunction, auth: [] });
+      // Match Rust signature: schema_uid, subject, reference
+      const readArgsVec = [
+        xdr.ScVal.scvBytes(schemaUid),
+        subjectAddress.toScVal(),
+        xdr.ScVal.scvString(attestationReferenceString),
+      ]
+      const readInvokeContractArgs = new xdr.InvokeContractArgs({
+        contractAddress: Address.fromString(PROTOCOL_CONTRACT_ID).toScAddress(),
+        functionName: 'get_attestation', // Correct function name
+        args: readArgsVec,
+      })
+      const readHostFunction =
+        xdr.HostFunction.hostFunctionTypeInvokeContract(readInvokeContractArgs)
+      const readOp = Operation.invokeHostFunction({ func: readHostFunction, auth: [] })
 
-       const account = await server.getAccount(source.publicKey());
-       const readTx = new TransactionBuilder(account, {
-         fee: BASE_FEE,
-         networkPassphrase: Networks.TESTNET,
-       })
-         .addOperation(readOp)
-         .setTimeout(TimeoutInfinite)
-         .build();
-       const simResponse = await server.simulateTransaction(readTx);
-       t.ok(!simResponse.error, 'Post-revoke read simulation should succeed');
-        if (simResponse.result?.retval) {
-             const attestationData = scValToNative(simResponse.result.retval);
-             t.equal(attestationData.revoked, true, 'Attestation should now be revoked');
-        } else {
-            t.fail('Post-revoke simulation response did not contain return value', { simResponse });
-        }
-
+      const account = await server.getAccount(source.publicKey())
+      const readTx = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: Networks.TESTNET,
+      })
+        .addOperation(readOp)
+        .setTimeout(TimeoutInfinite)
+        .build()
+      const simResponse = await server.simulateTransaction(readTx)
+      t.ok(!simResponse.error, 'Post-revoke read simulation should succeed')
+      if (simResponse.result?.retval) {
+        const attestationData = scValToNative(simResponse.result.retval)
+        t.equal(attestationData.revoked, true, 'Attestation should now be revoked')
+      } else {
+        t.fail('Post-revoke simulation response did not contain return value', { simResponse })
+      }
     } catch (error) {
-      console.error("Revoke Attestation Error:", error);
-      t.fail(`Revocation failed: ${error.message}`, { error });
+      console.error('Revoke Attestation Error:', error)
+      t.fail(`Revocation failed: ${error.message}`, { error })
     }
-  });
+  })
 })

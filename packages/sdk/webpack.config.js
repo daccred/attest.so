@@ -1,6 +1,6 @@
 // webpack.config.js
-const webpack = require('webpack');
-const path = require('path');
+const webpack = require('webpack')
+const path = require('path')
 
 module.exports = {
   entry: './src/index.ts',
@@ -31,4 +31,4 @@ module.exports = {
       process: 'process/browser',
     }),
   ],
-};
+}

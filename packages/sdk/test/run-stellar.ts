@@ -53,7 +53,7 @@ If you're already funded, please ignore this message.
     }
 
     const stellarSDK = await AttestSDK.initializeStellar({
-      secretKeyOrWalletKit: authorityKeypair.secret(), // or wallet Kit here
+      secretKeyOrCustomSigner: authorityKeypair.secret(), // or wallet Kit here
       publicKey: authorityKeypair.publicKey(),
     })
 
@@ -72,7 +72,7 @@ If you're already funded, please ignore this message.
 
     console.log('Schema created with UID:', schema)
 
-    const reference = 'sample_reference'
+    const reference = `sample_reference_${Date.now()}`
 
     const attestData = {
       schemaUID: schema.schemaUID,

@@ -3,7 +3,6 @@
  */
 
 import * as anchor from '@coral-xyz/anchor'
-import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit'
 
 /**
  * AttestSDKResponse type definition.
@@ -43,11 +42,18 @@ export interface StarknetConfig extends ChainConfig {
   contractAddress?: string
 }
 
+export interface StellarCustomSigner {
+  signTransaction: (xdr: string) => Promise<{
+    signedTxXdr: string
+    signerAddress?: string
+  }>
+}
+
 /**
  * Stellar-specific configuration
  */
 export interface StellarConfig extends ChainConfig {
-  secretKeyOrWalletKit: string | StellarWalletsKit
+  secretKeyOrCustomSigner: string | StellarCustomSigner
   publicKey: string
 }
 

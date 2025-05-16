@@ -9,7 +9,7 @@ export class StarkNetHandler extends BaseHandler {
     try {
       // TODO: Initialize StarkNet SDK when available
       logger.log(yellow('StarkNet integration is not yet implemented'))
-      
+
       // Placeholder for future implementation
       return {}
     } catch (error: any) {
@@ -23,7 +23,7 @@ export class StarkNetHandler extends BaseHandler {
 
     logger.log(yellow('StarkNet integration is not yet implemented'))
     logger.log(green('This is a placeholder for future StarkNet functionality'))
-    
+
     // Return false for now since StarkNet integration is not implemented
     return false
   }
