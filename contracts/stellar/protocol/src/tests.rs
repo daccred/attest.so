@@ -1,7 +1,7 @@
 use crate::{errors, AttestationContract, AttestationContractClient};
 use soroban_sdk::{
-    testutils::{Address as _, MockAuth, MockAuthInvoke},
-    Address, BytesN, Env, IntoVal, String as SorobanString,
+    testutils::{Address as _, MockAuth, MockAuthInvoke, Events},
+    Address, BytesN, log, Env, Val, IntoVal, String as SorobanString, symbol_short, TryIntoVal,
 };
 
 #[test]
@@ -203,6 +203,15 @@ fn test_attestation() {
         &revocable,
     );
 
+    // Verify schema registration event
+    let events = env.events().all();
+    let last_event = events.last().unwrap();
+    log!(&env, "Schema registration event: {:?}", last_event);
+    assert_eq!(last_event.0, contract_id);
+    assert_eq!(last_event.1, (symbol_short!("SCHEMA"), symbol_short!("REGISTER")).into_val(&env));
+    let schema_event_data: Val = (schema_uid.clone(), university.clone(), schema_definition_val.clone(), resolver_option.clone(), revocable).into_val(&env);
+    log!(&env, "Expected schema event data: {:?}", schema_event_data);
+
     // Test successful attestation by the university (original authority)
     let attestation_value = r#"{
         "degree": "Bachelor of Science",
@@ -234,6 +243,15 @@ fn test_attestation() {
         &attestation_value_val,
         &reference_option,
     );
+
+    // Verify attestation event
+    let events = env.events().all();
+    let last_event = events.last().unwrap();
+    log!(&env, "Attestation event: {:?}", last_event);
+    assert_eq!(last_event.0, contract_id);
+    assert_eq!(last_event.1, (symbol_short!("ATTEST"), symbol_short!("CREATE")).into_val(&env));
+    let attestation_event_data: Val = (schema_uid.clone(), student_alice.clone(), attestation_value_val.clone(), reference_option.clone(), false).into_val(&env);
+    log!(&env, "Expected attestation event data: {:?}", attestation_event_data);
 
     // Verify the attestation was recorded
     let attestation = client.get_attestation(&schema_uid, &student_alice, &reference_option);
@@ -273,6 +291,16 @@ fn test_attestation() {
         &unauthorized_reference,
     );
     assert!(unauthorized_result.is_ok());
+
+    // Verify unauthorized attestation event
+    let events = env.events().all();
+    let last_event = events.last().unwrap();
+    log!(&env, "Unauthorized attestation event: {:?}", last_event);
+    assert_eq!(last_event.0, contract_id);
+    assert_eq!(last_event.1, (symbol_short!("ATTEST"), symbol_short!("CREATE")).into_val(&env));
+    let unauthorized_event_data: Val = (schema_uid.clone(), student_alice.clone(), unauthorized_value_val.clone(), unauthorized_reference.clone(), false).into_val(&env);
+    log!(&env, "Expected unauthorized event data: {:?}", unauthorized_event_data);
+    // assert!(env.events().all().iter().any(|event| event.2.try_into().unwrap() == unauthorized_event_data.try_into().unwrap()));
 
     // Verify the new attestation was recorded
     let new_attestation = client.get_attestation(&schema_uid, &student_alice, &unauthorized_reference);
@@ -391,6 +419,15 @@ fn test_revocation() {
     let revoke_result =
         client.try_revoke_attestation(&university, &schema_uid, &student_alice, &reference_option);
     assert!(revoke_result.is_ok());
+
+    // Verify revocation event
+    let events = env.events().all();
+    let last_event = events.last().unwrap();
+    log!(&env, "Revocation event: {:?}", last_event);
+    assert_eq!(last_event.0, contract_id);
+    assert_eq!(last_event.1, (symbol_short!("ATTEST"), symbol_short!("REVOKE")).into_val(&env));
+    let revocation_event_data: Val = (schema_uid.clone(), student_alice.clone(), reference_option.clone()).into_val(&env);
+    log!(&env, "Expected revocation event data: {:?}", revocation_event_data);
 
     // Verify attestation was revoked
     let attestation = client.get_attestation(&schema_uid, &student_alice, &reference_option);
