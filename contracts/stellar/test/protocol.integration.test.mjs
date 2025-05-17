@@ -245,7 +245,7 @@ async function invokeContract(operation, sourceKeypair, expectSuccess = true) {
     // Transaction Succeeded
     // Try using the convenience returnValue first
     if (getResponse?.returnValue) {
-      console.log('Parsing returnValue...')
+      console.log('Parsing returnValue...', getResponse)
       return scValToNative(getResponse.returnValue)
     }
     // Fallback: Try parsing resultXdr if returnValue is missing (less common for success)
