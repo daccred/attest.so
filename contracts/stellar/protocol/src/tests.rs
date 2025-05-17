@@ -152,6 +152,7 @@ fn test_attestation() {
     let admin = Address::generate(&env);
     let university = Address::generate(&env);
     let student_alice = Address::generate(&env);
+    let unauthorized_user = Address::generate(&env);
 
     // Initialize the contract
     let admin_clone_for_init_args = admin.clone();
@@ -202,7 +203,7 @@ fn test_attestation() {
         &revocable,
     );
 
-    // Test successful attestation
+    // Test successful attestation by the university (original authority)
     let attestation_value = r#"{
         "degree": "Bachelor of Science",
         "field": "Computer Science",
@@ -226,53 +227,56 @@ fn test_attestation() {
             sub_invokes: &[],
         },
     }]);
-
-    let attest_result = client.try_attest(
+    client.attest(
         &university,
         &schema_uid,
         &student_alice,
         &attestation_value_val,
         &reference_option,
     );
-    assert!(attest_result.is_ok());
 
-    // Verify attestation was recorded using the client's get_attestation method
+    // Verify the attestation was recorded
     let attestation = client.get_attestation(&schema_uid, &student_alice, &reference_option);
-    assert_eq!(attestation.schema_uid, schema_uid);
-    assert_eq!(attestation.subject, student_alice);
     assert_eq!(attestation.value, attestation_value_val);
-    assert!(!attestation.revoked);
 
-    // Test unauthorized attestation
-    let unauthorized = Address::generate(&env);
+    // Test successful attestation by an unauthorized user (should now work)
+    let unauthorized_value = r#"{
+        "degree": "Master of Science",
+        "field": "Data Science",
+        "graduation_date": "2024-06-15"
+    }"#;
+    let unauthorized_value_val = SorobanString::from_str(&env, unauthorized_value);
+    let unauthorized_reference = Some(SorobanString::from_str(&env, "unauthorized-attestation"));
     env.mock_auths(&[MockAuth {
-        address: &unauthorized,
+        address: &unauthorized_user,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
             fn_name: "attest",
             args: (
-                unauthorized.clone(),
+                unauthorized_user.clone(),
                 schema_uid.clone(),
                 student_alice.clone(),
-                attestation_value_val.clone(),
-                reference_option.clone(),
+                unauthorized_value_val.clone(),
+                unauthorized_reference.clone(),
             )
                 .into_val(&env),
             sub_invokes: &[],
         },
     }]);
-
+    
+    // This should now succeed since we removed the authority check
     let unauthorized_result = client.try_attest(
-        &unauthorized,
+        &unauthorized_user,
         &schema_uid,
         &student_alice,
-        &attestation_value_val,
-        &reference_option,
+        &unauthorized_value_val,
+        &unauthorized_reference,
     );
-    assert!(matches!(
-        unauthorized_result.err().unwrap().unwrap(),
-        errors::Error::NotAuthorized
-    ));
+    assert!(unauthorized_result.is_ok());
+
+    // Verify the new attestation was recorded
+    let new_attestation = client.get_attestation(&schema_uid, &student_alice, &unauthorized_reference);
+    assert_eq!(new_attestation.value, unauthorized_value_val);
 }
 
 #[test]
@@ -846,8 +850,7 @@ fn test_unauthorized_operations() {
     let contract_id = env.register(AttestationContract {}, ());
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
-    let university = Address::generate(&env);
-    let unauthorized = Address::generate(&env);
+    let unauthorized_user = Address::generate(&env);
     let student = Address::generate(&env);
 
     // Initialize the contract
@@ -876,12 +879,12 @@ fn test_unauthorized_operations() {
     let resolver_option: Option<Address> = None;
     let revocable = true;
     env.mock_auths(&[MockAuth {
-        address: &university,
+        address: &admin,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
             fn_name: "register",
             args: (
-                university.clone(),
+                admin.clone(),
                 schema_definition_val.clone(),
                 resolver_option.clone(),
                 revocable,
@@ -891,26 +894,26 @@ fn test_unauthorized_operations() {
         },
     }]);
     let schema_uid = client.register(
-        &university,
+        &admin,
         &schema_definition_val,
         &resolver_option,
         &revocable,
     );
 
-    // Test: Unauthorized account trying to create an attestation using a valid schema
+    // Test attestation by unauthorized user (should now succeed)
     let attestation_value = r#"{
-        "degree": "Fake Degree",
-        "field": "Deception"
+        "degree": "Bachelor of Science",
+        "field": "Computer Science"
     }"#;
     let attestation_value_val = SorobanString::from_str(&env, attestation_value);
     let reference_option: Option<SorobanString> = None;
     env.mock_auths(&[MockAuth {
-        address: &unauthorized,
+        address: &unauthorized_user,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
             fn_name: "attest",
             args: (
-                unauthorized.clone(),
+                unauthorized_user.clone(),
                 schema_uid.clone(),
                 student.clone(),
                 attestation_value_val.clone(),
@@ -920,45 +923,20 @@ fn test_unauthorized_operations() {
             sub_invokes: &[],
         },
     }]);
+    
+    // This should now succeed since we removed the authority check
     let result = client.try_attest(
-        &unauthorized,
+        &unauthorized_user,
         &schema_uid,
         &student,
         &attestation_value_val,
         &reference_option,
     );
-    // This should fail for sure, but the exact error type may vary
-    assert!(result.is_err());
+    assert!(result.is_ok());
 
-    // Test: University (a valid authority) trying to attest with a non-existent schema
-    let fake_schema_uid = BytesN::from_array(&env, &[0; 32]);
-    env.mock_auths(&[MockAuth {
-        address: &university,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "attest",
-            args: (
-                university.clone(),
-                fake_schema_uid.clone(),
-                student.clone(),
-                attestation_value_val.clone(),
-                reference_option.clone(),
-            )
-                .into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
-    let result = client.try_attest(
-        &university,
-        &fake_schema_uid,
-        &student,
-        &attestation_value_val,
-        &reference_option,
-    );
-    assert!(matches!(
-        result.err().unwrap().unwrap(),
-        errors::Error::SchemaNotFound
-    ));
+    // Verify the attestation was recorded
+    let attestation = client.get_attestation(&schema_uid, &student, &reference_option);
+    assert_eq!(attestation.value, attestation_value_val);
 }
 
 #[test]

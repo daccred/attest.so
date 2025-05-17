@@ -1,6 +1,7 @@
 use soroban_sdk::{Address, Env, String, BytesN, Bytes, xdr::ToXdr};
 use crate::state::{DataKey, Schema};
 use crate::errors::Error;
+use crate::events;
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// Generates a unique identifier (SHA256 hash) for a schema.
@@ -127,13 +128,16 @@ pub fn register_schema(
 
     // Store schema
     let schema = Schema {
-        authority: caller,
-        definition: schema_definition,
+        authority: caller.clone(),
+        definition: schema_definition.clone(),
         resolver,
         revocable,
     };
     let schema_key = DataKey::Schema(schema_uid.clone());
     env.storage().instance().set(&schema_key, &schema);
+
+    // Publish schema registration event
+    events::schema_registered(env, &schema_uid, &caller);
 
     Ok(schema_uid)
 }
