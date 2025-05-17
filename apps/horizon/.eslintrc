@@ -9,7 +9,6 @@
       "./tsconfig.json"
     ]
   },
-  "extends": "airbnb-typescript/base",
   "plugins": [
     "import",
     "@typescript-eslint"
