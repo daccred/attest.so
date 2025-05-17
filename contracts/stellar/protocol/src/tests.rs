@@ -1,7 +1,7 @@
 use crate::{errors, AttestationContract, AttestationContractClient};
 use soroban_sdk::{
     testutils::{Address as _, MockAuth, MockAuthInvoke, Events},
-    Address, BytesN, log, Env, Val, IntoVal, String as SorobanString, symbol_short, TryIntoVal,
+    Address, BytesN, log, Env, Val, IntoVal, String as SorobanString, symbol_short, TryIntoVal, Symbol,
 };
 
 #[test]
@@ -206,11 +206,18 @@ fn test_attestation() {
     // Verify schema registration event
     let events = env.events().all();
     let last_event = events.last().unwrap();
-    log!(&env, "Schema registration event: {:?}", last_event);
-    assert_eq!(last_event.0, contract_id);
-    assert_eq!(last_event.1, (symbol_short!("SCHEMA"), symbol_short!("REGISTER")).into_val(&env));
-    let schema_event_data: Val = (schema_uid.clone(), university.clone(), schema_definition_val.clone(), resolver_option.clone(), revocable).into_val(&env);
-    log!(&env, "Expected schema event data: {:?}", schema_event_data);
+    log!(&env, "Schema registration event (raw): {:?}", last_event);
+
+    assert_eq!(last_event.0, contract_id); // Compare Address directly
+
+    let expected_schema_topics_val = (symbol_short!("SCHEMA"), symbol_short!("REGISTER")).into_val(&env);
+    assert_eq!(last_event.1, expected_schema_topics_val);
+    log!(&env, "Actual schema topics Val: {:?}, Expected topics Val: {:?}", last_event.1, expected_schema_topics_val);
+
+    let expected_schema_data: (BytesN<32>, Address) = (schema_uid.clone(), university.clone());
+    let actual_schema_data: (BytesN<32>, Address) = last_event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_schema_data, expected_schema_data);
+    log!(&env, "Actual schema data: {:?}, Expected: {:?}", actual_schema_data, expected_schema_data);
 
     // Test successful attestation by the university (original authority)
     let attestation_value = r#"{
@@ -247,11 +254,18 @@ fn test_attestation() {
     // Verify attestation event
     let events = env.events().all();
     let last_event = events.last().unwrap();
-    log!(&env, "Attestation event: {:?}", last_event);
+    log!(&env, "Attestation event (raw): {:?}", last_event);
+
     assert_eq!(last_event.0, contract_id);
-    assert_eq!(last_event.1, (symbol_short!("ATTEST"), symbol_short!("CREATE")).into_val(&env));
-    let attestation_event_data: Val = (schema_uid.clone(), student_alice.clone(), attestation_value_val.clone(), reference_option.clone(), false).into_val(&env);
-    log!(&env, "Expected attestation event data: {:?}", attestation_event_data);
+
+    let expected_attestation_topics_val = (symbol_short!("ATTEST"), symbol_short!("CREATE")).into_val(&env);
+    assert_eq!(last_event.1, expected_attestation_topics_val);
+    log!(&env, "Actual attestation topics Val: {:?}, Expected topics Val: {:?}", last_event.1, expected_attestation_topics_val);
+
+    let expected_attestation_data: (BytesN<32>, Address, SorobanString, Option<SorobanString>, bool) = (schema_uid.clone(), student_alice.clone(), attestation_value_val.clone(), reference_option.clone(), false);
+    let actual_attestation_data: (BytesN<32>, Address, SorobanString, Option<SorobanString>, bool) = last_event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_attestation_data, expected_attestation_data);
+    log!(&env, "Actual attestation data: {:?}, Expected: {:?}", actual_attestation_data, expected_attestation_data);
 
     // Verify the attestation was recorded
     let attestation = client.get_attestation(&schema_uid, &student_alice, &reference_option);
@@ -295,12 +309,18 @@ fn test_attestation() {
     // Verify unauthorized attestation event
     let events = env.events().all();
     let last_event = events.last().unwrap();
-    log!(&env, "Unauthorized attestation event: {:?}", last_event);
+    log!(&env, "Unauthorized attestation event (raw): {:?}", last_event);
+
     assert_eq!(last_event.0, contract_id);
-    assert_eq!(last_event.1, (symbol_short!("ATTEST"), symbol_short!("CREATE")).into_val(&env));
-    let unauthorized_event_data: Val = (schema_uid.clone(), student_alice.clone(), unauthorized_value_val.clone(), unauthorized_reference.clone(), false).into_val(&env);
-    log!(&env, "Expected unauthorized event data: {:?}", unauthorized_event_data);
-    // assert!(env.events().all().iter().any(|event| event.2.try_into().unwrap() == unauthorized_event_data.try_into().unwrap()));
+
+    let expected_unauth_attestation_topics_val = (symbol_short!("ATTEST"), symbol_short!("CREATE")).into_val(&env);
+    assert_eq!(last_event.1, expected_unauth_attestation_topics_val);
+    log!(&env, "Actual unauth_attestation topics Val: {:?}, Expected topics Val: {:?}", last_event.1, expected_unauth_attestation_topics_val);
+
+    let expected_unauth_attestation_data: (BytesN<32>, Address, SorobanString, Option<SorobanString>, bool) = (schema_uid.clone(), student_alice.clone(), unauthorized_value_val.clone(), unauthorized_reference.clone(), false);
+    let actual_unauth_attestation_data: (BytesN<32>, Address, SorobanString, Option<SorobanString>, bool) = last_event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_unauth_attestation_data, expected_unauth_attestation_data);
+    log!(&env, "Actual unauth_attestation data: {:?}, Expected: {:?}", actual_unauth_attestation_data, expected_unauth_attestation_data);
 
     // Verify the new attestation was recorded
     let new_attestation = client.get_attestation(&schema_uid, &student_alice, &unauthorized_reference);
@@ -423,11 +443,18 @@ fn test_revocation() {
     // Verify revocation event
     let events = env.events().all();
     let last_event = events.last().unwrap();
-    log!(&env, "Revocation event: {:?}", last_event);
+    log!(&env, "Revocation event (raw): {:?}", last_event);
+
     assert_eq!(last_event.0, contract_id);
-    assert_eq!(last_event.1, (symbol_short!("ATTEST"), symbol_short!("REVOKE")).into_val(&env));
-    let revocation_event_data: Val = (schema_uid.clone(), student_alice.clone(), reference_option.clone()).into_val(&env);
-    log!(&env, "Expected revocation event data: {:?}", revocation_event_data);
+
+    let expected_revocation_topics_val = (symbol_short!("ATTEST"), symbol_short!("REVOKE")).into_val(&env);
+    assert_eq!(last_event.1, expected_revocation_topics_val);
+    log!(&env, "Actual revocation topics Val: {:?}, Expected topics Val: {:?}", last_event.1, expected_revocation_topics_val);
+
+    let expected_revocation_data: (BytesN<32>, Address, Option<SorobanString>) = (schema_uid.clone(), student_alice.clone(), reference_option.clone());
+    let actual_revocation_data: (BytesN<32>, Address, Option<SorobanString>) = last_event.2.try_into_val(&env).unwrap();
+    assert_eq!(actual_revocation_data, expected_revocation_data);
+    log!(&env, "Actual revocation data: {:?}, Expected: {:?}", actual_revocation_data, expected_revocation_data);
 
     // Verify attestation was revoked
     let attestation = client.get_attestation(&schema_uid, &student_alice, &reference_option);
