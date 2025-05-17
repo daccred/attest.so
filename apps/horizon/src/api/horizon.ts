@@ -1,6 +1,8 @@
+import dotenv from 'dotenv'
 import express, { Request, Response, Router } from 'express'
 import { rpc } from '@stellar/stellar-sdk' // Revert to rpc import
 import { MongoClient, Db, Collection } from 'mongodb'
+dotenv.config()
 // import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // const mongod = await MongoMemoryServer.create();
@@ -8,9 +10,9 @@ import { MongoClient, Db, Collection } from 'mongodb'
 
 
 // --- Configuration via Environment Variables ---
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/horizon_indexer'
-const STELLAR_NETWORK = process.env.STELLAR_NETWORK || 'testnet' // 'testnet' or 'mainnet'
-const CONTRACT_ID_TO_INDEX = process.env.CONTRACT_ID_TO_INDEX || 'YOUR_CONTRACT_ID_HERE'
+const MONGODB_URI = process.env.MONGODB_URI as string
+const STELLAR_NETWORK = process.env.STELLAR_NETWORK || 'testnet'
+const CONTRACT_ID_TO_INDEX = process.env.CONTRACT_ID_TO_INDEX
 const MAX_EVENTS_PER_FETCH = 100 // Max events to fetch in one getEvents call (max 10000 by RPC)
 const LEDGER_HISTORY_LIMIT_DAYS = 7 // Max days to look back for events, as per RPC limitations
 
@@ -21,25 +23,37 @@ if (STELLAR_NETWORK === 'mainnet') {
   sorobanRpcUrl = 'https://soroban-testnet.stellar.org' // Testnet RPC (default)
 }
 
-console.log(`Initializing Horizon API module for network: ${STELLAR_NETWORK}`)
-console.log(`Using Soroban RPC URL: ${sorobanRpcUrl}`)
-console.log(`Indexing contract ID: ${CONTRACT_ID_TO_INDEX}`)
-
-if (CONTRACT_ID_TO_INDEX === 'YOUR_CONTRACT_ID_HERE' && process.env.NODE_ENV !== 'test') {
-  console.warn("Warning: CONTRACT_ID_TO_INDEX is not set. Please set this environment variable. Using placeholder.")
+console.log(`---------------- HORIZON API MODULE INIT ----------------`);
+console.log(`Initializing Horizon API module for network: ${STELLAR_NETWORK}`);
+console.log(`Using Soroban RPC URL: ${sorobanRpcUrl}`);
+console.log(`Contract ID to Index: ${CONTRACT_ID_TO_INDEX}`);
+if (!CONTRACT_ID_TO_INDEX && process.env.NODE_ENV !== 'test') {
+  console.warn("Warning: CONTRACT_ID_TO_INDEX is not set. Please set this environment variable.");
+} else if (CONTRACT_ID_TO_INDEX === 'YOUR_CONTRACT_ID_HERE' && process.env.NODE_ENV !== 'test') {
+    console.warn("Warning: CONTRACT_ID_TO_INDEX is set to placeholder 'YOUR_CONTRACT_ID_HERE'");
 }
-// ---------------------------------------------
+console.log(`------------------------------------------------------`);
 
 const router = Router()
-let db: Db
-let metadataCollection: Collection
-let eventsCollection: Collection
+let db: Db | undefined
+let metadataCollection: Collection | undefined
+let eventsCollection: Collection | undefined
 
 const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://')
 })
 
-async function connectToMongoDB() {
+async function connectToMongoDB(): Promise<boolean> {
+  if (!MONGODB_URI) {
+    console.error('MongoDB URI is not defined. Please set MONGODB_URI environment variable.');
+    if (process.env.NODE_ENV !== 'test') {
+        console.error("CRITICAL: MongoDB URI not set, indexer will not function.")
+    }
+    db = undefined; // Ensure it's undefined if URI is missing
+    metadataCollection = undefined;
+    eventsCollection = undefined;
+    return false;
+  }
   try {
     const client = new MongoClient(MONGODB_URI)
     await client.connect()
@@ -47,9 +61,13 @@ async function connectToMongoDB() {
     metadataCollection = db.collection('metadata')
     eventsCollection = db.collection('contract_events')
     console.log('Successfully connected to MongoDB for Horizon API.')
+    return true;
   } catch (error) {
     console.error('Failed to connect to MongoDB for Horizon API:', error)
-    // Allow app to start but log error, ingestion will fail
+    db = undefined
+    metadataCollection = undefined
+    eventsCollection = undefined
+    return false;
   }
 }
 
@@ -62,7 +80,7 @@ async function getLastProcessedLedgerFromDB(): Promise<number> {
     return 0
   }
   const metadata = await metadataCollection.findOne({ key: 'lastProcessedLedgerMeta' })
-  return metadata ? metadata.value : 0
+  return metadata ? (metadata.value as number) : 0
 }
 
 async function updateLastProcessedLedgerInDB(ledgerSequence: number) {
@@ -103,15 +121,40 @@ async function storeEventsInDB(events: any[]) {
 }
 
 async function fetchAndStoreEvents(startLedgerFromRequest?: number) {
-  console.log(`Starting event ingestion. Requested start ledger: ${startLedgerFromRequest === undefined ? 'latest from DB/default' : startLedgerFromRequest}`);
+  console.log(`---------------- FETCH AND STORE EVENTS CYCLE ----------------`);
+  console.log(`Requested start ledger: ${startLedgerFromRequest === undefined ? 'latest from DB/default' : startLedgerFromRequest}`);
+  
   if (!db) {
     const errMsg = 'MongoDB not connected. Aborting event fetch.';
     console.error(errMsg);
+    console.log(`------------------------------------------------------`);
     throw new Error(errMsg);
   }
+  if (!CONTRACT_ID_TO_INDEX) {
+    const errMsg = 'CONTRACT_ID_TO_INDEX is not defined. Aborting event fetch.';
+    console.error(errMsg);
+    console.log(`------------------------------------------------------`);
+    throw new Error(errMsg);
+  }
+
   try {
+    let latestLedgerOnRpc;
+    try {
+        console.log('--------------- Attempting to call sorobanServer.getLatestLedger() --------------- ');
+        latestLedgerOnRpc = await sorobanServer.getLatestLedger();
+        console.log('--------------- sorobanServer.getLatestLedger() RAW RESPONSE: ---------------');
+        console.log(JSON.stringify(latestLedgerOnRpc, null, 2));
+        console.log('----------------------------------------------------------------------------');
+        if (!latestLedgerOnRpc || typeof latestLedgerOnRpc.sequence !== 'number') {
+            throw new Error('Invalid response from getLatestLedger or sequence number missing.');
+        }
+    } catch (rpcError: any) {
+        console.error('Error fetching latest ledger from RPC:', rpcError.message);
+        console.log(`------------------------------------------------------`);
+        throw new Error(`Failed to fetch latest ledger from RPC: ${rpcError.message}`);
+    }
+
     let lastProcessedLedgerDb = await getLastProcessedLedgerFromDB()
-    const latestLedgerOnRpc = await sorobanServer.getLatestLedger()
     let currentLedgerToQuery: number
 
     if (typeof startLedgerFromRequest === 'number' && startLedgerFromRequest >= 0) { // Allow 0 to signify earliest
@@ -134,6 +177,7 @@ async function fetchAndStoreEvents(startLedgerFromRequest?: number) {
     if (currentLedgerToQuery > latestLedgerOnRpc.sequence && latestLedgerOnRpc.sequence > 0) {
       const message = 'Start ledger is ahead of the latest RPC ledger. No new events to process.'
       console.log(message)
+      console.log(`------------------------------------------------------`)
       return { message, lastRpcLedger: latestLedgerOnRpc.sequence, queriedUpTo: currentLedgerToQuery - 1 }
     }
 
@@ -142,15 +186,14 @@ async function fetchAndStoreEvents(startLedgerFromRequest?: number) {
     let totalEventsFetchedThisRun = 0
 
     do {
-      console.log(`Fetching events. Effective start ledger for this page/request: ${cursor ? 'cursor-based' : currentLedgerToQuery}, cursor: ${cursor || 'none'}`)
+      console.log(`Fetching events. Effective start: ${cursor ? 'cursor' : currentLedgerToQuery}, cursor val: ${cursor || 'none'}`)
       
       // TODO: Define specific type for eventParams, e.g. rpc.Api.GetEventsRequest
       const eventParams: any = {
         filters: [
           {
             type: 'contract',
-            contractIds: [CONTRACT_ID_TO_INDEX],
-            // topics: [ ["AAAADwAAAAh0cmFuc2Zlcg==", "*", "*", "*"] ] // Example topic filter
+            contractIds: [CONTRACT_ID_TO_INDEX!], // Added non-null assertion as we check CONTRACT_ID_TO_INDEX above
           },
         ],
         pagination: {
@@ -163,10 +206,15 @@ async function fetchAndStoreEvents(startLedgerFromRequest?: number) {
       } else {
         eventParams.startLedger = currentLedgerToQuery
       }
-
+      
+      console.log('--------------- Attempting to call sorobanServer.getEvents() with params: --------------- ');
+      console.log(JSON.stringify(eventParams, null, 2));
       const response = await sorobanServer.getEvents(eventParams)
+      console.log('--------------- sorobanServer.getEvents() RAW RESPONSE: --------------- ');
+      console.log(JSON.stringify(response, null, 2));
+      console.log('---------------------------------------------------------------------');
 
-      if (response.events && response.events.length > 0) {
+      if (response && response.events && response.events.length > 0) {
         totalEventsFetchedThisRun += response.events.length
         console.log(`Fetched ${response.events.length} events.`)
         await storeEventsInDB(response.events)
@@ -179,10 +227,10 @@ async function fetchAndStoreEvents(startLedgerFromRequest?: number) {
           currentLedgerToQuery = lastLedgerProcessedInCycle + 1
         }
       } else {
-        console.log('No events found for this request.')
+        console.log('No events found for this request (or empty events array in response).')
       }
 
-      cursor = response.cursor
+      cursor = response?.cursor // Safely access cursor
       if (cursor) {
         console.log(`Next page cursor: ${cursor}. Will continue fetching.`)
       } else {
@@ -190,7 +238,7 @@ async function fetchAndStoreEvents(startLedgerFromRequest?: number) {
       }
       
       // Safety break: if currentLedgerToQuery advanced beyond latest RPC ledger AND there's no cursor AND we received fewer events than limit (meaning we might be at the actual end)
-      if (currentLedgerToQuery > latestLedgerOnRpc.sequence + 1 && !cursor && (!response.events || response.events.length < MAX_EVENTS_PER_FETCH)) {
+      if (currentLedgerToQuery > latestLedgerOnRpc.sequence + 1 && !cursor && (!response?.events || response.events.length < MAX_EVENTS_PER_FETCH)) {
         console.log('Advanced past latest RPC ledger or received partial page without cursor, stopping cycle.')
         break
       }
@@ -204,6 +252,7 @@ async function fetchAndStoreEvents(startLedgerFromRequest?: number) {
 
     const resultMessage = `Event ingestion triggered. Fetched ${totalEventsFetchedThisRun} events. Processed up to ledger ${lastLedgerProcessedInCycle}.`
     console.log(resultMessage)
+    console.log(`------------------------------------------------------`)
     return { 
       message: resultMessage,
       eventsFetched: totalEventsFetchedThisRun,
@@ -216,6 +265,7 @@ async function fetchAndStoreEvents(startLedgerFromRequest?: number) {
     if (error.response && error.response.data) {
       console.error("RPC Error details:", JSON.stringify(error.response.data, null, 2))
     }
+    console.log(`------------------------------------------------------`)
     throw new Error(errorMessage) // Re-throw to be caught by API handler
   }
 }
@@ -234,8 +284,8 @@ router.post('/events/ingest', async (req: Request, res: Response) => {
     
     // Non-blocking: Trigger ingestion, don't wait for it to complete for HTTP response.
     fetchAndStoreEvents(startLedgerFromRequest)
-      .then(result => console.log("Background event ingestion completed.", result))
-      .catch(err => console.error("Background event ingestion failed.", err))
+      .then(result => console.log("Background event ingestion completed successfully.", result))
+      .catch(err => console.error("Background event ingestion failed with error:", err.message))
 
     res.status(202).json({ 
       success: true, 
@@ -248,6 +298,7 @@ router.post('/events/ingest', async (req: Request, res: Response) => {
 })
 
 router.get('/health', async (req: Request, res: Response) => {
+  console.log('---------------- HEALTH CHECK REQUEST ----------------');
   let mongoStatus = 'disconnected'
   let rpcStatus = 'unknown'
   let lastLedgerDb = 0
@@ -257,29 +308,44 @@ router.get('/health', async (req: Request, res: Response) => {
       mongoStatus = 'connected'
       lastLedgerDb = await getLastProcessedLedgerFromDB()
     } else {
-      // Attempt to connect if db object is not there, e.g. first health check before initial connect completes
-      // This is a quick check, doesn't replace the main connectToMongoDB robust error handling
       try {
-        await connectToMongoDB()
-        if (db) mongoStatus = 'connected'
+        console.log('Health check: MongoDB not connected, attempting to reconnect...');
+        const connected = await connectToMongoDB()
+        if (connected && db) {
+          await (db as Db).command({ ping: 1 })
+          mongoStatus = 'connected'
+        } else {
+          console.warn('Health check: MongoDB connection attempt failed or db not set.');
+        }
         lastLedgerDb = await getLastProcessedLedgerFromDB()
-      } catch (mongoErr) {
-        console.warn('Health check: MongoDB connection attempt failed.', mongoErr)
+      } catch (mongoErr: any) {
+        console.warn('Health check: MongoDB connection attempt during health check failed.', mongoErr.message);
       }
     }
     
+    console.log('--------------- Attempting to call sorobanServer.getHealth() --------------- ');
     const rpcHealth = await sorobanServer.getHealth()
-    rpcStatus = rpcHealth.status
+    console.log('--------------- sorobanServer.getHealth() RAW RESPONSE: ------------------');
+    console.log(JSON.stringify(rpcHealth, null, 2));
+    console.log('--------------------------------------------------------------------------');
+    
+    if (!rpcHealth || typeof rpcHealth.status !== 'string') {
+      console.warn('RPC health response invalid or status missing.');
+      rpcStatus = 'error_invalid_response';
+    } else {
+      rpcStatus = rpcHealth.status
+    }
+
     res.status(200).json({
       status: 'ok',
       mongodb_status: mongoStatus,
       soroban_rpc_status: rpcStatus,
       network: STELLAR_NETWORK,
-      indexing_contract: CONTRACT_ID_TO_INDEX,
+      indexing_contract: CONTRACT_ID_TO_INDEX || 'Not Set',
       last_processed_ledger_in_db: lastLedgerDb
     })
   } catch (error: any) {
-    console.error("Health check error:", error.message)
+    console.error("Health check critical error:", error.message)
     res.status(500).json({
       status: 'error',
       mongodb_status: mongoStatus, 
@@ -287,6 +353,7 @@ router.get('/health', async (req: Request, res: Response) => {
       error: error.message,
     })
   }
+  console.log('------------------------------------------------------');
 })
 
 export default router
