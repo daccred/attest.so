@@ -9,7 +9,7 @@
     "start": "node dist/src/index.js",
     "start:ts": "ts-node src/index.ts",
     "lint": "eslint --fix src test",
-    "test": "jest",
+    "test": "test-runner jest",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [

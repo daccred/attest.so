@@ -29,8 +29,8 @@
     "lint:fix": "eslint . --fix",
     "start": "ts-node ./bin/run.ts",
     "start:node": "node ./bin/run",
-    "test": "jest",
-    "test:watch": "jest --watchAll",
+    "test": "test-runner jest",
+    "test:watch": "test-runner jest --watchAll",
     "prepare": "husky",
     "release": "semantic-release"
   },

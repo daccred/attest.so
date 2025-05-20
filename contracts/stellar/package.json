@@ -5,7 +5,7 @@
   "private": false,
   "type": "module",
   "scripts": {
-    "test": "tap",
+    "test": "test-runner tap",
     "start": "node scripts/run.mjs"
   },
   "keywords": [],
