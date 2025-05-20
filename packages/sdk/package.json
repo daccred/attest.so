@@ -21,6 +21,7 @@
     "build:main": "tsc -p tsconfig.json",
     "build:module": "tsc -p tsconfig.module.json",
     "build:umd": "webpack",
+    "test": "node --test",
     "test-solana": "ts-node ./test/run-solana.ts",
     "test-stellar": "ts-node ./test/run-stellar.ts"
   },
