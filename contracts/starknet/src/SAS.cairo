@@ -574,9 +574,10 @@ mod SAS {
 
             return result;
         }
-        /// @dev Calculates a UID for a given schema.
-        /// @param schemaRecord The input schema.
-        /// @return schema UID.
+        /// @dev Calculates a UID for a given attestation.
+        /// @param attestation The attestation to derive the UID from.
+        /// @param bump A nonce used when resolving UID collisions.
+        /// @return The calculated UID.
         fn _getUID(ref self: ContractState, _attestation: Attestation, _bump: u32) -> u256 {
             let mut input_array: Array<u256> = ArrayTrait::new();
             let schema: u256 = _attestation.schema;
