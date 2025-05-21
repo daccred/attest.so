@@ -1,7 +1,7 @@
 {
   "private": "true",
   "name": "attestprotocol",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "author": "Andrew Miracle <andrew@daccred.co>",
   "repository": {
     "type": "git",
