@@ -5,6 +5,7 @@ import { BaseHandler } from './base'
 import { validateStellarSchema, validateStellarAttestation } from '../utils'
 import { Command } from 'commander'
 import { Keypair } from '@stellar/stellar-sdk'
+import * as StellarSdk from '@stellar/stellar-sdk'
 import AttestSDK, {
   StellarAttestationConfig,
   SchemaConfig,
@@ -34,15 +35,14 @@ export class StellarHandler extends BaseHandler {
 
   // Get the network passphrase based on the network configuration
   private getNetworkPassphrase(): string {
-    // switch (this.network) {
-    //   case 'public':
-    //   case 'mainnet':
-    //     return StellarSdk.Networks.PUBLIC
-    //   case 'testnet':
-    //   default:
-    //     return StellarSdk.Networks.TESTNET
-    // }
-    return ''
+    switch (this.network.toLowerCase()) {
+      case 'public':
+      case 'mainnet':
+        return StellarSdk.Networks.PUBLIC
+      case 'testnet':
+      default:
+        return StellarSdk.Networks.TESTNET
+    }
   }
 
   async check(action: string, args: any): Promise<boolean> {
