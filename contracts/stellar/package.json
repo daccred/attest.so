@@ -1,6 +1,6 @@
 {
   "name": "@attestprotocol/stellar",
-  "description": "",
+  "description": "Stellar Attestation Service",
   "version": "1.5.0",
   "author": "",
   "dependencies": {
@@ -12,6 +12,9 @@
   "keywords": [],
   "license": "MIT",
   "main": "scripts/run.mjs",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "node scripts/run.mjs",
     "test": "tap"

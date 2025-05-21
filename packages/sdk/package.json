@@ -44,6 +44,9 @@
   "license": "MIT",
   "main": "dist/main/index.js",
   "module": "dist/module/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": "daccred/attest.so.git",
   "scripts": {
     "build": "pnpm clean && pnpm build:main && pnpm build:module && pnpm build:umd",

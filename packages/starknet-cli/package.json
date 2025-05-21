@@ -64,6 +64,9 @@
   ],
   "license": "MIT",
   "main": "./bin/run.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": "daccred/attest.so.git",
   "scripts": {
     "build": "tsup-node",
