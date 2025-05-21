@@ -22,7 +22,7 @@ export async function connectToMongoDB(): Promise<boolean> {
 
     db = client.db('horizon_indexer');
     metadataCollection = db.collection('metadata');
-    eventsCollection = db.collection('contract_events_with_tx');
+    eventsCollection = db.collection('contract_events');
     console.log('Successfully connected to MongoDB.');
 
     return true;
