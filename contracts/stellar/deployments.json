@@ -1,14 +1,14 @@
 {
   "testnet": {
     "protocol": {
-      "id": "CBPL7XR7NNPTNSIIFWQMWLSCX3B3MM36UYX4TW3QXJKTIEA6KDLRYAQP",
-      "hash": "751ca0b591b541d93a9ad08fa314dad17c34a17053957a02e29771de8d2502b8",
-      "timestamp": "2025-04-12T13:21:14Z"
+      "id": "CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO",
+      "hash": "17eaaa236086bffb82fd63d131f48453794f81aed76ba21fdb0fcb121a01973a",
+      "timestamp": "2025-05-17T21:32:22Z"
     },
     "authority": {
-      "id": "CA4FC4MEXX532GSIGGSUDBMKF2PBA4CHSQJFCAOA3VXGQQ42MZXAOHFM",
-      "hash": "6e2be8f6d71b8f26a9939e2ce805f594b6f1a8aa917a29f78aa17e3b519bef0a",
-      "timestamp": "2025-04-12T13:21:06Z"
+      "id": "CCSLTCC55GHW7XSZIWQ6OZVH262J2EHIRCYGXBB5G7IQZ5LR3SAJZDCE",
+      "hash": "747ebf120b708418bfce5749b4dba87fafcfaac310e6c1af12d257de4b48fef8",
+      "timestamp": "2025-05-17T21:32:02Z"
     }
   }
 }
