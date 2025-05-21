@@ -1,6 +1,6 @@
 {
   "name": "@attestprotocol/solana",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "dependencies": {
     "@coral-xyz/anchor": "0.31.1",
     "@solana/spl-token": "^0.4.6",

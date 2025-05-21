@@ -1,5 +1,15 @@
 # @attestprotocol/solana
 
+## 1.5.0
+
+### Minor Changes
+
+- 77909d0: root package lockfile tracking and changelogs
+
+### Patch Changes
+
+- f832c6a: bump minor
+
 ## 1.4.1
 
 ### Patch Changes
