@@ -1,41 +1,23 @@
 {
   "name": "@attestprotocol/starknet-cli",
-  "version": "1.3.0",
-  "description": "Attest CLI for StarkNet blockchain",
-  "type": "commonjs",
+  "description": "Attest CLI for interacting with Starknet Attestation Service",
+  "version": "1.5.2",
+  "author": "Andrew Miracle <andrew@daccred.co>",
   "bin": {
     "attest-starknet": "./bin/run"
   },
-  "directories": {
-    "lib": "src",
-    "bin": "bin"
+  "bugs": "https://github.com/daccred/attest.so/issues",
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
   },
-  "files": ["dist", "bin"],
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/daccred/attest.so.git"
+  "dependencies": {
+    "consola": "^3.2.3",
+    "dotenv": "^16.4.5",
+    "picocolors": "^1.0.1",
+    "yargs": "^17.7.2"
   },
-  "scripts": {
-    "build": "tsup-node",
-    "build:watch": "tsup-node --watch",
-    "clean": "rimraf dist",
-    "commit": "cz",
-    "commitlint": "commitlint --edit",
-    "compile": "tsc",
-    "format": "prettier . --check",
-    "format:fix": "prettier . --write",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "start": "ts-node ./bin/run.ts",
-    "start:node": "node ./bin/run",
-    "test": "jest",
-    "test:watch": "jest --watchAll",
-    "prepare": "husky",
-    "release": "semantic-release"
-  },
-  "keywords": ["starknet", "blockchain", "attestation", "cli"],
-  "author": "Andrew Miracle <andrew@daccred.co>",
-  "license": "MIT",
   "devDependencies": {
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
@@ -63,22 +45,46 @@
     "ts-jest": "^29.1.4",
     "ts-node": "^10.9.2",
     "tsup": "^8.0.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.6.2"
   },
-  "dependencies": {
-    "consola": "^3.2.3",
-    "dotenv": "^16.4.5",
-    "picocolors": "^1.0.1",
-    "yargs": "^17.7.2"
+  "directories": {
+    "bin": "bin",
+    "lib": "src"
   },
-  "config": {
-    "commitizen": {
-      "path": "cz-conventional-changelog"
-    }
-  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "homepage": "https://github.com/daccred/attest.so#readme",
+  "keywords": [
+    "attestation",
+    "blockchain",
+    "cli",
+    "starknet"
+  ],
+  "license": "MIT",
   "main": "./bin/run.js",
-  "bugs": {
-    "url": "https://github.com/daccred/attest.so/issues"
+  "publishConfig": {
+    "access": "public"
   },
-  "homepage": "https://github.com/daccred/attest.so#readme"
+  "repository": "daccred/attest.so.git",
+  "scripts": {
+    "build": "tsup-node",
+    "build:watch": "tsup-node --watch",
+    "clean": "rimraf dist",
+    "commit": "cz",
+    "commitlint": "commitlint --edit",
+    "compile": "tsc",
+    "format": "prettier . --check",
+    "format:fix": "prettier . --write",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepare": "husky",
+    "release": "semantic-release",
+    "start": "ts-node ./bin/run.ts",
+    "start:node": "node ./bin/run",
+    "test": "jest",
+    "test:watch": "jest --watchAll"
+  },
+  "type": "commonjs"
 }

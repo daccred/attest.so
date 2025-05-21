@@ -1,38 +1,9 @@
 {
   "name": "attestprotocol",
-  "version": "1.3.0",
-  "private": "true",
-  "workspaces": [
-    "packages/*",
-    "contracts/stellar/*",
-    "contracts/solana/*",
-    "contracts/starknet/*",
-    "contracts/sui/*"
-  ],
-  "scripts": {
-    "build": "pnpm run --recursive build",
-    "dev": "pnpm run --recursive dev",
-    "lint": "pnpm run -r lint",
-    "filter": "pnpm --filter",
-    "format": "pnpm run -r format",
-    "test": "pnpm run -r test && cargo test",
-    "commit": "cz",
-    "semantic-release": "semantic-release",
-    "syncpack": "npx syncpack",
-    "syncpack:format": "npx syncpack format && npx syncpack list",
-    "release-it": "npx release-it@17.11.0"
-  },
-  "keywords": [
-    "monorepo",
-    "pnpm",
-    "stellar",
-    "soroban",
-    "solana",
-    "attest",
-    "attestation-service"
-  ],
+  "version": "1.5.2",
   "author": "Andrew Miracle <andrew@daccred.co>",
   "devDependencies": {
+    "@changesets/cli": "^2.29.4",
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
     "@semantic-release/changelog": "^6.0.3",
@@ -41,5 +12,36 @@
     "conventional-changelog-conventionalcommits": "^8.0.0",
     "dotenv": "^16.4.5",
     "semantic-release": "^24.2.3"
-  }
+  },
+  "keywords": [
+    "attest",
+    "attestation-service",
+    "monorepo",
+    "pnpm",
+    "solana",
+    "soroban",
+    "stellar"
+  ],
+  "private": "true",
+  "repository": "daccred/attest.so.git",
+  "scripts": {
+    "build": "pnpm run --recursive build",
+    "changeset": "changeset",
+    "commit": "cz",
+    "dev": "pnpm run --recursive dev",
+    "filter": "pnpm --filter",
+    "format": "pnpm run -r format",
+    "lint": "pnpm run -r lint",
+    "release:version": "pnpm changeset && pnpm changeset version",
+    "release:stellar": "cd contracts/stellar && cargo release $1 --execute",
+    "release": "pnpm release:version && npx release-it@17.11.0",
+    "semantic-release": "semantic-release",
+    "syncpack": "npx syncpack",
+    "syncpack:format": "npx syncpack format && npx syncpack list",
+    "test": "pnpm run -r test && cargo test"
+  },
+  "workspaces": [
+    "packages/*",
+    "contracts/*"
+  ]
 }
