@@ -2,7 +2,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { MongoClient, Db } from 'mongodb';
-import horizonRouter from '../src/api/horizon'; // Adjust path
+import horizonRouter from '../src/api/indexer/api'; 
+
 
 const app = express();
 app.use(express.json());

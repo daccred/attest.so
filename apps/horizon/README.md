@@ -62,3 +62,33 @@ pnpm dev
 ```
 
 For production:
+
+
+
+
+================================================================================
+curl -X POST \
+-H 'Content-Type: application/json' \
+-d '{
+    "jsonrpc": "2.0",
+    "id": 8675309,
+    "method": "getEvents",
+    "params": {
+      "xdrFormat": "json",
+      "startLedger": 1021467,
+      "pagination": {
+        "limit": 100
+      },
+      "filters": [
+        {
+          "type": "contract",
+          "contractIds": [
+            "CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO"
+          ],
+          "topics": []
+        }
+      ]
+    }
+}' \
+https://soroban-testnet.stellar.org | jq
+================================================================================

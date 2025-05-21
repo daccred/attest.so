@@ -2,7 +2,8 @@ import express from 'express';
 
 import MessageResponse from '../interfaces/MessageResponse';
 import emojis from './emojis';
-import horizon from './horizon';
+import indexer from './indexer/api';
+
 
 const router = express.Router();
 
@@ -13,6 +14,6 @@ router.get<{}, MessageResponse>('/', (req, res) => {
 });
 
 router.use('/emojis', emojis);
-router.use('/horizon', horizon);
+router.use('/indexer', indexer);
 
 export default router;
