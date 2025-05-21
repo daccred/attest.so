@@ -1,30 +1,7 @@
 {
-  "private": "true",
   "name": "attestprotocol",
   "version": "1.3.0",
   "author": "Andrew Miracle <andrew@daccred.co>",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/daccred/attest.so.git"
-  },
-  "scripts": {
-    "build": "pnpm run --recursive build",
-    "commit": "cz",
-    "dev": "pnpm run --recursive dev",
-    "filter": "pnpm --filter",
-    "format": "pnpm run -r format",
-    "lint": "pnpm run -r lint",
-    "release-it": "npx release-it@17.11.0",
-    "semantic-release": "semantic-release",
-    "changeset": "changeset",
-    "syncpack": "npx syncpack",
-    "syncpack:format": "npx syncpack format && npx syncpack list",
-    "test": "pnpm run -r test && cargo test"
-  },
-  "workspaces": [
-    "packages/*",
-    "contracts/*"
-  ],
   "devDependencies": {
     "@changesets/cli": "^2.29.4",
     "@commitlint/cli": "19.8.1",
@@ -44,5 +21,25 @@
     "solana",
     "soroban",
     "stellar"
+  ],
+  "private": "true",
+  "repository": "daccred/attest.so.git",
+  "scripts": {
+    "build": "pnpm run --recursive build",
+    "changeset": "changeset",
+    "commit": "cz",
+    "dev": "pnpm run --recursive dev",
+    "filter": "pnpm --filter",
+    "format": "pnpm run -r format",
+    "lint": "pnpm run -r lint",
+    "release": "npx release-it@17.11.0 && pnpm changeset version && pnpm version",
+    "semantic-release": "semantic-release",
+    "syncpack": "npx syncpack",
+    "syncpack:format": "npx syncpack format && npx syncpack list",
+    "test": "pnpm run -r test && cargo test"
+  },
+  "workspaces": [
+    "packages/*",
+    "contracts/*"
   ]
 }

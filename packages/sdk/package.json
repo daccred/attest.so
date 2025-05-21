@@ -1,43 +1,13 @@
 {
   "name": "@attestprotocol/sdk",
-  "version": "1.3.0",
-  "description": "`npm run build`",
-  "license": "MIT",
+  "description": "JavaScript SDK for interacting with Attest Protocol",
+  "version": "1.4.0",
   "author": "daccred",
-  "homepage": "https://github.com/daccred/attest.so#readme",
-  "repository": "daccred/attest.so.git",
   "bugs": "https://github.com/daccred/attest.so/issues",
-  "exports": {
-    "types": "./dist/index.d.ts",
-    "import": "./dist/index.js",
-    "require": "./dist/index.js",
-    "default": "./dist/index.js"
-  },
-  "main": "dist/main/index.js",
-  "module": "dist/module/index.js",
-  "files": [
-    "dist",
-    "src"
-  ],
-  "directories": {
-    "test": "test"
-  },
-  "scripts": {
-    "build": "pnpm clean && pnpm build:main && pnpm build:module && pnpm build:umd",
-    "build:main": "tsc -p tsconfig.json",
-    "build:module": "tsc -p tsconfig.module.json",
-    "build:umd": "webpack",
-    "clean": "rimraf dist docs/v2",
-    "format": "prettier --write \"{src,test}/**/*.ts\"",
-    "test": "node --test",
-    "test-solana": "ts-node ./test/run-solana.ts",
-    "test-stellar": "ts-node ./test/run-stellar.ts"
-  },
-  "types": "dist/module/index.d.ts",
   "dependencies": {
     "@coral-xyz/anchor": "0.31.1",
     "@solana/spl-token": "^0.4.6",
-    "@solana/web3.js": "^1.95.3",
+    "@solana/web3.js": "^1.95.5",
     "@stellar/stellar-sdk": "13.3.0",
     "isomorphic-unfetch": "^4.0.2",
     "json-schema": "^0.4.0",
@@ -55,7 +25,37 @@
     "webpack": "^5.99.5",
     "webpack-cli": "^6.0.1"
   },
-  "keywords": [],
+  "directories": {
+    "test": "test"
+  },
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "import": "./dist/index.js",
+    "require": "./dist/index.js",
+    "default": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "homepage": "https://github.com/daccred/attest.so#readme",
   "jsdelivr": "dist/umd/attestprotocol.js",
+  "keywords": [],
+  "license": "MIT",
+  "main": "dist/main/index.js",
+  "module": "dist/module/index.js",
+  "repository": "daccred/attest.so.git",
+  "scripts": {
+    "build": "pnpm clean && pnpm build:main && pnpm build:module && pnpm build:umd",
+    "build:main": "tsc -p tsconfig.json",
+    "build:module": "tsc -p tsconfig.module.json",
+    "build:umd": "webpack",
+    "clean": "rimraf dist docs/v2",
+    "format": "prettier --write \"{src,test}/**/*.ts\"",
+    "test": "node --test",
+    "test-solana": "ts-node ./test/run-solana.ts",
+    "test-stellar": "ts-node ./test/run-stellar.ts"
+  },
+  "types": "dist/module/index.d.ts",
   "unpkg": "dist/umd/attestprotocol.js"
 }
