@@ -1,5 +1,11 @@
 # @attestprotocol/solana-cli
 
+## 1.5.1
+
+### Patch Changes
+
+- 1b81be8: patch npm publish config for modules
+
 ## 1.5.0
 
 ### Minor Changes
