@@ -1,9 +1,5 @@
-sign-commit = false
-sign-tag = false
+sign-commit = true
+sign-tag = true
 publish = true
 push = true
 consolidate-commits = true
-changelog-sections = [
-  { name = "Features", regex = "feat" },
-  { name = "Fixes", regex = "fix" }
-]
