@@ -46,7 +46,7 @@ export class SolanaAttestSDK extends AttestSDKBase {
 
     this.programId = config.programId ? new PublicKey(config.programId) : new PublicKey(idl.address)
 
-    this.program = new anchor.Program(idl as anchor.Idl) as anchor.Program<anchor.Idl>
+    this.program = new anchor.Program(idl as anchor.Idl, this.programId, provider) as anchor.Program<anchor.Idl>
   }
 
   /**
@@ -129,7 +129,9 @@ export class SolanaAttestSDK extends AttestSDKBase {
     schemaUID: anchor.web3.PublicKey
   ): Promise<AttestSDKResponse<SolanaFetchSchemaResult | null>> {
     try {
-      return await (this.program.account as any).schemaData.fetch(schemaUID)
+      const data = await (this.program.account as any).schemaData.fetch(schemaUID)
+
+      return { data }
     } catch (err) {
       return { error: err }
     }
@@ -175,7 +177,9 @@ export class SolanaAttestSDK extends AttestSDKBase {
     attestation: anchor.web3.PublicKey | string
   ): Promise<AttestSDKResponse<SolanaFetchAttestationResult | null>> {
     try {
-      return await (this.program.account as any).attestation.fetch(attestation)
+      const data = await (this.program.account as any).attestation.fetch(attestation)
+
+      return { data }
     } catch (err) {
       return { error: err }
     }
