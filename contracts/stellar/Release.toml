@@ -1,0 +1,9 @@
+sign-commit = false
+sign-tag = false
+publish = true
+push = true
+consolidate-commits = true
+changelog-sections = [
+  { name = "Features", regex = "feat" },
+  { name = "Fixes", regex = "fix" }
+]
