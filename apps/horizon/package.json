@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/src/index.js",
     "start:ts": "ts-node src/index.ts",
-    "lint": "eslint --fix src test",
+    "lint": "eslint --fix src __tests__",
     "lint:ts": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
