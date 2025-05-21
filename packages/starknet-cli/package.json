@@ -1,7 +1,7 @@
 {
   "name": "@attestprotocol/starknet-cli",
   "description": "Attest CLI for interacting with Starknet Attestation Service",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "author": "Andrew Miracle <andrew@daccred.co>",
   "bin": {
     "attest-starknet": "./bin/run"

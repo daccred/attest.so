@@ -1,5 +1,11 @@
 # @attestprotocol/solana-cli
 
+## 1.5.2
+
+### Patch Changes
+
+- efa55ba: bump
+
 ## 1.5.1
 
 ### Patch Changes

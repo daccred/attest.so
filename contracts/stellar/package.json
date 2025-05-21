@@ -1,7 +1,7 @@
 {
   "name": "@attestprotocol/stellar",
   "description": "Stellar Attestation Service",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "author": "",
   "dependencies": {
     "@stellar/stellar-sdk": "13.3.0"
