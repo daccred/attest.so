@@ -18,6 +18,9 @@
 
     "forceConsistentCasingInFileNames": true,
     "stripInternal": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    
+    "skipLibCheck": true,
+    "lib": ["ES2020"]
   }
 }

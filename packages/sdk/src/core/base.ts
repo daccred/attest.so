@@ -8,9 +8,12 @@ import {
   SolanaFetchSchemaResult,
   SolanaRevokeAttestationConfig,
   StellarAttestationConfig,
+  StellarAttestationConfigWithValue,
+  StellarCreateSchemaResult,
   StellarFetchAttestationResult,
   StellarFetchAuthorityResult,
   StellarFetchSchemaResult,
+  StellarSchemaConfig,
 } from './types'
 import * as anchor from '@coral-xyz/anchor'
 
@@ -31,18 +34,18 @@ export abstract class AttestSDKBase {
   ): Promise<AttestSDKResponse<SolanaFetchSchemaResult | StellarFetchSchemaResult | null>>
 
   abstract createSchema(
-    config: SchemaConfig
-  ): Promise<AttestSDKResponse<anchor.web3.PublicKey | string>>
+    config: SchemaConfig | StellarSchemaConfig
+  ): Promise<AttestSDKResponse<anchor.web3.PublicKey | StellarCreateSchemaResult | string>>
 
   abstract fetchAttestation(
-    attestation: anchor.web3.PublicKey | string
+    attestation: anchor.web3.PublicKey | StellarAttestationConfig | string
   ): Promise<AttestSDKResponse<SolanaFetchAttestationResult | StellarFetchAttestationResult | null>>
 
   abstract attest(
-    config: AttestationConfig | StellarAttestationConfig
+    config: AttestationConfig | StellarAttestationConfigWithValue
   ): Promise<AttestSDKResponse<anchor.web3.PublicKey | string>>
 
   abstract revokeAttestation(
-    props: SolanaRevokeAttestationConfig | RevokeAttestationConfig
+    props: SolanaRevokeAttestationConfig | StellarAttestationConfig | RevokeAttestationConfig
   ): Promise<AttestSDKResponse<anchor.web3.PublicKey | string>>
 }

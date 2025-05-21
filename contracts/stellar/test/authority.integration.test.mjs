@@ -196,39 +196,39 @@ async function invokeContract(operation, sourceKeypair, expectSuccess = true) {
   try {
     const sendResponse = await server.sendTransaction(finalTx) // Send the tx with auth
 
-    // --- Improved Immediate Error Handling ---
+    // --- Improved Immediate Error Handling --- 
     if (sendResponse.status === 'ERROR' || sendResponse.status === 'FAILED') {
       console.error('Transaction submission failed immediately:', sendResponse)
       let detailedError = `Transaction submission failed with status: ${sendResponse.status}`
-      // Directly inspect the errorResult object provided by the SDK
-      if (sendResponse.errorResult) {
+        // Directly inspect the errorResult object provided by the SDK 
+        if (sendResponse.errorResult) {
         console.error(
           'Detailed Submission Error Object:',
           JSON.stringify(sendResponse.errorResult, null, 2)
         )
-        try {
-          // Access the result codes directly from the object structure
+            try {
+                // Access the result codes directly from the object structure
           const txResult = sendResponse.errorResult._attributes?.result // Access the result ChildUnion
-          if (txResult) {
+                if (txResult) {
             detailedError += ` - Result Code: ${txResult._switch?.name || 'Unknown'}`
-            // Check if there are operation results
+                    // Check if there are operation results
             const opResults = txResult._value?.results ? txResult._value.results() : null // Access nested results if they exist
-            if (opResults && opResults.length > 0) {
+                    if (opResults && opResults.length > 0) {
               const opResultDetails = opResults[0]?._attributes?.tr // Access the tr attribute of the first op result
-              if (opResultDetails) {
+                         if (opResultDetails) {
                 detailedError += ` - Op Result: ${opResultDetails._switch?.name || 'Unknown'}`
-                // Further drill down for invoke errors if possible (structure might vary)
-                if (opResultDetails._arm === 'invokeHostFunctionResult' && opResultDetails._value) {
+                            // Further drill down for invoke errors if possible (structure might vary)
+                            if (opResultDetails._arm === 'invokeHostFunctionResult' && opResultDetails._value) {
                   detailedError += ` -> ${opResultDetails._value._switch?.name || 'UnknownInvokeResult'}`
+                            }
+                         }
+                    }
                 }
-              }
-            }
-          }
-        } catch (inspectionError) {
+            } catch (inspectionError) {
           console.error('Failed to inspect submission error object:', inspectionError)
           detailedError += ' - Failed to inspect detailed error object.'
+            }
         }
-      }
       throw new Error(detailedError) // Throw with more details
     }
     // --- End Improved Error Handling ---
@@ -243,65 +243,65 @@ async function invokeContract(operation, sourceKeypair, expectSuccess = true) {
 
     // Poll while status is PENDING, NOT_FOUND, or TRY_AGAIN_LATER
     // ---> FIX: Fetch inside loop and check response before accessing status <---
-    while (true) {
-      if (Date.now() - start > TIMEOUT_MS) {
+    while (true) { 
+        if (Date.now() - start > TIMEOUT_MS) {
         console.error('Transaction timed out while polling:', getResponse)
         throw new Error(
           `Transaction ${sendResponse.hash} timed out after ${TIMEOUT_MS / 1000} seconds.`
         )
-      }
-
-      // Fetch status in each iteration
-      // eslint-disable-next-line no-await-in-loop
+        }
+        
+        // Fetch status in each iteration
+        // eslint-disable-next-line no-await-in-loop
       getResponse = await server.getTransaction(sendResponse.hash)
       console.log(`Polling... Current status: ${getResponse?.status}`)
 
-      // Exit loop if status is no longer pending/transient
+        // Exit loop if status is no longer pending/transient
       if (
         getResponse &&
-        getResponse.status !== 'PENDING' &&
-        getResponse.status !== 'NOT_FOUND' &&
+            getResponse.status !== 'PENDING' &&
+            getResponse.status !== 'NOT_FOUND' &&
         getResponse.status !== 'TRY_AGAIN_LATER'
       ) {
         break
-      }
+        }
 
-      // eslint-disable-next-line no-await-in-loop
+        // eslint-disable-next-line no-await-in-loop
       await new Promise((resolve) => setTimeout(resolve, 3000)) // Increased poll interval to 3s
     }
 
     // After loop, check final status
     if (getResponse?.status !== 'SUCCESS') {
       console.error('Transaction failed:', getResponse)
-      if (getResponse?.resultMetaXdr) {
-        try {
+        if (getResponse?.resultMetaXdr) {
+            try {
           const resultMeta = xdr.TransactionMeta.fromXDR(getResponse.resultMetaXdr, 'base64')
           console.error(
             'Transaction Result Meta:',
             JSON.stringify(resultMeta.v3().sorobanMeta(), null, 2)
           )
-        } catch (metaError) {
+            } catch (metaError) {
           console.error('Failed to parse resultMetaXdr:', metaError)
+            }
         }
-      }
       throw new Error(`Transaction failed with status: ${getResponse?.status}`)
     }
 
-    // Transaction Succeeded
-    // Try using the convenience returnValue first
-    if (getResponse?.returnValue) {
+     // Transaction Succeeded
+     // Try using the convenience returnValue first
+     if (getResponse?.returnValue) {
       console.log('Parsing returnValue...')
       return scValToNative(getResponse.returnValue)
-    }
-    // Fallback: Try parsing resultXdr if returnValue is missing (less common for success)
-    else if (getResponse?.resultXdr) {
+     } 
+     // Fallback: Try parsing resultXdr if returnValue is missing (less common for success)
+     else if (getResponse?.resultXdr) {
       console.warn('Attempting to parse resultXdr as returnValue was missing...')
-      try {
-        // Note: The exact path might need adjustment based on SDK version/response structure
+        try {
+            // Note: The exact path might need adjustment based on SDK version/response structure
         const rawResultXdr = getResponse.resultXdr.result().txResult()
         const result = xdr.TransactionResult.fromXDR(rawResultXdr, 'base64')
-        if (result.result().results()[0]) {
-          // Navigate through the nested structure (this path might be fragile)
+            if (result.result().results()[0]) {
+                // Navigate through the nested structure (this path might be fragile)
           const opResult = result
             .result()
             .results()[0]
@@ -311,10 +311,10 @@ async function invokeContract(operation, sourceKeypair, expectSuccess = true) {
             ?.results?.()[0]
             ?.tr()
             ?.invokeHostFunctionResult?.()
-          if (opResult?.switch() === xdr.InvokeHostFunctionResultCode.invokeHostFunctionSuccess()) {
+                if (opResult?.switch() === xdr.InvokeHostFunctionResultCode.invokeHostFunctionSuccess()) {
             console.log('Successfully parsed value from resultXdr')
             return scValToNative(opResult.success())
-          } else {
+                } else {
             console.error(
               'Operation failed within successful transaction (parsed from resultXdr):',
               opResult
@@ -322,12 +322,12 @@ async function invokeContract(operation, sourceKeypair, expectSuccess = true) {
             throw new Error(
               `Contract operation failed (parsed from resultXdr): ${opResult?.switch()?.name || 'Unknown'}`
             )
-          }
-        }
-      } catch (parseError) {
+                }
+            }
+        } catch (parseError) {
         console.error('Failed to parse resultXdr even though transaction succeeded:', parseError)
-        // Fall through to returning the raw response if parsing fails
-      }
+             // Fall through to returning the raw response if parsing fails
+        }
     }
     // If parsing failed or no return value found, return the whole response object
     console.warn('Could not parse return value, returning full response object.')
@@ -355,14 +355,14 @@ function schemaRulesToScVal(rules) {
     mapEntries.push(
       new xdr.ScMapEntry({ key: symbolKey('levy_amount'), val: xdr.ScVal.scvVec([i128Val]) })
     )
-  } else {
+    } else {
     mapEntries.push(
       new xdr.ScMapEntry({ key: symbolKey('levy_amount'), val: xdr.ScVal.scvVec([]) })
     ) // None
   }
 
   // levy_recipient: Option<Address>
-  if (rules.levy_recipient) {
+    if (rules.levy_recipient) {
     const recipientAddr = Address.fromString(rules.levy_recipient)
     mapEntries.push(
       new xdr.ScMapEntry({
@@ -370,7 +370,7 @@ function schemaRulesToScVal(rules) {
         val: xdr.ScVal.scvVec([recipientAddr.toScVal()]),
       })
     )
-  } else {
+    } else {
     mapEntries.push(
       new xdr.ScMapEntry({ key: symbolKey('levy_recipient'), val: xdr.ScVal.scvVec([]) })
     ) // None
@@ -384,7 +384,7 @@ function attestationRecordToScMap(record) {
   const mapEntries = []
   const symbolKey = (key) => xdr.ScVal.scvSymbol(key)
 
-  // Required fields
+    // Required fields
   mapEntries.push(
     new xdr.ScMapEntry({ key: symbolKey('uid'), val: xdr.ScVal.scvBytes(record.uid) })
   )
@@ -426,20 +426,20 @@ function attestationRecordToScMap(record) {
         ]), // Some(u64)
       })
     )
-  } else {
+    } else {
     mapEntries.push(
       new xdr.ScMapEntry({ key: symbolKey('expiration_time'), val: xdr.ScVal.scvVec([]) })
     ) // None
   }
 
-  if (record.ref_uid) {
+    if (record.ref_uid) {
     mapEntries.push(
       new xdr.ScMapEntry({
         key: symbolKey('ref_uid'),
         val: xdr.ScVal.scvVec([xdr.ScVal.scvBytes(record.ref_uid)]), // Some(Bytes)
       })
     )
-  } else {
+    } else {
     mapEntries.push(new xdr.ScMapEntry({ key: symbolKey('ref_uid'), val: xdr.ScVal.scvVec([]) })) // None
   }
 
@@ -453,7 +453,7 @@ function attestationRecordToScMap(record) {
     mapEntries.push(
       new xdr.ScMapEntry({ key: symbolKey('value'), val: xdr.ScVal.scvVec([i128Val]) })
     ) // Some(i128)
-  } else {
+    } else {
     mapEntries.push(new xdr.ScMapEntry({ key: symbolKey('value'), val: xdr.ScVal.scvVec([]) })) // None
   }
 
@@ -512,10 +512,10 @@ t.test('Authority Contract Integration Test', async (t) => {
 
   // Test Data
   const schemaUid = randomBytes(32) // Generate random schema UID for this test
-
+  
   // Match SchemaRules struct definition from state.rs
   const schemaRules = {
-    levy_amount: 10000000n, // 1 XLM equivalent in stroops (BigInt for i128)
+      levy_amount: 10000000n, // 1 XLM equivalent in stroops (BigInt for i128)
     levy_recipient: levyRecipientKp.publicKey(), // Address of levy recipient
   }
 
@@ -523,15 +523,15 @@ t.test('Authority Contract Integration Test', async (t) => {
 
   // Match AttestationRecord struct definition from state.rs
   const attestationRecordData = {
-    uid: randomBytes(32), // Generate unique attestation ID
-    schema_uid: schemaUid,
-    recipient: subjectKp.publicKey(),
-    attester: adminAddress, // Use admin address from env.sh
-    time: Math.floor(Date.now() / 1000), // Current time in seconds
-    expiration_time: Math.floor(Date.now() / 1000) + 3600 * 24 * 30, // 30 days from now
-    revocable: true,
-    ref_uid: Buffer.from(`ref_${testRunId}`),
-    data: Buffer.from(`test_value_${testRunId}`),
+      uid: randomBytes(32), // Generate unique attestation ID
+      schema_uid: schemaUid,
+      recipient: subjectKp.publicKey(),
+      attester: adminAddress, // Use admin address from env.sh
+      time: Math.floor(Date.now() / 1000), // Current time in seconds
+      expiration_time: Math.floor(Date.now() / 1000) + 3600 * 24 * 30, // 30 days from now
+      revocable: true,
+      ref_uid: Buffer.from(`ref_${testRunId}`),
+      data: Buffer.from(`test_value_${testRunId}`),
     value: 100n, // Example value as i128
   }
 
@@ -559,10 +559,10 @@ t.test('Authority Contract Integration Test', async (t) => {
     const argsVec = [adminScVal, schemaUidBytesScVal, schemaRulesArg]
 
     const invokeArgs = new xdr.InvokeContractArgs({
-      contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-      functionName: 'admin_register_schema',
-      args: argsVec,
-    })
+            contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
+            functionName: 'admin_register_schema',
+            args: argsVec,
+          })
 
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
     // --- Create correct Auth Entry ---
@@ -577,31 +577,31 @@ t.test('Authority Contract Integration Test', async (t) => {
     try {
       const result = await invokeContract(operation, adminKeypair)
       t.ok(result === null || result === undefined, 'Admin Register Schema should succeed')
-    } catch (error) {
+     } catch (error) {
       console.error('Admin Register Schema Error:', error)
       t.fail(`Admin Register Schema failed: ${error.message}`, { error })
-    }
+     }
   })
 
   t.test('2. Admin Set Schema Levy', async (t) => {
-    // Manually construct
+      // Manually construct
     const adminScVal = Address.fromString(adminAddress).toScVal()
     const schemaUidBytesScVal = xdr.ScVal.scvBytes(schemaUid)
-
-    // Properly construct i128 value
+      
+      // Properly construct i128 value
     const levyAmountScVal = xdr.ScVal.scvI128(
       new xdr.Int128Parts({
-        hi: BigInt(schemaRules.levy_amount) >> 64n,
+          hi: BigInt(schemaRules.levy_amount) >> 64n,
         lo: BigInt(schemaRules.levy_amount) & 0xffffffffffffffffn,
       })
     )
-
+      
     const recipientScVal = Address.fromString(schemaRules.levy_recipient).toScVal()
     const argsVec = [adminScVal, schemaUidBytesScVal, levyAmountScVal, recipientScVal]
-    const invokeArgs = new xdr.InvokeContractArgs({
-      contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-      functionName: 'admin_set_schema_levy',
-      args: argsVec,
+      const invokeArgs = new xdr.InvokeContractArgs({
+          contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
+          functionName: 'admin_set_schema_levy',
+          args: argsVec,
     })
 
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
@@ -618,22 +618,22 @@ t.test('Authority Contract Integration Test', async (t) => {
     try {
       const result = await invokeContract(operation, adminKeypair)
       t.ok(result === null || result === undefined, 'Admin Set Schema Levy should succeed')
-    } catch (error) {
+      } catch (error) {
       console.error('Admin Set Levy Error:', error)
       t.fail(`Admin Set Levy failed: ${error.message}`, { error })
-    }
+      }
   })
 
   t.test('3. Admin Register Authority', async (t) => {
-    // Manually construct
+      // Manually construct
     const adminScVal = Address.fromString(adminAddress).toScVal()
     const authorityToRegisterScVal = Address.fromString(authorityToRegisterKp.publicKey()).toScVal()
     const metadataStringScVal = xdr.ScVal.scvString(metadataString)
     const argsVec = [adminScVal, authorityToRegisterScVal, metadataStringScVal]
-    const invokeArgs = new xdr.InvokeContractArgs({
-      contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-      functionName: 'admin_register_authority',
-      args: argsVec,
+      const invokeArgs = new xdr.InvokeContractArgs({
+          contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
+          functionName: 'admin_register_authority',
+          args: argsVec,
     })
 
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
@@ -650,24 +650,24 @@ t.test('Authority Contract Integration Test', async (t) => {
     try {
       const result = await invokeContract(operation, adminKeypair)
       t.ok(result === null || result === undefined, 'Admin Register Authority should succeed')
-    } catch (error) {
+      } catch (error) {
       console.error('Admin Register Authority Error:', error)
       t.fail(`Admin Register Authority failed: ${error.message}`, { error })
-    }
+      }
   })
 
   t.test('4. Verify is_authority (Admin)', async (t) => {
-    // Manually construct for simulation
+      // Manually construct for simulation
     const authorityToCheckScVal = Address.fromString(authorityToRegisterKp.publicKey()).toScVal()
     const argsVec = [authorityToCheckScVal]
-    const invokeArgs = new xdr.InvokeContractArgs({
-      contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-      functionName: 'is_authority',
-      args: argsVec,
+      const invokeArgs = new xdr.InvokeContractArgs({
+          contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
+          functionName: 'is_authority',
+          args: argsVec,
     })
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
     const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
-    // This is a read-only call, simulate directly
+      // This is a read-only call, simulate directly
     const tx = new TransactionBuilder(await server.getAccount(adminAddress), {
       fee: BASE_FEE,
       networkPassphrase: Networks.TESTNET,
@@ -678,61 +678,61 @@ t.test('Authority Contract Integration Test', async (t) => {
     try {
       const simResponse = await server.simulateTransaction(tx)
       t.ok(!simResponse.error, 'is_authority simulation should succeed')
-      if (simResponse.result?.retval) {
+          if (simResponse.result?.retval) {
         const isAuthority = scValToNative(simResponse.result.retval)
         t.equal(isAuthority, true, 'is_authority should return true for registered authority')
-      } else {
+          } else {
         t.fail('Simulation response did not contain return value for is_authority', { simResponse })
-      }
-    } catch (error) {
+          }
+      } catch (error) {
       console.error('is_authority Simulation Error:', error)
       t.fail(`is_authority simulation failed: ${error.message || error}`, { error })
-    }
+      }
   })
 
   // Attestation Record data structure for attest/revoke
   const attestationRecordScVal = attestationRecordToScMap(attestationRecordData) // Use corrected helper
 
   t.test('5. Attest (using Contract)', async (t) => {
-    // Create attestation record directly as argument for the attest function
-    const attestationRecordObj = {
-      uid: randomBytes(32),
-      schema_uid: schemaUid,
-      recipient: levyRecipientKp.publicKey(),
-      attester: adminAddress,
-      time: Math.floor(Date.now() / 1000),
-      expiration_time: null,
-      revocable: true,
-      ref_uid: null,
-      data: Buffer.from([]),
+      // Create attestation record directly as argument for the attest function
+      const attestationRecordObj = {
+        uid: randomBytes(32),
+        schema_uid: schemaUid,
+        recipient: levyRecipientKp.publicKey(),
+        attester: adminAddress,
+        time: Math.floor(Date.now() / 1000),
+        expiration_time: null,
+        revocable: true,
+        ref_uid: null,
+        data: Buffer.from([]),
       value: null,
     }
-
-    // Convert the record to xdr.ScVal format
-    const attestationRecordScVal = xdr.ScVal.scvMap([
-      new xdr.ScMapEntry({
+      
+      // Convert the record to xdr.ScVal format
+      const attestationRecordScVal = xdr.ScVal.scvMap([
+        new xdr.ScMapEntry({ 
         key: xdr.ScVal.scvSymbol('uid'),
         val: xdr.ScVal.scvBytes(attestationRecordObj.uid),
-      }),
-      new xdr.ScMapEntry({
+        }),
+        new xdr.ScMapEntry({ 
         key: xdr.ScVal.scvSymbol('schema_uid'),
         val: xdr.ScVal.scvBytes(attestationRecordObj.schema_uid),
-      }),
-      new xdr.ScMapEntry({
+        }),
+        new xdr.ScMapEntry({ 
         key: xdr.ScVal.scvSymbol('recipient'),
         val: Address.fromString(attestationRecordObj.recipient).toScVal(),
-      }),
-      new xdr.ScMapEntry({
+        }),
+        new xdr.ScMapEntry({ 
         key: xdr.ScVal.scvSymbol('attester'),
         val: Address.fromString(attestationRecordObj.attester).toScVal(),
-      }),
-      new xdr.ScMapEntry({
+        }),
+        new xdr.ScMapEntry({ 
         key: xdr.ScVal.scvSymbol('time'),
         val: xdr.ScVal.scvU64(xdr.Uint64.fromString(attestationRecordObj.time.toString())),
-      }),
-      new xdr.ScMapEntry({
+        }),
+        new xdr.ScMapEntry({ 
         key: xdr.ScVal.scvSymbol('expiration_time'),
-        // Handle Option<u64>: Send Vec([]) for None
+          // Handle Option<u64>: Send Vec([]) for None
         val: attestationRecordObj.expiration_time
           ? xdr.ScVal.scvVec([
               xdr.ScVal.scvU64(
@@ -740,25 +740,25 @@ t.test('Authority Contract Integration Test', async (t) => {
               ),
             ])
           : xdr.ScVal.scvVec([]),
-      }),
-      new xdr.ScMapEntry({
+        }),
+        new xdr.ScMapEntry({ 
         key: xdr.ScVal.scvSymbol('revocable'),
         val: xdr.ScVal.scvBool(attestationRecordObj.revocable),
-      }),
-      new xdr.ScMapEntry({
+        }),
+        new xdr.ScMapEntry({ 
         key: xdr.ScVal.scvSymbol('ref_uid'),
-        // Handle Option<Bytes>: Send Vec([]) for None
+          // Handle Option<Bytes>: Send Vec([]) for None
         val: attestationRecordObj.ref_uid
           ? xdr.ScVal.scvVec([xdr.ScVal.scvBytes(attestationRecordObj.ref_uid)])
           : xdr.ScVal.scvVec([]),
-      }),
-      new xdr.ScMapEntry({
+        }),
+        new xdr.ScMapEntry({ 
         key: xdr.ScVal.scvSymbol('data'),
         val: xdr.ScVal.scvBytes(attestationRecordObj.data),
-      }),
-      new xdr.ScMapEntry({
+        }),
+        new xdr.ScMapEntry({ 
         key: xdr.ScVal.scvSymbol('value'),
-        // Handle Option<i128>: Send Vec([]) for None
+          // Handle Option<i128>: Send Vec([]) for None
         val: attestationRecordObj.value
           ? xdr.ScVal.scvVec([
               xdr.ScVal.scvI128(
@@ -771,12 +771,12 @@ t.test('Authority Contract Integration Test', async (t) => {
           : xdr.ScVal.scvVec([]),
       }),
     ])
-
-    // Use the existing attest function
+      
+      // Use the existing attest function
     const argsVec = [attestationRecordScVal]
     const invokeArgs = new xdr.InvokeContractArgs({
-      contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-      functionName: 'attest',
+            contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
+            functionName: 'attest',
       args: argsVec,
     })
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
@@ -787,20 +787,20 @@ t.test('Authority Contract Integration Test', async (t) => {
     try {
       const result = await invokeContract(operation, adminKeypair)
       t.ok(result === true, 'Attest transaction should succeed and return true')
-    } catch (error) {
+      } catch (error) {
       console.error('Attest Error:', error)
       t.fail(`Attest failed: ${error.message}`, { error })
-    }
+      }
   })
 
   t.test('6. Check Collected Levy', async (t) => {
-    // Manually construct for simulation
+       // Manually construct for simulation
     const authorityToCheckScVal = Address.fromString(authorityToRegisterKp.publicKey()).toScVal()
     const argsVec = [authorityToCheckScVal]
-    const invokeArgs = new xdr.InvokeContractArgs({
-      contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-      functionName: 'get_collected_levies',
-      args: argsVec,
+       const invokeArgs = new xdr.InvokeContractArgs({
+            contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
+            functionName: 'get_collected_levies',
+            args: argsVec,
     })
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
     const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
@@ -814,28 +814,28 @@ t.test('Authority Contract Integration Test', async (t) => {
     try {
       const simResponse = await server.simulateTransaction(tx)
       t.ok(!simResponse.error, 'get_collected_levies simulation should succeed')
-      if (simResponse.result?.retval) {
+          if (simResponse.result?.retval) {
         const collected = scValToNative(simResponse.result.retval)
         t.equal(collected, schemaRules.levy_amount, 'Collected levy should match the set amount')
-      } else {
+          } else {
         t.fail('Simulation response did not contain return value for get_collected_levies', {
           simResponse,
         })
-      }
-    } catch (error) {
+          }
+      } catch (error) {
       console.error('get_collected_levies Simulation Error:', error)
       t.fail(`get_collected_levies simulation failed: ${error.message || error}`, { error })
-    }
+      }
   })
 
   t.test('7. Revoke (using Contract)', async (t) => {
     // Revert: Pass the full attestation record map again
     const revokeRecordScVal = attestationRecordToScMap(attestationRecordData)
     const argsVec = [revokeRecordScVal]
-    const invokeArgs = new xdr.InvokeContractArgs({
-      contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-      functionName: 'revoke',
-      args: argsVec,
+       const invokeArgs = new xdr.InvokeContractArgs({
+           contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
+           functionName: 'revoke',
+           args: argsVec,
     })
 
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
@@ -846,20 +846,20 @@ t.test('Authority Contract Integration Test', async (t) => {
     try {
       const result = await invokeContract(operation, adminKeypair)
       t.equal(result, true, 'Revoke transaction should succeed and return true')
-    } catch (error) {
+       } catch (error) {
       console.error('Revoke Error:', error)
       t.fail(`Revoke failed: ${error.message}`, { error })
-    }
+       }
   })
 
   t.test('8. Withdraw Levies', async (t) => {
-    // Manually construct
+      // Manually construct
     const callerScVal = Address.fromString(authorityToRegisterKp.publicKey()).toScVal()
     const argsVec = [callerScVal]
-    const invokeArgs = new xdr.InvokeContractArgs({
-      contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-      functionName: 'withdraw_levies',
-      args: argsVec,
+      const invokeArgs = new xdr.InvokeContractArgs({
+          contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
+          functionName: 'withdraw_levies',
+          args: argsVec,
     })
 
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
@@ -876,7 +876,7 @@ t.test('Authority Contract Integration Test', async (t) => {
     try {
       const result = await invokeContract(operation, authorityToRegisterKp)
       t.ok(result === null || result === undefined, 'Withdraw Levies should succeed')
-    } catch (error) {
+      } catch (error) {
       console.error('Withdraw Levies Error:', error)
       t.equal(
         error.message,
@@ -887,13 +887,13 @@ t.test('Authority Contract Integration Test', async (t) => {
   })
 
   t.test('9. Check Levy After Withdraw', async (t) => {
-    // Manually construct for simulation
+        // Manually construct for simulation
     const authorityToCheckScVal = Address.fromString(authorityToRegisterKp.publicKey()).toScVal()
     const argsVec = [authorityToCheckScVal]
-    const invokeArgs = new xdr.InvokeContractArgs({
-      contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
-      functionName: 'get_collected_levies',
-      args: argsVec,
+        const invokeArgs = new xdr.InvokeContractArgs({
+             contractAddress: Address.fromString(AUTHORITY_CONTRACT_ID).toScAddress(),
+             functionName: 'get_collected_levies',
+             args: argsVec,
     })
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
     const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
@@ -907,21 +907,21 @@ t.test('Authority Contract Integration Test', async (t) => {
     try {
       const simResponse = await server.simulateTransaction(tx)
       t.ok(!simResponse.error, 'get_collected_levies (after withdraw) simulation should succeed')
-      if (simResponse.result?.retval) {
+            if (simResponse.result?.retval) {
         const collected = scValToNative(simResponse.result.retval)
-        // Check if levy is 0 OR the original amount if withdrawal failed
-        if (collected === 0n || collected === schemaRules.levy_amount) {
+               // Check if levy is 0 OR the original amount if withdrawal failed
+              if (collected === 0n || collected === schemaRules.levy_amount) {
           t.pass(`Collected levy is ${collected} after withdrawal attempt.`)
-        } else {
+              } else {
           t.fail(`Collected levy after withdrawal has unexpected value: ${collected}`)
-        }
-      } else {
+              }
+            } else {
         t.fail(
           'Simulation response did not contain return value for get_collected_levies (after withdraw)',
           { simResponse }
         )
-      }
-    } catch (error) {
+            }
+        } catch (error) {
       console.error('get_collected_levies (after withdraw) Simulation Error:', error)
       t.fail(`get_collected_levies (after withdraw) simulation failed: ${error.message || error}`, {
         error,

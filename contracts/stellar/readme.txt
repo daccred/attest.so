@@ -79,3 +79,50 @@ The `deploy.sh` script provides flexible options for deploying the Attestation P
 --initialize      Initialize deployed contracts using the source identity as admin (default: false)
 --token-id <id>   Token contract ID for authority initialization (required if --initialize and --authority). (Can be set via TOKEN_CONTRACT_ID in env.sh)
 --help            Show usage information
+
+
+
+
+========================================
+STEP: Deploying authority Contract
+========================================
+Deploying target/wasm32-unknown-unknown/release/authority.wasm...
+ℹ️  Skipping install because wasm already installed
+ℹ️  Using wasm hash 2b08d2cafae3367418070c75715f1e18d3682b071e7d84f151add56fb5881d67
+ℹ️  Simulating deploy transaction…
+ℹ️  Transaction hash is 747ebf120b708418bfce5749b4dba87fafcfaac310e6c1af12d257de4b48fef8
+🔗 https://stellar.expert/explorer/testnet/tx/747ebf120b708418bfce5749b4dba87fafcfaac310e6c1af12d257de4b48fef8
+ℹ️  Signing transaction: 747ebf120b708418bfce5749b4dba87fafcfaac310e6c1af12d257de4b48fef8
+🌎 Submitting deploy transaction…
+🔗 https://stellar.expert/explorer/testnet/contract/CCSLTCC55GHW7XSZIWQ6OZVH262J2EHIRCYGXBB5G7IQZ5LR3SAJZDCE
+✅ Deployed!
+CCSLTCC55GHW7XSZIWQ6OZVH262J2EHIRCYGXBB5G7IQZ5LR3SAJZDCE
+authority Contract ID: CCSLTCC55GHW7XSZIWQ6OZVH262J2EHIRCYGXBB5G7IQZ5LR3SAJZDCE
+authority Tx Hash: 747ebf120b708418bfce5749b4dba87fafcfaac310e6c1af12d257de4b48fef8
+authority Timestamp: 2025-05-17T21:32:02Z
+Updating deployments.json for network 'testnet' with authority details...
+deployments.json updated successfully.
+
+========================================
+STEP: Deploying protocol Contract
+========================================
+Deploying target/wasm32-unknown-unknown/release/protocol.wasm...
+ℹ️  Simulating install transaction…
+ℹ️  Signing transaction: 09f20429b075ebfb90920de126d855efe88c493290c85bc5c1b3b6f7c9be3439
+🌎 Submitting install transaction…
+ℹ️  Using wasm hash 51bb734c0c9477836bedf9c3f310142296ca80e17d15bfa5cc507957d7d619e9
+ℹ️  Simulating deploy transaction…
+ℹ️  Transaction hash is 17eaaa236086bffb82fd63d131f48453794f81aed76ba21fdb0fcb121a01973a
+🔗 https://stellar.expert/explorer/testnet/tx/17eaaa236086bffb82fd63d131f48453794f81aed76ba21fdb0fcb121a01973a
+ℹ️  Signing transaction: 17eaaa236086bffb82fd63d131f48453794f81aed76ba21fdb0fcb121a01973a
+🌎 Submitting deploy transaction…
+🔗 https://stellar.expert/explorer/testnet/contract/CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO
+✅ Deployed!
+CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO
+protocol Contract ID: CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO
+protocol Tx Hash: 17eaaa236086bffb82fd63d131f48453794f81aed76ba21fdb0fcb121a01973a
+protocol Timestamp: 2025-05-17T21:32:22Z
+Updating deployments.json for network 'testnet' with protocol details...
+deployments.json updated successfully.
+
+

@@ -192,8 +192,9 @@ describe('attest.so', () => {
       .rpc()
     console.log('Attestation completed successfully')
 
-    const levyTokenAccountBalance =
-      await provider.connection.getTokenAccountBalance(levyTokenAccount)
+    const levyTokenAccountBalance = await provider.connection.getTokenAccountBalance(
+      levyTokenAccount
+    )
     console.log('Levy token account balance:', levyTokenAccountBalance.value.amount)
     expect(levyTokenAccountBalance.value.amount).to.equal('10')
 

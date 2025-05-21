@@ -5,3 +5,5 @@ target/
 test_snapshots
 .tap
 env.sh.bak
+logs.txt
+*.log
