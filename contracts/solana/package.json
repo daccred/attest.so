@@ -1,5 +1,5 @@
 {
-  "name": "@attestprotocol/solana-attestation-service",
+  "name": "@attestprotocol/solana",
   "version": "1.3.2",
   "license": "MIT",
   "scripts": {
