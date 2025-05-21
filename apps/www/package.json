@@ -34,9 +34,9 @@
     "tailwindcss": "^3.4.10",
     "typescript": "^5.5.4"
   },
-  "author": {
-    "name": "Immutable Labs",
-    "email": "gm@daccred.xyz",
-    "url": "https://github.com/daccred"
+  "author": "Andrew Miracle <andrew@daccred.co>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daccred/attest.so.git"
   }
 }

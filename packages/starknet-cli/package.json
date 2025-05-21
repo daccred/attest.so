@@ -2,18 +2,26 @@
   "name": "@attestprotocol/starknet-cli",
   "version": "1.3.0",
   "description": "Attest CLI for StarkNet blockchain",
+  "license": "MIT",
+  "author": "Andrew Miracle <andrew@daccred.co>",
+  "homepage": "https://github.com/daccred/attest.so#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daccred/attest.so.git"
+  },
+  "bugs": "https://github.com/daccred/attest.so/issues",
   "type": "commonjs",
+  "main": "./bin/run.js",
   "bin": {
     "attest-starknet": "./bin/run"
   },
+  "files": [
+    "bin",
+    "dist"
+  ],
   "directories": {
-    "lib": "src",
-    "bin": "bin"
-  },
-  "files": ["dist", "bin"],
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/daccred/attest.so.git"
+    "bin": "bin",
+    "lib": "src"
   },
   "scripts": {
     "build": "tsup-node",
@@ -26,16 +34,24 @@
     "format:fix": "prettier . --write",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "prepare": "husky",
+    "release": "semantic-release",
     "start": "ts-node ./bin/run.ts",
     "start:node": "node ./bin/run",
     "test": "jest",
-    "test:watch": "jest --watchAll",
-    "prepare": "husky",
-    "release": "semantic-release"
+    "test:watch": "jest --watchAll"
   },
-  "keywords": ["starknet", "blockchain", "attestation", "cli"],
-  "author": "Andrew Miracle <andrew@daccred.co>",
-  "license": "MIT",
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
+  "dependencies": {
+    "consola": "^3.2.3",
+    "dotenv": "^16.4.5",
+    "picocolors": "^1.0.1",
+    "yargs": "^17.7.2"
+  },
   "devDependencies": {
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
@@ -65,20 +81,10 @@
     "tsup": "^8.0.2",
     "typescript": "^5.4.5"
   },
-  "dependencies": {
-    "consola": "^3.2.3",
-    "dotenv": "^16.4.5",
-    "picocolors": "^1.0.1",
-    "yargs": "^17.7.2"
-  },
-  "config": {
-    "commitizen": {
-      "path": "cz-conventional-changelog"
-    }
-  },
-  "main": "./bin/run.js",
-  "bugs": {
-    "url": "https://github.com/daccred/attest.so/issues"
-  },
-  "homepage": "https://github.com/daccred/attest.so#readme"
+  "keywords": [
+    "attestation",
+    "blockchain",
+    "cli",
+    "starknet"
+  ]
 }

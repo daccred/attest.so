@@ -1,21 +1,21 @@
 {
-  "name": "@attestprotocol/stellar",
-  "version": "1.3.0",
-  "main": "scripts/run.mjs",
   "private": false,
-  "type": "module",
-  "scripts": {
-    "test": "tap",
-    "start": "node scripts/run.mjs"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
+  "name": "@attestprotocol/stellar",
+  "version": "1.3.4",
   "description": "",
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "main": "scripts/run.mjs",
+  "scripts": {
+    "start": "node scripts/run.mjs",
+    "test": "tap"
+  },
   "dependencies": {
     "@stellar/stellar-sdk": "^12.0.0"
   },
   "devDependencies": {
     "tap": "^21.1.0"
-  }
+  },
+  "keywords": []
 }
