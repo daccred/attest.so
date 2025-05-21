@@ -1,5 +1,4 @@
 {
-  "private": false,
   "name": "@attestprotocol/stellar-cli",
   "version": "1.3.0",
   "description": "Attest CLI for Stellar blockchain",

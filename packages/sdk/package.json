@@ -1,5 +1,4 @@
 {
-  "private": false,
   "name": "@attestprotocol/sdk",
   "version": "1.3.0",
   "description": "`npm run build`",

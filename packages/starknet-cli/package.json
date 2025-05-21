@@ -1,7 +1,7 @@
 {
   "name": "@attestprotocol/starknet-cli",
   "version": "1.3.0",
-  "description": "Attest CLI for StarkNet blockchain",
+  "description": "Attest CLI for interacting with Starknet Attestation Service",
   "license": "MIT",
   "author": "Andrew Miracle <andrew@daccred.co>",
   "homepage": "https://github.com/daccred/attest.so#readme",

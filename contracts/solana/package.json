@@ -1,6 +1,6 @@
 {
   "name": "@attestprotocol/solana",
-  "version": "1.3.2",
+  "version": "1.3.0",
   "license": "MIT",
   "scripts": {
     "deploy:attestso": "solana program deploy target/deploy/attestso.so --verbose",
