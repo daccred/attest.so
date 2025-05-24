@@ -23,6 +23,39 @@ export interface FetchEventsResult {
     lastRpcLedger: number;
 }
 
+/**
+ * @function getLatestRPCLedgerIndex
+ * 
+ * @description Fetch the latest ledger index from the Soroban RPC server.
+ * @returns Latest ledger index from the Soroban RPC server.
+ * @throws Error if the response is invalid or sequence number is missing.
+ * 
+ */
+export async function getLatestRPCLedgerIndex(): Promise<number> {
+  console.log('--------------- Attempting to call sorobanServer.getLatestLedger() --------------- ');
+  const latestLedgerOnRpcData = await sorobanServer.getLatestLedger();
+  console.log('--------------- sorobanServer.getLatestLedger() RAW RESPONSE: ---------------');
+  console.log(JSON.stringify(latestLedgerOnRpcData, null, 2));
+  console.log('----------------------------------------------------------------------------');
+  if (!latestLedgerOnRpcData || typeof latestLedgerOnRpcData.sequence !== 'number') {
+    throw new Error('Invalid response from getLatestLedger or sequence number missing.');
+  }
+  return latestLedgerOnRpcData.sequence;
+}
+
+/**
+ * @function fetchAndStoreEvents
+ * 
+ * @description Fetches events from the Soroban RPC server and stores them in the database.
+ * 
+ * @param {number} [startLedgerFromRequest] - Optional starting ledger index to begin fetching events from.
+ * If not provided, it will use the last processed ledger from the database or calculate a historical start.
+ * 
+ * @returns {Promise<FetchEventsResult>} - An object containing the result of the fetch operation.
+ * 
+ * @throws {Error} - Throws an error if MongoDB is not connected, CONTRACT_ID_TO_INDEX is not defined,
+ * or if there are issues with fetching events from the RPC server.
+ */
 export async function fetchAndStoreEvents(startLedgerFromRequest?: number): Promise<FetchEventsResult> {
   console.log(`---------------- FETCH AND STORE EVENTS CYCLE (ledger.ts) ----------------`);
   console.log(`Requested start ledger: ${startLedgerFromRequest === undefined ? 'latest from DB/default' : startLedgerFromRequest}`);
