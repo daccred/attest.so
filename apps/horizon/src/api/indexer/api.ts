@@ -1,6 +1,6 @@
-import express, { Request, Response, Router } from 'express';
+import { Request, Response, Router } from 'express';
 import { fetchAndStoreEvents, getLatestRPCLedgerIndex, getRpcHealth } from './ledger';
-import { getLastProcessedLedgerFromDB, connectToMongoDB, getDbInstance } from './db';
+import { getLastProcessedLedgerFromDB } from './db';
 import { STELLAR_NETWORK, CONTRACT_ID_TO_INDEX } from './constants';
 
 const router = Router();
@@ -34,67 +34,26 @@ router.post('/events/ingest', async (req: Request, res: Response) => {
 
 router.get('/health', async (req: Request, res: Response) => {
   console.log('---------------- HEALTH CHECK REQUEST (api.ts) ----------------');
-  let mongoStatus = 'disconnected';
-  let rpcStatus = 'unknown';
   let lastLedgerDb = 0;
-  let dbConnectionAttempted = false;
-
+  let rpcStatus = 'unknown';
   try {
-    let db = await getDbInstance();
-    if (db) {
-      try {
-        await db.command({ ping: 1 });
-        mongoStatus = 'connected';
-        lastLedgerDb = await getLastProcessedLedgerFromDB();
-      } catch (mongoPingErr: any) {
-        console.warn('Health check: MongoDB ping failed after getDbInstance succeeded.', mongoPingErr.message);
-        mongoStatus = 'ping_failed';
-      }
-    } else {
-      console.warn('Health check: getDbInstance returned undefined. Attempting explicit connect.');
-      dbConnectionAttempted = true;
-      const connected = await connectToMongoDB();
-      if (connected) {
-        db = await getDbInstance(); // try getting it again
-        if (db) {
-            try {
-                await db.command({ ping: 1 });
-                mongoStatus = 'connected_after_retry';
-                lastLedgerDb = await getLastProcessedLedgerFromDB();
-            } catch (mongoPingRetryErr: any) {
-                console.warn('Health check: MongoDB ping failed after explicit reconnect attempt.', mongoPingRetryErr.message);
-                mongoStatus = 'ping_failed_after_retry';
-            }
-        } else {
-             console.warn('Health check: getDbInstance still undefined after explicit reconnect attempt.');
-             mongoStatus = 'reconnect_attempt_db_undefined';
-        }
-      } else {
-        console.warn('Health check: Explicit connectToMongoDB call failed.');
-        mongoStatus = 'reconnect_failed';
-      }
-    }
-
+    lastLedgerDb = await getLastProcessedLedgerFromDB();
     rpcStatus = await getRpcHealth();
     const latestRPCLedger = await getLatestRPCLedgerIndex();
-
     res.status(200).json({
       status: 'ok',
-      mongodb_status: mongoStatus,
       soroban_rpc_status: rpcStatus,
+      network: STELLAR_NETWORK,
       latest_rpc_ledger: latestRPCLedger || 'Not Available',
       indexing_contract: CONTRACT_ID_TO_INDEX || 'Not Set',
-      last_processed_ledger_in_db: lastLedgerDb,
-      db_connection_explicitly_attempted_in_health_check: dbConnectionAttempted
+      last_processed_ledger_in_db: lastLedgerDb
     });
   } catch (error: any) {
     console.error("Health check critical error:", error.message);
     res.status(500).json({
       status: 'error',
-      mongodb_status: mongoStatus,
       soroban_rpc_status: rpcStatus,
-      error: error.message,
-      db_connection_explicitly_attempted_in_health_check: dbConnectionAttempted
+      error: error.message
     });
   }
   console.log('------------------------------------------------------');
