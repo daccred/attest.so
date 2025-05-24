@@ -3,8 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  // Enable verbose logging for the client
-  previewFeatures = ["interactiveTransactions", "jsonProtocol"] // Add any other preview features you use
+  previewFeatures = ["interactiveTransactions", "jsonProtocol"]
   log             = ["query", "info", "warn", "error"]
 }
 
@@ -42,7 +41,7 @@ model ContractTransaction {
 model ContractEvent {
   id                        String    @id @default(auto()) @map("_id") @db.ObjectId
   eventId                   String    @unique // Event ID from RPC
-  type                      String
+  type                      String    // Added: Type of the event, e.g., "contract", "diagnostic"
   ledger                    Int       // Ledger sequence where the event occurred
   ledgerClosedAt            DateTime
   contractId                String
