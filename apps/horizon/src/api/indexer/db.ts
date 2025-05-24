@@ -86,6 +86,10 @@ export async function updateLastProcessedLedgerInDB(ledgerSequence: number) {
 }
 
 export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]) {
+  console.debug(
+    `[DEBUG] storeEventsAndTransactionsInDB called with ${eventsWithTransactions.length} items at ${new Date().toISOString()}`
+  );
+
   if (!eventsCollection) {
     console.warn('storeEventsAndTransactionsInDB: MongoDB eventsCollection not initialized. Attempting to connect to DB.');
     await connectToMongoDB();
@@ -94,7 +98,10 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
         return;
     }
   }
-  if (eventsWithTransactions.length === 0) return;
+  if (eventsWithTransactions.length === 0) {
+    console.debug('[DEBUG] No events to store, exiting function.');
+    return;
+  }
 
   const operations = eventsWithTransactions.map((item) => ({
     updateOne: {
@@ -104,12 +111,19 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
     },
   }));
 
+  console.debug(
+    `[DEBUG] Prepared ${operations.length} bulk operations for MongoDB at ${new Date().toISOString()}`
+  );
+
   try {
     const result = await eventsCollection.bulkWrite(operations);
+    console.log(
+      `[DEBUG] MongoDB bulkWrite response: ${JSON.stringify(result, null, 2)}`
+    );
     console.log(
       `Stored ${result.upsertedCount + result.modifiedCount} event-transaction pairs. New: ${result.upsertedCount}, Updated: ${result.modifiedCount}`
     );
   } catch (error) {
-    console.error('Error storing event-transaction pairs in MongoDB:', error);
+    console.error('[DEBUG] Error storing event-transaction pairs in MongoDB:', error);
   }
-} 
+}

@@ -1,0 +1,25 @@
+// Prisma schema for Horizon project using MongoDB
+// Save this as prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("MONGODB_URI")
+}
+
+model Metadata {
+  id    String @id @default(auto()) @map("_id") @test.ObjectId
+  key   String @unique
+  value Int
+}
+
+model ContractEvent {
+  id         String   @id @default(auto()) @map("_id") @test.ObjectId
+  eventId    String   @unique
+  event      Json
+  transaction Json
+  ingestedAt DateTime
+}

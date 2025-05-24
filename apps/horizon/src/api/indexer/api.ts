@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express';
-import { fetchAndStoreEvents, getRpcHealth } from './ledger';
+import { fetchAndStoreEvents, getLatestRPCLedgerIndex, getRpcHealth } from './ledger';
 import { getLastProcessedLedgerFromDB, connectToMongoDB, getDbInstance } from './db';
 import { STELLAR_NETWORK, CONTRACT_ID_TO_INDEX } from './constants';
 
@@ -76,12 +76,13 @@ router.get('/health', async (req: Request, res: Response) => {
     }
 
     rpcStatus = await getRpcHealth();
+    const latestRPCLedger = await getLatestRPCLedgerIndex();
 
     res.status(200).json({
       status: 'ok',
       mongodb_status: mongoStatus,
       soroban_rpc_status: rpcStatus,
-      network: STELLAR_NETWORK,
+      latest_rpc_ledger: latestRPCLedger || 'Not Available',
       indexing_contract: CONTRACT_ID_TO_INDEX || 'Not Set',
       last_processed_ledger_in_db: lastLedgerDb,
       db_connection_explicitly_attempted_in_health_check: dbConnectionAttempted
@@ -98,5 +99,6 @@ router.get('/health', async (req: Request, res: Response) => {
   }
   console.log('------------------------------------------------------');
 });
+
 
 export default router; 
