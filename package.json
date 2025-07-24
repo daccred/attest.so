@@ -29,6 +29,7 @@
     "changeset": "changeset",
     "commit": "cz",
     "dev": "pnpm run --recursive dev",
+    "dev:docs": "pnpm --filter @attestprotocol/docs dev",
     "filter": "pnpm --filter",
     "format": "pnpm run -r format",
     "lint": "pnpm run -r lint",

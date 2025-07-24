@@ -1,0 +1,185 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "AttestProtocol",
+  "description": "The trust layer for Web3. Build verifiable reputation systems with one line of code.",
+  "theme": "aspen",
+  "logo": {
+    "light": "/images/logo-light.svg",
+    "dark": "/images/logo-dark.svg",
+    "href": "https://attest.so"
+  },
+  "favicon": "/images/favicon.svg",
+  "colors": {
+    "primary": "#ff8700",
+    "light": "#ff8700",
+    "dark": "#ff8700"
+  },
+
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "getting-started/installation",
+              "getting-started/your-first-attestation",
+              "getting-started/configuration"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": ["concepts/attestations", "concepts/schemas", "concepts/authorities"]
+          },
+          {
+            "group": "Blockchain Support",
+            "pages": [
+              "chains/solana/overview",
+              "chains/stellar/overview",
+              "chains/starknet/overview"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "TypeScript SDK",
+            "pages": [
+              "sdks/typescript/installation",
+              "sdks/typescript/initialization",
+              "sdks/typescript/methods",
+              "sdks/typescript/examples"
+            ]
+          },
+          {
+            "group": "CLI & Tools",
+            "pages": ["sdks/delegated-signatories", "sdks/cli"]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "API Documentation",
+            "pages": ["reference/overview", "reference/administration"]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "reference/endpoints/attest",
+              "reference/endpoints/verify",
+              "reference/endpoints/revoke",
+              "reference/endpoints/schemas",
+              "reference/endpoints/authorities"
+            ]
+          },
+          {
+            "group": "Webhooks & Errors",
+            "pages": ["reference/webhooks", "reference/errors"]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/attestprotocol/attest.so",
+          "icon": "github"
+        },
+        {
+          "anchor": "Community",
+          "href": "https://discord.gg/attestprotocol",
+          "icon": "discord"
+        },
+        {
+          "anchor": "Dashboard",
+          "href": "https://app.attest.so",
+          "icon": "desktop"
+        }
+      ]
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/attestprotocol/attest.so"
+      },
+      {
+        "label": "Community",
+        "href": "https://discord.gg/attestprotocol"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "https://app.attest.so"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/attestprotocol/attest.so",
+      "x": "https://twitter.com/attestprotocol",
+      "discord": "https://discord.gg/attestprotocol"
+    },
+    "links": [
+      {
+        "header": "Resources",
+        "items": [
+          {
+            "label": "Dashboard",
+            "href": "https://app.attest.so"
+          },
+          {
+            "label": "Enterprise",
+            "href": "https://attest.so/enterprise"
+          },
+          {
+            "label": "Status",
+            "href": "https://status.attest.so"
+          }
+        ]
+      },
+      {
+        "header": "Company",
+        "items": [
+          {
+            "label": "About",
+            "href": "https://attest.so/about"
+          },
+          {
+            "label": "Blog",
+            "href": "https://attest.so/blog"
+          },
+          {
+            "label": "Privacy Policy",
+            "href": "https://attest.so/privacy"
+          }
+        ]
+      }
+    ]
+  },
+
+  "contextual": {
+    "options": ["copy", "view", "chatgpt", "claude"]
+  },
+  "errors": {
+    "404": {
+      "redirect": true
+    }
+  },
+  "seo": {
+    "metatags": {
+      "og:title": "AttestProtocol Documentation",
+      "og:description": "The trust layer for Web3. Build verifiable reputation systems with one line of code.",
+      "og:image": "/images/og-image.png"
+    }
+  }
+}

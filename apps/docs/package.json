@@ -1,0 +1,16 @@
+{
+  "name": "@attestprotocol/docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AttestProtocol documentation site built with Mintlify",
+  "scripts": {
+    "dev": "mintlify dev",
+    "build": "mintlify build",
+    "preview": "mintlify preview"
+  },
+  "devDependencies": {
+    "@mintlify/cli": "^4.0.0"
+  },
+  "keywords": ["attestation", "blockchain", "documentation", "web3", "trust"],
+  "license": "MIT"
+}
