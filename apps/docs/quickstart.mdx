@@ -1,0 +1,332 @@
+---
+title: 'Quickstart Guide'
+description: 'Get up and running with AttestProtocol in 5 minutes. Create your first attestation.'
+icon: 'rocket'
+---
+
+## Overview
+
+This quickstart guide will walk you through creating and verifying your first attestation using AttestProtocol. You'll learn how to:
+
+1. Install the SDK
+2. Set up authentication
+3. Create your first attestation  
+4. Verify an attestation
+5. Query attestation data
+
+<Note>
+This guide uses Solana as the example blockchain. AttestProtocol works the same way across all supported chains - just change the `chain` parameter.
+</Note>
+
+## Prerequisites
+
+- Node.js 18+ installed
+- A Solana wallet (Phantom, Solflare, etc.)
+- Basic familiarity with JavaScript/TypeScript
+
+## Step 1: Installation
+
+Install the AttestProtocol SDK in your project:
+
+<CodeGroup>
+```bash npm
+npm install @attestprotocol/sdk
+```
+
+```bash yarn
+yarn add @attestprotocol/sdk
+```
+
+```bash pnpm
+pnpm add @attestprotocol/sdk
+```
+</CodeGroup>
+
+## Step 2: Get Your API Key
+
+<Steps>
+  <Step title="Visit the Dashboard">
+    Go to [app.attest.so](https://app.attest.so) and create an account.
+  </Step>
+  <Step title="Create a Project">
+    Create a new project and select Solana as your blockchain.
+  </Step>
+  <Step title="Copy Your API Key">
+    Copy your API key from the project settings page.
+  </Step>
+</Steps>
+
+<Warning>
+Keep your API key secure! Never commit it to version control. Use environment variables in production.
+</Warning>
+
+## Step 3: Initialize the Client
+
+Create a new file and initialize the AttestProtocol client:
+
+```javascript index.js
+import { AttestClient } from '@attestprotocol/sdk';
+
+const client = new AttestClient({
+  chain: 'solana',
+  network: 'devnet', // or 'mainnet' for production
+  apiKey: process.env.ATTEST_API_KEY,
+});
+
+console.log('AttestProtocol client initialized! 🚀');
+```
+
+## Step 4: Create Your First Schema
+
+Schemas define the structure of your attestations. Let's create a simple KYC schema:
+
+```javascript
+const schema = await client.schemas.create({
+  name: 'kyc-basic',
+  description: 'Basic KYC verification schema',
+  fields: [
+    {
+      name: 'verified',
+      type: 'boolean',
+      required: true,
+      description: 'Whether the user passed KYC verification'
+    },
+    {
+      name: 'verifiedAt',
+      type: 'timestamp',
+      required: true,
+      description: 'When verification was completed'
+    },
+    {
+      name: 'tier',
+      type: 'string',
+      required: false,
+      description: 'KYC verification tier (basic, premium, enterprise)'
+    }
+  ]
+});
+
+console.log('Schema created:', schema.id);
+```
+
+## Step 5: Create an Attestation
+
+Now let's create an attestation using your schema:
+
+```javascript
+const attestation = await client.attest({
+  schema: 'kyc-basic',
+  subject: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1', // Target wallet address
+  data: {
+    verified: true,
+    verifiedAt: new Date().toISOString(),
+    tier: 'basic'
+  },
+  // Optional: Add expiration
+  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+});
+
+console.log('Attestation created:', attestation.id);
+console.log('Transaction hash:', attestation.transactionHash);
+```
+
+## Step 6: Verify an Attestation
+
+The most common operation - checking if a user has a valid attestation:
+
+```javascript
+// Simple boolean check
+const isVerified = await client.verify({
+  subject: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1',
+  schema: 'kyc-basic'
+});
+
+console.log('User is verified:', isVerified);
+
+// Get detailed attestation data
+const attestations = await client.getAttestations({
+  subject: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1',
+  schema: 'kyc-basic',
+  includeExpired: false
+});
+
+console.log('Attestation details:', attestations[0]);
+```
+
+## Step 7: Complete Example
+
+Here's a complete working example you can run:
+
+<CodeGroup>
+```javascript Node.js
+import { AttestClient } from '@attestprotocol/sdk';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+async function main() {
+  // Initialize client
+  const client = new AttestClient({
+    chain: 'solana',
+    network: 'devnet',
+    apiKey: process.env.ATTEST_API_KEY,
+  });
+
+  try {
+    // Create schema (only needs to be done once)
+    const schema = await client.schemas.create({
+      name: 'demo-kyc-' + Date.now(),
+      description: 'Demo KYC schema',
+      fields: [
+        { name: 'verified', type: 'boolean', required: true },
+        { name: 'verifiedAt', type: 'timestamp', required: true }
+      ]
+    });
+
+    console.log('✅ Schema created:', schema.name);
+
+    // Create attestation
+    const userAddress = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1';
+    
+    const attestation = await client.attest({
+      schema: schema.name,
+      subject: userAddress,
+      data: {
+        verified: true,
+        verifiedAt: new Date().toISOString()
+      }
+    });
+
+    console.log('✅ Attestation created:', attestation.id);
+
+    // Verify attestation
+    const isVerified = await client.verify({
+      subject: userAddress,
+      schema: schema.name
+    });
+
+    console.log('✅ Verification result:', isVerified);
+
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+  }
+}
+
+main();
+```
+
+```typescript TypeScript
+import { AttestClient, AttestationData } from '@attestprotocol/sdk';
+
+interface KYCData extends AttestationData {
+  verified: boolean;
+  verifiedAt: string;
+}
+
+async function main(): Promise<void> {
+  const client = new AttestClient({
+    chain: 'solana',
+    network: 'devnet',
+    apiKey: process.env.ATTEST_API_KEY!,
+  });
+
+  try {
+    const userAddress = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1';
+    
+    // Type-safe attestation creation
+    const attestation = await client.attest<KYCData>({
+      schema: 'kyc-basic',
+      subject: userAddress,
+      data: {
+        verified: true,
+        verifiedAt: new Date().toISOString()
+      }
+    });
+
+    console.log('Attestation created:', attestation.id);
+
+    // Type-safe verification
+    const isVerified = await client.verify({
+      subject: userAddress,
+      schema: 'kyc-basic'
+    });
+
+    console.log('Is verified:', isVerified);
+
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+main();
+```
+</CodeGroup>
+
+## Environment Variables
+
+Create a `.env` file in your project root:
+
+```bash .env
+ATTEST_API_KEY=your_api_key_here
+```
+
+## Next Steps
+
+Great! You've created your first attestation. Here's what to explore next:
+
+<CardGroup cols={2}>
+  <Card
+    title="Core Concepts"
+    icon="lightbulb"
+    href="/concepts/attestations"
+  >
+    Learn about attestations, schemas, and authorities
+  </Card>
+  <Card
+    title="SDK Methods"
+    icon="code"
+    href="/sdks/typescript/methods"
+  >
+    Explore all available SDK methods and options
+  </Card>
+  <Card
+    title="Integration Patterns"
+    icon="puzzle-piece"
+    href="/guides/integration-patterns"
+  >
+    Common patterns for integrating attestations
+  </Card>
+  <Card
+    title="Examples"
+    icon="laptop-code"
+    href="/examples/kyc-verification"
+  >
+    See complete example applications
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="API Key Not Working">
+    - Make sure your API key is valid and hasn't expired
+    - Check that you're using the correct network (devnet vs mainnet)
+    - Verify your environment variables are loaded correctly
+  </Accordion>
+
+  <Accordion title="Transaction Failed">
+    - Ensure you have sufficient SOL for transaction fees
+    - Check that your wallet has the necessary permissions
+    - Verify the schema exists before creating attestations
+  </Accordion>
+
+  <Accordion title="Schema Not Found">
+    - Make sure the schema was created successfully
+    - Check the schema name is spelled correctly
+    - Verify you're using the correct network
+  </Accordion>
+</AccordionGroup>
+
+<Info>
+**Need Help?** Join our [Discord community](https://discord.gg/attestprotocol) or check out our [troubleshooting guide](/guides/troubleshooting) for more detailed solutions.
+</Info>

@@ -1,0 +1,522 @@
+---
+title: 'Your First Attestation'
+description: 'Step-by-step guide to creating your first attestation with AttestProtocol'
+icon: 'play'
+---
+
+## Overview
+
+In this guide, you'll create your first attestation from scratch. We'll walk through:
+
+1. Setting up your environment
+2. Creating a schema
+3. Issuing an attestation
+4. Verifying the attestation
+5. Understanding the results
+
+<Info>
+This tutorial assumes you've already [installed the SDK](/getting-started/installation). If not, go back and install it first.
+</Info>
+
+## Step 1: Set Up Your Project
+
+Create a new directory and initialize your project:
+
+```bash
+mkdir my-first-attestation
+cd my-first-attestation
+npm init -y
+npm install @attestprotocol/sdk dotenv
+```
+
+Create your main file:
+
+```javascript index.js
+import { AttestClient } from '@attestprotocol/sdk';
+import 'dotenv/config';
+
+async function main() {
+  console.log('🚀 Starting attestation tutorial...');
+  
+  // We'll add code here step by step
+}
+
+main().catch(console.error);
+```
+
+## Step 2: Initialize the Client
+
+Add your API key to a `.env` file:
+
+```bash .env
+ATTEST_API_KEY=your_api_key_from_dashboard
+ATTEST_NETWORK=devnet
+```
+
+<Warning>
+**Get Your API Key**: Visit [app.attest.so](https://app.attest.so) to create an account and get your API key. Use devnet for testing.
+</Warning>
+
+Initialize the AttestProtocol client:
+
+```javascript index.js
+import { AttestClient } from '@attestprotocol/sdk';
+import 'dotenv/config';
+
+async function main() {
+  console.log('🚀 Starting attestation tutorial...');
+  
+  // Initialize client
+  const client = new AttestClient({
+    chain: 'solana',
+    network: process.env.ATTEST_NETWORK || 'devnet',
+    apiKey: process.env.ATTEST_API_KEY,
+  });
+
+  console.log('✅ Client initialized');
+}
+
+main().catch(console.error);
+```
+
+## Step 3: Create a Schema
+
+Schemas define the structure of your attestations. Let's create a simple user verification schema:
+
+```javascript
+// Add this inside your main() function
+try {
+  // Create a unique schema name
+  const schemaName = `user-verification-${Date.now()}`;
+  
+  const schema = await client.schemas.create({
+    name: schemaName,
+    description: 'Basic user verification schema',
+    fields: [
+      {
+        name: 'isVerified',
+        type: 'boolean',
+        required: true,
+        description: 'Whether the user is verified'
+      },
+      {
+        name: 'verificationMethod',
+        type: 'string',
+        required: true,
+        description: 'How the user was verified (email, phone, kyc)'
+      },
+      {
+        name: 'verifiedAt',
+        type: 'timestamp',
+        required: true,
+        description: 'When verification was completed'
+      },
+      {
+        name: 'trustScore',
+        type: 'number',
+        required: false,
+        description: 'Trust score from 0-100'
+      }
+    ]
+  });
+
+  console.log('✅ Schema created:', schema.name);
+  console.log('📋 Schema ID:', schema.id);
+
+} catch (error) {
+  console.error('❌ Error creating schema:', error.message);
+  return;
+}
+```
+
+## Step 4: Issue an Attestation
+
+Now let's create an attestation using our schema:
+
+```javascript
+// Add this after schema creation
+try {
+  // Example user address (replace with a real one)
+  const userAddress = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1';
+  
+  const attestation = await client.attest({
+    schema: schemaName,
+    subject: userAddress,
+    data: {
+      isVerified: true,
+      verificationMethod: 'email',
+      verifiedAt: new Date().toISOString(),
+      trustScore: 85
+    },
+    // Optional: Set expiration (1 year from now)
+    expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+  });
+
+  console.log('✅ Attestation created!');
+  console.log('🆔 Attestation ID:', attestation.id);
+  console.log('🔗 Transaction Hash:', attestation.transactionHash);
+  console.log('📅 Created At:', attestation.createdAt);
+
+} catch (error) {
+  console.error('❌ Error creating attestation:', error.message);
+  return;
+}
+```
+
+## Step 5: Verify the Attestation
+
+The most common operation - checking if a user has a valid attestation:
+
+```javascript
+// Add this after attestation creation
+try {
+  // Simple verification check
+  const isVerified = await client.verify({
+    subject: userAddress,
+    schema: schemaName
+  });
+
+  console.log('✅ Verification result:', isVerified);
+
+  // Get detailed attestation data
+  const attestations = await client.getAttestations({
+    subject: userAddress,
+    schema: schemaName,
+    limit: 1
+  });
+
+  if (attestations.length > 0) {
+    const attestation = attestations[0];
+    console.log('📊 Attestation details:');
+    console.log('  - Verified:', attestation.data.isVerified);
+    console.log('  - Method:', attestation.data.verificationMethod);
+    console.log('  - Trust Score:', attestation.data.trustScore);
+    console.log('  - Expires:', attestation.expiresAt);
+  }
+
+} catch (error) {
+  console.error('❌ Error verifying attestation:', error.message);
+}
+```
+
+## Complete Example
+
+Here's the complete working example:
+
+<CodeGroup>
+```javascript Complete Example
+import { AttestClient } from '@attestprotocol/sdk';
+import 'dotenv/config';
+
+async function main() {
+  console.log('🚀 Starting attestation tutorial...\n');
+  
+  // Initialize client
+  const client = new AttestClient({
+    chain: 'solana',
+    network: process.env.ATTEST_NETWORK || 'devnet',
+    apiKey: process.env.ATTEST_API_KEY,
+  });
+
+  console.log('✅ Client initialized');
+
+  try {
+    // Step 1: Create a schema
+    const schemaName = `user-verification-${Date.now()}`;
+    
+    const schema = await client.schemas.create({
+      name: schemaName,
+      description: 'Basic user verification schema',
+      fields: [
+        {
+          name: 'isVerified',
+          type: 'boolean',
+          required: true,
+          description: 'Whether the user is verified'
+        },
+        {
+          name: 'verificationMethod',
+          type: 'string',
+          required: true,
+          description: 'How the user was verified'
+        },
+        {
+          name: 'verifiedAt',
+          type: 'timestamp',
+          required: true,
+          description: 'When verification was completed'
+        },
+        {
+          name: 'trustScore',
+          type: 'number',
+          required: false,
+          description: 'Trust score from 0-100'
+        }
+      ]
+    });
+
+    console.log('✅ Schema created:', schema.name);
+
+    // Step 2: Create an attestation
+    const userAddress = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1';
+    
+    const attestation = await client.attest({
+      schema: schemaName,
+      subject: userAddress,
+      data: {
+        isVerified: true,
+        verificationMethod: 'email',
+        verifiedAt: new Date().toISOString(),
+        trustScore: 85
+      },
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    });
+
+    console.log('✅ Attestation created!');
+    console.log('🆔 ID:', attestation.id);
+    console.log('🔗 Tx Hash:', attestation.transactionHash);
+
+    // Step 3: Verify the attestation
+    const isVerified = await client.verify({
+      subject: userAddress,
+      schema: schemaName
+    });
+
+    console.log('✅ Verification result:', isVerified);
+
+    // Step 4: Get attestation details
+    const attestations = await client.getAttestations({
+      subject: userAddress,
+      schema: schemaName,
+      limit: 1
+    });
+
+    if (attestations.length > 0) {
+      const att = attestations[0];
+      console.log('\n📊 Attestation Details:');
+      console.log('  Status:', att.status);
+      console.log('  Verified:', att.data.isVerified);
+      console.log('  Method:', att.data.verificationMethod);
+      console.log('  Trust Score:', att.data.trustScore);
+      console.log('  Created:', new Date(att.createdAt).toLocaleString());
+      console.log('  Expires:', new Date(att.expiresAt).toLocaleString());
+    }
+
+    console.log('\n🎉 Tutorial completed successfully!');
+
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+    console.error('Full error:', error);
+  }
+}
+
+main().catch(console.error);
+```
+
+```typescript TypeScript Version
+import { AttestClient, Schema, Attestation } from '@attestprotocol/sdk';
+import 'dotenv/config';
+
+interface UserVerificationData {
+  isVerified: boolean;
+  verificationMethod: string;
+  verifiedAt: string;
+  trustScore?: number;
+}
+
+async function main(): Promise<void> {
+  console.log('🚀 Starting attestation tutorial...\n');
+  
+  const client = new AttestClient({
+    chain: 'solana',
+    network: (process.env.ATTEST_NETWORK as 'devnet' | 'mainnet') || 'devnet',
+    apiKey: process.env.ATTEST_API_KEY!,
+  });
+
+  console.log('✅ Client initialized');
+
+  try {
+    const schemaName = `user-verification-${Date.now()}`;
+    
+    const schema: Schema = await client.schemas.create({
+      name: schemaName,
+      description: 'Basic user verification schema',
+      fields: [
+        {
+          name: 'isVerified',
+          type: 'boolean',
+          required: true,
+          description: 'Whether the user is verified'
+        },
+        {
+          name: 'verificationMethod',
+          type: 'string',
+          required: true,
+          description: 'How the user was verified'
+        },
+        {
+          name: 'verifiedAt',
+          type: 'timestamp',
+          required: true,
+          description: 'When verification was completed'
+        },
+        {
+          name: 'trustScore',
+          type: 'number',
+          required: false,
+          description: 'Trust score from 0-100'
+        }
+      ]
+    });
+
+    console.log('✅ Schema created:', schema.name);
+
+    const userAddress = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1';
+    
+    const attestation: Attestation<UserVerificationData> = await client.attest({
+      schema: schemaName,
+      subject: userAddress,
+      data: {
+        isVerified: true,
+        verificationMethod: 'email',
+        verifiedAt: new Date().toISOString(),
+        trustScore: 85
+      },
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    });
+
+    console.log('✅ Attestation created!');
+    console.log('🆔 ID:', attestation.id);
+
+    const isVerified = await client.verify({
+      subject: userAddress,
+      schema: schemaName
+    });
+
+    console.log('✅ Verification result:', isVerified);
+    console.log('\n🎉 Tutorial completed successfully!');
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+  }
+}
+
+main();
+```
+</CodeGroup>
+
+## Run Your Example
+
+Save your code and run it:
+
+```bash
+node index.js
+```
+
+You should see output like this:
+
+```
+🚀 Starting attestation tutorial...
+
+✅ Client initialized
+✅ Schema created: user-verification-1705123456789
+✅ Attestation created!
+🆔 ID: att_1234567890abcdef
+🔗 Tx Hash: 5KJp3F2B1Y8Z...
+✅ Verification result: true
+
+📊 Attestation Details:
+  Status: active
+  Verified: true
+  Method: email
+  Trust Score: 85
+  Created: 1/12/2024, 10:30:45 AM
+  Expires: 1/12/2025, 10:30:45 AM
+
+🎉 Tutorial completed successfully!
+```
+
+## Understanding the Results
+
+Let's break down what happened:
+
+<AccordionGroup>
+<Accordion title="Schema Creation">
+- Created a reusable template defining the structure of verification data
+- Each schema has a unique name and defines required/optional fields
+- Schemas are stored on-chain and can be reused for multiple attestations
+</Accordion>
+
+<Accordion title="Attestation Creation">
+- Created a signed, verifiable claim about a user's verification status
+- The attestation is stored on-chain with a unique ID and transaction hash
+- Set an expiration date to ensure attestations don't last forever
+</Accordion>
+
+<Accordion title="Verification">
+- Performed a simple boolean check: "Does this user have a valid attestation?"
+- The verify() method checks for active, non-expired attestations
+- Retrieved detailed attestation data including all custom fields
+</Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that you've created your first attestation, explore these topics:
+
+<CardGroup cols={2}>
+  <Card
+    title="Core Concepts"
+    icon="lightbulb"
+    href="/concepts/attestations"
+  >
+    Learn about attestations, schemas, and authorities in depth
+  </Card>
+  <Card
+    title="SDK Methods"
+    icon="code"
+    href="/sdks/typescript/methods"
+  >
+    Explore all available SDK methods and advanced features
+  </Card>
+  <Card
+    title="Integration Patterns"
+    icon="puzzle-piece"
+    href="/guides/integration-patterns"
+  >
+    Common patterns for real-world applications
+  </Card>
+  <Card
+    title="Examples"
+    icon="laptop-code"
+    href="/examples/kyc-verification"
+  >
+    See complete example applications
+  </Card>
+</CardGroup>
+
+## Common Issues
+
+<AccordionGroup>
+<Accordion title="Schema Already Exists">
+If you see "Schema already exists", it means you've run the tutorial before. Either:
+- Use a different schema name
+- Or reference the existing schema instead of creating a new one
+</Accordion>
+
+<Accordion title="Invalid API Key">
+- Double-check your API key in the dashboard
+- Make sure you're using the correct network (devnet vs mainnet)
+- Verify your .env file is properly formatted
+</Accordion>
+
+<Accordion title="Transaction Failed">
+- Ensure you have sufficient funds for transaction fees
+- Check that the network (devnet/mainnet) matches your API key
+- Verify the user address format is correct for your chosen blockchain
+</Accordion>
+</AccordionGroup>
+
+<Tip>
+**Pro Tip**: Save the schema name from your first run and reuse it in future attestations. You only need to create each schema once!
+</Tip>

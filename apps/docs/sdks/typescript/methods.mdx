@@ -1,0 +1,665 @@
+---
+title: 'SDK Methods'
+description: 'Complete reference for all AttestProtocol TypeScript SDK methods'
+icon: 'code'
+---
+
+## Client Initialization
+
+### AttestClient
+
+Initialize the AttestProtocol client with your configuration:
+
+```typescript
+import { AttestClient } from '@attestprotocol/sdk';
+
+const client = new AttestClient({
+  chain: 'solana' | 'stellar' | 'starknet',
+  network: 'mainnet' | 'devnet',
+  apiKey: string,
+  rpcUrl?: string, // Optional custom RPC
+  timeout?: number, // Request timeout in ms (default: 30000)
+});
+```
+
+**Parameters:**
+- `chain`: Target blockchain ('solana', 'stellar', 'starknet')
+- `network`: Network environment ('mainnet', 'devnet')
+- `apiKey`: Your AttestProtocol API key
+- `rpcUrl`: Optional custom RPC endpoint
+- `timeout`: Request timeout in milliseconds
+
+---
+
+## Schema Methods
+
+### client.schemas.create()
+
+Create a new attestation schema:
+
+```typescript
+const schema = await client.schemas.create({
+  name: string,
+  description: string,
+  fields: SchemaField[],
+  version?: string,
+  metadata?: Record<string, any>
+});
+```
+
+**Parameters:**
+- `name`: Unique schema identifier
+- `description`: Human-readable schema description
+- `fields`: Array of field definitions
+- `version`: Schema version (default: '1.0.0')
+- `metadata`: Additional schema metadata
+
+**Field Definition:**
+```typescript
+interface SchemaField {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'timestamp' | 'bytes' | 'address';
+  required: boolean;
+  description?: string;
+  validation?: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+    enum?: string[];
+  };
+}
+```
+
+**Example:**
+```typescript
+const schema = await client.schemas.create({
+  name: 'kyc-verification',
+  description: 'Basic KYC verification schema',
+  fields: [
+    {
+      name: 'verified',
+      type: 'boolean',
+      required: true,
+      description: 'KYC verification status'
+    },
+    {
+      name: 'level',
+      type: 'string',
+      required: true,
+      validation: {
+        enum: ['basic', 'enhanced', 'premium']
+      }
+    },
+    {
+      name: 'score',
+      type: 'number',
+      required: false,
+      validation: {
+        min: 0,
+        max: 100
+      }
+    }
+  ]
+});
+```
+
+### client.schemas.get()
+
+Retrieve a schema by name or ID:
+
+```typescript
+const schema = await client.schemas.get(schemaIdentifier: string);
+```
+
+### client.schemas.list()
+
+List all schemas with optional filtering:
+
+```typescript
+const schemas = await client.schemas.list({
+  limit?: number,
+  offset?: number,
+  search?: string,
+  createdBy?: string
+});
+```
+
+### client.schemas.update()
+
+Update a schema (creates new version):
+
+```typescript
+const updatedSchema = await client.schemas.update(
+  schemaId: string,
+  updates: Partial<SchemaCreateParams>
+);
+```
+
+---
+
+## Attestation Methods
+
+### client.attest()
+
+Create a new attestation:
+
+```typescript
+const attestation = await client.attest({
+  schema: string,
+  subject: string,
+  data: Record<string, any>,
+  expiresAt?: Date,
+  revocable?: boolean,
+  metadata?: AttestationMetadata
+});
+```
+
+**Parameters:**
+- `schema`: Schema name or ID
+- `subject`: Target address (wallet, contract, etc.)
+- `data`: Attestation data matching the schema
+- `expiresAt`: Optional expiration date
+- `revocable`: Whether attestation can be revoked (default: true)
+- `metadata`: Additional attestation metadata
+
+**Metadata Interface:**
+```typescript
+interface AttestationMetadata {
+  tags?: string[];
+  confidenceScore?: number;
+  source?: string;
+  externalId?: string;
+  customFields?: Record<string, any>;
+}
+```
+
+**Example:**
+```typescript
+const attestation = await client.attest({
+  schema: 'kyc-verification',
+  subject: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1',
+  data: {
+    verified: true,
+    level: 'enhanced',
+    score: 95
+  },
+  expiresAt: new Date('2025-12-31'),
+  metadata: {
+    tags: ['kyc', 'enhanced'],
+    confidenceScore: 98,
+    source: 'manual-review'
+  }
+});
+```
+
+### client.verify()
+
+Quick verification check:
+
+```typescript
+const isValid = await client.verify({
+  subject: string,
+  schema: string,
+  requiredData?: Record<string, any>,
+  includeExpired?: boolean
+});
+```
+
+**Parameters:**
+- `subject`: Address to verify
+- `schema`: Schema to check against
+- `requiredData`: Optional specific data requirements
+- `includeExpired`: Include expired attestations (default: false)
+
+**Examples:**
+```typescript
+// Simple verification
+const isKYCVerified = await client.verify({
+  subject: userAddress,
+  schema: 'kyc-verification'
+});
+
+// Verification with specific requirements
+const hasEnhancedKYC = await client.verify({
+  subject: userAddress,  
+  schema: 'kyc-verification',
+  requiredData: {
+    verified: true,
+    level: 'enhanced'
+  }
+});
+```
+
+### client.getAttestations()
+
+Retrieve attestations with filtering:
+
+```typescript
+const attestations = await client.getAttestations({
+  subject?: string,
+  schema?: string,
+  authority?: string,
+  status?: 'active' | 'expired' | 'revoked',
+  createdAfter?: Date,
+  createdBefore?: Date,
+  limit?: number,
+  offset?: number,
+  sortBy?: 'createdAt' | 'expiresAt' | 'updatedAt',
+  sortOrder?: 'asc' | 'desc'
+});
+```
+
+**Example:**
+```typescript
+// Get all active KYC attestations for a user
+const kycAttestations = await client.getAttestations({
+  subject: userAddress,
+  schema: 'kyc-verification',
+  status: 'active',
+  sortBy: 'createdAt',
+  sortOrder: 'desc'
+});
+
+// Get recent attestations across all schemas
+const recentAttestations = await client.getAttestations({
+  createdAfter: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+  limit: 50
+});
+```
+
+### client.getAttestation()
+
+Get a specific attestation by ID:
+
+```typescript
+const attestation = await client.getAttestation(attestationId: string);
+```
+
+### client.revoke()
+
+Revoke an attestation:
+
+```typescript
+const result = await client.revoke({
+  attestationId: string,
+  reason?: string,
+  metadata?: Record<string, any>
+});
+```
+
+**Example:**
+```typescript
+await client.revoke({
+  attestationId: 'att_123abc',
+  reason: 'User requested deletion',
+  metadata: {
+    revokedBy: 'admin@company.com',
+    ticketId: 'SUPPORT-456'
+  }
+});
+```
+
+---
+
+## Authority Methods
+
+### client.authorities.register()
+
+Register as an authority:
+
+```typescript
+const authority = await client.authorities.register({
+  name: string,
+  description: string,
+  website?: string,
+  logo?: string,
+  contactEmail?: string,
+  publicKey?: string,
+  metadata?: Record<string, any>
+});
+```
+
+### client.authorities.get()
+
+Get authority information:
+
+```typescript
+const authority = await client.authorities.get(authorityId: string);
+```
+
+### client.authorities.list()
+
+List authorities:
+
+```typescript
+const authorities = await client.authorities.list({
+  limit?: number,
+  offset?: number,
+  search?: string,
+  verified?: boolean
+});
+```
+
+### client.authorities.updateProfile()
+
+Update authority profile:
+
+```typescript
+const updated = await client.authorities.updateProfile({
+  name?: string,
+  description?: string, 
+  website?: string,
+  logo?: string,
+  metadata?: Record<string, any>
+});
+```
+
+---
+
+## Batch Operations
+
+### client.batch.attest()
+
+Create multiple attestations in one transaction:
+
+```typescript
+const results = await client.batch.attest([
+  {
+    schema: 'kyc-verification',
+    subject: 'address1',
+    data: { verified: true }
+  },
+  {
+    schema: 'reputation-score', 
+    subject: 'address2',
+    data: { score: 85 }
+  }
+]);
+```
+
+### client.batch.verify()
+
+Verify multiple attestations:
+
+```typescript
+const results = await client.batch.verify([
+  { subject: 'address1', schema: 'kyc-verification' },
+  { subject: 'address2', schema: 'reputation-score' }
+]);
+```
+
+### client.batch.revoke()
+
+Revoke multiple attestations:
+
+```typescript
+const results = await client.batch.revoke([
+  { attestationId: 'att_123', reason: 'Expired' },
+  { attestationId: 'att_456', reason: 'Invalid' }
+]);
+```
+
+---
+
+## Query Methods
+
+### client.query.bySubject()
+
+Advanced queries by subject:
+
+```typescript
+const results = await client.query.bySubject({
+  subject: string,
+  schemas?: string[],
+  includeExpired?: boolean,
+  includeRevoked?: boolean,
+  groupBySchema?: boolean
+});
+```
+
+### client.query.byAuthority()
+
+Query attestations by authority:
+
+```typescript
+const results = await client.query.byAuthority({
+  authority: string,
+  schemas?: string[],
+  subjects?: string[],
+  dateRange?: {
+    from: Date,
+    to: Date
+  }
+});
+```
+
+### client.query.aggregate()
+
+Get aggregated statistics:
+
+```typescript
+const stats = await client.query.aggregate({
+  groupBy: 'schema' | 'authority' | 'day' | 'month',
+  schemas?: string[],
+  dateRange?: {
+    from: Date,
+    to: Date
+  },
+  metrics: ('count' | 'unique_subjects' | 'success_rate')[]
+});
+```
+
+---
+
+## Utility Methods
+
+### client.utils.validateSchema()
+
+Validate schema definition:
+
+```typescript
+const isValid = await client.utils.validateSchema(schemaDefinition);
+```
+
+### client.utils.validateAttestation()
+
+Validate attestation data against schema:
+
+```typescript
+const validation = await client.utils.validateAttestation({
+  schema: 'kyc-verification',
+  data: { verified: true, level: 'basic' }
+});
+```
+
+### client.utils.estimateGas()
+
+Estimate gas costs for operations:
+
+```typescript
+const estimate = await client.utils.estimateGas({
+  operation: 'attest' | 'revoke' | 'batch_attest',
+  count?: number
+});
+```
+
+### client.utils.generateProof()
+
+Generate cryptographic proof:
+
+```typescript
+const proof = await client.utils.generateProof({
+  attestationId: string,
+  fields?: string[]
+});
+```
+
+---
+
+## Event Listening
+
+### client.events.subscribe()
+
+Subscribe to real-time events:
+
+```typescript
+const subscription = client.events.subscribe({
+  events: ['attestation.created', 'attestation.revoked'],
+  filters?: {
+    schemas?: string[],
+    subjects?: string[],
+    authorities?: string[]
+  },
+  callback: (event) => {
+    console.log('Event received:', event);
+  }
+});
+
+// Unsubscribe
+subscription.unsubscribe();
+```
+
+**Available Events:**
+- `attestation.created`
+- `attestation.revoked`
+- `attestation.expired`
+- `schema.created`
+- `schema.updated`
+- `authority.registered`
+
+---
+
+## Error Handling
+
+All SDK methods can throw specific error types:
+
+```typescript
+import { 
+  AttestProtocolError,
+  SchemaNotFoundError,
+  AttestationNotFoundError,
+  ValidationError,
+  AuthorizationError,
+  RateLimitError,
+  NetworkError
+} from '@attestprotocol/sdk';
+
+try {
+  const attestation = await client.attest({...});
+} catch (error) {
+  if (error instanceof SchemaNotFoundError) {
+    console.error('Schema does not exist:', error.schemaId);
+  } else if (error instanceof ValidationError) {
+    console.error('Data validation failed:', error.details);
+  } else if (error instanceof RateLimitError) {
+    console.error('Rate limit exceeded, retry after:', error.retryAfter);
+  } else {
+    console.error('Unexpected error:', error.message);
+  }
+}
+```
+
+---
+
+## Type Definitions
+
+### Core Types
+
+```typescript
+interface Attestation<T = any> {
+  id: string;
+  schema: string;
+  subject: string;
+  authority: string;
+  data: T;
+  createdAt: string;
+  expiresAt?: string;
+  revokedAt?: string;
+  status: 'active' | 'expired' | 'revoked';
+  transactionHash: string;
+  metadata?: AttestationMetadata;
+}
+
+interface Schema {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  fields: SchemaField[];
+  createdAt: string;
+  createdBy: string;
+  metadata?: Record<string, any>;
+}
+
+interface Authority {
+  id: string;
+  address: string;
+  name: string;
+  description: string;
+  verified: boolean;
+  createdAt: string;
+  website?: string;
+  logo?: string;
+  metadata?: Record<string, any>;
+}
+```
+
+---
+
+## Configuration Options
+
+### Advanced Client Configuration
+
+```typescript
+const client = new AttestClient({
+  chain: 'solana',
+  network: 'mainnet',
+  apiKey: process.env.ATTEST_API_KEY,
+  
+  // Advanced options
+  rpcUrl: 'https://custom-rpc.com',
+  timeout: 60000,
+  retries: 3,
+  retryDelay: 1000,
+  
+  // Caching
+  cache: {
+    enabled: true,
+    ttl: 300000, // 5 minutes
+    maxSize: 1000
+  },
+  
+  // Webhook verification
+  webhookSecret: process.env.WEBHOOK_SECRET,
+  
+  // Custom headers
+  headers: {
+    'X-Custom-Header': 'value'
+  }
+});
+```
+
+### Environment-Specific Configs
+
+```typescript
+// Development
+const devClient = new AttestClient({
+  chain: 'solana',
+  network: 'devnet',
+  apiKey: process.env.DEV_API_KEY,
+  debug: true // Enable debug logging
+});
+
+// Production
+const prodClient = new AttestClient({
+  chain: 'solana', 
+  network: 'mainnet',
+  apiKey: process.env.PROD_API_KEY,
+  rateLimit: {
+    requestsPerSecond: 100,
+    burstSize: 200
+  }
+});
+```
+
+This completes the comprehensive SDK methods documentation. Each method includes type definitions, parameters, examples, and error handling information.

@@ -1,0 +1,352 @@
+---
+title: 'Installation'
+description: 'Install AttestProtocol SDK and CLI tools for your project'
+icon: 'download'
+---
+
+## SDK Installation
+
+AttestProtocol provides SDKs for multiple platforms and languages. The TypeScript SDK is our primary offering with full feature support.
+
+### TypeScript SDK
+
+<CodeGroup>
+```bash npm
+npm install @attestprotocol/sdk
+```
+
+```bash yarn  
+yarn add @attestprotocol/sdk
+```
+
+```bash pnpm
+pnpm add @attestprotocol/sdk
+```
+
+```bash bun
+bun add @attestprotocol/sdk
+```
+</CodeGroup>
+
+### Requirements
+
+- **Node.js**: Version 18.0.0 or higher
+- **TypeScript**: Version 4.5.0 or higher (optional but recommended)
+
+### Browser Support
+
+The SDK works in both Node.js and browser environments:
+
+```javascript
+// Node.js
+import { AttestClient } from '@attestprotocol/sdk';
+
+// Browser (ES modules)
+import { AttestClient } from '@attestprotocol/sdk/browser';
+
+// Browser (UMD - via CDN)
+<script src="https://unpkg.com/@attestprotocol/sdk@latest/dist/browser.js"></script>
+```
+
+## CLI Installation
+
+The AttestProtocol CLI provides command-line tools for managing attestations, schemas, and deployments.
+
+### Global Installation
+
+<CodeGroup>
+```bash npm
+npm install -g @attestprotocol/cli
+```
+
+```bash yarn
+yarn global add @attestprotocol/cli
+```
+
+```bash pnpm
+pnpm add -g @attestprotocol/cli
+```
+</CodeGroup>
+
+### Local Installation (Recommended)
+
+<CodeGroup>
+```bash npm
+npm install --save-dev @attestprotocol/cli
+```
+
+```bash yarn
+yarn add --dev @attestprotocol/cli
+```
+
+```bash pnpm
+pnpm add -D @attestprotocol/cli
+```
+</CodeGroup>
+
+Then run via package scripts or npx:
+
+```bash
+npx attest --help
+```
+
+## Blockchain-Specific Tools
+
+Each blockchain has additional tooling requirements for contract development.
+
+### Solana
+
+<Steps>
+  <Step title="Install Solana CLI">
+    ```bash
+    sh -c "$(curl -sSfL https://release.solana.com/v1.18.4/install)"
+    ```
+  </Step>
+  <Step title="Install Anchor">
+    ```bash
+    npm install -g @coral-xyz/anchor-cli
+    ```
+  </Step>
+  <Step title="Install Solana CLI Tools">
+    ```bash
+    npm install -g @attestprotocol/solana-cli
+    ```
+  </Step>
+</Steps>
+
+### Stellar
+
+<Steps>
+  <Step title="Install Stellar CLI">
+    ```bash
+    cargo install --locked stellar-cli --features opt
+    ```
+  </Step>
+  <Step title="Install Stellar Tools">
+    ```bash
+    npm install -g @attestprotocol/stellar-cli
+    ```
+  </Step>
+</Steps>
+
+### Starknet
+
+<Steps>
+  <Step title="Install Scarb">
+    ```bash
+    curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh
+    ```
+  </Step>
+  <Step title="Install Starknet Tools">
+    ```bash
+    npm install -g @attestprotocol/starknet-cli
+    ```
+  </Step>
+</Steps>
+
+## Verification
+
+Verify your installation by checking versions:
+
+```bash
+# SDK version (in a Node.js project)
+node -e "console.log(require('@attestprotocol/sdk/package.json').version)"
+
+# CLI version
+attest --version
+
+# Blockchain tools
+anchor --version  # Solana
+stellar version   # Stellar  
+scarb --version   # Starknet
+```
+
+## IDE Setup
+
+### VSCode Extensions
+
+For the best development experience, install these VSCode extensions:
+
+<CardGroup cols={2}>
+  <Card title="Rust Analyzer" icon="rust">
+    Essential for Solana/Stellar contract development
+  </Card>
+  <Card title="Cairo" icon="triangle">
+    Syntax highlighting and IntelliSense for Starknet
+  </Card>
+  <Card title="Solidity" icon="ethereum">
+    If working with EVM-compatible chains
+  </Card>
+  <Card title="TypeScript Hero" icon="typescript">
+    Auto-imports and better TypeScript support
+  </Card>
+</CardGroup>
+
+### TypeScript Configuration
+
+Add these types to your `tsconfig.json`:
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/**/*"
+  ]
+}
+```
+
+## Package Manager Notes
+
+### pnpm
+
+If using pnpm, you may need to add this to your `.npmrc`:
+
+```bash .npmrc
+shamefully-hoist=true
+```
+
+### Yarn
+
+For Yarn v2+ (Berry), add to `.yarnrc.yml`:
+
+```yaml .yarnrc.yml
+nodeLinker: node-modules
+```
+
+## Development Environment
+
+### Environment Variables
+
+Create a `.env` file in your project root:
+
+```bash .env
+# Required
+ATTEST_API_KEY=your_api_key_here
+
+# Optional - defaults to mainnet
+ATTEST_NETWORK=devnet
+
+# Blockchain-specific (if needed)
+SOLANA_RPC_URL=https://api.devnet.solana.com
+STELLAR_RPC_URL=https://soroban-testnet.stellar.org
+STARKNET_RPC_URL=https://starknet-goerli.infura.io/v3/your-key
+```
+
+### Git Configuration
+
+Add these to your `.gitignore`:
+
+```bash .gitignore
+# AttestProtocol
+.env
+.env.local
+.env.production
+
+# Blockchain artifacts  
+target/
+.anchor/
+contracts/*/target/
+*.so
+*.wasm
+
+# IDE
+.vscode/
+.idea/
+```
+
+## Docker Setup (Optional)
+
+For containerized development:
+
+```dockerfile Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache git curl bash
+
+# Install Rust (for contract development)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Your First Attestation"
+    icon="play"
+    href="/getting-started/your-first-attestation"
+  >
+    Create your first attestation in 5 minutes
+  </Card>
+  <Card
+    title="Configuration"
+    icon="gear"
+    href="/getting-started/configuration"
+  >
+    Configure the SDK for your environment
+  </Card>
+  <Card
+    title="Quickstart Guide"
+    icon="rocket"
+    href="/quickstart"
+  >
+    End-to-end quickstart tutorial
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book-open"
+    href="/reference/overview"
+  >
+    Complete API documentation
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Module Resolution Errors">
+    If you see module resolution errors:
+    - Ensure you're using Node.js 18+
+    - Try deleting `node_modules` and reinstalling
+    - Check your `tsconfig.json` module resolution settings
+  </Accordion>
+
+  <Accordion title="Blockchain Tool Installation">
+    For blockchain-specific tools:
+    - **Solana**: Make sure your PATH includes `~/.local/share/solana/install/active_release/bin`
+    - **Stellar**: Rust toolchain must be installed first
+    - **Starknet**: Scarb requires curl and git
+  </Accordion>
+
+  <Accordion title="Permission Errors">
+    If you get permission errors with global installs:
+    ```bash
+    # Use npx instead of global install
+    npx @attestprotocol/cli --help
+    
+    # Or configure npm prefix
+    npm config set prefix ~/.npm-global
+    export PATH=~/.npm-global/bin:$PATH
+    ```
+  </Accordion>
+</AccordionGroup>
