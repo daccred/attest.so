@@ -11,8 +11,11 @@ struct Args {
     #[arg(short, long, default_value = "whitepaper.tex")]
     input: PathBuf,
 
-    #[arg(short, long, default_value = "../../packages/whitepaper/attestprotocol.pdf")]
+    #[arg(short, long, default_value = "release/attestprotocol.pdf")]
     output: PathBuf,
+
+    #[arg(short = 'd', long, default_value = "release", help = "Output directory for all generated files")]
+    output_dir: PathBuf,
 
     #[arg(short = 'k', long, help = "Keep intermediate files")]
     keep_intermediates: bool,
@@ -31,12 +34,18 @@ fn main() -> Result<()> {
         anyhow::bail!("Input file {:?} does not exist", args.input);
     }
 
+    // Create output directory
+    fs::create_dir_all(&args.output_dir)
+        .context("Failed to create output directory")?;
+
     println!("Building PDF from {:?} using Tectonic CLI...", args.input);
+    println!("Output directory: {:?}", args.output_dir);
 
     let mut cmd = Command::new("tectonic");
     
-    // Use direct compilation instead of -X build
+    // Use direct compilation with output directory
     cmd.arg(&args.input);
+    cmd.arg("--outdir").arg(&args.output_dir);
 
     if args.keep_intermediates {
         cmd.arg("--keep-intermediates");
@@ -58,24 +67,30 @@ fn main() -> Result<()> {
         anyhow::bail!("Tectonic compilation failed with status: {}", status);
     }
 
-    // The PDF is generated with the same name as the tex file
+    // The PDF is generated in the output directory
     let input_stem = args.input.file_stem()
         .context("Invalid input filename")?;
-    let built_pdf = PathBuf::from(format!("{}.pdf", input_stem.to_string_lossy()));
+    let built_pdf = args.output_dir.join(format!("{}.pdf", input_stem.to_string_lossy()));
     
     if !built_pdf.exists() {
         anyhow::bail!("Expected PDF output not found at {:?}", built_pdf);
     }
 
-    if let Some(parent) = args.output.parent() {
-        fs::create_dir_all(parent)
-            .context("Failed to create output directory")?;
+    // Copy to final output location if different from build location
+    if built_pdf != args.output {
+        if let Some(parent) = args.output.parent() {
+            fs::create_dir_all(parent)
+                .context("Failed to create final output directory")?;
+        }
+        
+        fs::copy(&built_pdf, &args.output)
+            .context("Failed to copy PDF to final output location")?;
+        
+        println!("PDF generated: {:?}", built_pdf);
+        println!("PDF copied to: {:?}", args.output);
+    } else {
+        println!("PDF generated: {:?}", args.output);
     }
-
-    fs::copy(&built_pdf, &args.output)
-        .context("Failed to copy PDF to output location")?;
-
-    println!("PDF generated successfully: {:?}", args.output);
 
     Ok(())
 }
