@@ -526,7 +526,6 @@ class PhysicalAssetVerifier implements AssetVerifier {
     };
   }
 }
-```
 
 interface AssetDetails {
   assetId: string;
@@ -695,6 +694,7 @@ class AssetRegistryService {
     };
   }
 }
+```
 
 **Get All Owner Assets**
 
@@ -763,6 +763,7 @@ class AssetRegistryService {
     };
   }
 }
+```
 
 **Collateral Validation**
 
@@ -853,7 +854,7 @@ class AssetRegistryService {
       0
     );
   }
-}
+
 
   private getSchemaUID(assetType: string): string {
     const schemaMap = {
