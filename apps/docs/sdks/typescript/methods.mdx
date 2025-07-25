@@ -4,662 +4,570 @@ description: 'Complete reference for all AttestProtocol TypeScript SDK methods'
 icon: 'code'
 ---
 
-## Client Initialization
+## Factory Methods
 
-### AttestClient
+<Note>
+The SDK uses factory methods to create blockchain-specific instances. Each blockchain requires separate initialization.
+</Note>
 
-Initialize the AttestProtocol client with your configuration:
+### AttestSDK.initializeStellar()
 
-```typescript
-import { AttestClient } from '@attestprotocol/sdk';
+Creates and initializes a Stellar SDK instance.
 
-const client = new AttestClient({
-  chain: 'solana' | 'stellar' | 'starknet',
-  network: 'mainnet' | 'devnet',
-  apiKey: string,
-  rpcUrl?: string, // Optional custom RPC
-  timeout?: number, // Request timeout in ms (default: 30000)
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `config` | `StellarConfig` | ✓ | Stellar network configuration |
+
+**Returns:** `Promise<StellarAttestSDK>`
+
+<CodeGroup>
+```typescript Basic Usage
+import { AttestSDK } from '@attestprotocol/sdk';
+
+const stellarSDK = await AttestSDK.initializeStellar({
+  secretKeyOrCustomSigner: 'SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+  publicKey: 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+  url: 'https://soroban-testnet.stellar.org'
 });
 ```
 
-**Parameters:**
-- `chain`: Target blockchain ('solana', 'stellar', 'starknet')
-- `network`: Network environment ('mainnet', 'devnet')
-- `apiKey`: Your AttestProtocol API key
-- `rpcUrl`: Optional custom RPC endpoint
-- `timeout`: Request timeout in milliseconds
-
----
-
-## Schema Methods
-
-### client.schemas.create()
-
-Create a new attestation schema:
-
-```typescript
-const schema = await client.schemas.create({
-  name: string,
-  description: string,
-  fields: SchemaField[],
-  version?: string,
-  metadata?: Record<string, any>
+```typescript Wallet Integration
+// For React frontends with Freighter, Albedo, etc.
+const stellarSDK = await AttestSDK.initializeStellar({
+  secretKeyOrCustomSigner: stellarWallet, // Freighter, Albedo, etc.
+  publicKey: 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
 });
 ```
+</CodeGroup>
 
-**Parameters:**
-- `name`: Unique schema identifier
-- `description`: Human-readable schema description
-- `fields`: Array of field definitions
-- `version`: Schema version (default: '1.0.0')
-- `metadata`: Additional schema metadata
-
-**Field Definition:**
+**Configuration Interface:**
 ```typescript
-interface SchemaField {
-  name: string;
-  type: 'string' | 'number' | 'boolean' | 'timestamp' | 'bytes' | 'address';
-  required: boolean;
-  description?: string;
-  validation?: {
-    min?: number;
-    max?: number;
-    pattern?: string;
-    enum?: string[];
-  };
+interface StellarConfig extends ChainConfig {
+  secretKeyOrCustomSigner: string | StellarCustomSigner;
+  publicKey: string;
+  url?: string;
 }
 ```
 
-**Example:**
-```typescript
-const schema = await client.schemas.create({
-  name: 'kyc-verification',
-  description: 'Basic KYC verification schema',
-  fields: [
-    {
-      name: 'verified',
-      type: 'boolean',
-      required: true,
-      description: 'KYC verification status'
-    },
-    {
-      name: 'level',
-      type: 'string',
-      required: true,
-      validation: {
-        enum: ['basic', 'enhanced', 'premium']
-      }
-    },
-    {
-      name: 'score',
-      type: 'number',
-      required: false,
-      validation: {
-        min: 0,
-        max: 100
-      }
-    }
-  ]
+### AttestSDK.initializeSolana()
+
+Creates and initializes a Solana SDK instance.
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `config` | `SolanaConfig` | ✓ | Solana network configuration |
+
+**Returns:** `Promise<SolanaAttestSDK>`
+
+<CodeGroup>
+```typescript Secret Key Array
+import { AttestSDK } from '@attestprotocol/sdk';
+
+const solanaSDK = await AttestSDK.initializeSolana({
+  walletOrSecretKey: [1, 2, 3, /* ...64 numbers */],
+  programId: 'BMr9aui54YuxtpBzWXiFNmnr2iH6etRu7rMFJnKxjtpY',
+  url: 'https://api.devnet.solana.com'
 });
 ```
 
-### client.schemas.get()
-
-Retrieve a schema by name or ID:
-
-```typescript
-const schema = await client.schemas.get(schemaIdentifier: string);
-```
-
-### client.schemas.list()
-
-List all schemas with optional filtering:
-
-```typescript
-const schemas = await client.schemas.list({
-  limit?: number,
-  offset?: number,
-  search?: string,
-  createdBy?: string
+```typescript Anchor Wallet
+const solanaSDK = await AttestSDK.initializeSolana({
+  walletOrSecretKey: anchorWallet,
+  url: 'https://api.devnet.solana.com'
 });
 ```
+</CodeGroup>
 
-### client.schemas.update()
-
-Update a schema (creates new version):
-
+**Configuration Interface:**
 ```typescript
-const updatedSchema = await client.schemas.update(
-  schemaId: string,
-  updates: Partial<SchemaCreateParams>
-);
+interface SolanaConfig extends ChainConfig {
+  walletOrSecretKey: number[] | anchor.Wallet;
+  programId?: string;
+  url?: string;
+}
 ```
 
 ---
 
-## Attestation Methods
+## Response Pattern
 
-### client.attest()
-
-Create a new attestation:
+<Info>
+All SDK methods return a consistent response wrapper for unified error handling across chains.
+</Info>
 
 ```typescript
-const attestation = await client.attest({
-  schema: string,
-  subject: string,
-  data: Record<string, any>,
-  expiresAt?: Date,
-  revocable?: boolean,
-  metadata?: AttestationMetadata
-});
+type AttestSDKResponse<T> = 
+  | { data: T; error?: undefined }
+  | { data?: undefined; error: any }
 ```
 
-**Parameters:**
-- `schema`: Schema name or ID
-- `subject`: Target address (wallet, contract, etc.)
-- `data`: Attestation data matching the schema
-- `expiresAt`: Optional expiration date
-- `revocable`: Whether attestation can be revoked (default: true)
-- `metadata`: Additional attestation metadata
-
-**Metadata Interface:**
+**Usage Pattern:**
 ```typescript
-interface AttestationMetadata {
-  tags?: string[];
-  confidenceScore?: number;
-  source?: string;
-  externalId?: string;
-  customFields?: Record<string, any>;
+const result = await sdk.fetchAuthority();
+
+if (result.error) {
+  console.error('Operation failed:', result.error);
+  return;
 }
-```
 
-**Example:**
-```typescript
-const attestation = await client.attest({
-  schema: 'kyc-verification',
-  subject: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1',
-  data: {
-    verified: true,
-    level: 'enhanced',
-    score: 95
-  },
-  expiresAt: new Date('2025-12-31'),
-  metadata: {
-    tags: ['kyc', 'enhanced'],
-    confidenceScore: 98,
-    source: 'manual-review'
-  }
-});
-```
-
-### client.verify()
-
-Quick verification check:
-
-```typescript
-const isValid = await client.verify({
-  subject: string,
-  schema: string,
-  requiredData?: Record<string, any>,
-  includeExpired?: boolean
-});
-```
-
-**Parameters:**
-- `subject`: Address to verify
-- `schema`: Schema to check against
-- `requiredData`: Optional specific data requirements
-- `includeExpired`: Include expired attestations (default: false)
-
-**Examples:**
-```typescript
-// Simple verification
-const isKYCVerified = await client.verify({
-  subject: userAddress,
-  schema: 'kyc-verification'
-});
-
-// Verification with specific requirements
-const hasEnhancedKYC = await client.verify({
-  subject: userAddress,  
-  schema: 'kyc-verification',
-  requiredData: {
-    verified: true,
-    level: 'enhanced'
-  }
-});
-```
-
-### client.getAttestations()
-
-Retrieve attestations with filtering:
-
-```typescript
-const attestations = await client.getAttestations({
-  subject?: string,
-  schema?: string,
-  authority?: string,
-  status?: 'active' | 'expired' | 'revoked',
-  createdAfter?: Date,
-  createdBefore?: Date,
-  limit?: number,
-  offset?: number,
-  sortBy?: 'createdAt' | 'expiresAt' | 'updatedAt',
-  sortOrder?: 'asc' | 'desc'
-});
-```
-
-**Example:**
-```typescript
-// Get all active KYC attestations for a user
-const kycAttestations = await client.getAttestations({
-  subject: userAddress,
-  schema: 'kyc-verification',
-  status: 'active',
-  sortBy: 'createdAt',
-  sortOrder: 'desc'
-});
-
-// Get recent attestations across all schemas
-const recentAttestations = await client.getAttestations({
-  createdAfter: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-  limit: 50
-});
-```
-
-### client.getAttestation()
-
-Get a specific attestation by ID:
-
-```typescript
-const attestation = await client.getAttestation(attestationId: string);
-```
-
-### client.revoke()
-
-Revoke an attestation:
-
-```typescript
-const result = await client.revoke({
-  attestationId: string,
-  reason?: string,
-  metadata?: Record<string, any>
-});
-```
-
-**Example:**
-```typescript
-await client.revoke({
-  attestationId: 'att_123abc',
-  reason: 'User requested deletion',
-  metadata: {
-    revokedBy: 'admin@company.com',
-    ticketId: 'SUPPORT-456'
-  }
-});
+// Use result.data safely
+console.log('Authority:', result.data);
 ```
 
 ---
 
 ## Authority Methods
 
-### client.authorities.register()
+### fetchAuthority()
 
-Register as an authority:
+Retrieves authority information for the current wallet.
 
-```typescript
-const authority = await client.authorities.register({
-  name: string,
-  description: string,
-  website?: string,
-  logo?: string,
-  contactEmail?: string,
-  publicKey?: string,
-  metadata?: Record<string, any>
-});
+**Parameters:** None
+
+**Returns:**
+- **Stellar:** `AttestSDKResponse<StellarFetchAuthorityResult | null>`
+- **Solana:** `AttestSDKResponse<SolanaFetchAuthorityResult>`
+
+**Chain Support:**
+| Chain | Return Type | Description |
+|-------|-------------|-------------|
+| Stellar | `{ address: string, metadata: string }` | Authority address and metadata |
+| Solana | `{ authority: PublicKey, isVerified: boolean, firstDeployment: BN }` | Authority details with verification status |
+
+<CodeGroup>
+```typescript Stellar
+const result = await stellarSDK.fetchAuthority();
+
+if (result.data) {
+  console.log('Authority address:', result.data.address);
+  console.log('Metadata:', result.data.metadata);
+}
 ```
 
-### client.authorities.get()
+```typescript Solana
+const result = await solanaSDK.fetchAuthority();
 
-Get authority information:
+if (result.data) {
+  console.log('Authority:', result.data.authority.toBase58());
+  console.log('Verified:', result.data.isVerified);
+}
+```
+</CodeGroup>
 
-```typescript
-const authority = await client.authorities.get(authorityId: string);
+### registerAuthority()
+
+Registers the current wallet as an authority.
+
+**Parameters:** None
+
+**Returns:**
+- **Stellar:** `AttestSDKResponse<string>` (transaction hash)
+- **Solana:** `AttestSDKResponse<anchor.web3.PublicKey>` (authority PDA)
+
+<CodeGroup>
+```typescript Stellar
+const result = await stellarSDK.registerAuthority();
+
+if (result.data) {
+  console.log('Registration TX:', result.data);
+}
 ```
 
-### client.authorities.list()
+```typescript Solana
+const result = await solanaSDK.registerAuthority();
 
-List authorities:
-
-```typescript
-const authorities = await client.authorities.list({
-  limit?: number,
-  offset?: number,
-  search?: string,
-  verified?: boolean
-});
+if (result.data) {
+  console.log('Authority PDA:', result.data.toBase58());
+}
 ```
-
-### client.authorities.updateProfile()
-
-Update authority profile:
-
-```typescript
-const updated = await client.authorities.updateProfile({
-  name?: string,
-  description?: string, 
-  website?: string,
-  logo?: string,
-  metadata?: Record<string, any>
-});
-```
+</CodeGroup>
 
 ---
 
-## Batch Operations
+## Schema Methods
 
-### client.batch.attest()
+### createSchema()
 
-Create multiple attestations in one transaction:
+Creates a new attestation schema.
 
-```typescript
-const results = await client.batch.attest([
-  {
-    schema: 'kyc-verification',
-    subject: 'address1',
-    data: { verified: true }
-  },
-  {
-    schema: 'reputation-score', 
-    subject: 'address2',
-    data: { score: 85 }
+<Warning>
+Schema names must be unique within each blockchain. Attempting to create a duplicate will fail.
+</Warning>
+
+**Parameters:**
+
+<Tabs>
+  <Tab title="Stellar">
+    | Parameter | Type | Required | Description |
+    |-----------|------|----------|-------------|
+    | `schemaName` | `string` | ✓ | Unique schema identifier |
+    | `schemaContent` | `string` | ✓ | Schema definition |
+    | `resolverAddress` | `string` | ✗ | Resolver contract address |
+    | `revocable` | `boolean` | ✗ | Revocation capability (default: true) |
+  </Tab>
+  <Tab title="Solana">
+    | Parameter | Type | Required | Description |
+    |-----------|------|----------|-------------|
+    | `schemaName` | `string` | ✓ | Unique schema identifier |
+    | `schemaContent` | `string` | ✓ | Schema definition |
+    | `resolverAddress` | `PublicKey` | ✗ | Resolver contract address |
+    | `revocable` | `boolean` | ✗ | Revocation capability |
+    | `levy` | `LevyConfig` | ✗ | Fee configuration |
+  </Tab>
+</Tabs>
+
+**Returns:**
+- **Stellar:** `AttestSDKResponse<StellarCreateSchemaResult>`
+- **Solana:** `AttestSDKResponse<anchor.web3.PublicKey>`
+
+<CodeGroup>
+```typescript Stellar
+const result = await stellarSDK.createSchema({
+  schemaName: 'kyc-verification',
+  schemaContent: 'verified:bool,level:string,score:uint',
+  revocable: true
+});
+
+if (result.data) {
+  console.log('Schema UID:', result.data.schemaUID);
+  console.log('Schema name:', result.data.schemaName);
+}
+```
+
+```typescript Solana
+const result = await solanaSDK.createSchema({
+  schemaName: 'reputation-score',
+  schemaContent: 'score:u8,category:string,verified_at:u64',
+  revocable: true,
+  levy: {
+    amount: new anchor.BN(1000000),
+    asset: new anchor.web3.PublicKey('So11111111111111111111111111111111111111112')
   }
-]);
+});
+
+if (result.data) {
+  console.log('Schema PDA:', result.data.toBase58());
+}
+```
+</CodeGroup>
+
+### fetchSchema()
+
+Retrieves schema by UID.
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `schemaUID` | `string` (Stellar) / `PublicKey` (Solana) | ✓ | Schema identifier |
+
+**Returns:**
+- **Stellar:** `AttestSDKResponse<StellarFetchSchemaResult | null>`
+- **Solana:** `AttestSDKResponse<SolanaFetchSchemaResult | null>`
+
+<CodeGroup>
+```typescript Stellar Result
+interface StellarFetchSchemaResult {
+  uid: string;
+  definition: string;
+  authority: string;
+  revocable: boolean;
+  resolver: string | null;
+}
 ```
 
-### client.batch.verify()
-
-Verify multiple attestations:
-
-```typescript
-const results = await client.batch.verify([
-  { subject: 'address1', schema: 'kyc-verification' },
-  { subject: 'address2', schema: 'reputation-score' }
-]);
+```typescript Solana Result
+interface SolanaFetchSchemaResult {
+  uid: anchor.web3.PublicKey;
+  schema: string;
+  resolver?: anchor.web3.PublicKey;
+  revocable: boolean;
+  deployer: anchor.web3.PublicKey;
+  levy?: {
+    amount: anchor.BN;
+    asset: anchor.web3.PublicKey;
+    recipient: anchor.web3.PublicKey;
+  };
+}
 ```
-
-### client.batch.revoke()
-
-Revoke multiple attestations:
-
-```typescript
-const results = await client.batch.revoke([
-  { attestationId: 'att_123', reason: 'Expired' },
-  { attestationId: 'att_456', reason: 'Invalid' }
-]);
-```
+</CodeGroup>
 
 ---
 
-## Query Methods
+## Attestation Methods
 
-### client.query.bySubject()
+### attest()
 
-Advanced queries by subject:
+Creates a new attestation.
 
-```typescript
-const results = await client.query.bySubject({
-  subject: string,
-  schemas?: string[],
-  includeExpired?: boolean,
-  includeRevoked?: boolean,
-  groupBySchema?: boolean
+<Info>
+Attestation data must match the schema definition format. Mismatched data will cause validation errors.
+</Info>
+
+**Parameters:**
+
+<Tabs>
+  <Tab title="Stellar">
+    | Parameter | Type | Required | Description |
+    |-----------|------|----------|-------------|
+    | `schemaUID` | `string` | ✓ | 64-character hex string |
+    | `subject` | `string` | ✓ | Stellar address |
+    | `value` | `string` | ✓ | Attestation data |
+    | `reference` | `string` | ✓ | Reference string |
+  </Tab>
+  <Tab title="Solana">
+    | Parameter | Type | Required | Description |
+    |-----------|------|----------|-------------|
+    | `schemaData` | `PublicKey` | ✓ | Schema PDA |
+    | `data` | `string` | ✓ | Attestation data |
+    | `refUID` | `PublicKey` | ✗ | Reference attestation |
+    | `expirationTime` | `number` | ✗ | Expiration timestamp |
+    | `revocable` | `boolean` | ✗ | Revocation capability |
+    | `accounts` | `object` | ✓ | Required account addresses |
+  </Tab>
+</Tabs>
+
+<CodeGroup>
+```typescript Stellar
+const result = await stellarSDK.attest({
+  schemaUID: 'abc123...',
+  subject: 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+  value: 'verified:true,level:enhanced,score:95',
+  reference: 'kyc-2024-001'
 });
+
+if (result.data) {
+  console.log('Attestation TX:', result.data);
+}
 ```
 
-### client.query.byAuthority()
-
-Query attestations by authority:
-
-```typescript
-const results = await client.query.byAuthority({
-  authority: string,
-  schemas?: string[],
-  subjects?: string[],
-  dateRange?: {
-    from: Date,
-    to: Date
+```typescript Solana
+const result = await solanaSDK.attest({
+  schemaData: schemaPDA,
+  data: 'score:85,category:defi,verified_at:1704067200',
+  expirationTime: Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60),
+  revocable: true,
+  accounts: {
+    recipient: recipientPubkey,
+    levyReceipent: walletPubkey,
+    mintAccount: mintPubkey
   }
 });
+
+if (result.data) {
+  console.log('Attestation PDA:', result.data.toBase58());
+}
 ```
+</CodeGroup>
 
-### client.query.aggregate()
+### fetchAttestation()
 
-Get aggregated statistics:
+Retrieves attestation data.
 
-```typescript
-const stats = await client.query.aggregate({
-  groupBy: 'schema' | 'authority' | 'day' | 'month',
-  schemas?: string[],
-  dateRange?: {
-    from: Date,
-    to: Date
-  },
-  metrics: ('count' | 'unique_subjects' | 'success_rate')[]
+**Parameters:**
+
+<Tabs>
+  <Tab title="Stellar">
+    | Parameter | Type | Required | Description |
+    |-----------|------|----------|-------------|
+    | `schemaUID` | `string` | ✓ | 64-character hex string |
+    | `subject` | `string` | ✓ | Stellar address |
+    | `reference` | `string` | ✗ | Reference string |
+  </Tab>
+  <Tab title="Solana">
+    | Parameter | Type | Required | Description |
+    |-----------|------|----------|-------------|
+    | `attestation` | `PublicKey` or `string` | ✓ | Attestation PDA or identifier |
+  </Tab>
+</Tabs>
+
+<CodeGroup>
+```typescript Stellar
+const result = await stellarSDK.fetchAttestation({
+  schemaUID: 'abc123...',
+  subject: 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+  reference: 'kyc-2024-001'
 });
+
+if (result.data && !result.data.revoked) {
+  console.log('Attestation value:', result.data.value);
+}
 ```
+
+```typescript Solana
+const result = await solanaSDK.fetchAttestation(attestationPDA);
+
+if (result.data) {
+  console.log('Attestation data:', result.data.data);
+  console.log('Attester:', result.data.attester.toBase58());
+}
+```
+</CodeGroup>
+
+### revokeAttestation()
+
+Revokes an existing attestation.
+
+<Warning>
+Only the original attester can revoke an attestation. The attestation must be revocable.
+</Warning>
+
+**Parameters:**
+
+<Tabs>
+  <Tab title="Stellar">
+    | Parameter | Type | Required | Description |
+    |-----------|------|----------|-------------|
+    | `schemaUID` | `string` | ✓ | 64-character hex string |
+    | `subject` | `string` | ✓ | Stellar address |
+    | `reference` | `string` | ✗ | Reference string |
+  </Tab>
+  <Tab title="Solana">
+    | Parameter | Type | Required | Description |
+    |-----------|------|----------|-------------|
+    | `attestationUID` | `PublicKey` | ✓ | Attestation PDA |
+    | `recipient` | `PublicKey` | ✓ | Recipient address |
+    | `reference` | `string` | ✗ | Reference string |
+  </Tab>
+</Tabs>
 
 ---
 
 ## Utility Methods
 
-### client.utils.validateSchema()
+### getWalletBalance()
 
-Validate schema definition:
+<Note>
+This method is only available on Solana. Use native Stellar SDK methods for Stellar balance queries.
+</Note>
+
+Returns wallet balance and address information.
+
+**Parameters:** None
+
+**Returns:** `AttestSDKResponse<{ balance: number; address: PublicKey }>`
 
 ```typescript
-const isValid = await client.utils.validateSchema(schemaDefinition);
+const result = await solanaSDK.getWalletBalance();
+
+if (result.data) {
+  console.log('Address:', result.data.address.toBase58());
+  console.log('Balance:', result.data.balance, 'SOL');
+}
 ```
 
-### client.utils.validateAttestation()
+### initialize()
 
-Validate attestation data against schema:
+<Note>
+This method is only available on Stellar and requires admin privileges.
+</Note>
 
-```typescript
-const validation = await client.utils.validateAttestation({
-  schema: 'kyc-verification',
-  data: { verified: true, level: 'basic' }
-});
-```
+Initializes the protocol contract.
 
-### client.utils.estimateGas()
+**Parameters:** None
 
-Estimate gas costs for operations:
+**Returns:** `AttestSDKResponse<void>`
 
 ```typescript
-const estimate = await client.utils.estimateGas({
-  operation: 'attest' | 'revoke' | 'batch_attest',
-  count?: number
-});
-```
+const result = await stellarSDK.initialize();
 
-### client.utils.generateProof()
-
-Generate cryptographic proof:
-
-```typescript
-const proof = await client.utils.generateProof({
-  attestationId: string,
-  fields?: string[]
-});
+if (!result.error) {
+  console.log('Protocol initialized successfully');
+}
 ```
 
 ---
 
-## Event Listening
+## Chain Support Matrix
 
-### client.events.subscribe()
+<Info>
+Not all methods are available on all chains. Check this matrix before implementation.
+</Info>
 
-Subscribe to real-time events:
-
-```typescript
-const subscription = client.events.subscribe({
-  events: ['attestation.created', 'attestation.revoked'],
-  filters?: {
-    schemas?: string[],
-    subjects?: string[],
-    authorities?: string[]
-  },
-  callback: (event) => {
-    console.log('Event received:', event);
-  }
-});
-
-// Unsubscribe
-subscription.unsubscribe();
-```
-
-**Available Events:**
-- `attestation.created`
-- `attestation.revoked`
-- `attestation.expired`
-- `schema.created`
-- `schema.updated`
-- `authority.registered`
+| Method | Stellar | Solana | Notes |
+|--------|---------|--------|-------|
+| `fetchAuthority()` | ✓ | ✓ | Different return structures |
+| `registerAuthority()` | ✓ | ✓ | Returns string vs PublicKey |
+| `createSchema()` | ✓ | ✓ | Solana supports levy config |
+| `fetchSchema()` | ✓ | ✓ | Different identifier types |
+| `attest()` | ✓ | ✓ | Different parameter sets |
+| `fetchAttestation()` | ✓ | ✓ | Different query methods |
+| `revokeAttestation()` | ✓ | ✓ | Similar functionality |
+| `getWalletBalance()` | ✗ | ✓ | Solana only |
+| `initialize()` | ✓ | ✗ | Stellar only |
+| `initializeAuthority()` | ✓ | ✗ | Stellar only |
 
 ---
 
-## Error Handling
+## Contract Information
 
-All SDK methods can throw specific error types:
+### Default Addresses
+
+<CardGroup cols={2}>
+  <Card title="Stellar Testnet" icon="circle-nodes">
+    **Protocol Contract:**
+    `CBPL7XR7NNPTNSIIFWQMWLSCX3B3MM36UYX4TW3QXJKTIEA6KDLRYAQP`
+    
+    **Authority Contract:**
+    `CDQREK6BTPEVD4O56XR6TKLEEMNYTRJUG466J2ERNE5POIEKN2N6O7EL`
+    
+    **RPC Endpoint:**
+    `https://soroban-testnet.stellar.org`
+  </Card>
+  
+  <Card title="Solana Devnet" icon="circle-nodes">
+    **Program ID:**
+    `BMr9aui54YuxtpBzWXiFNmnr2iH6etRu7rMFJnKxjtpY`
+    
+    **RPC Endpoint:**
+    `https://api.devnet.solana.com`
+  </Card>
+</CardGroup>
+
+---
+
+## TypeScript Imports
+
+Import the SDK components you need:
 
 ```typescript
+// Main SDK factory
+import { AttestSDK } from '@attestprotocol/sdk';
+
+// Configuration interfaces
 import { 
-  AttestProtocolError,
-  SchemaNotFoundError,
-  AttestationNotFoundError,
-  ValidationError,
-  AuthorizationError,
-  RateLimitError,
-  NetworkError
+  StellarConfig, 
+  SolanaConfig 
 } from '@attestprotocol/sdk';
 
-try {
-  const attestation = await client.attest({...});
-} catch (error) {
-  if (error instanceof SchemaNotFoundError) {
-    console.error('Schema does not exist:', error.schemaId);
-  } else if (error instanceof ValidationError) {
-    console.error('Data validation failed:', error.details);
-  } else if (error instanceof RateLimitError) {
-    console.error('Rate limit exceeded, retry after:', error.retryAfter);
-  } else {
-    console.error('Unexpected error:', error.message);
-  }
-}
+// Chain-specific SDK classes
+import { 
+  StellarAttestSDK, 
+  SolanaAttestSDK 
+} from '@attestprotocol/sdk';
+
+// Response wrapper type
+import { AttestSDKResponse } from '@attestprotocol/sdk';
+
+// Result interfaces
+import {
+  StellarFetchAuthorityResult,
+  SolanaFetchAuthorityResult,
+  StellarFetchSchemaResult,
+  SolanaFetchSchemaResult,
+  StellarFetchAttestationResult,
+  SolanaFetchAttestationResult
+} from '@attestprotocol/sdk';
 ```
 
----
+## Next Steps
 
-## Type Definitions
-
-### Core Types
-
-```typescript
-interface Attestation<T = any> {
-  id: string;
-  schema: string;
-  subject: string;
-  authority: string;
-  data: T;
-  createdAt: string;
-  expiresAt?: string;
-  revokedAt?: string;
-  status: 'active' | 'expired' | 'revoked';
-  transactionHash: string;
-  metadata?: AttestationMetadata;
-}
-
-interface Schema {
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  fields: SchemaField[];
-  createdAt: string;
-  createdBy: string;
-  metadata?: Record<string, any>;
-}
-
-interface Authority {
-  id: string;
-  address: string;
-  name: string;
-  description: string;
-  verified: boolean;
-  createdAt: string;
-  website?: string;
-  logo?: string;
-  metadata?: Record<string, any>;
-}
-```
-
----
-
-## Configuration Options
-
-### Advanced Client Configuration
-
-```typescript
-const client = new AttestClient({
-  chain: 'solana',
-  network: 'mainnet',
-  apiKey: process.env.ATTEST_API_KEY,
-  
-  // Advanced options
-  rpcUrl: 'https://custom-rpc.com',
-  timeout: 60000,
-  retries: 3,
-  retryDelay: 1000,
-  
-  // Caching
-  cache: {
-    enabled: true,
-    ttl: 300000, // 5 minutes
-    maxSize: 1000
-  },
-  
-  // Webhook verification
-  webhookSecret: process.env.WEBHOOK_SECRET,
-  
-  // Custom headers
-  headers: {
-    'X-Custom-Header': 'value'
-  }
-});
-```
-
-### Environment-Specific Configs
-
-```typescript
-// Development
-const devClient = new AttestClient({
-  chain: 'solana',
-  network: 'devnet',
-  apiKey: process.env.DEV_API_KEY,
-  debug: true // Enable debug logging
-});
-
-// Production
-const prodClient = new AttestClient({
-  chain: 'solana', 
-  network: 'mainnet',
-  apiKey: process.env.PROD_API_KEY,
-  rateLimit: {
-    requestsPerSecond: 100,
-    burstSize: 200
-  }
-});
-```
-
-This completes the comprehensive SDK methods documentation. Each method includes type definitions, parameters, examples, and error handling information.
+<CardGroup cols={2}>
+  <Card title="Examples" icon="laptop-code" href="/sdks/typescript/examples">
+    See implementation examples
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/reference/errors">
+    Learn about error codes
+  </Card>
+</CardGroup>
