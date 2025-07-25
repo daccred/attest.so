@@ -44,33 +44,72 @@ const reputationSchema = 'dao-reputation-v1';
 Implement attestation-based governance:
 
 ```typescript
+import { StellarAttestSDK, SolanaAttestSDK } from '@attestprotocol/sdk';
+
 class AttestationDAO {
-  private sdk: AttestSDKBase;
+  private sdk: StellarAttestSDK | SolanaAttestSDK;
   private daoAddress: string;
   
+  constructor(sdk: StellarAttestSDK | SolanaAttestSDK, daoAddress: string) {
+    this.sdk = sdk;
+    this.daoAddress = daoAddress;
+  }
+```
+
+**Membership Management**
+
+```typescript
   async grantMembership(memberAddress: string, role: string = 'member') {
-    // Verify membership proposal passed
+    // Verify membership proposal was approved through governance
     const proposal = await this.getProposal(memberAddress);
     
     if (!proposal.passed) {
       throw new Error('Membership proposal not passed');
     }
     
-    // Issue membership attestation
+    // Create membership attestation with role and base voting power
+    const membershipValue = [
+      `isMember:true`,
+      `joinDate:${Date.now()}`,
+      `role:${role}`,
+      `votingPower:1`
+    ].join(',');
+    
     const attestation = await this.sdk.attest({
       schemaUID: 'dao-member-v1',
       subject: memberAddress,
-      value: `isMember:true,joinDate:${Date.now()},role:${role},votingPower:1`,
+      value: membershipValue,
       reference: `membership-${proposal.id}`
     });
     
     return attestation;
   }
-  
+```
+
+**Voting Power Calculation**
+
+```typescript
   async calculateVotingPower(voterAddress: string): Promise<number> {
-    let totalPower = 0;
+    // Start with base membership check
+    const basePower = await this.getBaseMembershipPower(voterAddress);
+    if (basePower === 0) return 0; // Not a member
     
-    // 1. Check basic membership
+    // Add contribution-based power
+    const contributionPower = await this.getContributionPower(voterAddress);
+    
+    // Apply reputation multiplier
+    const totalPower = basePower + contributionPower;
+    const finalPower = await this.applyReputationMultiplier(voterAddress, totalPower);
+    
+    // Cap maximum voting power to prevent concentration
+    return Math.min(finalPower, 100);
+  }
+```
+
+**Base Membership Power**
+
+```typescript
+  private async getBaseMembershipPower(voterAddress: string): Promise<number> {
     const membership = await this.sdk.fetchAttestation({
       schemaUID: 'dao-member-v1',
       subject: voterAddress
@@ -81,58 +120,75 @@ class AttestationDAO {
     }
     
     const memberData = this.parseAttestationData(membership.data.value);
-    totalPower += memberData.votingPower || 1;
-    
-    // 2. Add contribution-based power
+    return memberData.votingPower || 1;
+  }
+```
+
+**Contribution-Based Power**
+
+```typescript
+  private async getContributionPower(voterAddress: string): Promise<number> {
     const contributions = await this.sdk.fetchAttestation({
       schemaUID: 'dao-contribution-v1',
       subject: voterAddress
     });
     
-    if (contributions.data && !contributions.data.revoked) {
-      const contribData = this.parseAttestationData(contributions.data.value);
-      
-      // Weight formula: 1 point per 10 contributions
-      totalPower += Math.floor(contribData.totalContributions / 10);
-      
-      // Bonus for code contributions
-      totalPower += contribData.codeCommits * 2;
-      
-      // Bonus for successful proposals
-      totalPower += contribData.proposalsSubmitted * 3;
+    if (!contributions.data || contributions.data.revoked) {
+      return 0;
     }
     
-    // 3. Apply reputation multiplier
+    const contribData = this.parseAttestationData(contributions.data.value);
+    let contributionPower = 0;
+    
+    // Weight formula: 1 point per 10 general contributions
+    contributionPower += Math.floor(contribData.totalContributions / 10);
+    
+    // Bonus points for different contribution types
+    contributionPower += contribData.codeCommits * 2;      // 2 points per code commit
+    contributionPower += contribData.proposalsSubmitted * 3; // 3 points per proposal
+    
+    return contributionPower;
+  }
+```
+
+**Reputation Multiplier**
+
+```typescript
+  private async applyReputationMultiplier(voterAddress: string, basePower: number): Promise<number> {
     const reputation = await this.sdk.fetchAttestation({
       schemaUID: 'dao-reputation-v1',
       subject: voterAddress
     });
     
-    if (reputation.data && !reputation.data.revoked) {
-      const repData = this.parseAttestationData(reputation.data.value);
-      
-      // Reputation multiplier: 1.0x to 2.0x based on score
-      const multiplier = 1 + (repData.score / 200); // Max 2x at 200 score
-      totalPower = Math.floor(totalPower * multiplier);
+    if (!reputation.data || reputation.data.revoked) {
+      return basePower; // No multiplier, return base power
     }
     
-    // Cap maximum voting power
-    return Math.min(totalPower, 100);
+    const repData = this.parseAttestationData(reputation.data.value);
+    
+    // Reputation multiplier: 1.0x to 2.0x based on score (max 200)
+    const multiplier = 1 + (repData.score / 200);
+    
+    return Math.floor(basePower * multiplier);
   }
-  
+```
+
+**Vote Casting**
+
+```typescript
   async castVote(
     voterAddress: string,
     proposalId: string,
     vote: 'for' | 'against' | 'abstain'
   ) {
-    // Calculate voting power
+    // Calculate voter's current voting power
     const votingPower = await this.calculateVotingPower(voterAddress);
     
     if (votingPower === 0) {
-      throw new Error('No voting power');
+      throw new Error('No voting power - membership or contributions required');
     }
     
-    // Record vote with weighted power
+    // Record the weighted vote
     await this.recordVote({
       proposalId,
       voter: voterAddress,
@@ -141,7 +197,7 @@ class AttestationDAO {
       timestamp: Date.now()
     });
     
-    // Update participation metrics
+    // Update member's participation metrics
     await this.updateParticipation(voterAddress);
     
     return {
@@ -151,17 +207,21 @@ class AttestationDAO {
       txHash: 'vote_tx_hash'
     };
   }
-  
+```
+
+**Participation Tracking**
+
+```typescript
   private async updateParticipation(memberAddress: string) {
-    // Fetch current reputation
+    // Get current reputation or initialize defaults
     const current = await this.sdk.fetchAttestation({
       schemaUID: 'dao-reputation-v1',
       subject: memberAddress
     });
     
     let reputation = {
-      score: 50,
-      participationRate: 0,
+      score: 50,              // Base score
+      participationRate: 0,   
       proposalSuccess: 0,
       peerEndorsements: 0
     };
@@ -170,15 +230,22 @@ class AttestationDAO {
       reputation = this.parseAttestationData(current.data.value);
     }
     
-    // Increment participation
+    // Reward participation with score increases
     reputation.participationRate = Math.min(reputation.participationRate + 1, 100);
     reputation.score = Math.min(reputation.score + 1, 200);
     
     // Update reputation attestation
+    const reputationValue = [
+      `score:${reputation.score}`,
+      `participationRate:${reputation.participationRate}`,
+      `proposalSuccess:${reputation.proposalSuccess}`,
+      `peerEndorsements:${reputation.peerEndorsements}`
+    ].join(',');
+    
     await this.sdk.attest({
       schemaUID: 'dao-reputation-v1',
       subject: memberAddress,
-      value: `score:${reputation.score},participationRate:${reputation.participationRate},proposalSuccess:${reputation.proposalSuccess},peerEndorsements:${reputation.peerEndorsements}`,
+      value: reputationValue,
       reference: `reputation-update-${Date.now()}`
     });
   }
@@ -191,17 +258,38 @@ Track and reward member contributions:
 
 ```typescript
 class ContributionTracker {
+  
   async recordContribution(
     contributor: string,
     type: 'code' | 'proposal' | 'community' | 'content',
     details: any
   ) {
-    // Fetch existing contributions
+    // Get existing contribution history
+    const currentContributions = await this.getCurrentContributions(contributor);
+    
+    // Update contribution counts based on type
+    const updatedContributions = this.updateContributionCounts(currentContributions, type);
+    
+    // Create new attestation with updated counts
+    const attestation = await this.issueUpdatedAttestation(contributor, updatedContributions, type);
+    
+    // Check if milestone rewards should be issued
+    await this.checkContributionRewards(contributor, updatedContributions);
+    
+    return attestation;
+  }
+```
+
+**Get Current Contributions**
+
+```typescript
+  private async getCurrentContributions(contributor: string) {
     const existing = await this.sdk.fetchAttestation({
       schemaUID: 'dao-contribution-v1',
       subject: contributor
     });
     
+    // Default values for new contributors
     let contributions = {
       totalContributions: 0,
       codeCommits: 0,
@@ -209,14 +297,24 @@ class ContributionTracker {
       lastActive: 0
     };
     
+    // Parse existing data if available
     if (existing.data && !existing.data.revoked) {
       contributions = this.parseAttestationData(existing.data.value);
     }
     
-    // Update based on contribution type
+    return contributions;
+  }
+```
+
+**Update Contribution Counts**
+
+```typescript
+  private updateContributionCounts(contributions: any, type: string) {
+    // Increment total contributions counter
     contributions.totalContributions += 1;
     contributions.lastActive = Date.now();
     
+    // Update specific contribution type counters
     switch(type) {
       case 'code':
         contributions.codeCommits += 1;
@@ -224,27 +322,51 @@ class ContributionTracker {
       case 'proposal':
         contributions.proposalsSubmitted += 1;
         break;
+      case 'community':
+        // Community contributions count toward total only
+        break;
+      case 'content':
+        // Content contributions count toward total only  
+        break;
     }
     
-    // Issue updated attestation
+    return contributions;
+  }
+```
+
+**Issue Updated Attestation**
+
+```typescript
+  private async issueUpdatedAttestation(contributor: string, contributions: any, type: string) {
+    // Create structured attestation value
+    const contributionValue = [
+      `totalContributions:${contributions.totalContributions}`,
+      `codeCommits:${contributions.codeCommits}`,
+      `proposalsSubmitted:${contributions.proposalsSubmitted}`,
+      `lastActive:${contributions.lastActive}`
+    ].join(',');
+    
     const attestation = await this.sdk.attest({
       schemaUID: 'dao-contribution-v1',
       subject: contributor,
-      value: `totalContributions:${contributions.totalContributions},codeCommits:${contributions.codeCommits},proposalsSubmitted:${contributions.proposalsSubmitted},lastActive:${contributions.lastActive}`,
+      value: contributionValue,
       reference: `contribution-${type}-${Date.now()}`
     });
     
-    // Trigger rewards if applicable
-    await this.checkContributionRewards(contributor, contributions);
-    
     return attestation;
   }
-  
+```
+
+**Milestone Rewards**
+
+```typescript
   private async checkContributionRewards(contributor: string, contributions: any) {
-    // Milestone-based rewards
+    // Define contribution milestones for rewards
     const milestones = [10, 50, 100, 500, 1000];
     
+    // Check if current total hits a milestone
     if (milestones.includes(contributions.totalContributions)) {
+      console.log(`Contributor ${contributor} reached ${contributions.totalContributions} contributions`);
       await this.issueReward(contributor, `milestone-${contributions.totalContributions}`);
     }
   }
@@ -257,6 +379,7 @@ Enable portable reputation across DAOs:
 
 ```typescript
 class CrossDAOReputation {
+  
   async aggregateReputation(memberAddress: string): Promise<{
     totalScore: number;
     daos: Array<{
@@ -265,34 +388,11 @@ class CrossDAOReputation {
       role: string;
     }>;
   }> {
-    // Define participating DAOs
-    const participatingDAOs = [
-      { name: 'TechDAO', schema: 'techdao-reputation-v1' },
-      { name: 'DeFiDAO', schema: 'defidao-reputation-v1' },
-      { name: 'ArtDAO', schema: 'artdao-reputation-v1' }
-    ];
+    // Get reputation data from all participating DAOs
+    const daoReputations = await this.fetchAllDAOReputations(memberAddress);
     
-    const reputations = await Promise.all(
-      participatingDAOs.map(async (dao) => {
-        const attestation = await this.sdk.fetchAttestation({
-          schemaUID: dao.schema,
-          subject: memberAddress
-        });
-        
-        if (attestation.data && !attestation.data.revoked) {
-          const data = this.parseAttestationData(attestation.data.value);
-          return {
-            dao: dao.name,
-            score: data.score || 0,
-            role: data.role || 'member'
-          };
-        }
-        
-        return null;
-      })
-    );
-    
-    const validReputations = reputations.filter(r => r !== null);
+    // Filter out null results and calculate totals
+    const validReputations = daoReputations.filter(r => r !== null);
     const totalScore = validReputations.reduce((sum, r) => sum + r.score, 0);
     
     return {
@@ -300,15 +400,85 @@ class CrossDAOReputation {
       daos: validReputations
     };
   }
-  
+```
+
+**Fetch DAO Reputations**
+
+```typescript
+  private async fetchAllDAOReputations(memberAddress: string) {
+    // Define participating DAOs and their reputation schemas
+    const participatingDAOs = [
+      { name: 'TechDAO', schema: 'techdao-reputation-v1' },
+      { name: 'DeFiDAO', schema: 'defidao-reputation-v1' },
+      { name: 'ArtDAO', schema: 'artdao-reputation-v1' }
+    ];
+    
+    // Fetch reputation attestations from all DAOs in parallel
+    const reputations = await Promise.all(
+      participatingDAOs.map(async (dao) => {
+        return await this.fetchSingleDAOReputation(memberAddress, dao);
+      })
+    );
+    
+    return reputations;
+  }
+```
+
+**Single DAO Reputation**
+
+```typescript
+  private async fetchSingleDAOReputation(memberAddress: string, dao: any) {
+    try {
+      const attestation = await this.sdk.fetchAttestation({
+        schemaUID: dao.schema,
+        subject: memberAddress
+      });
+      
+      // Return parsed data if attestation exists and is valid
+      if (attestation.data && !attestation.data.revoked) {
+        const data = this.parseAttestationData(attestation.data.value);
+        return {
+          dao: dao.name,
+          score: data.score || 0,
+          role: data.role || 'member'
+        };
+      }
+      
+      return null; // No valid reputation in this DAO
+    } catch (error) {
+      console.warn(`Failed to fetch reputation from ${dao.name}:`, error);
+      return null;
+    }
+  }
+```
+
+**Issue Portable Reputation**
+
+```typescript
   async issuePortableReputation(memberAddress: string) {
+    // Aggregate reputation across all DAOs
     const aggregated = await this.aggregateReputation(memberAddress);
     
-    // Issue cross-DAO reputation attestation
+    if (aggregated.daos.length === 0) {
+      throw new Error('No DAO reputation found for this member');
+    }
+    
+    // Find highest scoring DAO for "topDAO" field
+    const topDAO = aggregated.daos.reduce((prev, current) => 
+      (current.score > prev.score) ? current : prev
+    );
+    
+    // Create cross-DAO reputation attestation
+    const reputationValue = [
+      `totalScore:${aggregated.totalScore}`,
+      `daoCount:${aggregated.daos.length}`,
+      `topDAO:${topDAO.dao}`
+    ].join(',');
+    
     const attestation = await this.sdk.attest({
       schemaUID: 'cross-dao-reputation-v1',
       subject: memberAddress,
-      value: `totalScore:${aggregated.totalScore},daoCount:${aggregated.daos.length},topDAO:${aggregated.daos[0]?.dao || 'none'}`,
+      value: reputationValue,
       reference: `cross-dao-${Date.now()}`
     });
     

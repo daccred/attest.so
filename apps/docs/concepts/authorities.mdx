@@ -1,19 +1,160 @@
 ---
 title: 'Authorities'
-description: 'Trusted entities that issue and manage attestations in the AttestProtocol ecosystem'
+description: 'Everything you need to understand, become, and operate as an attestation authority in the AttestProtocol ecosystem'
 ---
+
+Everything you need to understand, become, and operate as an attestation authority in the AttestProtocol ecosystem. Authorities are trusted entities responsible for issuing verifiable attestations under specific schemas.
 
 ## What are Authorities?
 
-Authorities are entities authorized to issue attestations within the AttestProtocol system. They serve as the trust anchors that validate claims and create verifiable attestations about subjects.
+### Definition
 
-In traditional systems, authorities include:
-- Government agencies issuing IDs and licenses
-- Universities granting degrees
-- Financial institutions verifying creditworthiness
-- Professional bodies certifying competencies
+An Authority is any verified entity — such as a protocol, organization, DAO, or enterprise — that issues attestations under one or more schemas. Authorities are the backbone of the trust layer, bringing domain-specific verification, credibility, and issuance power to the network.
 
-AttestProtocol brings this concept on-chain, enabling any entity to become a verifiable authority.
+### Responsibilities
+
+- Review or collect data for attestations
+- Sign attestations with their authority key
+- Uphold schema rules and expected quality standards
+- Maintain verifiable records (on-chain or off-chain)
+
+### Common Authority Types
+
+- KYC/AML service providers
+- DAO governance systems
+- Certification and accreditation bodies
+- Developer collectives (e.g., DevDAO)
+- Oracles and data providers
+
+---
+
+## Becoming an Authority
+
+### Step-by-Step Onboarding
+
+1. **Apply to Join** — Fill out the Authority Onboarding Form
+2. **Undergo Review** — Reputation, credibility, and purpose are evaluated
+3. **KYB Verification** — Complete Know-Your-Business checks (if applicable)
+4. **Smart Contract Setup** — Receive authority keypair and/or integration hooks
+5. **Schema Whitelisting** — Get access to relevant schemas (or register new ones)
+
+Once approved, you'll appear in the Authority Directory and can begin issuing attestations.
+
+[Apply to Become an Authority](https://attestprotocol.org/authorities/apply)
+
+### Test Authority Sandbox
+
+Use our testnet environments to prototype authority flows before going live.
+
+**Related:** [Schema Standards](/concepts/schemas) | [Custom Schemas](/guides/custom-schemas)
+
+---
+
+## Authority Requirements
+
+### Minimum Criteria
+
+| Requirement | Description |
+|-------------|-------------|
+| **Reputation** | Must have a provable track record (social, business, or technical) |
+| **Security** | Must securely manage private keys and use multisig or HSM solutions |
+| **Transparency** | Must disclose verification process for each schema issued |
+| **Compliance** | Follow all local regulations when issuing attestations (e.g. KYC) |
+| **Support** | Ability to handle user inquiries, revocation, and dispute resolution |
+
+### Key Management
+
+All attestations must be cryptographically signed by the authority's private key and verifiable on-chain.
+
+**Related:** [Trust Management](#trust-management) | [Revocation Management](#revocation-management)
+
+---
+
+## Issuing Attestations
+
+### Basic Flow
+
+1. User provides required data (e.g., KYC documents, wallet address)
+2. Authority validates information according to schema rules
+3. Authority signs attestation using SDK or API
+4. Attestation is published on-chain or stored off-chain with verifiable proof
+
+### SDK Integration
+
+```typescript
+import { attest } from "@attestprotocol/core";
+
+await attest({
+  to: "0x123...abcd",
+  schema: "kyc-basic",
+  data,
+  authority: "0xauthorityAddress"
+});
+```
+
+[SDK Guide for Authorities](https://attestprotocol.org/docs/authority-sdk)
+
+### Webhook Options
+
+- Real-time issuance and revocation
+- Sync attestations across chains
+- Custom response handlers for enterprise workflows
+
+**Related:** [Verify Attestations](/concepts/verification) | [API Reference](/reference/overview)
+
+---
+
+## Revenue Model
+
+### How Authorities Earn
+
+Authorities can charge for each attestation issued — either directly (on-chain fees) or via their own billing systems.
+
+**Example Revenue Models:**
+- **Per-Attestation Fee:** $0.05–$2.00/attestation
+- **Subscription Plans:** Monthly flat rate with issuance limits
+- **Pay-per-Success:** Users pay only if verified
+
+[Revenue Configuration Tool](https://attestprotocol.org/authorities/revenue)
+
+### Sustainable Economics
+
+- Incentivizes high-quality, trusted issuance
+- Encourages participation from traditional businesses
+- Enables open-market competition on trust pricing
+
+**Related:** [Becoming an Authority](#becoming-an-authority)
+
+---
+
+## Trust Management
+
+### Building and Maintaining Trust
+
+All authorities are assigned a Trust Score based on their issuance volume, dispute resolution track record, and user feedback.
+
+**Trust Signals:**
+- Verified Authority Badge (automatically issued post-KYB)
+- Community Ratings (1–5 stars)
+- Schema Usage Statistics
+- Public Profile in the Authority Directory
+
+### Revocation and Disputes
+
+Authorities must:
+- Honor schema rules on revocation (e.g., expiry)
+- Provide audit logs for challenged attestations
+- Support transparency audits or bounty reviews
+
+[Trust Layer Documentation](https://attestprotocol.org/docs/trust)
+
+### Join the Authority Network
+
+Want to establish your reputation and issue verifiable proof under your brand?
+
+- [Apply to Become an Authority](https://attestprotocol.org/authorities/apply)
+- [Launch Authority Dashboard](https://attestprotocol.org/authorities/dashboard)
+- [View Authority Directory](https://attestprotocol.org/authorities/directory)
 
 ---
 
@@ -1179,9 +1320,51 @@ interface PerformanceReport {
 
 ---
 
+## Governance and Community
+
+Connect with other authorities and shape the future of AttestProtocol:
+
+[Join Governance Discussions](https://attestprotocol.org/governance)
+
+---
+
 ## Next Steps
 
-- [Authority Registration Guide](/guides/authority-setup) - Detailed setup instructions
-- [Trust Building Strategies](/guides/building-trust) - Grow your authority reputation
-- [Compliance Guide](/guides/compliance) - Regulatory requirements
-- [Integration Examples](/examples/authority-integrations) - Real-world implementations
+<CardGroup cols={2}>
+  <Card
+    title="Authority Setup Guide"
+    icon="gear"
+    href="/guides/authority-setup"
+  >
+    Detailed instructions for becoming an authority
+  </Card>
+  <Card
+    title="Schema Registry"
+    icon="database"
+    href="https://attestprotocol.org/schemas"
+  >
+    Browse schemas you can issue attestations for
+  </Card>
+  <Card
+    title="Trust Building"
+    icon="star"
+    href="/guides/building-trust"
+  >
+    Strategies to grow your authority reputation
+  </Card>
+  <Card
+    title="Compliance Guide"
+    icon="shield-check"
+    href="/guides/compliance"
+  >
+    Understand regulatory requirements
+  </Card>
+</CardGroup>
+
+### Related Resources
+
+- [Schemas Overview](/concepts/schemas)
+- [API Reference](/reference/overview)
+- [Trust & Verification Layer](/concepts/verification)
+- [Revocation Management](/guides/revocation)
+- [Compliance Guide](/guides/compliance)
