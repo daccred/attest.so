@@ -179,41 +179,36 @@ AttestProtocol is chain-agnostic with native support across multiple networks:
 
 <CardGroup cols={2}>
   <Card
-    title="Stellar (Soroban)"
-    icon="star"
     href="/chains/stellar/overview"
   >
-    **Status**: Active Production
+    <div className="flex flex-col justify-center h-14 mb-3">
+      <img src="/images/stellar-light.svg" className="w-32 h-auto block dark:hidden" alt="Stellar" />
+      <img src="/images/stellar-dark.svg" className="w-32 h-auto hidden dark:block" alt="Stellar" />
+    </div>
     
     Native Soroban smart contracts with comprehensive indexing and testnet deployment.
   </Card>
   <Card
-    title="Solana"
-    icon="circle"
     href="/chains/solana/overview"
   >
-    **Status**: Active Production
+    <div className="flex flex-col justify-center h-14 mb-3">
+      <img src="/images/solana-light.svg" className="w-32 h-auto block dark:hidden" alt="Solana" />
+      <img src="/images/solana-dark.svg" className="w-32 h-auto hidden dark:block" alt="Solana" />
+    </div>
     
     Anchor-based programs with PDA management and SPL token integration.
   </Card>
   <Card
-    title="Starknet"
-    icon="triangle"
     href="/chains/starknet/overview"
   >
-    **Status**: In Development
+    <div className="flex flex-col justify-center h-14 mb-3">
+      <img src="/images/starknet-light.svg" className="w-32 h-auto block dark:hidden" alt="Starknet" />
+      <img src="/images/starknet-dark.svg" className="w-32 h-auto hidden dark:block" alt="Starknet" />
+    </div>
     
     Cairo-based contracts for zero-knowledge scalable attestations.
   </Card>
-  <Card
-    title="Aptos & Sui"
-    icon="layers"
-    href="/chains/move/overview"
-  >
-    **Status**: Research Phase
-    
-    Move-based smart contracts for high-performance attestation systems.
-  </Card>
+
 </CardGroup>
 
 
