@@ -4,10 +4,12 @@
   "version": "1.5.2",
   "author": "",
   "dependencies": {
-    "@stellar/stellar-sdk": "14.0.0-rc.3"
+    "@stellar/stellar-sdk": "14.0.0-rc.3",
+    "buffer": "6.0.3"
   },
-  "devDependencies": {
-    "tap": "^21.1.0"
+"devDependencies": {
+  "tap": "^21.1.0",
+  "typescript": "^5.6.2"
   },
   "keywords": [],
   "license": "MIT",
