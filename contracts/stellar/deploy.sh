@@ -51,8 +51,8 @@ token_contract_id="${TOKEN_CONTRACT_ID:-}" # Use TOKEN_CONTRACT_ID from env if s
 # Contract definitions (WASM paths relative to project root)
 AUTHORITY_CONTRACT_NAME="authority"    # Handles permissions/access control
 PROTOCOL_CONTRACT_NAME="protocol"      # Implements core business logic
-AUTHORITY_WASM_PATH="target/wasm32-unknown-unknown/release/${AUTHORITY_CONTRACT_NAME}.wasm"
-PROTOCOL_WASM_PATH="target/wasm32-unknown-unknown/release/${PROTOCOL_CONTRACT_NAME}.wasm"
+AUTHORITY_WASM_PATH="target/wasm32v1-none/release/${AUTHORITY_CONTRACT_NAME}.wasm"
+PROTOCOL_WASM_PATH="target/wasm32v1-none/release/${PROTOCOL_CONTRACT_NAME}.wasm"
 
 # === Runtime Variables ===
 deploy_authority=false   # Deploy authority contract flag
