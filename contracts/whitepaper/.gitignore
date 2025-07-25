@@ -1,0 +1,8 @@
+dist
+build
+target/
+/.sccache/
+.DS_Store
+.env
+logs.txt
+*.log

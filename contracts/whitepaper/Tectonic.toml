@@ -1,0 +1,22 @@
+# Tectonic.toml
+# This file is used to configure the Tectonic compiler.
+# @see https://tectonic-typesetting.github.io/book/latest/ref/tectonic-toml.html
+[doc]
+name = "attestprotocol-whitepaper"
+bundle = "https://data1.fullyjustified.net/tlextras-2022.0r0.tar"
+
+[[output]]
+name = "default"
+type = "pdf"
+# Deprecated input specification.
+# These options serve the same purpose as `inputs` above, but shouldn't be used
+# unless you have a legacy document.
+#
+# If you do have a legacy document, you should replace these options with the following:
+# inputs = ["_preamble.tex", "index.tex", "_postamble.tex"]
+#
+# Note that these options may NOT be used with `inputs`.
+# You may only use one kind of input specification.
+# preamble = "_preamble.tex" # the preamble file to use (within `src`)
+index = "whitepaper.tex" # the index file to use (within `src`)
+# postamble = "_postamble.tex" # the postamble file to use (within `src`)
