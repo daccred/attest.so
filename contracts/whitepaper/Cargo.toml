@@ -1,0 +1,12 @@
+[package]
+name = "attestprotocol-whitepaper"
+version = "1.5.2"
+edition = "2021"
+
+[dependencies]
+tectonic = "0.15"
+anyhow = "1.0"
+clap = { version = "4.4", features = ["derive"] }
+
+[dev-dependencies]
+tectonic = "0.15"

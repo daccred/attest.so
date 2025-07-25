@@ -26,6 +26,7 @@
 \usepackage{authblk}
 \usepackage{abstract}
 \usepackage{textcomp}
+\usepackage{iftex}
 
 % TikZ libraries
 \usetikzlibrary{shapes,arrows,positioning,chains,fit,decorations.pathreplacing,calc}
@@ -112,9 +113,17 @@
 }
 
 % Unicode symbols
-\DeclareUnicodeCharacter{2713}{\checkmark}
-\DeclareUnicodeCharacter{26A1}{$\lightning$}
-\newcommand{\lightning}{{\fontencoding{U}\fontfamily{stmry}\selectfont\char"1A}}
+% XeTeX handles Unicode natively, so we don't need \DeclareUnicodeCharacter
+\ifxetex
+    % For XeTeX, Unicode characters work directly
+    % \checkmark is already defined by amssymb
+    \newcommand{\lightning}{⚡}
+\else
+    % For other engines
+    \DeclareUnicodeCharacter{2713}{\checkmark}
+    \DeclareUnicodeCharacter{26A1}{$\lightning$}
+    \newcommand{\lightning}{{\fontencoding{U}\fontfamily{stmry}\selectfont\char"1A}}
+\fi
 
 % Glossary entries
 \newglossaryentry{attestation}{
