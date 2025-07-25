@@ -1,0 +1,199 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "AttestProtocol",
+  "description": "The trust layer for Web3. Build verifiable reputation systems with one line of code.",
+  "theme": "aspen",
+  "logo": {
+    "light": "/images/logo-light.svg",
+    "dark": "/images/logo-dark.svg",
+    "href": "https://attestprotocol.org"
+  },
+  "favicon": "/images/favicon.svg",
+  "colors": {
+    "primary": "#ff8700",
+    "light": "#ff8700",
+    "dark": "#ff8700"
+  },
+
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "overview",
+              "guides/what-is-attestprotocol",
+              "guides/why-attestations",
+              "guides/how-it-works",
+              "guides/use-cases"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "quickstart",
+              "getting-started/installation",
+              "getting-started/your-first-attestation"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": ["concepts/attestations", "concepts/schemas", "concepts/authorities", "concepts/verification", "concepts/storage"]
+          },
+          {
+            "group": "Blockchain Support",
+            "pages": [
+              "chains/solana/overview",
+              "chains/stellar/overview",
+              "chains/starknet/overview"
+            ]
+          },
+          {
+            "group": "Workflow Guides",
+            "pages": [
+              "guides/kyc-integration", 
+              "guides/dao-voting", 
+              "guides/github-credentials",
+              "guides/asset-ownership",
+              "guides/event-attendance",
+              "guides/custom-schemas",
+              "guides/privacy-options"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "TypeScript SDK",
+            "pages": [
+              "sdks/typescript/installation",
+              "sdks/typescript/initialization",
+              "sdks/typescript/methods",
+              "sdks/typescript/examples"
+            ]
+          },
+          {
+            "group": "CLI & Tools",
+            "pages": ["sdks/delegated-signatories", "sdks/cli"]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "SDK Overview",
+            "pages": ["reference/overview"]
+          },
+          {
+            "group": "Core Modules",
+            "pages": ["reference/authority", "reference/schema", "reference/attest"]
+          },
+          {
+            "group": "Administration",
+            "pages": ["reference/administration", "reference/webhooks", "reference/errors"]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/daccred/attest.so",
+          "icon": "github"
+        },
+        {
+          "anchor": "Community",
+          "href": "https://discord.com/invite/7kVur5ja5m",
+          "icon": "discord"
+        },
+        {
+          "anchor": "Dashboard",
+          "href": "https://attestprotocol.org",
+          "icon": "desktop"
+        }
+      ]
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/daccred/attest.so"
+      },
+      {
+        "label": "Community",
+        "href": "https://discord.com/invite/7kVur5ja5m"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "https://attestprotocol.org"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/daccred/attest.so",
+      "x": "https://twitter.com/attestprotocol",
+      "discord": "https://discord.com/invite/7kVur5ja5m"
+    },
+    "links": [
+      {
+        "header": "Resources",
+        "items": [
+          {
+            "label": "Dashboard",
+            "href": "https://attestprotocol.org"
+          },
+          {
+            "label": "Enterprise",
+            "href": "https://attestprotocol.org/enterprise"
+          },
+          {
+            "label": "Status",
+            "href": "https://status.attestprotocol.org"
+          }
+        ]
+      },
+      {
+        "header": "Company",
+        "items": [
+          {
+            "label": "About",
+            "href": "https://attestprotocol.org/about"
+          },
+          {
+            "label": "Blog",
+            "href": "https://attestprotocol.org/blog"
+          },
+          {
+            "label": "Privacy Policy",
+            "href": "https://attestprotocol.org/privacy"
+          }
+        ]
+      }
+    ]
+  },
+
+  "contextual": {
+    "options": ["copy", "view", "chatgpt", "claude"]
+  },
+  "errors": {
+    "404": {
+      "redirect": true
+    }
+  },
+  "seo": {
+    "metatags": {
+      "og:title": "AttestProtocol Documentation",
+      "og:description": "The trust layer for Web3. Build verifiable reputation systems with one line of code.",
+      "og:image": "/images/og-image.png"
+    }
+  }
+}

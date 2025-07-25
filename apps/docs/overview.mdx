@@ -1,0 +1,278 @@
+---
+title: 'Overview'
+description: 'The trust layer for Web3. Build verifiable reputation systems with one line of code.'
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/logo-light.svg"
+  alt="AttestProtocol Hero Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/logo-dark.svg"
+  alt="AttestProtocol Hero Dark"
+/>
+
+## The trust layer for Web3. One line of code.
+
+AttestProtocol is an open, schema-based attestation infrastructure that allows developers, businesses, and authorities to create verifiable credentials on-chain and off-chain without deploying smart contracts.
+
+Whether it's KYC, GitHub contributions, or community roles, AttestProtocol is the new universal proof layer that transforms trust from implicit assumptions into explicit, verifiable, and portable digital assets.
+
+## Why Choose AttestProtocol?
+
+<CardGroup cols={2}>
+  <Card
+    title="Fast"
+    icon="bolt"
+  >
+    Millisecond verification with optimized blockchain queries and caching
+  </Card>
+  <Card
+    title="Simple"
+    icon="code"
+  >
+    One-line integration with no smart contracts to deploy or maintain
+  </Card>
+  <Card
+    title="Portable"
+    icon="arrows-turn-right"
+  >
+    Multi-chain support with the same API across all networks
+  </Card>
+  <Card
+    title="Free"
+    icon="hand-holding-dollar"
+  >
+    No tokens, no protocol fees - just pay standard blockchain gas costs
+  </Card>
+</CardGroup>
+
+### Key Principles
+
+<AccordionGroup>
+  <Accordion title="Composability">
+    Attestations can be integrated across dApps and chains, enabling cross-platform trust verification without vendor lock-in.
+  </Accordion>
+  <Accordion title="Flexibility">
+    Anyone can issue or verify attestations using shared schemas, democratizing access to trust infrastructure.
+  </Accordion>
+  <Accordion title="Interoperability">
+    Structured data works seamlessly across the ecosystem with schema-enforced compatibility.
+  </Accordion>
+  <Accordion title="Simplicity">
+    Schema-first approach reduces complexity to one line of code, accelerating development and adoption.
+  </Accordion>
+</AccordionGroup>
+
+## Quick Example
+
+Here's how simple it is to issue and verify attestations:
+
+<CodeGroup>
+```javascript Issue Attestation
+import { AttestSDK } from '@attestprotocol/sdk';
+
+const sdk = await AttestSDK.initializeStellar({
+  secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY,
+  publicKey: process.env.STELLAR_PUBLIC_KEY
+});
+
+// Issue a KYC attestation
+const attestation = await sdk.attest({
+  schemaUID: 'kyc-basic',
+  subject: userAddress,
+  value: 'verified:true,level:enhanced,score:95',
+  reference: 'kyc-2024-001'
+});
+```
+
+```javascript Verify Attestation
+// Verify user's KYC status
+const result = await sdk.fetchAttestation({
+  schemaUID: 'kyc-basic',
+  subject: userAddress
+});
+
+if (result.data && !result.data.revoked) {
+  console.log('User is KYC verified ✅');
+  // Proceed with restricted actions
+}
+```
+</CodeGroup>
+
+That's it. No smart contract deployments, no complex queries, just simple attestation workflows.
+
+## Core Concepts
+
+AttestProtocol is built on four fundamental concepts that work together to create a comprehensive trust infrastructure:
+
+<CardGroup cols={2}>
+  <Card title="Attestations" icon="certificate" href="/concepts/attestations">
+    **Cryptographically signed claims**
+    
+    Verifiable statements made by trusted authorities about subjects. These are the core trust primitives that prove facts about users, contracts, or any entity on-chain.
+  </Card>
+  <Card title="Schemas" icon="database" href="/concepts/schemas">
+    **Structured data templates**
+    
+    Define the format, types, and validation rules for attestation data. Schemas ensure consistency and interoperability across all applications.
+  </Card>
+  <Card title="Authorities" icon="shield-check" href="/concepts/authorities">
+    **Trusted attestation issuers**
+    
+    Entities authorized to create attestations. Can be individuals, organizations, DAOs, or smart contracts with permission to make verifiable claims.
+  </Card>
+  <Card title="Verification" icon="magnifying-glass" href="/concepts/verification">
+    **Trust validation system**
+    
+    The process of checking attestation authenticity, authority permissions, and data integrity to confirm claims are valid and trustworthy.
+  </Card>
+</CardGroup>
+
+### How They Work Together
+
+The four concepts create a complete trust ecosystem:
+
+1. **Authorities** register and gain permission to issue attestations
+2. **Schemas** define what data structures attestations can contain
+3. **Attestations** are created by authorities following schema specifications
+4. **Verification** ensures attestations are authentic and authorities are trusted
+
+This architecture enables any application to implement sophisticated trust verification without deploying custom smart contracts or managing complex cryptographic operations.
+
+## Use Cases
+
+AttestProtocol supports a wide range of trust verification needs:
+
+<CardGroup cols={2}>
+  <Card title="Identity & Compliance" icon="id-card">
+    - KYC/AML verification status
+    - Age and geographic restrictions
+    - Proof of humanity and Sybil resistance
+    - Professional licensing verification
+  </Card>
+  <Card title="DAOs & Governance" icon="users-gear">
+    - Voting weight by contribution
+    - Reputation scoring systems
+    - Verified proposals and voters
+    - Participation tracking and rewards
+  </Card>
+  <Card title="Gaming & NFTs" icon="gamepad">
+    - Event attendance verification
+    - Cross-game reputation portability
+    - Item ownership and provenance
+    - Achievement and milestone tracking
+  </Card>
+  <Card title="DeFi & Finance" icon="chart-line">
+    - Accredited investor verification
+    - Credit scoring and lending eligibility
+    - Portfolio composition attestations
+    - Regulatory compliance status
+  </Card>
+</CardGroup>
+
+## Supported Blockchains
+
+AttestProtocol is chain-agnostic with native support across multiple networks:
+
+<CardGroup cols={2}>
+  <Card
+    href="/chains/stellar/overview"
+  >
+    <div className="flex flex-col justify-center h-14 mb-3">
+      <img src="/images/stellar-light.svg" className="w-32 h-auto block dark:hidden" alt="Stellar" />
+      <img src="/images/stellar-dark.svg" className="w-32 h-auto hidden dark:block" alt="Stellar" />
+    </div>
+    
+    Native Soroban smart contracts with comprehensive indexing and testnet deployment.
+  </Card>
+  <Card
+    href="/chains/solana/overview"
+  >
+    <div className="flex flex-col justify-center h-14 mb-3">
+      <img src="/images/solana-light.svg" className="w-32 h-auto block dark:hidden" alt="Solana" />
+      <img src="/images/solana-dark.svg" className="w-32 h-auto hidden dark:block" alt="Solana" />
+    </div>
+    
+    Anchor-based programs with PDA management and SPL token integration.
+  </Card>
+  <Card
+    href="/chains/starknet/overview"
+  >
+    <div className="flex flex-col justify-center h-14 mb-3">
+      <img src="/images/starknet-light.svg" className="w-32 h-auto block dark:hidden" alt="Starknet" />
+      <img src="/images/starknet-dark.svg" className="w-32 h-auto hidden dark:block" alt="Starknet" />
+    </div>
+    
+    Cairo-based contracts for zero-knowledge scalable attestations.
+  </Card>
+
+</CardGroup>
+
+
+### Developer Resources
+
+<CardGroup cols={2}>
+  <Card
+    title="TypeScript SDK"
+    icon="code"
+    href="/sdks/typescript/installation"
+  >
+    Full-featured SDK with comprehensive TypeScript support
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book-open"
+    href="/reference/overview"
+  >
+    Complete API documentation with examples and schemas
+  </Card>
+  <Card
+    title="CLI Tools"
+    icon="terminal"
+    href="/sdks/cli"
+  >
+    Command-line tools for issuing and verifying attestations
+  </Card>
+  <Card
+    title="Schema Registry"
+    icon="database"
+    href="/schemas/registry"
+  >
+    Browse and create reusable attestation schemas
+  </Card>
+</CardGroup>
+
+### Community & Support
+
+<CardGroup cols={3}>
+  <Card
+    title="Discord Community"
+    icon="discord"
+    href="https://discord.gg/attestprotocol"
+  >
+    Get support and connect with other developers
+  </Card>
+  <Card
+    title="GitHub Repository"
+    icon="github"
+    href="https://github.com/attestprotocol/attest.so"
+  >
+    Contribute to the protocol and explore the codebase
+  </Card>
+  <Card
+    title="Twitter Updates"
+    icon="twitter"
+    href="https://twitter.com/attestprotocol"
+  >
+    Follow protocol progress and announcements
+  </Card>
+</CardGroup>
+
+---
+
+<Info>
+**New to attestations?** Check out our [Core Concepts](/concepts/attestations) to understand how on-chain attestations work and why they're the future of Web3 trust.
+</Info>

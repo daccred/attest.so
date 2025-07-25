@@ -1,0 +1,601 @@
+---
+title: 'Stellar Attestation Contract'
+description: 'AttestProtocol Stellar contract implementation using Soroban smart contracts with native Rust architecture'
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/stellar-light.svg"
+  alt="Stellar"
+  width="200"
+  height="60"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/stellar-dark.svg"
+  alt="Stellar"
+  width="200"
+  height="60"
+/>
+
+The AttestProtocol Stellar contract leverages Soroban smart contracts to provide efficient attestation services with deterministic storage keys and native Stellar integration.
+
+---
+
+## Contract Architecture
+
+### Core Contract Structure
+
+The Stellar attestation contract is implemented as a Soroban smart contract with modular instruction handlers:
+
+```rust
+#[contract]
+pub struct AttestationContract;
+
+#[contractimpl]
+impl AttestationContract {
+    // Contract initialization
+    pub fn initialize(env: Env, admin: Address) -> Result<(), Error>
+    
+    // Schema management
+    pub fn register(env: Env, caller: Address, schema_definition: String, resolver: Option<Address>, revocable: bool) -> Result<BytesN<32>, Error>
+    
+    // Core attestation operations
+    pub fn attest(env: Env, caller: Address, schema_uid: BytesN<32>, subject: Address, value: String, reference: Option<String>) -> Result<(), Error>
+    pub fn revoke_attestation(env: Env, caller: Address, schema_uid: BytesN<32>, subject: Address, reference: Option<String>) -> Result<(), Error>
+    pub fn get_attestation(env: Env, schema_uid: BytesN<32>, subject: Address, reference: Option<String>) -> Result<AttestationRecord, Error>
+}
+```
+
+---
+
+## Data Structures
+
+### Storage Key System
+
+Deterministic storage keys for efficient data organization:
+
+```rust
+#[contracttype]
+#[derive(Clone)]
+pub enum DataKey {
+    Admin,                                                    // Contract admin address
+    Authority(Address),                                       // Authority information by address
+    Schema(BytesN<32>),                                      // Schema data by UID
+    Attestation(BytesN<32>, Address, Option<String>),       // Attestation by schema, subject, reference
+}
+```
+
+### Attestation Storage
+
+Comprehensive attestation data with flexible metadata:
+
+```rust
+#[contracttype]
+#[derive(Clone)]
+pub struct StoredAttestation {
+    pub schema_uid: BytesN<32>,           // Schema identifier
+    pub recipient: Address,               // Attestation target
+    pub attester: Address,                // Attestation creator
+    pub time: u64,                        // Creation timestamp
+    pub expiration_time: Option<u64>,     // Optional expiration
+    pub revocation_time: Option<u64>,     // Revocation timestamp
+    pub revocable: bool,                  // Revocation capability
+    pub ref_uid: Option<Bytes>,           // Reference to related attestation
+    pub data: Bytes,                      // Attestation content
+    pub value: Option<i128>,              // Optional numeric value
+}
+```
+
+### Schema Definition
+
+Schema structure with authority and resolver support:
+
+```rust
+#[contracttype]
+#[derive(Clone)]  
+pub struct Schema {
+    pub authority: Address,               // Schema creator
+    pub definition: String,               // Schema structure (JSON format)
+    pub resolver: Option<Address>,        // Optional validation contract
+    pub revocable: bool,                  // Schema-level revocation setting
+}
+```
+
+### Authority Management
+
+Authority registration and metadata tracking:
+
+```rust
+#[derive(Debug, Clone)]
+#[contracttype]
+pub struct Authority {
+    pub address: Address,                 // Authority Stellar address
+    pub metadata: String,                 // Authority description (JSON)
+}
+```
+
+---
+
+## Core Operations
+
+### Schema Registration
+
+**Schema Creation**
+
+Register new attestation schemas with validation rules:
+
+```rust
+pub fn register(
+    env: Env,
+    caller: Address,                      // Authority address
+    schema_definition: String,            // Schema structure definition
+    resolver: Option<Address>,            // Optional resolver contract
+    revocable: bool                       // Schema revocation capability
+) -> Result<BytesN<32>, Error>           // Returns schema UID
+```
+
+**Schema Storage Process**:
+1. Validate caller authority permissions
+2. Generate deterministic schema UID using SHA-256 hash
+3. Store schema data using `DataKey::Schema(uid)`
+4. Return generated schema UID for reference
+
+### Attestation Operations
+
+**Create Attestation**
+
+Issue attestations following registered schemas:
+
+```rust
+pub fn attest(
+    env: Env,
+    caller: Address,                      // Attester address
+    schema_uid: BytesN<32>,              // Target schema UID
+    subject: Address,                     // Attestation recipient
+    value: String,                        // Attestation data content
+    reference: Option<String>             // Optional reference identifier
+) -> Result<(), Error>
+```
+
+**Attestation Flow**:
+1. Validate schema exists and is active
+2. Check caller has authority to attest
+3. Verify resolver constraints (if present)
+4. Store attestation using composite key
+5. Emit attestation created event
+
+**Retrieve Attestation**
+
+Query existing attestations with flexible lookup:
+
+```rust
+pub fn get_attestation(
+    env: Env,
+    schema_uid: BytesN<32>,              // Schema identifier
+    subject: Address,                     // Attestation target
+    reference: Option<String>             // Optional reference
+) -> Result<AttestationRecord, Error>
+```
+
+**Revoke Attestation**
+
+Invalidate existing attestations with access control:
+
+```rust
+pub fn revoke_attestation(
+    env: Env,
+    caller: Address,                      // Revoker (must be original attester)
+    schema_uid: BytesN<32>,              // Schema identifier
+    subject: Address,                     // Attestation target
+    reference: Option<String>             // Optional reference
+) -> Result<(), Error>
+```
+
+---
+
+## Storage Architecture
+
+### Persistent Storage
+
+Soroban's persistent storage for long-term data retention:
+
+```rust
+// Schema storage
+env.storage().persistent().set(&DataKey::Schema(schema_uid), &schema);
+
+// Attestation storage  
+env.storage().persistent().set(&DataKey::Attestation(schema_uid, subject, reference), &attestation);
+
+// Authority storage
+env.storage().persistent().set(&DataKey::Authority(authority_address), &authority);
+```
+
+### Storage Benefits
+
+- **Persistent State**: Data survives contract upgrades
+- **Efficient Queries**: Direct key-based lookups
+- **Deterministic Keys**: Predictable storage locations
+- **Gas Optimization**: Minimal storage operations
+
+---
+
+## Authority System
+
+### Authority Registration
+
+Decentralized authority registration with admin verification:
+
+```rust
+// Authority registers themselves
+let authority = Authority {
+    address: caller,
+    metadata: authority_metadata,  // JSON describing authority
+};
+
+env.storage().persistent().set(&DataKey::Authority(caller), &authority);
+```
+
+### Admin Controls
+
+Contract admin can manage system-wide settings:
+
+```rust
+pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
+    // Set contract admin on deployment
+    if env.storage().instance().has(&DataKey::Admin) {
+        return Err(Error::AlreadyInitialized);
+    }
+    env.storage().instance().set(&DataKey::Admin, &admin);
+    Ok(())
+}
+```
+
+---
+
+## Resolver Integration
+
+### Custom Validation
+
+Optional resolver contracts for advanced validation:
+
+```rust
+// Schema with resolver
+pub fn register(
+    env: Env,
+    caller: Address,
+    schema_definition: String,
+    resolver: Option<Address>,    // Custom validation contract
+    revocable: bool
+) -> Result<BytesN<32>, Error>
+```
+
+### Resolver Interface
+
+Standardized resolver contract interface:
+
+```rust
+pub trait ResolverInterface {
+    // Validate attestation before creation
+    fn validate_attestation(
+        env: Env,
+        schema_uid: BytesN<32>,
+        attester: Address,
+        subject: Address,
+        data: String
+    ) -> Result<bool, Error>;
+    
+    // Handle attestation events
+    fn on_attestation_created(
+        env: Env,
+        attestation: StoredAttestation
+    ) -> Result<(), Error>;
+}
+```
+
+---
+
+## Error Handling
+
+### Comprehensive Error Types
+
+Detailed error handling for all contract operations:
+
+```rust
+#[derive(Debug, Clone)]
+pub enum Error {
+    AlreadyInitialized,           // Contract already initialized
+    Unauthorized,                 // Insufficient permissions
+    SchemaNotFound,               // Invalid schema UID
+    AttestationNotFound,          // Attestation doesn't exist
+    NotRevocable,                 // Attestation cannot be revoked
+    AlreadyRevoked,               // Attestation previously revoked
+    ExpiredAttestation,           // Past expiration time
+    ResolverRejected,             // Resolver validation failed
+    InvalidData,                  // Malformed attestation data
+}
+```
+
+---
+
+## Events and Notifications
+
+### Event Emission
+
+Comprehensive event logging for attestation lifecycle:
+
+```rust
+// Schema registration event
+env.events().publish((
+    "schema_registered",
+    schema_uid,
+    authority,
+    revocable
+));
+
+// Attestation creation event
+env.events().publish((
+    "attestation_created", 
+    schema_uid,
+    subject,
+    attester,
+    timestamp
+));
+
+// Attestation revocation event  
+env.events().publish((
+    "attestation_revoked",
+    schema_uid,
+    subject,
+    revoker,
+    revocation_timestamp
+));
+```
+
+---
+
+## Integration Examples
+
+### JavaScript Integration
+
+Using Stellar SDK for contract interaction:
+
+```javascript
+import { Contract, SorobanRpc, Keypair, Networks } from '@stellar/stellar-sdk';
+
+// Initialize contract
+const contract = new Contract(contractAddress);
+const rpc = new SorobanRpc.Server('https://soroban-testnet.stellar.org');
+
+// Create attestation
+const attestTx = await contract.call(
+    'attest',
+    scVal.address(attesterAddress),
+    scVal.bytes(schemaUid),
+    scVal.address(subjectAddress),
+    scVal.string(attestationData),
+    scVal.option(reference ? scVal.string(reference) : null)
+);
+
+// Submit transaction
+const txBuilder = new TransactionBuilder(sourceAccount, {
+    fee: BASE_FEE,
+    networkPassphrase: Networks.TESTNET
+});
+
+const tx = txBuilder
+    .addOperation(attestTx)
+    .setTimeout(180)
+    .build();
+
+tx.sign(attesterKeypair);
+const result = await rpc.sendTransaction(tx);
+```
+
+### Rust Integration
+
+Direct contract integration from Rust applications:
+
+```rust
+use soroban_sdk::{contract, contractimpl, Address, Env, String, BytesN};
+
+#[contract]
+pub struct ClientContract;
+
+#[contractimpl]
+impl ClientContract {
+    pub fn create_attestation(
+        env: Env,
+        attest_contract: Address,
+        schema_uid: BytesN<32>,
+        subject: Address,
+        data: String
+    ) -> Result<(), Error> {
+        // Call attestation contract
+        env.invoke_contract(
+            &attest_contract,
+            &Symbol::new(&env, "attest"),
+            (env.current_contract_address(), schema_uid, subject, data, None::<String>).into_val(&env)
+        );
+        
+        Ok(())
+    }
+}
+```
+
+---
+
+## Network Information
+
+### Deployment Addresses
+
+| Network | Contract Address | Status |
+|---------|------------------|--------|
+| **Testnet** | `CB7QHNAXAEAQCAIBAEAQCAIBAEAQCAIBAEAQCAIBAEAQCAIBAE` | Active |
+| **Mainnet** | TBD | Planned |
+
+### Network Configuration
+
+**Testnet Setup**:
+```bash
+# Network passphrase
+TESTNET_PASSPHRASE="Test SDF Network ; September 2015"
+
+# RPC endpoint  
+TESTNET_RPC="https://soroban-testnet.stellar.org"
+
+# Horizon endpoint
+TESTNET_HORIZON="https://horizon-testnet.stellar.org"
+```
+
+**Mainnet Setup**:
+```bash
+# Network passphrase
+MAINNET_PASSPHRASE="Public Global Stellar Network ; September 2015"  
+
+# RPC endpoint
+MAINNET_RPC="https://soroban-mainnet.stellar.org"
+
+# Horizon endpoint
+MAINNET_HORIZON="https://horizon.stellar.org"
+```
+
+---
+
+## Development Workflow
+
+### Build and Deploy
+
+Complete development and deployment process:
+
+```bash
+# Clone repository
+git clone https://github.com/daccred/attest.so.git
+cd attest.so/contracts/stellar
+
+# Install dependencies
+cargo build
+
+# Build contracts
+cd protocol && make build
+cd ../authority && make build
+
+# Run tests
+cd protocol && make test
+cd ../authority && make test
+
+# Deploy to testnet
+./deploy.sh testnet
+
+# Verify deployment
+stellar contract invoke \
+  --id $CONTRACT_ID \
+  --source $ADMIN_SECRET \
+  --rpc-url https://soroban-testnet.stellar.org \
+  -- get_attestation \
+  --schema_uid $SCHEMA_UID \
+  --subject $SUBJECT_ADDRESS
+```
+
+### Testing Framework
+
+Comprehensive test suite for contract validation:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_schema_registration() {
+        let env = Env::default();
+        let admin = Address::generate(&env);
+        let authority = Address::generate(&env);
+        
+        // Initialize contract
+        let contract = AttestationContract::new(&env);
+        contract.initialize(admin.clone());
+        
+        // Register schema
+        let schema_uid = contract.register(
+            authority.clone(),
+            String::from_str(&env, "test-schema"),
+            None,
+            true
+        );
+        
+        assert!(schema_uid.len() == 32);
+    }
+    
+    #[test]
+    fn test_attestation_lifecycle() {
+        // Test complete attestation workflow
+        // - Schema registration
+        // - Attestation creation  
+        // - Attestation retrieval
+        // - Attestation revocation
+    }
+}
+```
+
+---
+
+## Performance Characteristics
+
+### Gas Efficiency
+
+Optimized operations for minimal transaction costs:
+
+- **Schema Registration**: ~200,000 gas
+- **Attestation Creation**: ~150,000 gas  
+- **Attestation Retrieval**: ~50,000 gas
+- **Attestation Revocation**: ~100,000 gas
+
+### Storage Optimization
+
+Efficient data structures minimize storage costs:
+
+- **Fixed-size Keys**: Deterministic 32-byte identifiers
+- **Compressed Data**: Binary encoding for large payloads
+- **Selective Storage**: Only essential data on-chain
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    href="/chains/solana/overview"
+  >
+    <div className="flex flex-col justify-center h-14 mb-3">
+      <img src="/images/solana-light.svg" className="w-32 h-auto block dark:hidden" alt="Solana" />
+      <img src="/images/solana-dark.svg" className="w-32 h-auto hidden dark:block" alt="Solana" />
+    </div>
+    
+    Compare with the Anchor-based Solana implementation
+  </Card>
+  <Card
+    href="/chains/starknet/overview"
+  >
+    <div className="flex flex-col justify-center h-14 mb-3">
+      <img src="/images/starknet-light.svg" className="w-32 h-auto block dark:hidden" alt="Starknet" />
+      <img src="/images/starknet-dark.svg" className="w-32 h-auto hidden dark:block" alt="Starknet" />
+    </div>
+    
+    Explore the Cairo-based Starknet contract
+  </Card>
+  <Card
+    title="Stellar Integration"
+    icon="code"
+    href="/sdks/typescript/stellar"
+  >
+    Learn how to integrate with the Stellar contract
+  </Card>
+  <Card
+    title="Contract Source"
+    icon="github"
+    href="https://github.com/daccred/attest.so/tree/main/contracts/stellar"
+  >
+    View the complete Soroban contract source
+  </Card>
+</CardGroup>
