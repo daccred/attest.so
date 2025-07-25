@@ -162,6 +162,7 @@ class ZeroKnowledgeAttestationSystem {
       };
     }
   }
+```
 
   **Generate Age Proof**
 
@@ -365,7 +366,6 @@ class ZeroKnowledgeAttestationSystem {
       timestamp: parseInt(parsedData.timestamp)
     };
   }
-  ```
 
   private async generateZKProof(
     circuitType: string,
@@ -659,6 +659,7 @@ class SelectiveDisclosureSystem {
     
     return { encryptedData, keys };
   }
+  ```
 
   **Process Selective Disclosure Data**
 
@@ -854,7 +855,6 @@ class SelectiveDisclosureSystem {
       expiresAt: disclosureProof.expiresAt
     };
   }
-  ```
 
   private createDisclosureMap(
     data: PersonalData,
@@ -1462,6 +1462,7 @@ class GDPRCompliantAttestationSystem {
     
     return this.buildErasureResult(erasureResults);
   }
+  ```
 
   **Validate GDPR Consent**
 
@@ -1672,7 +1673,6 @@ class GDPRCompliantAttestationSystem {
       completedAt: Date.now()
     };
   }
-  ```
 
   private buildGDPRAttestationValue(
     pseudonymizedData: PseudonymizedData,
