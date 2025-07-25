@@ -6,7 +6,7 @@
   "logo": {
     "light": "/images/logo-light.svg",
     "dark": "/images/logo-dark.svg",
-    "href": "https://attest.so"
+    "href": "https://attestprotocol.org"
   },
   "favicon": "/images/favicon.svg",
   "colors": {
@@ -21,9 +21,18 @@
         "tab": "Guides",
         "groups": [
           {
+            "group": "Introduction",
+            "pages": [
+              "overview",
+              "guides/what-is-attestprotocol",
+              "guides/why-attestations",
+              "guides/how-it-works",
+              "guides/use-cases"
+            ]
+          },
+          {
             "group": "Getting Started",
             "pages": [
-              "introduction",
               "quickstart",
               "getting-started/installation",
               "getting-started/your-first-attestation",
@@ -41,6 +50,10 @@
               "chains/stellar/overview",
               "chains/starknet/overview"
             ]
+          },
+          {
+            "group": "Workflow Guides",
+            "pages": ["guides/kyc-integration", "guides/dao-voting", "guides/event-attendance"]
           }
         ]
       },
@@ -66,22 +79,16 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "API Documentation",
-            "pages": ["reference/overview", "reference/administration"]
+            "group": "SDK Overview",
+            "pages": ["reference/overview"]
           },
           {
-            "group": "Endpoints",
-            "pages": [
-              "reference/endpoints/attest",
-              "reference/endpoints/verify",
-              "reference/endpoints/revoke",
-              "reference/endpoints/schemas",
-              "reference/endpoints/authorities"
-            ]
+            "group": "Core Modules",
+            "pages": ["reference/authority", "reference/schema", "reference/attest"]
           },
           {
-            "group": "Webhooks & Errors",
-            "pages": ["reference/webhooks", "reference/errors"]
+            "group": "Administration",
+            "pages": ["reference/administration", "reference/webhooks", "reference/errors"]
           }
         ]
       }
@@ -90,17 +97,17 @@
       "anchors": [
         {
           "anchor": "GitHub",
-          "href": "https://github.com/attestprotocol/attest.so",
+          "href": "https://github.com/daccred/attest.so",
           "icon": "github"
         },
         {
           "anchor": "Community",
-          "href": "https://discord.gg/attestprotocol",
+          "href": "https://discord.com/invite/7kVur5ja5m",
           "icon": "discord"
         },
         {
           "anchor": "Dashboard",
-          "href": "https://app.attest.so",
+          "href": "https://attestprotocol.org",
           "icon": "desktop"
         }
       ]
@@ -110,24 +117,24 @@
     "links": [
       {
         "label": "GitHub",
-        "href": "https://github.com/attestprotocol/attest.so"
+        "href": "https://github.com/daccred/attest.so"
       },
       {
         "label": "Community",
-        "href": "https://discord.gg/attestprotocol"
+        "href": "https://discord.com/invite/7kVur5ja5m"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "https://app.attest.so"
+      "href": "https://attestprotocol.org"
     }
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/attestprotocol/attest.so",
+      "github": "https://github.com/daccred/attest.so",
       "x": "https://twitter.com/attestprotocol",
-      "discord": "https://discord.gg/attestprotocol"
+      "discord": "https://discord.com/invite/7kVur5ja5m"
     },
     "links": [
       {
@@ -135,15 +142,15 @@
         "items": [
           {
             "label": "Dashboard",
-            "href": "https://app.attest.so"
+            "href": "https://attestprotocol.org"
           },
           {
             "label": "Enterprise",
-            "href": "https://attest.so/enterprise"
+            "href": "https://attestprotocol.org/enterprise"
           },
           {
             "label": "Status",
-            "href": "https://status.attest.so"
+            "href": "https://status.attestprotocol.org"
           }
         ]
       },
@@ -152,15 +159,15 @@
         "items": [
           {
             "label": "About",
-            "href": "https://attest.so/about"
+            "href": "https://attestprotocol.org/about"
           },
           {
             "label": "Blog",
-            "href": "https://attest.so/blog"
+            "href": "https://attestprotocol.org/blog"
           },
           {
             "label": "Privacy Policy",
-            "href": "https://attest.so/privacy"
+            "href": "https://attestprotocol.org/privacy"
           }
         ]
       }
