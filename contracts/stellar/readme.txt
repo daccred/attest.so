@@ -128,15 +128,21 @@ deployments.json updated successfully.
 ========================================
 STEP: Stellar CLI Contract Interactions
 ========================================
-# Generate Typescript Contract bindings
-                                                                                                                        │
-stellar contract bindings typescript \                                                                                                                               │
-       --network testnet \                                                                                                                                              │
-       --contract-id CC673T4LKURVLKJFRECXAEILKLXX74FQQTFIR5FLKZJJDDZ5Y5NLWF7O \                                                                                         │
-       --output-dir ./tmp/authority-bindings  
+# Generate Authority Typescript Contract bindings
+# Generate Authority Typescript Contract bindings
+stellar contract bindings typescript \
+  --network testnet \
+  --contract-id CC673T4LKURVLKJFRECXAEILKLXX74FQQTFIR5FLKZJJDDZ5Y5NLWF7O \
+  --output-dir ./bindings/protocol
+
+# Generate Protocol Typescript Contract bindings
+stellar contract bindings typescript \
+  --network testnet \
+  --contract-id CCJDGGA754NBRTV63VBNEON6NKDJ3H7TRVELR6WX5KEJY7S7UANRT22H \
+  --output-dir ./bindings/protocol
 
 
-# # invoke the initialize function on the Authority Resolver Contract
+### invoke the initialize function on the Authority Resolver Contract
 stellar contract invoke \
     --id CCJDGGA754NBRTV63VBNEON6NKDJ3H7TRVELR6WX5KEJY7S7UANRT22H \
     --source SDRNJOIMKSA6N4MZ5PQJ6GDBZZSLBFGU65D6435SMTCQFMKRSPSWFI5S \
@@ -147,7 +153,7 @@ stellar contract invoke \
     --token_contract_id CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
 
 
-# # invoke the initialize function on the Protocol Contract
+#### invoke the initialize function on the Protocol Contract
 stellar contract invoke \
     --id CCJDGGA754NBRTV63VBNEON6NKDJ3H7TRVELR6WX5KEJY7S7UANRT22H \
     --source SDRNJOIMKSA6N4MZ5PQJ6GDBZZSLBFGU65D6435SMTCQFMKRSPSWFI5S \

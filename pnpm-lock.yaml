@@ -243,10 +243,42 @@ importers:
       '@stellar/stellar-sdk':
         specifier: 14.0.0-rc.3
         version: 14.0.0-rc.3
+      buffer:
+        specifier: 6.0.3
+        version: 6.0.3
     devDependencies:
       tap:
         specifier: ^21.1.0
-        version: 21.1.0(@types/node@22.15.18)(@types/react@18.3.20)(bufferutil@4.0.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.5.4)(utf-8-validate@5.0.10)
+        version: 21.1.0(@types/node@22.15.18)(@types/react@18.3.20)(bufferutil@4.0.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)(utf-8-validate@5.0.10)
+      typescript:
+        specifier: ^5.6.2
+        version: 5.8.3
+
+  contracts/stellar/bindings:
+    dependencies:
+      '@stellar/stellar-sdk':
+        specifier: ^13.x
+        version: 13.3.0
+      buffer:
+        specifier: 6.0.3
+        version: 6.0.3
+    devDependencies:
+      typescript:
+        specifier: ^5.6.2
+        version: 5.8.3
+
+  contracts/stellar/tmp/authority:
+    dependencies:
+      '@stellar/stellar-sdk':
+        specifier: ^13.x
+        version: 13.3.0
+      buffer:
+        specifier: 6.0.3
+        version: 6.0.3
+    devDependencies:
+      typescript:
+        specifier: ^5.6.2
+        version: 5.8.3
 
   contracts/whitepaper: {}
 
@@ -10602,6 +10634,22 @@ snapshots:
       typescript: 5.5.4
       v8-compile-cache-lib: 3.0.1
 
+  '@isaacs/ts-node-temp-fork-for-pr-2009@10.9.7(@types/node@22.15.18)(typescript@5.8.3)':
+    dependencies:
+      '@cspotcode/source-map-support': 0.8.1
+      '@tsconfig/node14': 1.0.3
+      '@tsconfig/node16': 1.0.4
+      '@tsconfig/node18': 18.2.4
+      '@tsconfig/node20': 20.1.5
+      '@types/node': 22.15.18
+      acorn: 8.14.1
+      acorn-walk: 8.3.4
+      arg: 4.1.3
+      diff: 4.0.2
+      make-error: 1.3.6
+      typescript: 5.8.3
+      v8-compile-cache-lib: 3.0.1
+
   '@istanbuljs/load-nyc-config@1.1.0':
     dependencies:
       camelcase: 5.3.1
@@ -12573,6 +12621,16 @@ snapshots:
   '@tapjs/typescript@3.1.0(@tapjs/core@4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/node@22.15.18)(typescript@5.5.4)':
     dependencies:
       '@isaacs/ts-node-temp-fork-for-pr-2009': 10.9.7(@types/node@22.15.18)(typescript@5.5.4)
+      '@tapjs/core': 4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    transitivePeerDependencies:
+      - '@swc/core'
+      - '@swc/wasm'
+      - '@types/node'
+      - typescript
+
+  '@tapjs/typescript@3.1.0(@tapjs/core@4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/node@22.15.18)(typescript@5.8.3)':
+    dependencies:
+      '@isaacs/ts-node-temp-fork-for-pr-2009': 10.9.7(@types/node@22.15.18)(typescript@5.8.3)
       '@tapjs/core': 4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     transitivePeerDependencies:
       - '@swc/core'
@@ -19509,7 +19567,7 @@ snapshots:
       yaml: 2.7.1
       yaml-types: 0.4.0(yaml@2.7.1)
 
-  tap@21.1.0(@types/node@22.15.18)(@types/react@18.3.20)(bufferutil@4.0.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.5.4)(utf-8-validate@5.0.10):
+  tap@21.1.0(@types/node@22.15.18)(@types/react@18.3.20)(bufferutil@4.0.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)(utf-8-validate@5.0.10):
     dependencies:
       '@tapjs/after': 3.0.1(@tapjs/core@4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@tapjs/after-each': 4.0.1(@tapjs/core@4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
@@ -19528,7 +19586,7 @@ snapshots:
       '@tapjs/spawn': 4.0.1(@tapjs/core@4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@tapjs/stdin': 4.0.1(@tapjs/core@4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@tapjs/test': 4.0.1(@tapjs/core@4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tapjs/typescript': 3.1.0(@tapjs/core@4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/node@22.15.18)(typescript@5.5.4)
+      '@tapjs/typescript': 3.1.0(@tapjs/core@4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/node@22.15.18)(typescript@5.8.3)
       '@tapjs/worker': 4.0.1(@tapjs/core@4.0.1(@types/node@22.15.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       resolve-import: 2.0.0
     transitivePeerDependencies:
