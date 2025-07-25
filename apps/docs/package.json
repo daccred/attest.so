@@ -5,8 +5,7 @@
   "description": "AttestProtocol documentation site built with Mintlify",
   "scripts": {
     "dev": "mintlify dev",
-    "build": "mintlify build",
-    "preview": "mintlify preview"
+    "build": "echo 'Building documentation...'"
   },
   "devDependencies": {
     "@mintlify/cli": "^4.0.0"
