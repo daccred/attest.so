@@ -251,6 +251,8 @@ importers:
         specifier: ^21.1.0
         version: 21.1.0(@types/node@22.15.18)(react-dom@18.3.1)(react@18.3.1)(typescript@5.8.3)
 
+  contracts/whitepaper: {}
+
   packages/sdk:
     dependencies:
       '@coral-xyz/anchor':
