@@ -8,8 +8,6 @@ bundle = "https://data1.fullyjustified.net/tlextras-2022.0r0.tar"
 [[output]]
 name = "default"
 type = "pdf"
-
-
 # Deprecated input specification.
 # These options serve the same purpose as `inputs` above, but shouldn't be used
 # unless you have a legacy document.
@@ -19,6 +17,6 @@ type = "pdf"
 #
 # Note that these options may NOT be used with `inputs`.
 # You may only use one kind of input specification.
-preamble = "_preamble.tex" # the preamble file to use (within `src`)
-index = "attestprotocol.tex" # the index file to use (within `src`)
-postamble = "_postamble.tex" # the postamble file to use (within `src`)
+# preamble = "_preamble.tex" # the preamble file to use (within `src`)
+index = "whitepaper.tex" # the index file to use (within `src`)
+# postamble = "_postamble.tex" # the postamble file to use (within `src`)
