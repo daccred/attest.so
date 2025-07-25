@@ -1,0 +1,521 @@
+---
+title: 'Authorities'
+description: 'Trusted entities that issue and manage attestations in the AttestProtocol ecosystem'
+---
+
+## What are Authorities?
+
+Authorities are entities authorized to issue attestations within the AttestProtocol system. They serve as the trust anchors that validate claims and create verifiable attestations about subjects.
+
+In traditional systems, authorities include:
+- Government agencies issuing IDs and licenses
+- Universities granting degrees
+- Financial institutions verifying creditworthiness
+- Professional bodies certifying competencies
+
+AttestProtocol brings this concept on-chain, enabling any entity to become a verifiable authority.
+
+---
+
+## Authority Types
+
+### Individual Authorities
+
+Personal wallets that issue attestations for specific purposes:
+
+- Peer endorsements and recommendations
+- Personal verifications and vouching
+- Individual skill assessments
+- Community member attestations
+
+### Organizational Authorities
+
+Registered entities providing professional attestation services:
+
+- KYC/AML verification providers
+- Educational institutions
+- Professional certification bodies
+- Credit rating agencies
+- Background check services
+
+### DAO Authorities
+
+Decentralized organizations issuing collective attestations:
+
+- Membership verification
+- Contribution tracking
+- Governance participation
+- Community reputation
+
+### Automated Authorities
+
+Smart contracts and oracles issuing programmatic attestations:
+
+- On-chain activity verification
+- Cross-chain bridge attestations
+- DeFi protocol interactions
+- Gaming achievement systems
+
+---
+
+## Becoming an Authority
+
+### Registration Process
+
+```typescript
+// Register as authority
+const result = await sdk.registerAuthority();
+
+if (result.data) {
+  console.log('Authority registered successfully');
+  console.log('Authority address:', result.data.address);
+}
+```
+
+### Authority Profile
+
+Authorities can enhance their profile for better trust:
+
+```typescript
+// Update authority metadata (implementation varies by chain)
+const profile = {
+  name: "Acme Verification Services",
+  website: "https://acme-verify.com",
+  description: "Professional KYC and AML verification",
+  categories: ["identity", "compliance"],
+  jurisdiction: ["US", "EU", "UK"]
+};
+```
+
+### Verification Levels
+
+Authorities can achieve different trust levels:
+
+| Level | Requirements | Benefits |
+|-------|--------------|----------|
+| **Basic** | Registered wallet address | Can issue attestations |
+| **Verified** | Identity verification completed | Enhanced trust score |
+| **Professional** | Business verification + insurance | Premium features access |
+| **Institutional** | Regulatory compliance demonstrated | Highest trust rating |
+
+---
+
+## Authority Management
+
+### Key Security
+
+Protecting authority credentials is critical:
+
+```typescript
+// Best practice: Use hardware wallet or HSM
+const signer = new HardwareWalletSigner({
+  derivationPath: "m/44'/501'/0'/0'",
+  device: 'ledger'
+});
+
+const sdk = await AttestSDK.initializeStellar({
+  secretKeyOrCustomSigner: signer,
+  publicKey: authorityPublicKey,
+  url: RPC_URL
+});
+```
+
+### Multi-Signature Setup
+
+For high-security authorities:
+
+```typescript
+// Multi-sig authority setup
+const multiSigAuthority = {
+  signers: [
+    { publicKey: 'signer1_pub', weight: 1 },
+    { publicKey: 'signer2_pub', weight: 1 },
+    { publicKey: 'signer3_pub', weight: 1 }
+  ],
+  threshold: 2 // Require 2 of 3 signatures
+};
+```
+
+### Delegation
+
+Authorities can delegate attestation capabilities:
+
+```typescript
+// Create delegated signer
+const delegatedSigner = {
+  address: 'delegate_address',
+  permissions: ['kyc-basic', 'age-verification'],
+  expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 days
+};
+```
+
+---
+
+## Trust and Reputation
+
+### Trust Scoring
+
+Authorities build reputation through their attestation history:
+
+- **Attestation Volume**: Number of attestations issued
+- **Revocation Rate**: Percentage of attestations revoked
+- **Dispute Resolution**: How conflicts are handled
+- **User Feedback**: Community ratings and reviews
+- **Verification Level**: Authority verification status
+
+### Reputation Metrics
+
+```typescript
+interface AuthorityReputation {
+  totalAttestations: number;
+  activeAttestations: number;
+  revocationRate: number;
+  disputeRate: number;
+  averageRating: number;
+  verificationLevel: 'basic' | 'verified' | 'professional' | 'institutional';
+  specializations: string[];
+}
+```
+
+### Building Trust
+
+Strategies for authorities to build reputation:
+
+1. **Start Small**: Begin with low-risk attestations
+2. **Be Transparent**: Publish verification methodology
+3. **Maintain Quality**: Low revocation and dispute rates
+4. **Specialize**: Focus on specific attestation types
+5. **Get Verified**: Complete higher verification levels
+
+---
+
+## Authority Operations
+
+### Issuing Attestations
+
+Standard attestation issuance flow:
+
+```typescript
+// 1. Verify subject identity/claims
+const verificationResult = await verifySubject(subjectAddress, claimData);
+
+// 2. Create attestation if verified
+if (verificationResult.verified) {
+  const attestation = await sdk.attest({
+    schemaUID: 'kyc-basic-v1',
+    subject: subjectAddress,
+    value: 'verified:true,level:basic,score:85,timestamp:1704067200',
+    reference: `verification-${Date.now()}`
+  });
+}
+
+// 3. Store verification records
+await storeVerificationRecord(attestation.data);
+```
+
+### Batch Operations
+
+Issue multiple attestations efficiently:
+
+```typescript
+// Batch attestation issuance
+const subjects = [
+  { address: '0x123...', data: 'verified:true,score:90' },
+  { address: '0x456...', data: 'verified:true,score:85' },
+  { address: '0x789...', data: 'verified:true,score:92' }
+];
+
+const attestations = await Promise.all(
+  subjects.map(subject => 
+    sdk.attest({
+      schemaUID: 'verification-v1',
+      subject: subject.address,
+      value: subject.data,
+      reference: `batch-${Date.now()}`
+    })
+  )
+);
+```
+
+### Revocation Management
+
+Authorities can revoke attestations they issued:
+
+```typescript
+// Revoke attestation
+const revocation = await sdk.revokeAttestation({
+  schemaUID: 'kyc-basic-v1',
+  subject: subjectAddress,
+  reference: 'original-reference'
+});
+
+// Best practice: Log revocation reason
+await logRevocation({
+  attestationId: revocation.data.attestationUID,
+  reason: 'Failed re-verification',
+  timestamp: Date.now()
+});
+```
+
+---
+
+## Authority Models
+
+### Centralized Authority
+
+Single entity controls attestation issuance:
+
+```
+Authority → Attestation → Subject
+```
+
+**Use Cases**:
+- Government ID verification
+- Professional licensing
+- Educational credentials
+
+### Federated Authorities
+
+Multiple authorities share attestation responsibilities:
+
+```
+Authority A ─┐
+Authority B ─┼→ Combined Attestation → Subject
+Authority C ─┘
+```
+
+**Use Cases**:
+- Multi-jurisdictional compliance
+- Cross-institutional verification
+- Consortium-based credentialing
+
+### Hierarchical Authorities
+
+Authorities delegate to sub-authorities:
+
+```
+Root Authority
+    ├── Regional Authority A
+    │   ├── Local Verifier 1
+    │   └── Local Verifier 2
+    └── Regional Authority B
+        ├── Local Verifier 3
+        └── Local Verifier 4
+```
+
+**Use Cases**:
+- Global organizations
+- Franchise operations
+- Tiered verification systems
+
+### Decentralized Authority Networks
+
+Peer-to-peer authority relationships:
+
+```
+Authority A ↔ Authority B
+    ↕           ↕
+Authority D ↔ Authority C
+```
+
+**Use Cases**:
+- Web of trust models
+- Community verification
+- Reputation networks
+
+---
+
+## Economic Models
+
+### Fee Structures
+
+Authorities can monetize their services:
+
+```typescript
+// Fee configuration
+const authorityFees = {
+  'kyc-basic': 10, // $10 USD equivalent
+  'kyc-enhanced': 50, // $50 USD equivalent
+  'professional-cert': 100, // $100 USD equivalent
+};
+
+// Check fee before attestation
+async function processAttestation(schemaType: string, payment: number) {
+  const requiredFee = authorityFees[schemaType];
+  
+  if (payment >= requiredFee) {
+    // Process attestation
+    return await issueAttestation(schemaType);
+  } else {
+    throw new Error(`Insufficient payment. Required: ${requiredFee}`);
+  }
+}
+```
+
+### Staking Models
+
+Authorities stake tokens to ensure quality:
+
+```typescript
+// Authority staking requirement
+const stakingRequirements = {
+  basic: 1000, // 1,000 tokens
+  verified: 10000, // 10,000 tokens
+  professional: 50000, // 50,000 tokens
+  institutional: 100000 // 100,000 tokens
+};
+```
+
+### Revenue Sharing
+
+Distribute fees across participants:
+
+```typescript
+// Revenue distribution
+const feeDistribution = {
+  authority: 0.70, // 70% to issuing authority
+  protocol: 0.20, // 20% to protocol treasury
+  referrer: 0.10 // 10% to referrer (if any)
+};
+```
+
+---
+
+## Compliance and Standards
+
+### Regulatory Compliance
+
+Authorities must consider:
+
+- **Data Protection**: GDPR, CCPA compliance
+- **KYC/AML Requirements**: Financial regulations
+- **Industry Standards**: ISO, SOC certifications
+- **Jurisdictional Rules**: Local law compliance
+
+### Best Practices
+
+```typescript
+// Compliance checklist
+const complianceChecks = {
+  dataMinimization: true, // Only collect necessary data
+  userConsent: true, // Explicit consent for attestations
+  dataRetention: 365, // Days to retain records
+  encryptionRequired: true, // Encrypt sensitive data
+  auditTrail: true // Maintain verification logs
+};
+```
+
+### Liability Management
+
+- **Terms of Service**: Clear attestation terms
+- **Insurance**: Professional liability coverage
+- **Disclaimers**: Appropriate legal disclaimers
+- **Dispute Process**: Clear resolution procedures
+
+---
+
+## Integration Examples
+
+### KYC Provider Integration
+
+```typescript
+class KYCAuthority {
+  private sdk: AttestSDKBase;
+  
+  async verifyAndAttest(userData: any) {
+    // 1. Perform KYC checks
+    const kycResult = await this.performKYCChecks(userData);
+    
+    // 2. Create attestation
+    if (kycResult.passed) {
+      const attestation = await this.sdk.attest({
+        schemaUID: 'kyc-enhanced-v1',
+        subject: userData.walletAddress,
+        value: `verified:true,level:${kycResult.level},score:${kycResult.score},checkDate:${Date.now()}`,
+        reference: kycResult.sessionId
+      });
+      
+      // 3. Store compliance records
+      await this.storeComplianceRecord({
+        attestationId: attestation.data.attestationUID,
+        kycData: kycResult,
+        timestamp: Date.now()
+      });
+      
+      return attestation;
+    }
+    
+    throw new Error('KYC verification failed');
+  }
+}
+```
+
+### DAO Authority System
+
+```typescript
+class DAOAuthority {
+  async issueMembershipAttestation(memberAddress: string, daoVote: any) {
+    // Verify DAO vote passed
+    if (daoVote.passed && daoVote.type === 'membership') {
+      const attestation = await this.sdk.attest({
+        schemaUID: 'dao-membership-v1',
+        subject: memberAddress,
+        value: `isMember:true,joinDate:${Date.now()},votingPower:${daoVote.votingPower}`,
+        reference: `proposal-${daoVote.proposalId}`
+      });
+      
+      return attestation;
+    }
+  }
+}
+```
+
+---
+
+## Monitoring and Analytics
+
+### Authority Dashboard Metrics
+
+Track key performance indicators:
+
+```typescript
+interface AuthorityMetrics {
+  attestationsIssued: {
+    total: number;
+    daily: number;
+    weekly: number;
+    monthly: number;
+  };
+  revocationRate: number;
+  averageProcessingTime: number;
+  revenueGenerated: number;
+  activeUsers: number;
+  schemaUsage: Record<string, number>;
+}
+```
+
+### Performance Monitoring
+
+```typescript
+// Monitor attestation performance
+async function trackAttestationMetrics(attestation: any) {
+  await analytics.track({
+    event: 'attestation_issued',
+    properties: {
+      schemaType: attestation.schemaUID,
+      processingTime: attestation.processingTime,
+      authorityId: attestation.authorityAddress,
+      timestamp: Date.now()
+    }
+  });
+}
+```
+
+---
+
+## Next Steps
+
+- [Authority Registration Guide](/guides/authority-setup) - Detailed setup instructions
+- [Trust Building Strategies](/guides/building-trust) - Grow your authority reputation
+- [Compliance Guide](/guides/compliance) - Regulatory requirements
+- [Integration Examples](/examples/authority-integrations) - Real-world implementations
