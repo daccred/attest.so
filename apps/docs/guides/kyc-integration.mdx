@@ -33,6 +33,19 @@ const schemaUID = 'kyc-basic-v1';
 // Enhanced KYC schema for higher requirements
 const enhancedSchemaUID = 'kyc-enhanced-v1';
 // Definition: verified:bool,level:string,jurisdiction:string,riskScore:uint8,checkTypes:string,timestamp:uint64
+
+// Example: Create a custom KYC schema
+const customSchemaResult = await sdk.createSchema({
+  schemaName: `kyc-custom-${Date.now()}`,
+  schemaContent: 'verified:bool,level:string,jurisdiction:string,riskScore:uint8,pepCheck:bool,sanctionsCheck:bool,timestamp:uint64',
+  revocable: true
+});
+
+if (customSchemaResult.error) {
+  throw new Error(`Schema creation failed: ${customSchemaResult.error}`);
+}
+
+console.log('Custom KYC schema created:', customSchemaResult.data.schemaUID);
 ```
 
 ### KYC Provider Integration
@@ -40,54 +53,114 @@ const enhancedSchemaUID = 'kyc-enhanced-v1';
 Implement the KYC provider workflow:
 
 ```typescript
+import { StellarAttestSDK, SolanaAttestSDK } from '@attestprotocol/sdk';
+
 class KYCProvider {
-  private sdk: AttestSDKBase;
+  private sdk: StellarAttestSDK | SolanaAttestSDK;
   
+  constructor(sdk: StellarAttestSDK | SolanaAttestSDK) {
+    this.sdk = sdk;
+  }
+```
+
+**Main Verification Method**
+
+```typescript
   async verifyAndAttest(userData: {
     walletAddress: string;
     documents: any[];
     jurisdiction: string;
   }) {
-    // Step 1: Perform identity verification
-    const verificationResult = await this.performIdentityChecks(userData);
+    // Generate unique session ID for tracking
+    const sessionId = `kyc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    if (!verificationResult.passed) {
-      throw new Error('Identity verification failed');
+    try {
+      // Step 1: Run identity verification checks
+      const verificationResult = await this.performIdentityChecks(userData);
+      
+      if (!verificationResult.passed) {
+        throw new Error(`Identity verification failed: ${verificationResult.reason}`);
+      }
+      
+      // Step 2: Create on-chain attestation
+      const attestation = await this.issueKYCAttestation(userData, verificationResult, sessionId);
+      
+      // Step 3: Store compliance records off-chain
+      await this.storeComplianceRecords({
+        sessionId,
+        attestationUID: attestation,
+        verificationData: verificationResult,
+        documents: userData.documents.map(d => d.hash),
+        timestamp: Date.now()
+      });
+      
+      return {
+        success: true,
+        sessionId,
+        attestationUID: attestation,
+        level: verificationResult.level
+      };
+    } catch (error) {
+      await this.logError(sessionId, error);
+      throw error;
     }
+  }
+```
+
+**Identity Verification Logic**
+
+```typescript
+  private async performIdentityChecks(userData: any) {
+    // Integrate with third-party KYC services:
+    // - Document verification APIs (e.g., Jumio, Onfido)
+    // - Biometric verification services
+    // - AML/PEP screening databases
+    // - Address verification services
     
-    // Step 2: Issue KYC attestation
+    // Example implementation placeholder
+    const documentCheck = await this.verifyDocuments(userData.documents);
+    const amlCheck = await this.performAMLScreening(userData);
+    const addressCheck = await this.verifyAddress(userData);
+    
+    const allChecksPassed = documentCheck.valid && amlCheck.clear && addressCheck.verified;
+    
+    return {
+      passed: allChecksPassed,
+      level: allChecksPassed ? 'enhanced' : 'basic',
+      score: this.calculateRiskScore({ documentCheck, amlCheck, addressCheck }),
+      checks: ['document', 'biometric', 'aml', 'address']
+    };
+  }
+```
+
+**Attestation Creation**
+
+```typescript
+  private async issueKYCAttestation(
+    userData: any, 
+    verificationResult: any, 
+    sessionId: string
+  ): Promise<string> {
+    // Create structured attestation value
+    const attestationValue = [
+      `verified:true`,
+      `level:${verificationResult.level}`,
+      `jurisdiction:${userData.jurisdiction}`,
+      `timestamp:${Math.floor(Date.now() / 1000)}`
+    ].join(',');
+    
     const attestation = await this.sdk.attest({
       schemaUID: 'kyc-basic-v1',
       subject: userData.walletAddress,
-      value: `verified:true,level:${verificationResult.level},jurisdiction:${userData.jurisdiction},timestamp:${Date.now()}`,
-      reference: `kyc-${userData.walletAddress}-${Date.now()}`
+      value: attestationValue,
+      reference: sessionId
     });
     
-    // Step 3: Store compliance records (off-chain)
-    await this.storeComplianceRecords({
-      attestationId: attestation.data.attestationUID,
-      verificationData: verificationResult,
-      documents: userData.documents.map(d => d.hash),
-      timestamp: Date.now()
-    });
+    if (attestation.error) {
+      throw new Error(`Attestation creation failed: ${attestation.error}`);
+    }
     
-    return attestation;
-  }
-  
-  private async performIdentityChecks(userData: any) {
-    // Implement actual KYC verification logic
-    // This is where you integrate with KYC services like:
-    // - Document verification APIs
-    // - Biometric verification
-    // - AML/PEP screening
-    // - Address verification
-    
-    return {
-      passed: true,
-      level: 'enhanced',
-      score: 95,
-      checks: ['document', 'biometric', 'aml', 'address']
-    };
+    return attestation.data;
   }
 }
 ```
@@ -98,59 +171,106 @@ Verify KYC status in your dApp:
 
 ```typescript
 class DeFiProtocol {
-  private sdk: AttestSDKBase;
+  private sdk: StellarAttestSDK | SolanaAttestSDK;
   
+  constructor(sdk: StellarAttestSDK | SolanaAttestSDK) {
+    this.sdk = sdk;
+  }
+```
+
+**Compliance Verification**
+
+```typescript
   async checkUserCompliance(userAddress: string): Promise<{
     verified: boolean;
     level?: string;
     jurisdiction?: string;
+    expiresAt?: number;
   }> {
-    const attestation = await this.sdk.fetchAttestation({
-      schemaUID: 'kyc-basic-v1',
-      subject: userAddress
-    });
-    
-    if (!attestation.data || attestation.data.revoked) {
+    try {
+      // Fetch KYC attestation from blockchain
+      const attestation = await this.sdk.fetchAttestation({
+        schemaUID: 'kyc-basic-v1',
+        subject: userAddress
+      });
+      
+      // Handle fetch errors gracefully
+      if (attestation.error) {
+        console.warn(`Error fetching attestation: ${attestation.error}`);
+        return { verified: false };
+      }
+      
+      // Check if attestation exists and is not revoked
+      if (!attestation.data || attestation.data.revoked) {
+        return { verified: false };
+      }
+      
+      // Parse and validate attestation data
+      return this.validateAttestationData(attestation.data);
+      
+    } catch (error) {
+      console.error('Compliance check failed:', error);
       return { verified: false };
     }
+  }
+```
+
+**Data Validation and Age Check**
+
+```typescript
+  private validateAttestationData(attestationData: any) {
+    const data = this.parseKYCData(attestationData.value);
     
-    const data = this.parseKYCData(attestation.data.value);
-    
-    // Check if attestation is still valid (e.g., not older than 365 days)
-    const attestationAge = Date.now() - data.timestamp;
-    const maxAge = 365 * 24 * 60 * 60 * 1000; // 365 days
+    // Check attestation age (365 days maximum)
+    const attestationAge = (Date.now() / 1000) - data.timestamp;
+    const maxAge = 365 * 24 * 60 * 60; // 365 days in seconds
     
     if (attestationAge > maxAge) {
+      console.log('KYC attestation has expired');
       return { verified: false };
     }
     
+    // Return validated compliance data
     return {
-      verified: data.verified,
+      verified: data.verified === 'true',
       level: data.level,
-      jurisdiction: data.jurisdiction
+      jurisdiction: data.jurisdiction,
+      expiresAt: data.timestamp + maxAge
     };
   }
-  
+```
+
+**Access Control Enforcement**
+
+```typescript
   async requireKYC(userAddress: string, requiredLevel: string = 'basic') {
     const compliance = await this.checkUserCompliance(userAddress);
     
+    // Check basic verification requirement
     if (!compliance.verified) {
       throw new Error('KYC verification required');
     }
     
+    // Check level requirement for enhanced features
     if (requiredLevel === 'enhanced' && compliance.level === 'basic') {
       throw new Error('Enhanced KYC verification required');
     }
     
     return true;
   }
+```
   
+**Data Parsing Utility**
+
+```typescript
   private parseKYCData(value: string) {
     const parts = value.split(',');
     const data: any = {};
     
+    // Parse key:value pairs from attestation
     parts.forEach(part => {
       const [key, val] = part.split(':');
+      // Convert string booleans to actual booleans
       data[key] = val === 'true' ? true : val === 'false' ? false : val;
     });
     
@@ -215,9 +335,15 @@ async function checkJurisdictionCompliance(
   return requiredJurisdictions.includes(data.jurisdiction);
 }
 
-// Usage
+// Usage example
 const allowedJurisdictions = ['US', 'UK', 'EU'];
 const isCompliant = await checkJurisdictionCompliance(userAddress, allowedJurisdictions);
+
+if (!isCompliant) {
+  console.log('User jurisdiction not supported for this product');
+  // Redirect to supported products or re-verification
+  await redirectToSupportedProducts(userAddress);
+}
 ```
 
 ### Tiered Access Control
@@ -226,69 +352,80 @@ Implement different access levels based on KYC:
 
 ```typescript
 class TieredAccessControl {
+  
   async getUserAccessLevel(userAddress: string): Promise<{
     tier: 'none' | 'basic' | 'enhanced' | 'institutional';
     limits: any;
   }> {
+    // Fetch enhanced KYC attestation
     const kyc = await this.sdk.fetchAttestation({
       schemaUID: 'kyc-enhanced-v1',
       subject: userAddress
     });
     
+    // Return no access if no valid KYC found
     if (!kyc.data || kyc.data.revoked) {
-      return {
-        tier: 'none',
-        limits: {
-          dailyLimit: 0,
-          singleTransactionLimit: 0,
-          allowedProducts: []
-        }
-      };
+      return this.getNoAccessLimits();
     }
     
     const data = parseKYCData(kyc.data.value);
-    
-    switch(data.level) {
+    return this.mapKYCLevelToAccessTier(data.level);
+  }
+```
+
+**Access Tier Mapping**
+
+```typescript
+  private mapKYCLevelToAccessTier(kycLevel: string) {
+    switch(kycLevel) {
       case 'basic':
         return {
-          tier: 'basic',
+          tier: 'basic' as const,
           limits: {
-            dailyLimit: 1000,
-            singleTransactionLimit: 500,
+            dailyLimit: 1000,           // $1,000 daily limit
+            singleTransactionLimit: 500, // $500 per transaction
             allowedProducts: ['spot', 'savings']
           }
         };
       
       case 'enhanced':
         return {
-          tier: 'enhanced',
+          tier: 'enhanced' as const,
           limits: {
-            dailyLimit: 50000,
-            singleTransactionLimit: 10000,
+            dailyLimit: 50000,           // $50,000 daily limit
+            singleTransactionLimit: 10000, // $10,000 per transaction
             allowedProducts: ['spot', 'savings', 'margin', 'derivatives']
           }
         };
       
       case 'institutional':
         return {
-          tier: 'institutional',
+          tier: 'institutional' as const,
           limits: {
-            dailyLimit: -1, // Unlimited
-            singleTransactionLimit: -1,
+            dailyLimit: -1,              // Unlimited
+            singleTransactionLimit: -1,  // Unlimited
             allowedProducts: ['all']
           }
         };
         
       default:
-        return {
-          tier: 'none',
-          limits: {
-            dailyLimit: 0,
-            singleTransactionLimit: 0,
-            allowedProducts: []
-          }
-        };
+        return this.getNoAccessLimits();
     }
+  }
+```
+
+**Default Limits Helper**
+
+```typescript
+  private getNoAccessLimits() {
+    return {
+      tier: 'none' as const,
+      limits: {
+        dailyLimit: 0,
+        singleTransactionLimit: 0,
+        allowedProducts: []
+      }
+    };
   }
 }
 ```
@@ -343,35 +480,69 @@ Implement proper lifecycle management:
 
 ```typescript
 class KYCLifecycleManager {
-  // Set appropriate expiration
+  
+  // Issue KYC with explicit expiration date
   async issueKYCWithExpiry(userAddress: string, data: any) {
-    const expiryDays = 365; // 1 year
+    const expiryDays = 365; // 1 year validity
     const expiryTimestamp = Date.now() + (expiryDays * 24 * 60 * 60 * 1000);
+    
+    // Create structured attestation value with expiry
+    const attestationValue = [
+      `verified:true`,
+      `level:${data.level}`,
+      `jurisdiction:${data.jurisdiction}`,
+      `timestamp:${Date.now()}`,
+      `expiry:${expiryTimestamp}`
+    ].join(',');
     
     return await sdk.attest({
       schemaUID: 'kyc-basic-v1',
       subject: userAddress,
-      value: `verified:true,level:${data.level},jurisdiction:${data.jurisdiction},timestamp:${Date.now()},expiry:${expiryTimestamp}`,
+      value: attestationValue,
       reference: `kyc-${Date.now()}`
     });
   }
-  
-  // Handle re-verification
+```
+
+**Renewal Management**
+
+```typescript
+  // Check expiration and trigger renewal when needed
   async checkAndRenewKYC(userAddress: string) {
     const current = await sdk.fetchAttestation({
       schemaUID: 'kyc-basic-v1',
       subject: userAddress
     });
     
-    if (current.data) {
-      const data = parseKYCData(current.data.value);
-      const daysUntilExpiry = (data.expiry - Date.now()) / (24 * 60 * 60 * 1000);
-      
-      if (daysUntilExpiry < 30) {
-        // Trigger re-verification process
-        await this.initiateReverification(userAddress);
-      }
+    if (!current.data) {
+      console.log('No KYC attestation found for user');
+      return;
     }
+    
+    const data = parseKYCData(current.data.value);
+    const daysUntilExpiry = (data.expiry - Date.now()) / (24 * 60 * 60 * 1000);
+    
+    // Trigger renewal 30 days before expiry
+    if (daysUntilExpiry < 30) {
+      console.log(`KYC expires in ${Math.floor(daysUntilExpiry)} days`);
+      await this.initiateReverification(userAddress);
+    }
+  }
+```
+
+**Re-verification Process**
+
+```typescript
+  private async initiateReverification(userAddress: string) {
+    // Send notification to user about upcoming expiry
+    await this.notifyUserOfExpiry(userAddress);
+    
+    // Create re-verification request
+    await this.createReverificationRequest({
+      userAddress,
+      reason: 'renewal',
+      requestedAt: Date.now()
+    });
   }
 }
 ```

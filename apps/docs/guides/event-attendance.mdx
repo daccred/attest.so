@@ -45,9 +45,16 @@ const hackathonSchema = 'hackathon-participant-v1';
 Implement check-in and attestation issuance:
 
 ```typescript
+import { StellarAttestSDK, SolanaAttestSDK } from '@attestprotocol/sdk';
+
 class EventAttestationSystem {
-  private sdk: AttestSDKBase;
+  private sdk: StellarAttestSDK | SolanaAttestSDK;
   private eventConfig: EventConfig;
+  
+  constructor(sdk: StellarAttestSDK | SolanaAttestSDK, eventConfig: EventConfig) {
+    this.sdk = sdk;
+    this.eventConfig = eventConfig;
+  }
   
   constructor(sdk: AttestSDKBase, eventConfig: EventConfig) {
     this.sdk = sdk;
@@ -142,16 +149,18 @@ class EventAttestationSystem {
       'Future event discounts'
     ];
     
+    // Role-specific additional benefits
     const roleBenefits = {
-      speaker: ['Speaker badge', 'VIP lounge access', 'Recording access'],
-      sponsor: ['Sponsor badge', 'Lead scanner access', 'Booth analytics'],
+      speaker: ['Speaker badge NFT', 'VIP lounge access', 'Recording access'],
+      sponsor: ['Sponsor badge NFT', 'Lead scanner access', 'Booth analytics'],
       organizer: ['Full event access', 'Admin dashboard', 'Attendee data'],
-      volunteer: ['Volunteer badge', 'Meal vouchers', 'Certificate']
+      volunteer: ['Volunteer badge NFT', 'Meal vouchers', 'Certificate']
     };
     
     return [...baseBenefits, ...(roleBenefits[role] || [])];
   }
 }
+```
 ```
 
 ### Session Tracking
@@ -354,6 +363,7 @@ Handle online and hybrid events:
 
 ```typescript
 class VirtualEventAttestations {
+  
   async trackVirtualAttendance(
     attendeeAddress: string,
     sessionData: {
@@ -368,35 +378,86 @@ class VirtualEventAttestations {
       };
     }
   ) {
-    // Calculate engagement score
+    // Calculate participant engagement score
     const engagementScore = this.calculateEngagement(
       sessionData.duration,
       sessionData.engagement
     );
     
-    // Issue virtual attendance attestation
+    // Create virtual attendance attestation
+    return await this.issueVirtualAttestation(attendeeAddress, sessionData, engagementScore);
+  }
+```
+
+**Issue Virtual Attestation**
+
+```typescript
+  private async issueVirtualAttestation(
+    attendeeAddress: string,
+    sessionData: any,
+    engagementScore: number
+  ) {
+    // Create structured attestation value
+    const attestationValue = [
+      `eventId:${this.eventId}`,
+      `platform:${sessionData.platform}`,
+      `duration:${sessionData.duration}`,
+      `engagementScore:${engagementScore}`,
+      `timestamp:${Date.now()}`
+    ].join(',');
+    
     const attestation = await this.sdk.attest({
       schemaUID: 'virtual-attendance-v1',
       subject: attendeeAddress,
-      value: `eventId:${this.eventId},platform:${sessionData.platform},duration:${sessionData.duration},engagementScore:${engagementScore},timestamp:${Date.now()}`,
+      value: attestationValue,
       reference: `virtual-${sessionData.sessionId}-${attendeeAddress}`
     });
     
     return attestation;
   }
-  
+```
+
+**Engagement Score Calculation**
+
+```typescript
   private calculateEngagement(duration: number, engagement: any): number {
+    // Base score from attendance duration
+    const durationScore = this.calculateDurationScore(duration);
+    
+    // Bonus points for interactions
+    const interactionScore = this.calculateInteractionScore(engagement);
+    
+    // Total score capped at 100
+    return Math.min(durationScore + interactionScore, 100);
+  }
+```
+
+**Duration Score Calculation**
+
+```typescript
+  private calculateDurationScore(duration: number): number {
+    // 25 points per hour, maximum 50 points
+    const hoursAttended = duration / 3600;
+    return Math.min(hoursAttended * 25, 50);
+  }
+```
+
+**Interaction Score Calculation**
+
+```typescript
+  private calculateInteractionScore(engagement: any): number {
     let score = 0;
     
-    // Base score for attendance duration (max 50 points)
-    score += Math.min((duration / 3600) * 25, 50); // 25 points per hour, max 50
-    
-    // Interaction bonuses
+    // Chat participation (max 20 points)
     score += Math.min(engagement.chatMessages || 0, 20);
+    
+    // Questions asked (10 points each)
     score += (engagement.questionsAsked || 0) * 10;
+    
+    // Poll participation (5 points each)
     score += (engagement.pollsAnswered || 0) * 5;
     
-    return Math.min(score, 100); // Cap at 100
+    return score;
   }
 }
 ```

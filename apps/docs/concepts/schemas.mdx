@@ -1,17 +1,157 @@
 ---
 title: 'Schemas'
-description: 'Structured templates that define attestation data formats and validation rules'
+description: 'Everything Schema on AttestProtocol - Structured templates that define attestation data formats and validation rules'
 ---
 
-## What are Schemas?
+Schemas are the foundation of AttestProtocol's trust infrastructure. They define the structure, format, and validation rules for attestations, ensuring consistency across applications and enabling interoperability by standardizing how data is stored and verified.
 
-Schemas are the blueprints that define the structure, format, and validation rules for attestations. They ensure consistency across applications and enable interoperability by standardizing how data is stored and verified.
+Understand how to work with schemas in AttestProtocol. Schemas define the structure of each attestation, allowing for reusable, interoperable templates that power trusted proofs across the ecosystem.
 
-Think of schemas as contracts that specify:
-- What fields an attestation must contain
-- The data types for each field
-- Whether fields are required or optional
-- Validation rules and constraints
+---
+
+## Browse Schemas
+
+### Explore the Schema Registry
+
+AttestProtocol hosts a growing registry of ready-to-use schemas covering identity, credentials, ownership, governance, and more. Each schema includes:
+
+- Field definitions and data types
+- Usage stats and adoption metrics
+- Verified authorities that can issue under it
+- Compatibility with supported chains
+
+### Example Categories
+
+**Identity** — KYC, proof of humanity, age verification
+**Ownership** — wallet holdings, asset claims, NFT proofs
+**Credentials** — GitHub contributions, academic degrees, licenses
+**Actions** — event attendance, voting participation
+**Custom** — DAO-specific or protocol-specific templates
+
+[Explore the Schema Registry →](https://attestprotocol.org/schemas)
+
+---
+
+## Using Schemas
+
+### Integrate an Existing Schema
+
+To use a schema in your app or workflow:
+
+**Select a schema ID from the Registry:**
+```typescript
+const schema = "kyc-basic";
+```
+
+**Format your attestation data to match the schema fields:**
+```typescript
+const data = {
+  verificationLevel: "basic",
+  jurisdiction: "KE",
+  verifiedAt: Date.now(),
+  expiresAt: Date.now() + 30 * 86400 * 1000
+};
+```
+
+**Use the SDK to issue an attestation:**
+```typescript
+await attest({ to: userAddress, schema, data });
+```
+
+Attestations are signed, timestamped, and instantly verifiable.
+
+---
+
+## Creating Schemas
+
+### Define a Custom Schema
+
+Need your own structure? Define a custom schema for your application, DAO, or protocol.
+
+```typescript
+const schemaDefinition = {
+  fields: [
+    { name: "score", type: "int8" },
+    { name: "validatedBy", type: "string" },
+    { name: "verifiedAt", type: "uint64" }
+  ]
+};
+
+const schemaId = await createSchema(schemaDefinition);
+```
+
+### Schema Builder (Coming Soon)
+
+A visual drag-and-drop tool for creating and testing schemas without writing code is in development.
+
+---
+
+## Schema Standards
+
+### AttestProtocol Schema Specification (APSS)
+
+All schemas follow APSS, ensuring consistency and interoperability across the protocol.
+
+**Key Features:**
+- JSON-compatible structure
+- Deterministic field ordering
+- Type-safe validation
+- Chain-agnostic deployment
+- Composable with on-chain resolvers
+
+Schema specs are public and versioned to support open contribution and governance.
+
+[View Schema Spec](https://attestprotocol.org/docs/apss)
+
+---
+
+## Versioning
+
+### Version Control for Schemas
+
+Schemas evolve over time. AttestProtocol supports:
+
+- Semantic versioning (e.g., v1.0.3)
+- Backward-compatible updates (optional fields)
+- Breaking changes require new schema IDs
+- Attestations always reference the exact schema version they were issued under
+
+### Migration Guides
+
+We provide tooling and best practices for upgrading to newer schema versions while preserving verification paths.
+
+[View Migration Docs](https://attestprotocol.org/docs/migration)
+
+---
+
+## Best Practices
+
+### Designing Trustworthy Schemas
+
+A well-designed schema balances specificity, reuse, and security.
+
+**Do:**
+- Use clear field names and data types
+- Include timestamps and expiration where relevant
+- Document validation requirements
+- Test schema usage across sample data
+
+**Avoid:**
+- Overloading fields with multiple meanings
+- Using ambiguous data types (e.g., strings for booleans)
+- Omitting important metadata (e.g., issuer, jurisdiction)
+
+### Tools for Testing
+
+- Test suite for schema validation
+- SDK mocks for issuing sample attestations
+- Integration tests for attestation workflows
+
+### Community Contributions
+
+Have a reusable schema idea? Submit it to the public registry for community use and feedback.
+
+[Submit a Schema](https://attestprotocol.org/schemas/submit)
 
 ---
 
@@ -769,9 +909,9 @@ type MigrationStrategy = 'strict' | 'permissive' | 'forced';
     Understand authority management and permissions
   </Card>
   <Card
-    title="Schema Design Guide"
+    title="Custom Schema Design"
     icon="pencil"
-    href="/guides/schema-design"
+    href="/guides/custom-schemas"
   >
     Best practices for enterprise schema design
   </Card>

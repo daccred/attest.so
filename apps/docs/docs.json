@@ -52,7 +52,15 @@
           },
           {
             "group": "Workflow Guides",
-            "pages": ["guides/kyc-integration", "guides/dao-voting", "guides/event-attendance"]
+            "pages": [
+              "guides/kyc-integration", 
+              "guides/dao-voting", 
+              "guides/github-credentials",
+              "guides/asset-ownership",
+              "guides/event-attendance",
+              "guides/custom-schemas",
+              "guides/privacy-options"
+            ]
           }
         ]
       },
