@@ -8,7 +8,7 @@ import {
   xdr,
   Address,
   Contract,
-  SorobanRpc,
+  rpc,
   Account,
   TimeoutInfinite,
   BASE_FEE,
@@ -21,7 +21,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { randomBytes } from 'crypto'
-import { setupTestAccounts } from './account-setup.mjs'
+import { setupTestAccounts } from './setup.mjs'
 
 /* -----------------------------------------------------------------
 /--- Test Setup --------------------------------------------------*/
@@ -92,7 +92,7 @@ try {
 }
 
 // --- Stellar SDK Setup ---
-const server = new SorobanRpc.Server(RPC_URL, { allowHttp: true })
+const server = new rpc.Server(RPC_URL, { allowHttp: true })
 const adminKeypair = Keypair.fromSecret(ADMIN_SECRET_KEY)
 const adminAddress = adminKeypair.publicKey()
 

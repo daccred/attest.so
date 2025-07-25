@@ -8,7 +8,7 @@ import {
   xdr,
   Address,
   Contract,
-  SorobanRpc,
+  rpc,
   Account,
   TimeoutInfinite,
   BASE_FEE,
@@ -91,7 +91,7 @@ try {
 }
 
 // --- Stellar SDK Setup ---
-const server = new SorobanRpc.Server(RPC_URL, { allowHttp: true })
+const server = new rpc.Server(RPC_URL, { allowHttp: true })
 const source = Keypair.fromSecret(SECRET_KEY)
 const sourceAddress = source.publicKey()
 const protocolContract = new Contract(PROTOCOL_CONTRACT_ID)
@@ -142,7 +142,7 @@ async function invokeContract(operation, sourceKeypair, expectSuccess = true) {
   }
   // Simulation seems successful, assemble the transaction using simulation results
   console.log('Simulation successful. Assembling transaction...')
-  const preparedTx = SorobanRpc.assembleTransaction(tx, sim).build()
+  const preparedTx = rpc.assembleTransaction(tx, sim).build()
 
   console.log('Signing prepared transaction...')
   preparedTx.sign(sourceKeypair)
