@@ -30,6 +30,8 @@
     "commit": "cz",
     "dev": "pnpm run --recursive dev",
     "dev:docs": "pnpm --filter @attestprotocol/docs dev",
+    "build:docs": "pnpm --filter @attestprotocol/docs build",
+    "preview:docs": "pnpm --filter @attestprotocol/docs preview",
     "filter": "pnpm --filter",
     "format": "pnpm run -r format",
     "lint": "pnpm run -r lint",

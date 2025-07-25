@@ -62,29 +62,208 @@ Smart contracts and oracles issuing programmatic attestations:
 
 ### Registration Process
 
-```typescript
+<CodeGroup>
+```typescript Stellar
+import { AttestSDK } from '@attestprotocol/sdk';
+
+const sdk = await AttestSDK.initializeStellar({
+  secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY,
+  publicKey: process.env.STELLAR_PUBLIC_KEY,
+  url: 'https://soroban-testnet.stellar.org'
+});
+
 // Register as authority
 const result = await sdk.registerAuthority();
 
-if (result.data) {
-  console.log('Authority registered successfully');
-  console.log('Authority address:', result.data.address);
+if (result.error) {
+  console.error('Authority registration failed:', result.error);
+  throw new Error(`Failed to register authority: ${result.error}`);
+}
+
+console.log('Authority registered successfully');
+console.log('Authority address:', sdk.getPublicKey());
+console.log('Transaction hash:', result.data);
+
+// Verify registration
+const verification = await sdk.fetchAuthority();
+if (verification.data) {
+  console.log('Authority verification confirmed');
+  console.log('Registered at:', new Date(verification.data.timestamp * 1000));
+} else {
+  console.warn('Authority verification failed');
 }
 ```
 
-### Authority Profile
+```typescript Solana
+import { AttestSDK } from '@attestprotocol/sdk';
 
-Authorities can enhance their profile for better trust:
+const sdk = await AttestSDK.initializeSolana({
+  walletOrSecretKey: JSON.parse(process.env.SOLANA_SECRET_KEY),
+  url: 'https://api.devnet.solana.com'
+});
+
+// Register as authority
+const result = await sdk.registerAuthority();
+
+if (result.error) {
+  console.error('Authority registration failed:', result.error);
+  throw new Error(`Failed to register authority: ${result.error}`);
+}
+
+console.log('Authority registered successfully');
+console.log('Authority PDA:', result.data.toBase58());
+
+// Store authority metadata for future reference
+const authorityMetadata = {
+  authorityPDA: result.data.toBase58(),
+  publicKey: sdk.getPublicKey(),
+  registeredAt: Date.now(),
+  chain: 'solana',
+  network: 'devnet'
+};
+
+await storeAuthorityMetadata(authorityMetadata);
+```
+</CodeGroup>
+
+### Authority Profile Management
+
+Authorities can enhance their profiles and build trust through comprehensive metadata:
 
 ```typescript
-// Update authority metadata (implementation varies by chain)
-const profile = {
-  name: "Acme Verification Services",
-  website: "https://acme-verify.com",
-  description: "Professional KYC and AML verification",
-  categories: ["identity", "compliance"],
-  jurisdiction: ["US", "EU", "UK"]
-};
+class AuthorityProfileManager {
+  private sdk: StellarAttestSDK | SolanaAttestSDK;
+  private metadataStore: MetadataStore;
+  
+  constructor(sdk: StellarAttestSDK | SolanaAttestSDK, metadataStore: MetadataStore) {
+    this.sdk = sdk;
+    this.metadataStore = metadataStore;
+  }
+
+  async createAuthorityProfile(profile: AuthorityProfile): Promise<string> {
+    // Validate profile data
+    this.validateProfile(profile);
+    
+    // Create profile metadata
+    const profileData = {
+      ...profile,
+      authorityAddress: this.sdk.getPublicKey(),
+      createdAt: Date.now(),
+      version: '1.0',
+      verified: false
+    };
+    
+    // Store profile metadata
+    const profileId = await this.metadataStore.store(profileData);
+    
+    // Create self-attestation for profile
+    const profileAttestation = await this.sdk.attest({
+      schemaUID: 'authority-profile-v1',
+      subject: this.sdk.getPublicKey(),
+      value: `profileId:${profileId},name:${profile.name.replace(/[^a-zA-Z0-9]/g, '_')},categories:${profile.categories.join('_')},verified:false,createdAt:${Math.floor(Date.now() / 1000)}`,
+      reference: `profile-${profileId}`
+    });
+    
+    if (profileAttestation.error) {
+      throw new Error(`Profile attestation failed: ${profileAttestation.error}`);
+    }
+    
+    return profileId;
+  }
+
+  async updateTrustScore(): Promise<number> {
+    const metrics = await this.calculateTrustMetrics();
+    const trustScore = this.computeTrustScore(metrics);
+    
+    // Create trust score attestation
+    const trustAttestation = await this.sdk.attest({
+      schemaUID: 'authority-trust-score-v1',
+      subject: this.sdk.getPublicKey(),
+      value: `score:${trustScore},attestationsIssued:${metrics.totalAttestations},revocationRate:${metrics.revocationRate},disputeRate:${metrics.disputeRate},uptime:${metrics.uptime},lastUpdated:${Math.floor(Date.now() / 1000)}`,
+      reference: `trust-score-${Date.now()}`
+    });
+    
+    if (trustAttestation.error) {
+      throw new Error(`Trust score update failed: ${trustAttestation.error}`);
+    }
+    
+    return trustScore;
+  }
+
+  private validateProfile(profile: AuthorityProfile): void {
+    if (!profile.name || profile.name.length < 3) {
+      throw new Error('Authority name must be at least 3 characters');
+    }
+    
+    if (!profile.description || profile.description.length < 20) {
+      throw new Error('Description must be at least 20 characters');
+    }
+    
+    if (!profile.categories || profile.categories.length === 0) {
+      throw new Error('At least one category must be specified');
+    }
+    
+    if (profile.website && !this.isValidUrl(profile.website)) {
+      throw new Error('Invalid website URL');
+    }
+  }
+
+  private async calculateTrustMetrics(): Promise<TrustMetrics> {
+    // Implementation would query historical attestation data
+    return {
+      totalAttestations: 0,
+      revocationRate: 0,
+      disputeRate: 0,
+      uptime: 0.99,
+      averageResponseTime: 2.5,
+      clientSatisfaction: 4.8
+    };
+  }
+
+  private computeTrustScore(metrics: TrustMetrics): number {
+    let score = 100;
+    
+    // Penalize high revocation rate
+    score -= metrics.revocationRate * 50;
+    
+    // Penalize high dispute rate
+    score -= metrics.disputeRate * 30;
+    
+    // Penalize poor uptime
+    score -= (1 - metrics.uptime) * 40;
+    
+    // Bonus for high volume
+    if (metrics.totalAttestations > 1000) score += 5;
+    if (metrics.totalAttestations > 10000) score += 10;
+    
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }
+}
+
+interface AuthorityProfile {
+  name: string;
+  description: string;
+  website?: string;
+  categories: string[];
+  jurisdiction: string[];
+  contactEmail?: string;
+  businessLicense?: string;
+  insurance?: {
+    provider: string;
+    policyNumber: string;
+    coverage: number;
+  };
+  certifications?: string[];
+}
+
+interface TrustMetrics {
+  totalAttestations: number;
+  revocationRate: number;
+  disputeRate: number;
+  uptime: number;
+  averageResponseTime: number;
+  clientSatisfaction: number;
+}
 ```
 
 ### Verification Levels
@@ -416,57 +595,436 @@ const complianceChecks = {
 
 ## Integration Examples
 
-### KYC Provider Integration
+### Enterprise KYC Authority Integration
 
 ```typescript
-class KYCAuthority {
-  private sdk: AttestSDKBase;
+import { StellarAttestSDK, SolanaAttestSDK } from '@attestprotocol/sdk';
+
+class EnterpriseKYCAuthority {
+  private sdk: StellarAttestSDK | SolanaAttestSDK;
+  private complianceLogger: ComplianceLogger;
+  private encryptionService: EncryptionService;
   
-  async verifyAndAttest(userData: any) {
-    // 1. Perform KYC checks
-    const kycResult = await this.performKYCChecks(userData);
+  constructor(
+    sdk: StellarAttestSDK | SolanaAttestSDK,
+    complianceLogger: ComplianceLogger,
+    encryptionService: EncryptionService
+  ) {
+    this.sdk = sdk;
+    this.complianceLogger = complianceLogger;
+    this.encryptionService = encryptionService;
+  }
+
+  async performKYCVerification(
+    userData: KYCUserData
+  ): Promise<KYCVerificationResult> {
+    const sessionId = `kyc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    // 2. Create attestation
-    if (kycResult.passed) {
-      const attestation = await this.sdk.attest({
-        schemaUID: 'kyc-enhanced-v1',
-        subject: userData.walletAddress,
-        value: `verified:true,level:${kycResult.level},score:${kycResult.score},checkDate:${Date.now()}`,
-        reference: kycResult.sessionId
+    try {
+      // 1. Log verification start for audit trail
+      await this.complianceLogger.logEvent({
+        type: 'kyc_verification_started',
+        sessionId,
+        userAddress: userData.walletAddress,
+        timestamp: Date.now()
       });
+
+      // 2. Perform comprehensive KYC checks
+      const verificationResults = await this.executeKYCChecks(userData);
       
-      // 3. Store compliance records
-      await this.storeComplianceRecord({
-        attestationId: attestation.data.attestationUID,
-        kycData: kycResult,
+      // 3. Calculate risk score
+      const riskScore = this.calculateRiskScore(verificationResults);
+      
+      // 4. Determine KYC level based on checks
+      const kycLevel = this.determineKYCLevel(verificationResults, riskScore);
+      
+      if (verificationResults.passed && riskScore <= 25) {
+        // 5. Create attestation for successful verification
+        const attestationData = `verified:true,level:${kycLevel},riskScore:${riskScore},country:${userData.country},pepCheck:${verificationResults.pepCheck},sanctionsCheck:${verificationResults.sanctionsCheck},documentVerification:${verificationResults.documentVerification},timestamp:${Math.floor(Date.now() / 1000)}`;
+        
+        const attestation = await this.sdk.attest({
+          schemaUID: 'kyc-enhanced-v1',
+          subject: userData.walletAddress,
+          value: attestationData,
+          reference: sessionId
+        });
+        
+        if (attestation.error) {
+          throw new Error(`Attestation creation failed: ${attestation.error}`);
+        }
+        
+        // 6. Store encrypted compliance records
+        const encryptedKYCData = await this.encryptionService.encrypt({
+          ...verificationResults,
+          userData: this.sanitizeUserData(userData),
+          riskScore,
+          sessionId
+        });
+        
+        await this.storeComplianceRecord({
+          sessionId,
+          attestationUID: attestation.data,
+          encryptedData: encryptedKYCData,
+          kycLevel,
+          riskScore,
+          timestamp: Date.now()
+        });
+        
+        // 7. Log successful verification
+        await this.complianceLogger.logEvent({
+          type: 'kyc_verification_completed',
+          sessionId,
+          userAddress: userData.walletAddress,
+          kycLevel,
+          riskScore,
+          attestationUID: attestation.data,
+          timestamp: Date.now()
+        });
+        
+        return {
+          success: true,
+          sessionId,
+          attestationUID: attestation.data,
+          kycLevel,
+          riskScore,
+          expiresAt: Date.now() + (365 * 24 * 60 * 60 * 1000) // 1 year
+        };
+      } else {
+        // Handle failed verification
+        await this.complianceLogger.logEvent({
+          type: 'kyc_verification_failed',
+          sessionId,
+          userAddress: userData.walletAddress,
+          reason: verificationResults.failureReason,
+          riskScore,
+          timestamp: Date.now()
+        });
+        
+        return {
+          success: false,
+          sessionId,
+          reason: verificationResults.failureReason,
+          riskScore,
+          requiredActions: verificationResults.requiredActions
+        };
+      }
+    } catch (error) {
+      // Log error for audit trail
+      await this.complianceLogger.logEvent({
+        type: 'kyc_verification_error',
+        sessionId,
+        userAddress: userData.walletAddress,
+        error: error.message,
         timestamp: Date.now()
       });
       
-      return attestation;
+      throw error;
+    }
+  }
+
+  async revokeKYCAttestation(
+    userAddress: string,
+    reason: string
+  ): Promise<void> {
+    const revocationId = `revoke-${Date.now()}`;
+    
+    // Find existing KYC attestation
+    const existing = await this.sdk.fetchAttestation({
+      schemaUID: 'kyc-enhanced-v1',
+      subject: userAddress
+    });
+    
+    if (!existing.data || existing.data.revoked) {
+      throw new Error('No active KYC attestation found for user');
     }
     
-    throw new Error('KYC verification failed');
+    // Revoke the attestation
+    const revocation = await this.sdk.revokeAttestation({
+      schemaUID: 'kyc-enhanced-v1',
+      subject: userAddress,
+      reference: existing.data.reference
+    });
+    
+    if (revocation.error) {
+      throw new Error(`Revocation failed: ${revocation.error}`);
+    }
+    
+    // Log revocation for compliance
+    await this.complianceLogger.logEvent({
+      type: 'kyc_attestation_revoked',
+      revocationId,
+      userAddress,
+      originalReference: existing.data.reference,
+      reason,
+      revokedBy: this.sdk.getPublicKey(),
+      timestamp: Date.now()
+    });
   }
+
+  private async executeKYCChecks(userData: KYCUserData): Promise<KYCCheckResults> {
+    const checks = await Promise.allSettled([
+      this.performDocumentVerification(userData.documents),
+      this.performPEPCheck(userData.personalInfo),
+      this.performSanctionsCheck(userData.personalInfo),
+      this.performAddressVerification(userData.address),
+      this.performBiometricVerification(userData.biometrics)
+    ]);
+    
+    return {
+      documentVerification: checks[0].status === 'fulfilled' && checks[0].value.passed,
+      pepCheck: checks[1].status === 'fulfilled' && checks[1].value.cleared,
+      sanctionsCheck: checks[2].status === 'fulfilled' && checks[2].value.cleared,
+      addressVerification: checks[3].status === 'fulfilled' && checks[3].value.verified,
+      biometricVerification: checks[4].status === 'fulfilled' && checks[4].value.matched,
+      passed: checks.every(check => check.status === 'fulfilled' && check.value.passed),
+      failureReason: checks.find(check => check.status === 'rejected')?.reason,
+      requiredActions: checks
+        .filter(check => check.status === 'rejected')
+        .map(check => check.reason)
+    };
+  }
+
+  private calculateRiskScore(results: KYCCheckResults): number {
+    let score = 0;
+    
+    if (!results.documentVerification) score += 30;
+    if (!results.pepCheck) score += 25;
+    if (!results.sanctionsCheck) score += 40;
+    if (!results.addressVerification) score += 15;
+    if (!results.biometricVerification) score += 20;
+    
+    return Math.min(score, 100);
+  }
+
+  private determineKYCLevel(results: KYCCheckResults, riskScore: number): string {
+    if (riskScore <= 10 && results.biometricVerification) {
+      return 'enhanced';
+    } else if (riskScore <= 25 && results.documentVerification) {
+      return 'standard';
+    } else {
+      return 'basic';
+    }
+  }
+}
+
+interface KYCUserData {
+  walletAddress: string;
+  personalInfo: {
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    nationality: string;
+  };
+  documents: {
+    passportId?: string;
+    drivingLicense?: string;
+    nationalId?: string;
+  };
+  address: {
+    street: string;
+    city: string;
+    country: string;
+    postalCode: string;
+  };
+  biometrics?: {
+    faceImage: string;
+    fingerprint?: string;
+  };
+  country: string;
+}
+
+interface KYCCheckResults {
+  documentVerification: boolean;
+  pepCheck: boolean;
+  sanctionsCheck: boolean;
+  addressVerification: boolean;
+  biometricVerification: boolean;
+  passed: boolean;
+  failureReason?: string;
+  requiredActions?: string[];
+}
+
+interface KYCVerificationResult {
+  success: boolean;
+  sessionId: string;
+  attestationUID?: string;
+  kycLevel?: string;
+  riskScore: number;
+  expiresAt?: number;
+  reason?: string;
+  requiredActions?: string[];
 }
 ```
 
-### DAO Authority System
+### DAO Governance Authority System
 
 ```typescript
-class DAOAuthority {
-  async issueMembershipAttestation(memberAddress: string, daoVote: any) {
-    // Verify DAO vote passed
-    if (daoVote.passed && daoVote.type === 'membership') {
-      const attestation = await this.sdk.attest({
-        schemaUID: 'dao-membership-v1',
-        subject: memberAddress,
-        value: `isMember:true,joinDate:${Date.now()},votingPower:${daoVote.votingPower}`,
-        reference: `proposal-${daoVote.proposalId}`
-      });
-      
-      return attestation;
-    }
+class DAOGovernanceAuthority {
+  private sdk: StellarAttestSDK | SolanaAttestSDK;
+  private governanceContract: string;
+  private minimumQuorum: number;
+  
+  constructor(
+    sdk: StellarAttestSDK | SolanaAttestSDK,
+    governanceContract: string,
+    minimumQuorum: number = 0.1
+  ) {
+    this.sdk = sdk;
+    this.governanceContract = governanceContract;
+    this.minimumQuorum = minimumQuorum;
   }
+
+  async processMembershipProposal(
+    proposalId: string,
+    candidateAddress: string
+  ): Promise<MembershipResult> {
+    // 1. Verify proposal exists and passed
+    const proposal = await this.getProposal(proposalId);
+    if (!proposal) {
+      throw new Error(`Proposal ${proposalId} not found`);
+    }
+    
+    if (!this.hasProposalPassed(proposal)) {
+      throw new Error('Proposal has not passed required thresholds');
+    }
+    
+    // 2. Calculate membership parameters
+    const membershipData = await this.calculateMembershipParameters(
+      candidateAddress,
+      proposal
+    );
+    
+    // 3. Create membership attestation
+    const attestationData = `daoAddress:${this.governanceContract},memberSince:${Math.floor(Date.now() / 1000)},role:${membershipData.role},votingPower:${membershipData.votingPower},proposalsCreated:0,proposalsVoted:0,delegatedVotes:0,reputation:${membershipData.initialReputation},lastActive:${Math.floor(Date.now() / 1000)}`;
+    
+    const attestation = await this.sdk.attest({
+      schemaUID: 'dao-governance-v1',
+      subject: candidateAddress,
+      value: attestationData,
+      reference: `proposal-${proposalId}`
+    });
+    
+    if (attestation.error) {
+      throw new Error(`Membership attestation failed: ${attestation.error}`);
+    }
+    
+    // 4. Update DAO member registry
+    await this.updateMemberRegistry({
+      address: candidateAddress,
+      proposalId,
+      attestationUID: attestation.data,
+      membershipData,
+      approvedAt: Date.now()
+    });
+    
+    return {
+      success: true,
+      memberAddress: candidateAddress,
+      attestationUID: attestation.data,
+      membershipData,
+      approvedBy: proposalId
+    };
+  }
+
+  async updateMemberActivity(
+    memberAddress: string,
+    activityData: MemberActivity
+  ): Promise<void> {
+    // Get current membership attestation
+    const currentAttestation = await this.sdk.fetchAttestation({
+      schemaUID: 'dao-governance-v1',
+      subject: memberAddress
+    });
+    
+    if (!currentAttestation.data || currentAttestation.data.revoked) {
+      throw new Error('No active DAO membership found');
+    }
+    
+    // Parse current data
+    const currentData = this.parseAttestationData(currentAttestation.data.value);
+    
+    // Update activity metrics
+    const updatedData = {
+      ...currentData,
+      proposalsCreated: parseInt(currentData.proposalsCreated) + activityData.proposalsCreated,
+      proposalsVoted: parseInt(currentData.proposalsVoted) + activityData.proposalsVoted,
+      reputation: this.calculateNewReputation(currentData, activityData),
+      lastActive: Math.floor(Date.now() / 1000)
+    };
+    
+    // Create updated attestation
+    const newAttestationData = Object.entries(updatedData)
+      .map(([key, value]) => `${key}:${value}`)
+      .join(',');
+    
+    const newAttestation = await this.sdk.attest({
+      schemaUID: 'dao-governance-v1',
+      subject: memberAddress,
+      value: newAttestationData,
+      reference: `activity-update-${Date.now()}`
+    });
+    
+    if (newAttestation.error) {
+      throw new Error(`Activity update failed: ${newAttestation.error}`);
+    }
+    
+    // Revoke previous attestation
+    await this.sdk.revokeAttestation({
+      schemaUID: 'dao-governance-v1',
+      subject: memberAddress,
+      reference: currentAttestation.data.reference
+    });
+  }
+
+  private async getProposal(proposalId: string): Promise<Proposal | null> {
+    // Implementation depends on governance system
+    // This would typically query the DAO's governance contract
+    return null; // Placeholder
+  }
+
+  private hasProposalPassed(proposal: Proposal): boolean {
+    const quorumMet = proposal.totalVotes >= (proposal.totalMembers * this.minimumQuorum);
+    const majoritySupport = proposal.yesVotes > proposal.noVotes;
+    const votingPeriodEnded = Date.now() > proposal.votingEndsAt;
+    
+    return quorumMet && majoritySupport && votingPeriodEnded;
+  }
+
+  private parseAttestationData(value: string): Record<string, string> {
+    const pairs = value.split(',');
+    const result: Record<string, string> = {};
+    
+    pairs.forEach(pair => {
+      const [key, val] = pair.split(':');
+      result[key] = val;
+    });
+    
+    return result;
+  }
+}
+
+interface MemberActivity {
+  proposalsCreated: number;
+  proposalsVoted: number;
+  delegatedVotes?: number;
+  contributionScore?: number;
+}
+
+interface MembershipResult {
+  success: boolean;
+  memberAddress: string;
+  attestationUID: string;
+  membershipData: any;
+  approvedBy: string;
+}
+
+interface Proposal {
+  id: string;
+  totalVotes: number;
+  yesVotes: number;
+  noVotes: number;
+  totalMembers: number;
+  votingEndsAt: number;
 }
 ```
 
@@ -497,17 +1055,125 @@ interface AuthorityMetrics {
 ### Performance Monitoring
 
 ```typescript
-// Monitor attestation performance
-async function trackAttestationMetrics(attestation: any) {
-  await analytics.track({
-    event: 'attestation_issued',
-    properties: {
-      schemaType: attestation.schemaUID,
-      processingTime: attestation.processingTime,
-      authorityId: attestation.authorityAddress,
-      timestamp: Date.now()
+class AuthorityPerformanceMonitor {
+  private metrics: Map<string, AuthorityMetrics> = new Map();
+  private analyticsService: AnalyticsService;
+  
+  constructor(analyticsService: AnalyticsService) {
+    this.analyticsService = analyticsService;
+  }
+
+  async trackAttestationMetrics(
+    authorityAddress: string,
+    attestation: AttestationEvent
+  ): Promise<void> {
+    const startTime = Date.now();
+    
+    try {
+      // Track individual attestation
+      await this.analyticsService.track({
+        event: 'attestation_issued',
+        properties: {
+          authorityAddress,
+          schemaUID: attestation.schemaUID,
+          processingTime: attestation.processingTime,
+          subject: attestation.subject,
+          success: true,
+          timestamp: Date.now()
+        }
+      });
+      
+      // Update running metrics
+      await this.updateRunningMetrics(authorityAddress, {
+        attestationsIssued: 1,
+        totalProcessingTime: attestation.processingTime,
+        successfulOperations: 1,
+        timestamp: Date.now()
+      });
+      
+    } catch (error) {
+      // Track failure
+      await this.analyticsService.track({
+        event: 'attestation_failed',
+        properties: {
+          authorityAddress,
+          schemaUID: attestation.schemaUID,
+          error: error.message,
+          timestamp: Date.now()
+        }
+      });
+      
+      await this.updateRunningMetrics(authorityAddress, {
+        failedOperations: 1,
+        timestamp: Date.now()
+      });
     }
-  });
+  }
+
+  async generatePerformanceReport(
+    authorityAddress: string,
+    timeRange: TimeRange
+  ): Promise<PerformanceReport> {
+    const metrics = await this.analyticsService.query({
+      authorityAddress,
+      startTime: timeRange.start,
+      endTime: timeRange.end
+    });
+    
+    return {
+      authorityAddress,
+      timeRange,
+      totalAttestations: metrics.attestationsIssued,
+      successRate: metrics.successfulOperations / (metrics.successfulOperations + metrics.failedOperations),
+      averageProcessingTime: metrics.totalProcessingTime / metrics.attestationsIssued,
+      revocationRate: metrics.revocations / metrics.attestationsIssued,
+      schemaUsage: metrics.schemaBreakdown,
+      errorBreakdown: metrics.errorTypes,
+      recommendations: this.generateRecommendations(metrics)
+    };
+  }
+
+  private generateRecommendations(metrics: any): string[] {
+    const recommendations = [];
+    
+    if (metrics.averageProcessingTime > 5000) {
+      recommendations.push('Consider optimizing attestation processing pipeline');
+    }
+    
+    if (metrics.successRate < 0.95) {
+      recommendations.push('Investigate and resolve recurring error patterns');
+    }
+    
+    if (metrics.revocationRate > 0.05) {
+      recommendations.push('Review verification procedures to reduce revocations');
+    }
+    
+    return recommendations;
+  }
+}
+
+interface AttestationEvent {
+  schemaUID: string;
+  subject: string;
+  processingTime: number;
+  reference: string;
+}
+
+interface TimeRange {
+  start: number;
+  end: number;
+}
+
+interface PerformanceReport {
+  authorityAddress: string;
+  timeRange: TimeRange;
+  totalAttestations: number;
+  successRate: number;
+  averageProcessingTime: number;
+  revocationRate: number;
+  schemaUsage: Record<string, number>;
+  errorBreakdown: Record<string, number>;
+  recommendations: string[];
 }
 ```
 
