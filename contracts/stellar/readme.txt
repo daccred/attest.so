@@ -125,4 +125,33 @@ protocol Timestamp: 2025-05-17T21:32:22Z
 Updating deployments.json for network 'testnet' with protocol details...
 deployments.json updated successfully.
 
+========================================
+STEP: Stellar CLI Contract Interactions
+========================================
+# Generate Typescript Contract bindings
+                                                                                                                        │
+stellar contract bindings typescript \                                                                                                                               │
+       --network testnet \                                                                                                                                              │
+       --contract-id CC673T4LKURVLKJFRECXAEILKLXX74FQQTFIR5FLKZJJDDZ5Y5NLWF7O \                                                                                         │
+       --output-dir ./tmp/authority-bindings  
 
+
+# # invoke the initialize function on the Authority Resolver Contract
+stellar contract invoke \
+    --id CCJDGGA754NBRTV63VBNEON6NKDJ3H7TRVELR6WX5KEJY7S7UANRT22H \
+    --source SDRNJOIMKSA6N4MZ5PQJ6GDBZZSLBFGU65D6435SMTCQFMKRSPSWFI5S \
+    --network testnet \
+    -- \
+    initialize \
+    --admin GDATIARGDERUBYRHBOLXFKFWXXTJ4EF7LL4FJTB3R7JBGA275MC5VRHW \
+    --token_contract_id CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+
+
+# # invoke the initialize function on the Protocol Contract
+stellar contract invoke \
+    --id CCJDGGA754NBRTV63VBNEON6NKDJ3H7TRVELR6WX5KEJY7S7UANRT22H \
+    --source SDRNJOIMKSA6N4MZ5PQJ6GDBZZSLBFGU65D6435SMTCQFMKRSPSWFI5S \
+    --network testnet \
+    -- \
+    initialize \
+    --admin GDATIARGDERUBYRHBOLXFKFWXXTJ4EF7LL4FJTB3R7JBGA275MC5VRHW

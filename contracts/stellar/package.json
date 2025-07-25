@@ -4,7 +4,7 @@
   "version": "1.5.2",
   "author": "",
   "dependencies": {
-    "@stellar/stellar-sdk": "13.3.0"
+    "@stellar/stellar-sdk": "14.0.0-rc.3"
   },
   "devDependencies": {
     "tap": "^21.1.0"
