@@ -106,23 +106,41 @@ That's it. No smart contract deployments, no complex queries, just simple attest
 
 ## Core Concepts
 
-<AccordionGroup>
-  <Accordion title="Attestations">
-    Verifiable claims made by trusted authorities about subjects (users, contracts, etc.). Think of them as on-chain certificates that prove something about an entity.
-  </Accordion>
+AttestProtocol is built on four fundamental concepts that work together to create a comprehensive trust infrastructure:
 
-  <Accordion title="Schemas">
-    Structured templates that define what data an attestation contains. Like database schemas, but for on-chain trust data.
-  </Accordion>
+<CardGroup cols={2}>
+  <Card title="Attestations" icon="certificate" href="/concepts/attestations">
+    **Cryptographically signed claims**
+    
+    Verifiable statements made by trusted authorities about subjects. These are the core trust primitives that prove facts about users, contracts, or any entity on-chain.
+  </Card>
+  <Card title="Schemas" icon="database" href="/concepts/schemas">
+    **Structured data templates**
+    
+    Define the format, types, and validation rules for attestation data. Schemas ensure consistency and interoperability across all applications.
+  </Card>
+  <Card title="Authorities" icon="shield-check" href="/concepts/authorities">
+    **Trusted attestation issuers**
+    
+    Entities authorized to create attestations. Can be individuals, organizations, DAOs, or smart contracts with permission to make verifiable claims.
+  </Card>
+  <Card title="Verification" icon="magnifying-glass" href="/concepts/verification">
+    **Trust validation system**
+    
+    The process of checking attestation authenticity, authority permissions, and data integrity to confirm claims are valid and trustworthy.
+  </Card>
+</CardGroup>
 
-  <Accordion title="Authorities">
-    Trusted entities with permission to issue attestations. Could be KYC providers, DAOs, or any organization that can vouch for something.
-  </Accordion>
+### How They Work Together
 
-  <Accordion title="Subjects">
-    The entities (wallet addresses, smart contracts) that attestations are made about. Your users, essentially.
-  </Accordion>
-</AccordionGroup>
+The four concepts create a complete trust ecosystem:
+
+1. **Authorities** register and gain permission to issue attestations
+2. **Schemas** define what data structures attestations can contain
+3. **Attestations** are created by authorities following schema specifications
+4. **Verification** ensures attestations are authentic and authorities are trusted
+
+This architecture enables any application to implement sophisticated trust verification without deploying custom smart contracts or managing complex cryptographic operations.
 
 ## Use Cases
 

@@ -1,26 +1,23 @@
 ---
 title: 'Installation'
-description: 'Install AttestProtocol SDK and CLI tools for your project'
-icon: 'download'
+description: 'Install and set up the AttestProtocol TypeScript SDK'
 ---
 
-## SDK Installation
+## Package Installation
 
-AttestProtocol provides SDKs for multiple platforms and languages. The TypeScript SDK is our primary offering with full feature support.
-
-### TypeScript SDK
+Install the AttestProtocol SDK using your preferred package manager:
 
 <CodeGroup>
 ```bash npm
 npm install @attestprotocol/sdk
 ```
 
-```bash yarn  
-yarn add @attestprotocol/sdk
-```
-
 ```bash pnpm
 pnpm add @attestprotocol/sdk
+```
+
+```bash yarn
+yarn add @attestprotocol/sdk
 ```
 
 ```bash bun
@@ -28,325 +25,248 @@ bun add @attestprotocol/sdk
 ```
 </CodeGroup>
 
-### Requirements
+## Peer Dependencies
 
-- **Node.js**: Version 18.0.0 or higher
-- **TypeScript**: Version 4.5.0 or higher (optional but recommended)
-
-### Browser Support
-
-The SDK works in both Node.js and browser environments:
-
-```javascript
-// Node.js
-import { AttestClient } from '@attestprotocol/sdk';
-
-// Browser (ES modules)
-import { AttestClient } from '@attestprotocol/sdk/browser';
-
-// Browser (UMD - via CDN)
-<script src="https://unpkg.com/@attestprotocol/sdk@latest/dist/browser.js"></script>
-```
-
-## CLI Installation
-
-The AttestProtocol CLI provides command-line tools for managing attestations, schemas, and deployments.
-
-### Global Installation
+Install blockchain-specific dependencies based on your target chains:
 
 <CodeGroup>
-```bash npm
-npm install -g @attestprotocol/cli
+```bash Stellar
+npm install @stellar/stellar-sdk
 ```
 
-```bash yarn
-yarn global add @attestprotocol/cli
+```bash Solana
+npm install @coral-xyz/anchor @solana/web3.js
 ```
 
-```bash pnpm
-pnpm add -g @attestprotocol/cli
+```bash All Chains
+npm install @attestprotocol/sdk @stellar/stellar-sdk @coral-xyz/anchor @solana/web3.js
 ```
 </CodeGroup>
 
-### Local Installation (Recommended)
+<Note>
+Installing all dependencies is recommended if you plan to support multiple blockchains or are unsure which chain you'll use.
+</Note>
+
+## Requirements
+
+| Requirement | Version |
+|-------------|---------|
+| Node.js | >= 16.0 |
+| TypeScript | >= 4.5 |
+| npm/pnpm/yarn | Latest stable |
+
+## Module Formats
+
+The SDK supports multiple module formats for different environments:
 
 <CodeGroup>
-```bash npm
-npm install --save-dev @attestprotocol/cli
+```typescript ES Modules
+import { AttestSDK } from '@attestprotocol/sdk';
 ```
 
-```bash yarn
-yarn add --dev @attestprotocol/cli
+```javascript CommonJS
+const { AttestSDK } = require('@attestprotocol/sdk');
 ```
 
-```bash pnpm
-pnpm add -D @attestprotocol/cli
+```html Browser/UMD
+<script src="https://unpkg.com/@attestprotocol/sdk/dist/umd/attestprotocol.js"></script>
+<script>
+  const sdk = AttestProtocol.AttestSDK;
+</script>
+```
+
+```typescript Deno/JSR
+import { AttestSDK } from 'jsr:@attestprotocol/sdk';
 ```
 </CodeGroup>
 
-Then run via package scripts or npx:
+## TypeScript Configuration
 
-```bash
-npx attest --help
-```
+<Note>
+TypeScript is recommended for better type safety and developer experience.
+</Note>
 
-## Blockchain-Specific Tools
-
-Each blockchain has additional tooling requirements for contract development.
-
-### Solana
-
-<Steps>
-  <Step title="Install Solana CLI">
-    ```bash
-    sh -c "$(curl -sSfL https://release.solana.com/v1.18.4/install)"
-    ```
-  </Step>
-  <Step title="Install Anchor">
-    ```bash
-    npm install -g @coral-xyz/anchor-cli
-    ```
-  </Step>
-  <Step title="Install Solana CLI Tools">
-    ```bash
-    npm install -g @attestprotocol/solana-cli
-    ```
-  </Step>
-</Steps>
-
-### Stellar
-
-<Steps>
-  <Step title="Install Stellar CLI">
-    ```bash
-    cargo install --locked stellar-cli --features opt
-    ```
-  </Step>
-  <Step title="Install Stellar Tools">
-    ```bash
-    npm install -g @attestprotocol/stellar-cli
-    ```
-  </Step>
-</Steps>
-
-### Starknet
-
-<Steps>
-  <Step title="Install Scarb">
-    ```bash
-    curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh
-    ```
-  </Step>
-  <Step title="Install Starknet Tools">
-    ```bash
-    npm install -g @attestprotocol/starknet-cli
-    ```
-  </Step>
-</Steps>
-
-## Verification
-
-Verify your installation by checking versions:
-
-```bash
-# SDK version (in a Node.js project)
-node -e "console.log(require('@attestprotocol/sdk/package.json').version)"
-
-# CLI version
-attest --version
-
-# Blockchain tools
-anchor --version  # Solana
-stellar version   # Stellar  
-scarb --version   # Starknet
-```
-
-## IDE Setup
-
-### VSCode Extensions
-
-For the best development experience, install these VSCode extensions:
-
-<CardGroup cols={2}>
-  <Card title="Rust Analyzer" icon="rust">
-    Essential for Solana/Stellar contract development
-  </Card>
-  <Card title="Cairo" icon="triangle">
-    Syntax highlighting and IntelliSense for Starknet
-  </Card>
-  <Card title="Solidity" icon="ethereum">
-    If working with EVM-compatible chains
-  </Card>
-  <Card title="TypeScript Hero" icon="typescript">
-    Auto-imports and better TypeScript support
-  </Card>
-</CardGroup>
-
-### TypeScript Configuration
-
-Add these types to your `tsconfig.json`:
+Add these settings to your `tsconfig.json`:
 
 ```json tsconfig.json
 {
   "compilerOptions": {
     "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
     "module": "ESNext",
     "moduleResolution": "node",
-    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  },
-  "include": [
-    "src/**/*"
-  ]
+    "resolveJsonModule": true
+  }
 }
 ```
 
-## Package Manager Notes
+## Browser Configuration
 
-### pnpm
+<Warning>
+Browser environments require polyfills for Node.js crypto and buffer modules.
+</Warning>
 
-If using pnpm, you may need to add this to your `.npmrc`:
+<CodeGroup>
+```javascript Next.js
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      crypto: false,
+      stream: false,
+      buffer: false,
+    };
+    return config;
+  },
+};
 
-```bash .npmrc
-shamefully-hoist=true
+module.exports = nextConfig;
 ```
 
-### Yarn
+```javascript Vite
+// vite.config.js
+import { defineConfig } from 'vite';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
-For Yarn v2+ (Berry), add to `.yarnrc.yml`:
-
-```yaml .yarnrc.yml
-nodeLinker: node-modules
+export default defineConfig({
+  plugins: [nodePolyfills()],
+  define: {
+    global: 'globalThis',
+  },
+});
 ```
 
-## Development Environment
+```javascript Webpack
+// webpack.config.js
+module.exports = {
+  resolve: {
+    fallback: {
+      "crypto": require.resolve("crypto-browserify"),
+      "stream": require.resolve("stream-browserify"),
+      "buffer": require.resolve("buffer")
+    }
+  },
+  plugins: [
+    new webpack.ProvidePlugin({
+      Buffer: ['buffer', 'Buffer'],
+    }),
+  ],
+};
+```
+</CodeGroup>
 
-### Environment Variables
+## Verification
+
+Verify your installation is working correctly:
+
+```typescript
+import { AttestSDK } from '@attestprotocol/sdk';
+
+// Should log without errors
+console.log('SDK loaded successfully');
+
+// Check version
+console.log('SDK version:', AttestSDK.VERSION);
+```
+
+Check installed version via CLI:
+
+```bash
+npm list @attestprotocol/sdk
+```
+
+## Build Outputs
+
+The SDK provides multiple build outputs for different use cases:
+
+| Format | Path | Usage |
+|--------|------|-------|
+| CommonJS | `dist/main/index.js` | Node.js applications |
+| ES Modules | `dist/module/index.js` | Modern bundlers |
+| UMD | `dist/umd/attestprotocol.js` | Browser/CDN usage |
+| TypeScript | `dist/index.d.ts` | Type definitions |
+
+## Environment Setup
 
 Create a `.env` file in your project root:
 
 ```bash .env
-# Required
-ATTEST_API_KEY=your_api_key_here
-
-# Optional - defaults to mainnet
-ATTEST_NETWORK=devnet
-
-# Blockchain-specific (if needed)
-SOLANA_RPC_URL=https://api.devnet.solana.com
+# Stellar Configuration
+STELLAR_SECRET_KEY=SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+STELLAR_PUBLIC_KEY=GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 STELLAR_RPC_URL=https://soroban-testnet.stellar.org
-STARKNET_RPC_URL=https://starknet-goerli.infura.io/v3/your-key
+
+# Solana Configuration
+SOLANA_SECRET_KEY=[1,2,3,...]
+SOLANA_RPC_URL=https://api.devnet.solana.com
+SOLANA_PROGRAM_ID=BMr9aui54YuxtpBzWXiFNmnr2iH6etRu7rMFJnKxjtpY
+
+# Environment
+NODE_ENV=development
 ```
 
-### Git Configuration
-
-Add these to your `.gitignore`:
-
-```bash .gitignore
-# AttestProtocol
-.env
-.env.local
-.env.production
-
-# Blockchain artifacts  
-target/
-.anchor/
-contracts/*/target/
-*.so
-*.wasm
-
-# IDE
-.vscode/
-.idea/
-```
-
-## Docker Setup (Optional)
-
-For containerized development:
-
-```dockerfile Dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-# Install system dependencies
-RUN apk add --no-cache git curl bash
-
-# Install Rust (for contract development)
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-COPY package*.json ./
-RUN npm install
-
-COPY . .
-
-EXPOSE 3000
-CMD ["npm", "start"]
-```
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card
-    title="Your First Attestation"
-    icon="play"
-    href="/getting-started/your-first-attestation"
-  >
-    Create your first attestation in 5 minutes
-  </Card>
-  <Card
-    title="Configuration"
-    icon="gear"
-    href="/getting-started/configuration"
-  >
-    Configure the SDK for your environment
-  </Card>
-  <Card
-    title="Quickstart Guide"
-    icon="rocket"
-    href="/quickstart"
-  >
-    End-to-end quickstart tutorial
-  </Card>
-  <Card
-    title="API Reference"
-    icon="book-open"
-    href="/reference/overview"
-  >
-    Complete API documentation
-  </Card>
-</CardGroup>
+<Warning>
+Never commit private keys to version control. Use environment variables in production.
+</Warning>
 
 ## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="Module Resolution Errors">
-    If you see module resolution errors:
-    - Ensure you're using Node.js 18+
-    - Try deleting `node_modules` and reinstalling
-    - Check your `tsconfig.json` module resolution settings
-  </Accordion>
-
-  <Accordion title="Blockchain Tool Installation">
-    For blockchain-specific tools:
-    - **Solana**: Make sure your PATH includes `~/.local/share/solana/install/active_release/bin`
-    - **Stellar**: Rust toolchain must be installed first
-    - **Starknet**: Scarb requires curl and git
-  </Accordion>
-
-  <Accordion title="Permission Errors">
-    If you get permission errors with global installs:
+  <Accordion title="Module not found errors">
+    Clear your cache and reinstall:
     ```bash
-    # Use npx instead of global install
-    npx @attestprotocol/cli --help
-    
-    # Or configure npm prefix
-    npm config set prefix ~/.npm-global
-    export PATH=~/.npm-global/bin:$PATH
+    rm -rf node_modules package-lock.json
+    npm install
+    ```
+  </Accordion>
+
+  <Accordion title="TypeScript compilation errors">
+    - Ensure TypeScript version >= 4.5
+    - Verify `tsconfig.json` settings match recommendations
+    - Install Node.js types: `npm install -D @types/node`
+  </Accordion>
+
+  <Accordion title="Browser build issues">
+    - Configure polyfills as shown above
+    - Check for conflicting global definitions
+    - Ensure bundler supports ES modules
+  </Accordion>
+
+  <Accordion title="Peer dependency warnings">
+    Install missing peer dependencies:
+    ```bash
+    npm install @stellar/stellar-sdk @coral-xyz/anchor @solana/web3.js
     ```
   </Accordion>
 </AccordionGroup>
+
+## Version Compatibility
+
+| SDK Version | Stellar SDK | Anchor | Node.js |
+|-------------|-------------|---------|---------|
+| 1.x | ^12.0.0 | ^0.30.0 | >=16 |
+| 2.x | ^13.0.0 | ^0.30.0 | >=18 |
+
+<Info>
+Always use the latest stable version for the best performance and security updates.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Your First Attestation" icon="play" href="/getting-started/your-first-attestation">
+    Create your first attestation in 5 minutes
+  </Card>
+  <Card title="SDK Methods" icon="code" href="/sdks/typescript/methods">
+    Explore all available SDK methods
+  </Card>
+  <Card title="Examples" icon="laptop-code" href="/sdks/typescript/examples">
+    See complete implementation examples
+  </Card>
+</CardGroup>

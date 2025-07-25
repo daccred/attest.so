@@ -35,13 +35,12 @@
             "pages": [
               "quickstart",
               "getting-started/installation",
-              "getting-started/your-first-attestation",
-              "getting-started/configuration"
+              "getting-started/your-first-attestation"
             ]
           },
           {
             "group": "Core Concepts",
-            "pages": ["concepts/attestations", "concepts/schemas", "concepts/authorities"]
+            "pages": ["concepts/attestations", "concepts/schemas", "concepts/authorities", "concepts/verification", "concepts/storage"]
           },
           {
             "group": "Blockchain Support",

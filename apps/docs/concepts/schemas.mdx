@@ -64,34 +64,105 @@ Fields are defined using a simple comma-separated format:
 
 ## Creating Schemas
 
-### Basic Schema
+Schemas are created by authorities and define the structure for their attestations:
 
-```typescript
+### Basic Identity Schema
+
+<CodeGroup>
+```typescript Stellar
+import { AttestSDK } from '@attestprotocol/sdk';
+
+const sdk = await AttestSDK.initializeStellar({
+  secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY,
+  publicKey: process.env.STELLAR_PUBLIC_KEY,
+  url: 'https://soroban-testnet.stellar.org'
+});
+
 const schema = await sdk.createSchema({
-  schemaName: 'basic-kyc',
-  schemaContent: 'verified:bool,timestamp:uint64',
+  schemaName: `basic-kyc-${Date.now()}`,
+  schemaContent: 'verified:bool,level:string,country:string,timestamp:uint64',
   revocable: true
 });
+
+if (schema.error) {
+  console.error('Schema creation failed:', schema.error);
+} else {
+  console.log('Schema created:', schema.data.schemaUID);
+  console.log('Transaction hash:', schema.data.transactionHash);
+}
 ```
 
-### Complex Schema
+```typescript Solana
+import { AttestSDK } from '@attestprotocol/sdk';
 
-```typescript
+const sdk = await AttestSDK.initializeSolana({
+  walletOrSecretKey: JSON.parse(process.env.SOLANA_SECRET_KEY),
+  url: 'https://api.devnet.solana.com'
+});
+
 const schema = await sdk.createSchema({
-  schemaName: 'professional-credential',
-  schemaContent: 'title:string,issuer:string,validFrom:uint64,validUntil:uint64,score:uint8,metadata:string',
+  schemaName: `basic-kyc-${Date.now()}`,
+  schemaContent: 'verified:bool,level:string,country:string,timestamp:u64',
   revocable: true
 });
-```
 
-### Multi-Purpose Schema
+if (schema.error) {
+  console.error('Schema creation failed:', schema.error);
+} else {
+  console.log('Schema PDA:', schema.data.toBase58());
+}
+```
+</CodeGroup>
+
+### Professional Credential Schema
 
 ```typescript
-const schema = await sdk.createSchema({
-  schemaName: 'dao-membership',
-  schemaContent: 'dao:address,role:string,joinDate:uint64,reputation:uint16,votingPower:uint32,active:bool',
-  revocable: false
+// Complex schema for professional certifications
+const credentialSchema = await sdk.createSchema({
+  schemaName: `professional-credential-${Date.now()}`,
+  schemaContent: 'title:string,issuer:string,issuedAt:uint64,validUntil:uint64,credentialLevel:uint8,specializations:string',
+  revocable: true
 });
+
+if (credentialSchema.error) {
+  throw new Error(`Failed to create credential schema: ${credentialSchema.error}`);
+}
+
+// Store schema metadata for later reference
+const schemaMetadata = {
+  schemaUID: credentialSchema.data.schemaUID,
+  purpose: 'Professional certification tracking',
+  authority: sdk.getPublicKey(),
+  createdAt: Date.now(),
+  fields: {
+    title: { type: 'string', description: 'Certification title' },
+    issuer: { type: 'string', description: 'Issuing organization' },
+    issuedAt: { type: 'uint64', description: 'Unix timestamp of issuance' },
+    validUntil: { type: 'uint64', description: 'Unix timestamp of expiration' },
+    credentialLevel: { type: 'uint8', description: 'Certification level (1-5)' },
+    specializations: { type: 'string', description: 'Comma-separated specialization areas' }
+  }
+};
+
+// Store metadata in your application database
+await storeSchemaMetadata(schemaMetadata);
+```
+
+### Multi-Entity Governance Schema
+
+```typescript
+// Schema for DAO governance participation
+const governanceSchema = await sdk.createSchema({
+  schemaName: `dao-governance-${Date.now()}`,
+  schemaContent: 'daoAddress:address,memberRole:string,joinDate:uint64,votingPower:uint32,proposalsCreated:uint16,proposalsVoted:uint16,reputationScore:uint16,lastActive:uint64,delegatedVotes:uint32',
+  revocable: false // Governance records should be immutable
+});
+
+if (governanceSchema.error) {
+  throw new Error(`Governance schema creation failed: ${governanceSchema.error}`);
+}
+
+console.log('Governance schema created:', governanceSchema.data.schemaUID);
 ```
 
 ---
@@ -129,13 +200,35 @@ AttestProtocol provides standard schemas for common use cases:
 ### Using Registry Schemas
 
 ```typescript
-// Use pre-built schema
-const attestation = await sdk.attest({
+// Use pre-built schema with proper error handling
+const attestationResult = await sdk.attest({
   schemaUID: 'kyc-basic-v1',
   subject: userAddress,
-  value: 'verified:true,timestamp:1704067200',
-  reference: 'kyc-001'
+  value: 'verified:true,level:enhanced,country:US,timestamp:1704067200',
+  reference: 'kyc-session-001'
 });
+
+if (attestationResult.error) {
+  console.error('Attestation creation failed:', attestationResult.error);
+  throw new Error(`Failed to create KYC attestation: ${attestationResult.error}`);
+}
+
+console.log('KYC attestation created successfully:');
+console.log('Transaction Hash:', attestationResult.data);
+
+// Verify the attestation was created
+const verification = await sdk.fetchAttestation({
+  schemaUID: 'kyc-basic-v1',
+  subject: userAddress
+});
+
+if (verification.data && !verification.data.revoked) {
+  console.log('Attestation verified successfully');
+  console.log('Attester:', verification.data.attester);
+  console.log('Data:', verification.data.value);
+} else {
+  console.warn('Attestation verification failed');
+}
 ```
 
 ---
@@ -279,13 +372,27 @@ const timeBasedCredential = await sdk.createSchema({
 ### Fetching Schemas
 
 ```typescript
-// Get specific schema
-const schema = await sdk.fetchSchema('kyc-basic-v1');
+// Get specific schema with error handling
+const schemaResult = await sdk.fetchSchema('kyc-basic-v1');
 
-if (schema.data) {
-  console.log('Schema name:', schema.data.schemaName);
-  console.log('Definition:', schema.data.schemaContent);
-  console.log('Revocable:', schema.data.revocable);
+if (schemaResult.error) {
+  console.error('Failed to fetch schema:', schemaResult.error);
+  return null;
+}
+
+if (schemaResult.data) {
+  const schema = schemaResult.data;
+  console.log('Schema details:');
+  console.log('  Name:', schema.schemaName);
+  console.log('  Content:', schema.schemaContent);
+  console.log('  Revocable:', schema.revocable);
+  console.log('  Authority:', schema.authority);
+  console.log('  Created:', new Date(schema.timestamp * 1000).toLocaleString());
+  
+  return schema;
+} else {
+  console.log('Schema not found');
+  return null;
 }
 ```
 
@@ -354,56 +461,325 @@ const v3 = "status:string,score:uint8"; // Changed field type
 
 ---
 
-## Common Schema Examples
+## Enterprise Schema Examples
 
-### KYC/Identity
+### Identity & Compliance Schemas
 
 ```typescript
-// Basic KYC
-"verified:bool,timestamp:uint64"
+// Basic KYC Schema
+const basicKycSchema = 'verified:bool,level:string,country:string,timestamp:uint64';
 
-// Enhanced KYC
-"verified:bool,level:string,jurisdiction:string,riskScore:uint8,checkDate:uint64"
+// Enhanced Due Diligence Schema
+const enhancedKycSchema = 'verified:bool,level:string,jurisdiction:string,riskScore:uint8,pepCheck:bool,sanctionsCheck:bool,sourceOfFunds:bool,checkDate:uint64,validUntil:uint64';
 
-// Age Verification
-"over18:bool,over21:bool,verifiedDate:uint64,method:string"
+// Age Verification Schema (Zero-Knowledge Friendly)
+const ageVerificationSchema = 'over18:bool,over21:bool,over65:bool,verifiedDate:uint64,method:string,jurisdiction:string';
+
+// Sanctions Screening Schema
+const sanctionsSchema = 'cleared:bool,checkDate:uint64,lists:string,riskLevel:uint8,nextCheck:uint64,provider:string';
 ```
 
-### Credentials
+### Professional Credential Schemas
 
 ```typescript
-// Professional License
-"licenseType:string,licenseNumber:string,issuedBy:string,validUntil:uint64"
+// Professional License Schema
+const professionalLicenseSchema = 'licenseType:string,licenseNumber:string,issuingAuthority:string,issuedDate:uint64,validUntil:uint64,status:string,restrictions:string';
 
-// Academic Degree
-"degree:string,field:string,institution:string,graduationDate:uint64,gpa:uint8"
+// Academic Degree Schema
+const academicDegreeSchema = 'degree:string,field:string,institution:string,graduationDate:uint64,honors:string,accreditation:string,gpa:uint8';
+
+// Technical Certification Schema
+const techCertificationSchema = 'certificationName:string,provider:string,issuedDate:uint64,validUntil:uint64,skillLevel:uint8,specializations:string,continuingEducation:bool';
+
+// Security Clearance Schema
+const securityClearanceSchema = 'clearanceLevel:string,issuingAgency:string,issuedDate:uint64,validUntil:uint64,investigationType:string,lastUpdate:uint64';
 ```
 
-### DeFi/Finance
+### Financial & DeFi Schemas
 
 ```typescript
-// Credit Score
-"score:uint16,lastUpdated:uint64,defaultCount:uint8,onTimePayments:uint16"
+// Credit Assessment Schema
+const creditSchema = 'score:uint16,rating:string,lastUpdated:uint64,paymentHistory:uint8,creditUtilization:uint8,accountAge:uint16,inquiries:uint8,provider:string';
 
-// Accredited Investor
-"accredited:bool,type:string,verifiedDate:uint64,expires:uint64,jurisdiction:string"
+// Accredited Investor Schema
+const accreditedInvestorSchema = 'accredited:bool,type:string,netWorth:uint32,income:uint32,verifiedDate:uint64,expires:uint64,jurisdiction:string,advisor:string';
+
+// DeFi Protocol Interaction Schema
+const defiReputationSchema = 'protocolsUsed:uint8,totalVolume:uint64,liquidationEvents:uint8,defaultRate:uint8,riskScore:uint8,lastActivity:uint64,platforms:string';
+
+// Anti-Money Laundering Schema
+const amlSchema = 'cleared:bool,riskRating:uint8,checkDate:uint64,transactionMonitoring:bool,sourceOfFunds:bool,politicalExposure:bool,nextReview:uint64';
 ```
 
-### Gaming/NFTs
+### Organizational & Governance Schemas
 
 ```typescript
-// Achievement
-"gameId:string,achievementId:string,unlockedAt:uint64,rarity:string"
+// DAO Membership Schema
+const daoMembershipSchema = 'daoAddress:address,memberSince:uint64,role:string,votingPower:uint32,proposalsCreated:uint16,proposalsVoted:uint16,delegatedVotes:uint32,reputation:uint16,lastActive:uint64';
 
-// Tournament Result
-"eventId:string,placement:uint8,score:uint32,timestamp:uint64"
+// Employment Verification Schema
+const employmentSchema = 'employer:string,position:string,department:string,startDate:uint64,endDate:uint64,employmentType:string,verified:bool,salary:uint32,performance:uint8';
+
+// Board Membership Schema
+const boardMembershipSchema = 'organization:string,position:string,appointedDate:uint64,termEnd:uint64,committee:string,attendance:uint8,independent:bool,compensation:uint32';
+```
+
+### Advanced Use Case Schemas
+
+```typescript
+// Carbon Credit Schema
+const carbonCreditSchema = 'creditType:string,quantity:uint32,vintage:uint16,registry:string,project:string,methodology:string,verified:bool,retired:bool,serialNumber:string';
+
+// Supply Chain Provenance Schema
+const provenanceSchema = 'productId:string,origin:string,certifications:string,transportChain:string,carbonFootprint:uint32,qualityGrade:uint8,batchNumber:string,timestamp:uint64';
+
+// Insurance Claim Schema
+const insuranceClaimSchema = 'policyNumber:string,claimType:string,amount:uint32,approved:bool,processedDate:uint64,adjuster:string,fraudScore:uint8,settlementAmount:uint32';
+
+// Gaming Achievement Schema
+const gamingAchievementSchema = 'gameId:string,achievementId:string,playerLevel:uint16,rarity:uint8,unlockedAt:uint64,leaderboardRank:uint32,skillRating:uint16,verified:bool';
+```
+
+---
+
+## Schema Governance and Management
+
+### Enterprise Schema Registry
+
+```typescript
+class EnterpriseSchemaRegistry {
+  private schemas = new Map<string, SchemaMetadata>();
+  private sdk: StellarAttestSDK | SolanaAttestSDK;
+  
+  constructor(sdk: StellarAttestSDK | SolanaAttestSDK) {
+    this.sdk = sdk;
+  }
+
+  async registerSchema(
+    schemaDefinition: string,
+    metadata: SchemaRegistryEntry
+  ): Promise<string> {
+    // Validate schema definition
+    this.validateSchemaDefinition(schemaDefinition);
+    
+    // Check for naming conflicts
+    await this.checkNamingConflicts(metadata.name);
+    
+    // Create schema on-chain
+    const result = await this.sdk.createSchema({
+      schemaName: metadata.name,
+      schemaContent: schemaDefinition,
+      revocable: metadata.revocable
+    });
+    
+    if (result.error) {
+      throw new Error(`Schema creation failed: ${result.error}`);
+    }
+    
+    // Store metadata
+    const schemaUID = result.data.schemaUID;
+    this.schemas.set(schemaUID, {
+      ...metadata,
+      schemaUID,
+      definition: schemaDefinition,
+      createdAt: Date.now(),
+      authority: this.sdk.getPublicKey()
+    });
+    
+    // Persist to database
+    await this.persistSchemaMetadata(schemaUID, metadata);
+    
+    return schemaUID;
+  }
+
+  async getSchemasByCategory(category: string): Promise<SchemaMetadata[]> {
+    return Array.from(this.schemas.values())
+      .filter(schema => schema.category === category);
+  }
+
+  async validateAttestationData(
+    schemaUID: string, 
+    data: string
+  ): Promise<ValidationResult> {
+    const schema = this.schemas.get(schemaUID);
+    if (!schema) {
+      return { valid: false, errors: ['Schema not found'] };
+    }
+
+    return this.validateDataAgainstSchema(data, schema.definition);
+  }
+
+  private validateSchemaDefinition(definition: string): void {
+    const fields = definition.split(',');
+    const fieldNames = new Set<string>();
+    
+    for (const field of fields) {
+      const [name, type] = field.split(':');
+      
+      if (!name || !type) {
+        throw new Error(`Invalid field definition: ${field}`);
+      }
+      
+      if (fieldNames.has(name)) {
+        throw new Error(`Duplicate field name: ${name}`);
+      }
+      
+      fieldNames.add(name);
+      
+      if (!this.isValidType(type)) {
+        throw new Error(`Invalid field type: ${type}`);
+      }
+    }
+  }
+
+  private isValidType(type: string): boolean {
+    const validTypes = [
+      'bool', 'string', 'uint8', 'uint16', 'uint32', 'uint64',
+      'int8', 'int16', 'int32', 'int64', 'address', 'bytes'
+    ];
+    return validTypes.includes(type);
+  }
+}
+
+interface SchemaRegistryEntry {
+  name: string;
+  category: string;
+  description: string;
+  revocable: boolean;
+  version: string;
+  documentation: string;
+  examples: string[];
+  tags: string[];
+}
+
+interface SchemaMetadata extends SchemaRegistryEntry {
+  schemaUID: string;
+  definition: string;
+  createdAt: number;
+  authority: string;
+}
+
+interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings?: string[];
+}
+```
+
+### Schema Versioning Strategy
+
+```typescript
+class SchemaVersionManager {
+  async createSchemaVersion(
+    baseSchemaUID: string,
+    newDefinition: string,
+    migrationStrategy: MigrationStrategy
+  ): Promise<string> {
+    const baseSchema = await this.getSchemaMetadata(baseSchemaUID);
+    
+    // Validate backward compatibility
+    const compatibility = this.checkBackwardCompatibility(
+      baseSchema.definition,
+      newDefinition
+    );
+    
+    if (!compatibility.compatible && migrationStrategy === 'strict') {
+      throw new Error('Breaking changes detected in strict migration mode');
+    }
+    
+    // Create new schema version
+    const newVersion = this.incrementVersion(baseSchema.version);
+    const newSchemaName = `${baseSchema.name.split('-v')[0]}-v${newVersion}`;
+    
+    const result = await this.sdk.createSchema({
+      schemaName: newSchemaName,
+      schemaContent: newDefinition,
+      revocable: baseSchema.revocable
+    });
+    
+    if (result.error) {
+      throw new Error(`Schema version creation failed: ${result.error}`);
+    }
+    
+    // Link to previous version
+    await this.linkSchemaVersions(baseSchemaUID, result.data.schemaUID);
+    
+    return result.data.schemaUID;
+  }
+
+  private checkBackwardCompatibility(
+    oldDefinition: string,
+    newDefinition: string
+  ): CompatibilityResult {
+    const oldFields = this.parseSchemaDefinition(oldDefinition);
+    const newFields = this.parseSchemaDefinition(newDefinition);
+    
+    const removedFields = oldFields.filter(
+      oldField => !newFields.find(newField => newField.name === oldField.name)
+    );
+    
+    const typeChanges = oldFields.filter(oldField => {
+      const newField = newFields.find(f => f.name === oldField.name);
+      return newField && newField.type !== oldField.type;
+    });
+    
+    return {
+      compatible: removedFields.length === 0 && typeChanges.length === 0,
+      removedFields,
+      typeChanges,
+      addedFields: newFields.filter(
+        newField => !oldFields.find(oldField => oldField.name === newField.name)
+      )
+    };
+  }
+}
+
+interface CompatibilityResult {
+  compatible: boolean;
+  removedFields: SchemaField[];
+  typeChanges: SchemaField[];
+  addedFields: SchemaField[];
+}
+
+interface SchemaField {
+  name: string;
+  type: string;
+}
+
+type MigrationStrategy = 'strict' | 'permissive' | 'forced';
 ```
 
 ---
 
 ## Next Steps
 
-- [Create Custom Schemas](/guides/custom-schemas) - Build schemas for your use case
-- [Schema Best Practices](/guides/schema-design) - Advanced design patterns
-- [Migration Guide](/guides/schema-migration) - Handle schema evolution
-- [Registry Browser](https://attestprotocol.org/schemas) - Explore available schemas
+<CardGroup cols={2}>
+  <Card
+    title="Attestations"
+    icon="certificate"
+    href="/concepts/attestations"
+  >
+    Learn how to create attestations using your schemas
+  </Card>
+  <Card
+    title="Authorities"
+    icon="shield-check"
+    href="/concepts/authorities"
+  >
+    Understand authority management and permissions
+  </Card>
+  <Card
+    title="Schema Design Guide"
+    icon="pencil"
+    href="/guides/schema-design"
+  >
+    Best practices for enterprise schema design
+  </Card>
+  <Card
+    title="SDK Methods"
+    icon="code"
+    href="/sdks/typescript/methods"
+  >
+    Explore all schema-related SDK methods
+  </Card>
+</CardGroup>

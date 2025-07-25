@@ -1,18 +1,18 @@
 ---
 title: 'Your First Attestation'
 description: 'Step-by-step guide to creating your first attestation with AttestProtocol'
-icon: 'play'
 ---
 
 ## Overview
 
-In this guide, you'll create your first attestation from scratch. We'll walk through:
+In this guide, you'll create your first attestation from scratch using the AttestProtocol SDK. We'll walk through:
 
 1. Setting up your environment
-2. Creating a schema
-3. Issuing an attestation
-4. Verifying the attestation
-5. Understanding the results
+2. Initializing the SDK
+3. Registering as an authority
+4. Creating a schema
+5. Issuing an attestation
+6. Verifying the attestation
 
 <Info>
 This tutorial assumes you've already [installed the SDK](/getting-started/installation). If not, go back and install it first.
@@ -32,11 +32,11 @@ npm install @attestprotocol/sdk dotenv
 Create your main file:
 
 ```javascript index.js
-import { AttestClient } from '@attestprotocol/sdk';
+import { AttestSDK } from '@attestprotocol/sdk';
 import 'dotenv/config';
 
 async function main() {
-  console.log('🚀 Starting attestation tutorial...');
+  console.log('Starting attestation tutorial...');
   
   // We'll add code here step by step
 }
@@ -44,269 +44,352 @@ async function main() {
 main().catch(console.error);
 ```
 
-## Step 2: Initialize the Client
+## Step 2: Initialize the SDK
 
-Add your API key to a `.env` file:
+Add your configuration to a `.env` file:
 
 ```bash .env
-ATTEST_API_KEY=your_api_key_from_dashboard
-ATTEST_NETWORK=devnet
+# Choose your blockchain
+STELLAR_SECRET_KEY=SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+STELLAR_PUBLIC_KEY=GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+STELLAR_RPC_URL=https://soroban-testnet.stellar.org
+
+# Alternative: Solana configuration
+# SOLANA_SECRET_KEY=[1,2,3,...]
+# SOLANA_RPC_URL=https://api.devnet.solana.com
 ```
 
 <Warning>
-**Get Your API Key**: Visit [app.attest.so](https://app.attest.so) to create an account and get your API key. Use devnet for testing.
+**Get Test Credentials**: For Stellar, generate test credentials at [laboratory.stellar.org](https://laboratory.stellar.org). For Solana, use `solana-keygen new`.
 </Warning>
 
-Initialize the AttestProtocol client:
+Initialize the SDK:
 
-```javascript index.js
-import { AttestClient } from '@attestprotocol/sdk';
+<CodeGroup>
+```javascript Stellar
+import { AttestSDK } from '@attestprotocol/sdk';
 import 'dotenv/config';
 
 async function main() {
-  console.log('🚀 Starting attestation tutorial...');
+  console.log('Starting attestation tutorial...');
   
-  // Initialize client
-  const client = new AttestClient({
-    chain: 'solana',
-    network: process.env.ATTEST_NETWORK || 'devnet',
-    apiKey: process.env.ATTEST_API_KEY,
+  // Initialize Stellar SDK
+  const sdk = await AttestSDK.initializeStellar({
+    secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY,
+    publicKey: process.env.STELLAR_PUBLIC_KEY,
+    url: process.env.STELLAR_RPC_URL || 'https://soroban-testnet.stellar.org'
   });
 
-  console.log('✅ Client initialized');
+  console.log('Stellar SDK initialized');
 }
 
 main().catch(console.error);
 ```
 
-## Step 3: Create a Schema
+```javascript Solana
+import { AttestSDK } from '@attestprotocol/sdk';
+import 'dotenv/config';
 
-Schemas define the structure of your attestations. Let's create a simple user verification schema:
+async function main() {
+  console.log('Starting attestation tutorial...');
+  
+  // Initialize Solana SDK
+  const sdk = await AttestSDK.initializeSolana({
+    walletOrSecretKey: JSON.parse(process.env.SOLANA_SECRET_KEY),
+    url: process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com'
+  });
+
+  console.log('Solana SDK initialized');
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Step 3: Register as Authority
+
+Before issuing attestations, you need to register as an authority:
 
 ```javascript
 // Add this inside your main() function
 try {
-  // Create a unique schema name
-  const schemaName = `user-verification-${Date.now()}`;
+  // Check if already registered
+  const existingAuthority = await sdk.fetchAuthority();
   
-  const schema = await client.schemas.create({
-    name: schemaName,
-    description: 'Basic user verification schema',
-    fields: [
-      {
-        name: 'isVerified',
-        type: 'boolean',
-        required: true,
-        description: 'Whether the user is verified'
-      },
-      {
-        name: 'verificationMethod',
-        type: 'string',
-        required: true,
-        description: 'How the user was verified (email, phone, kyc)'
-      },
-      {
-        name: 'verifiedAt',
-        type: 'timestamp',
-        required: true,
-        description: 'When verification was completed'
-      },
-      {
-        name: 'trustScore',
-        type: 'number',
-        required: false,
-        description: 'Trust score from 0-100'
-      }
-    ]
-  });
-
-  console.log('✅ Schema created:', schema.name);
-  console.log('📋 Schema ID:', schema.id);
-
-} catch (error) {
-  console.error('❌ Error creating schema:', error.message);
-  return;
-}
-```
-
-## Step 4: Issue an Attestation
-
-Now let's create an attestation using our schema:
-
-```javascript
-// Add this after schema creation
-try {
-  // Example user address (replace with a real one)
-  const userAddress = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1';
-  
-  const attestation = await client.attest({
-    schema: schemaName,
-    subject: userAddress,
-    data: {
-      isVerified: true,
-      verificationMethod: 'email',
-      verifiedAt: new Date().toISOString(),
-      trustScore: 85
-    },
-    // Optional: Set expiration (1 year from now)
-    expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-  });
-
-  console.log('✅ Attestation created!');
-  console.log('🆔 Attestation ID:', attestation.id);
-  console.log('🔗 Transaction Hash:', attestation.transactionHash);
-  console.log('📅 Created At:', attestation.createdAt);
-
-} catch (error) {
-  console.error('❌ Error creating attestation:', error.message);
-  return;
-}
-```
-
-## Step 5: Verify the Attestation
-
-The most common operation - checking if a user has a valid attestation:
-
-```javascript
-// Add this after attestation creation
-try {
-  // Simple verification check
-  const isVerified = await client.verify({
-    subject: userAddress,
-    schema: schemaName
-  });
-
-  console.log('✅ Verification result:', isVerified);
-
-  // Get detailed attestation data
-  const attestations = await client.getAttestations({
-    subject: userAddress,
-    schema: schemaName,
-    limit: 1
-  });
-
-  if (attestations.length > 0) {
-    const attestation = attestations[0];
-    console.log('📊 Attestation details:');
-    console.log('  - Verified:', attestation.data.isVerified);
-    console.log('  - Method:', attestation.data.verificationMethod);
-    console.log('  - Trust Score:', attestation.data.trustScore);
-    console.log('  - Expires:', attestation.expiresAt);
+  if (existingAuthority.error) {
+    console.log('Registering as authority...');
+    const authResult = await sdk.registerAuthority();
+    
+    if (authResult.error) {
+      console.error('Failed to register authority:', authResult.error);
+      return;
+    }
+    
+    console.log('Authority registered successfully');
+  } else {
+    console.log('Already registered as authority');
   }
 
 } catch (error) {
-  console.error('❌ Error verifying attestation:', error.message);
+  console.error('Authority registration error:', error);
+  return;
 }
 ```
 
-## Complete Example
+## Step 4: Create a Schema
 
-Here's the complete working example:
+Schemas define the structure of your attestations:
 
 <CodeGroup>
-```javascript Complete Example
-import { AttestClient } from '@attestprotocol/sdk';
+```javascript Stellar Schema
+// Add this after authority registration
+try {
+  const schemaResult = await sdk.createSchema({
+    schemaName: `user-verification-${Date.now()}`,
+    schemaContent: 'verified:bool,level:string,score:uint8,timestamp:uint64',
+    revocable: true
+  });
+
+  if (schemaResult.error) {
+    console.error('Schema creation failed:', schemaResult.error);
+    return;
+  }
+
+  const schemaUID = schemaResult.data.schemaUID;
+  console.log('Schema created:', schemaUID);
+
+} catch (error) {
+  console.error('Schema creation error:', error);
+  return;
+}
+```
+
+```javascript Solana Schema
+// Add this after authority registration
+try {
+  const schemaResult = await sdk.createSchema({
+    schemaName: `user-verification-${Date.now()}`,
+    schemaContent: 'verified:bool,level:string,score:u8,timestamp:u64',
+    revocable: true
+  });
+
+  if (schemaResult.error) {
+    console.error('Schema creation failed:', schemaResult.error);
+    return;
+  }
+
+  const schemaPDA = schemaResult.data;
+  console.log('Schema created:', schemaPDA.toBase58());
+
+} catch (error) {
+  console.error('Schema creation error:', error);
+  return;
+}
+```
+</CodeGroup>
+
+## Step 5: Issue an Attestation
+
+Now let's create an attestation using our schema:
+
+<CodeGroup>
+```javascript Stellar Attestation
+// Add this after schema creation
+try {
+  // Example subject address (replace with actual address)
+  const subjectAddress = 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+  
+  const attestResult = await sdk.attest({
+    schemaUID: schemaUID,
+    subject: subjectAddress,
+    value: 'verified:true,level:enhanced,score:95,timestamp:' + Math.floor(Date.now() / 1000),
+    reference: `attestation-${Date.now()}`
+  });
+
+  if (attestResult.error) {
+    console.error('Attestation failed:', attestResult.error);
+    return;
+  }
+
+  console.log('Attestation created');
+  console.log('Transaction Hash:', attestResult.data);
+
+} catch (error) {
+  console.error('Attestation error:', error);
+  return;
+}
+```
+
+```javascript Solana Attestation
+// Add this after schema creation
+try {
+  // Get wallet balance for account setup
+  const balanceResult = await sdk.getWalletBalance();
+  
+  if (balanceResult.error) {
+    console.error('Balance check failed:', balanceResult.error);
+    return;
+  }
+
+  const attestResult = await sdk.attest({
+    schemaData: schemaPDA,
+    data: 'verified:true,level:enhanced,score:95,timestamp:' + Math.floor(Date.now() / 1000),
+    expirationTime: Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60), // 1 year
+    revocable: true,
+    accounts: {
+      recipient: balanceResult.data.address, // Using own address for demo
+      levyReceipent: balanceResult.data.address,
+      mintAccount: new PublicKey('So11111111111111111111111111111111111111112') // SOL mint
+    }
+  });
+
+  if (attestResult.error) {
+    console.error('Attestation failed:', attestResult.error);
+    return;
+  }
+
+  console.log('Attestation created');
+  console.log('Attestation PDA:', attestResult.data.toBase58());
+
+} catch (error) {
+  console.error('Attestation error:', error);
+  return;
+}
+```
+</CodeGroup>
+
+## Step 6: Verify the Attestation
+
+The most common operation - checking if a subject has a valid attestation:
+
+<CodeGroup>
+```javascript Stellar Verification
+// Add this after attestation creation
+try {
+  // Wait a moment for indexing
+  console.log('Waiting for attestation to be indexed...');
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  const fetchResult = await sdk.fetchAttestation({
+    schemaUID: schemaUID,
+    subject: subjectAddress
+  });
+
+  if (fetchResult.error) {
+    console.error('Verification failed:', fetchResult.error);
+    return;
+  }
+
+  if (fetchResult.data && !fetchResult.data.revoked) {
+    console.log('Attestation verified');
+    console.log('Attestation data:', fetchResult.data.value);
+    console.log('Created at:', new Date(fetchResult.data.timestamp * 1000).toLocaleString());
+  } else {
+    console.log('No valid attestation found');
+  }
+
+} catch (error) {
+  console.error('Verification error:', error);
+}
+```
+
+```javascript Solana Verification
+// Add this after attestation creation
+try {
+  const fetchResult = await sdk.fetchAttestation(attestResult.data);
+
+  if (fetchResult.error) {
+    console.error('Verification failed:', fetchResult.error);
+    return;
+  }
+
+  if (fetchResult.data) {
+    console.log('Attestation verified');
+    console.log('Attestation data:', fetchResult.data.data);
+    console.log('Attester:', fetchResult.data.attester.toBase58());
+    console.log('Created at:', new Date(fetchResult.data.timestamp * 1000).toLocaleString());
+  } else {
+    console.log('No attestation found');
+  }
+
+} catch (error) {
+  console.error('Verification error:', error);
+}
+```
+</CodeGroup>
+
+## Complete Example
+
+Here's the complete working example for Stellar:
+
+<CodeGroup>
+```javascript Complete Stellar Example
+import { AttestSDK } from '@attestprotocol/sdk';
 import 'dotenv/config';
 
 async function main() {
-  console.log('🚀 Starting attestation tutorial...\n');
+  console.log('Starting attestation tutorial...');
   
-  // Initialize client
-  const client = new AttestClient({
-    chain: 'solana',
-    network: process.env.ATTEST_NETWORK || 'devnet',
-    apiKey: process.env.ATTEST_API_KEY,
-  });
-
-  console.log('✅ Client initialized');
-
   try {
-    // Step 1: Create a schema
-    const schemaName = `user-verification-${Date.now()}`;
-    
-    const schema = await client.schemas.create({
-      name: schemaName,
-      description: 'Basic user verification schema',
-      fields: [
-        {
-          name: 'isVerified',
-          type: 'boolean',
-          required: true,
-          description: 'Whether the user is verified'
-        },
-        {
-          name: 'verificationMethod',
-          type: 'string',
-          required: true,
-          description: 'How the user was verified'
-        },
-        {
-          name: 'verifiedAt',
-          type: 'timestamp',
-          required: true,
-          description: 'When verification was completed'
-        },
-        {
-          name: 'trustScore',
-          type: 'number',
-          required: false,
-          description: 'Trust score from 0-100'
-        }
-      ]
+    // Initialize SDK
+    const sdk = await AttestSDK.initializeStellar({
+      secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY,
+      publicKey: process.env.STELLAR_PUBLIC_KEY,
+      url: 'https://soroban-testnet.stellar.org'
     });
+    console.log('Stellar SDK initialized');
 
-    console.log('✅ Schema created:', schema.name);
-
-    // Step 2: Create an attestation
-    const userAddress = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1';
-    
-    const attestation = await client.attest({
-      schema: schemaName,
-      subject: userAddress,
-      data: {
-        isVerified: true,
-        verificationMethod: 'email',
-        verifiedAt: new Date().toISOString(),
-        trustScore: 85
-      },
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-    });
-
-    console.log('✅ Attestation created!');
-    console.log('🆔 ID:', attestation.id);
-    console.log('🔗 Tx Hash:', attestation.transactionHash);
-
-    // Step 3: Verify the attestation
-    const isVerified = await client.verify({
-      subject: userAddress,
-      schema: schemaName
-    });
-
-    console.log('✅ Verification result:', isVerified);
-
-    // Step 4: Get attestation details
-    const attestations = await client.getAttestations({
-      subject: userAddress,
-      schema: schemaName,
-      limit: 1
-    });
-
-    if (attestations.length > 0) {
-      const att = attestations[0];
-      console.log('\n📊 Attestation Details:');
-      console.log('  Status:', att.status);
-      console.log('  Verified:', att.data.isVerified);
-      console.log('  Method:', att.data.verificationMethod);
-      console.log('  Trust Score:', att.data.trustScore);
-      console.log('  Created:', new Date(att.createdAt).toLocaleString());
-      console.log('  Expires:', new Date(att.expiresAt).toLocaleString());
+    // Register as authority
+    const existingAuthority = await sdk.fetchAuthority();
+    if (existingAuthority.error) {
+      const authResult = await sdk.registerAuthority();
+      if (authResult.error) throw new Error(authResult.error);
+      console.log('Authority registered');
+    } else {
+      console.log('Already registered as authority');
     }
 
-    console.log('\n🎉 Tutorial completed successfully!');
+    // Create schema
+    const schemaResult = await sdk.createSchema({
+      schemaName: `user-verification-${Date.now()}`,
+      schemaContent: 'verified:bool,level:string,score:uint8,timestamp:uint64',
+      revocable: true
+    });
+    if (schemaResult.error) throw new Error(schemaResult.error);
+    
+    const schemaUID = schemaResult.data.schemaUID;
+    console.log('Schema created:', schemaUID);
+
+    // Create attestation
+    const subjectAddress = 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+    const attestResult = await sdk.attest({
+      schemaUID: schemaUID,
+      subject: subjectAddress,
+      value: `verified:true,level:enhanced,score:95,timestamp:${Math.floor(Date.now() / 1000)}`,
+      reference: `demo-${Date.now()}`
+    });
+    if (attestResult.error) throw new Error(attestResult.error);
+    
+    console.log('Attestation created:', attestResult.data);
+
+    // Verify attestation
+    console.log('Waiting for indexing...');
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    
+    const fetchResult = await sdk.fetchAttestation({
+      schemaUID: schemaUID,
+      subject: subjectAddress
+    });
+    
+    if (fetchResult.data && !fetchResult.data.revoked) {
+      console.log('Attestation verified');
+      console.log('Data:', fetchResult.data.value);
+    }
+
+    console.log('Tutorial completed successfully');
 
   } catch (error) {
-    console.error('❌ Error:', error.message);
-    console.error('Full error:', error);
+    console.error('Error:', error.message);
   }
 }
 
@@ -314,90 +397,54 @@ main().catch(console.error);
 ```
 
 ```typescript TypeScript Version
-import { AttestClient, Schema, Attestation } from '@attestprotocol/sdk';
+import { AttestSDK, StellarAttestSDK } from '@attestprotocol/sdk';
 import 'dotenv/config';
 
-interface UserVerificationData {
-  isVerified: boolean;
-  verificationMethod: string;
-  verifiedAt: string;
-  trustScore?: number;
-}
-
 async function main(): Promise<void> {
-  console.log('🚀 Starting attestation tutorial...\n');
+  console.log('Starting attestation tutorial...');
   
-  const client = new AttestClient({
-    chain: 'solana',
-    network: (process.env.ATTEST_NETWORK as 'devnet' | 'mainnet') || 'devnet',
-    apiKey: process.env.ATTEST_API_KEY!,
-  });
-
-  console.log('✅ Client initialized');
-
   try {
-    const schemaName = `user-verification-${Date.now()}`;
+    const sdk: StellarAttestSDK = await AttestSDK.initializeStellar({
+      secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY!,
+      publicKey: process.env.STELLAR_PUBLIC_KEY!,
+      url: 'https://soroban-testnet.stellar.org'
+    });
+    console.log('Stellar SDK initialized');
+
+    // Register as authority if needed
+    const existingAuthority = await sdk.fetchAuthority();
+    if (existingAuthority.error) {
+      const authResult = await sdk.registerAuthority();
+      if (authResult.error) throw new Error(String(authResult.error));
+      console.log('Authority registered');
+    }
+
+    // Create schema
+    const schemaResult = await sdk.createSchema({
+      schemaName: `user-verification-${Date.now()}`,
+      schemaContent: 'verified:bool,level:string,score:uint8,timestamp:uint64',
+      revocable: true
+    });
     
-    const schema: Schema = await client.schemas.create({
-      name: schemaName,
-      description: 'Basic user verification schema',
-      fields: [
-        {
-          name: 'isVerified',
-          type: 'boolean',
-          required: true,
-          description: 'Whether the user is verified'
-        },
-        {
-          name: 'verificationMethod',
-          type: 'string',
-          required: true,
-          description: 'How the user was verified'
-        },
-        {
-          name: 'verifiedAt',
-          type: 'timestamp',
-          required: true,
-          description: 'When verification was completed'
-        },
-        {
-          name: 'trustScore',
-          type: 'number',
-          required: false,
-          description: 'Trust score from 0-100'
-        }
-      ]
+    if (schemaResult.error) throw new Error(String(schemaResult.error));
+    console.log('Schema created:', schemaResult.data!.schemaUID);
+
+    // Create and verify attestation
+    const subjectAddress = 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+    const attestResult = await sdk.attest({
+      schemaUID: schemaResult.data!.schemaUID,
+      subject: subjectAddress,
+      value: `verified:true,level:enhanced,score:95,timestamp:${Math.floor(Date.now() / 1000)}`,
+      reference: `demo-${Date.now()}`
     });
-
-    console.log('✅ Schema created:', schema.name);
-
-    const userAddress = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1';
     
-    const attestation: Attestation<UserVerificationData> = await client.attest({
-      schema: schemaName,
-      subject: userAddress,
-      data: {
-        isVerified: true,
-        verificationMethod: 'email',
-        verifiedAt: new Date().toISOString(),
-        trustScore: 85
-      },
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-    });
+    if (attestResult.error) throw new Error(String(attestResult.error));
+    console.log('Attestation created:', attestResult.data);
 
-    console.log('✅ Attestation created!');
-    console.log('🆔 ID:', attestation.id);
-
-    const isVerified = await client.verify({
-      subject: userAddress,
-      schema: schemaName
-    });
-
-    console.log('✅ Verification result:', isVerified);
-    console.log('\n🎉 Tutorial completed successfully!');
+    console.log('Tutorial completed successfully');
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('Error:', error);
   }
 }
 
@@ -416,24 +463,17 @@ node index.js
 You should see output like this:
 
 ```
-🚀 Starting attestation tutorial...
+Starting attestation tutorial...
 
-✅ Client initialized
-✅ Schema created: user-verification-1705123456789
-✅ Attestation created!
-🆔 ID: att_1234567890abcdef
-🔗 Tx Hash: 5KJp3F2B1Y8Z...
-✅ Verification result: true
+Stellar SDK initialized
+Already registered as authority
+Schema created: a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890
+Attestation created: 5KJp3F2B1Y8Z...
+Waiting for indexing...
+Attestation verified
+Data: verified:true,level:enhanced,score:95,timestamp:1704067200
 
-📊 Attestation Details:
-  Status: active
-  Verified: true
-  Method: email
-  Trust Score: 85
-  Created: 1/12/2024, 10:30:45 AM
-  Expires: 1/12/2025, 10:30:45 AM
-
-🎉 Tutorial completed successfully!
+Tutorial completed successfully
 ```
 
 ## Understanding the Results
@@ -441,22 +481,34 @@ You should see output like this:
 Let's break down what happened:
 
 <AccordionGroup>
+<Accordion title="SDK Initialization">
+- Created a blockchain-specific SDK instance with your credentials
+- Connected to the testnet for safe experimentation
+- Established connection to the AttestProtocol smart contracts
+</Accordion>
+
+<Accordion title="Authority Registration">
+- Registered your wallet as an authority capable of issuing attestations
+- This is a one-time setup per wallet address
+- Authorities can create schemas and issue attestations
+</Accordion>
+
 <Accordion title="Schema Creation">
 - Created a reusable template defining the structure of verification data
-- Each schema has a unique name and defines required/optional fields
+- Each schema has a unique UID and defines field types and validation rules
 - Schemas are stored on-chain and can be reused for multiple attestations
 </Accordion>
 
 <Accordion title="Attestation Creation">
-- Created a signed, verifiable claim about a user's verification status
-- The attestation is stored on-chain with a unique ID and transaction hash
-- Set an expiration date to ensure attestations don't last forever
+- Created a signed, verifiable claim about a subject's verification status
+- The attestation is stored on-chain with immutable cryptographic proof
+- Data follows the schema structure with typed fields
 </Accordion>
 
 <Accordion title="Verification">
-- Performed a simple boolean check: "Does this user have a valid attestation?"
-- The verify() method checks for active, non-expired attestations
-- Retrieved detailed attestation data including all custom fields
+- Retrieved and validated the attestation from the blockchain
+- Checked for active status and parsed the structured data
+- Confirmed the cryptographic integrity of the claim
 </Accordion>
 </AccordionGroup>
 
@@ -482,41 +534,50 @@ Now that you've created your first attestation, explore these topics:
   <Card
     title="Integration Patterns"
     icon="puzzle-piece"
-    href="/guides/integration-patterns"
+    href="/guides/kyc-integration"
   >
-    Common patterns for real-world applications
+    See complete integration examples for real-world use cases
   </Card>
   <Card
-    title="Examples"
-    icon="laptop-code"
-    href="/examples/kyc-verification"
+    title="Multi-Chain Support"
+    icon="link"
+    href="/sdks/typescript/examples"
   >
-    See complete example applications
+    Learn how to work with multiple blockchains
   </Card>
 </CardGroup>
 
 ## Common Issues
 
 <AccordionGroup>
+<Accordion title="Insufficient Balance">
+If you see "insufficient balance" errors:
+- Ensure your wallet has test tokens for transaction fees
+- For Stellar: Use the [friendbot](https://laboratory.stellar.org/#account-creator?network=test) to fund your account
+- For Solana: Use `solana airdrop 2` to get test SOL
+</Accordion>
+
+<Accordion title="Invalid Secret Key">
+- Double-check your secret key format and ensure it's valid
+- For Stellar: Secret keys start with 'S' and are 56 characters
+- For Solana: Secret keys are 64-number arrays
+- Never expose secret keys in production code
+</Accordion>
+
 <Accordion title="Schema Already Exists">
-If you see "Schema already exists", it means you've run the tutorial before. Either:
-- Use a different schema name
+If you see "schema already exists":
+- Use a different schema name with a timestamp
 - Or reference the existing schema instead of creating a new one
+- Schema names must be unique per authority
 </Accordion>
 
-<Accordion title="Invalid API Key">
-- Double-check your API key in the dashboard
-- Make sure you're using the correct network (devnet vs mainnet)
-- Verify your .env file is properly formatted
-</Accordion>
-
-<Accordion title="Transaction Failed">
-- Ensure you have sufficient funds for transaction fees
-- Check that the network (devnet/mainnet) matches your API key
-- Verify the user address format is correct for your chosen blockchain
+<Accordion title="Network Connection Issues">
+- Verify your RPC endpoint is accessible
+- Check your internet connection
+- Try switching to a different RPC provider if available
 </Accordion>
 </AccordionGroup>
 
 <Tip>
-**Pro Tip**: Save the schema name from your first run and reuse it in future attestations. You only need to create each schema once!
+**Pro Tip**: Save the schema UID from your first run and reuse it in future attestations. You only need to create each schema once per authority!
 </Tip>
