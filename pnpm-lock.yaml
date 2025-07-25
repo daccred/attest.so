@@ -59,9 +59,6 @@ importers:
       morgan:
         specifier: ^1.10.0
         version: 1.10.0
-      prisma:
-        specifier: ^6.8.2
-        version: 6.8.2(typescript@5.8.3)
     devDependencies:
       '@types/cors':
         specifier: ^2.8.17
@@ -250,6 +247,8 @@ importers:
       tap:
         specifier: ^21.1.0
         version: 21.1.0(@types/node@22.15.18)(@types/react@18.3.20)(bufferutil@4.0.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.5.4)(utf-8-validate@5.0.10)
+
+  contracts/whitepaper: {}
 
   packages/sdk:
     dependencies:
@@ -11131,10 +11130,13 @@ snapshots:
   '@prisma/config@6.8.2':
     dependencies:
       jiti: 2.4.2
+    optional: true
 
-  '@prisma/debug@6.8.2': {}
+  '@prisma/debug@6.8.2':
+    optional: true
 
-  '@prisma/engines-version@6.8.0-43.2060c79ba17c6bb9f5823312b6f6b7f4a845738e': {}
+  '@prisma/engines-version@6.8.0-43.2060c79ba17c6bb9f5823312b6f6b7f4a845738e':
+    optional: true
 
   '@prisma/engines@6.8.2':
     dependencies:
@@ -11142,16 +11144,19 @@ snapshots:
       '@prisma/engines-version': 6.8.0-43.2060c79ba17c6bb9f5823312b6f6b7f4a845738e
       '@prisma/fetch-engine': 6.8.2
       '@prisma/get-platform': 6.8.2
+    optional: true
 
   '@prisma/fetch-engine@6.8.2':
     dependencies:
       '@prisma/debug': 6.8.2
       '@prisma/engines-version': 6.8.0-43.2060c79ba17c6bb9f5823312b6f6b7f4a845738e
       '@prisma/get-platform': 6.8.2
+    optional: true
 
   '@prisma/get-platform@6.8.2':
     dependencies:
       '@prisma/debug': 6.8.2
+    optional: true
 
   '@radix-ui/number@1.1.1': {}
 
@@ -18234,6 +18239,7 @@ snapshots:
       '@prisma/engines': 6.8.2
     optionalDependencies:
       typescript: 5.8.3
+    optional: true
 
   prismjs-terminal@1.2.3:
     dependencies:
