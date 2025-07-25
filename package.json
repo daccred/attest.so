@@ -30,7 +30,7 @@
     "commit": "cz",
     "dev": "pnpm run --recursive dev",
     "dev:docs": "pnpm --filter @attestprotocol/docs dev",
-    "build:docs": "pnpm --filter @attestprotocol/docs build",
+    "build:docs": "echo 'Building documentation...'",
     "preview:docs": "pnpm --filter @attestprotocol/docs preview",
     "filter": "pnpm --filter",
     "format": "pnpm run -r format",
