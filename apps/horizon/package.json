@@ -8,12 +8,17 @@
     "build": "tsc",
     "start": "node dist/src/index.js",
     "start:ts": "ts-node src/index.ts",
-    "lint": "eslint --fix src test",
+    "lint": "eslint --fix src __tests__",
     "lint:ts": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "prisma:generate": "prisma generate",
+    "prisma:studio": "prisma studio",
+    "prisma:db:push": "prisma db push",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "postinstall": "prisma generate"
   },
   "keywords": [
     "stellar",
@@ -33,7 +38,8 @@
     "express": "^4.21.1",
     "helmet": "^8.0.0",
     "mongodb": "^6.16.0",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "@prisma/client": "^6.8.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

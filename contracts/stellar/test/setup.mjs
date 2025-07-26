@@ -3,7 +3,7 @@ import {
   TransactionBuilder,
   Operation,
   Networks,
-  SorobanRpc,
+  rpc,
   TimeoutInfinite,
   BASE_FEE,
 } from '@stellar/stellar-sdk'
@@ -34,7 +34,7 @@ export async function fundAccountWithFriendbot(publicKey) {
 
 /**
  * Wait for a transaction to complete by polling its status
- * @param {SorobanRpc.Server} server - The Soroban RPC server
+ * @param {rpc.Server} server - The Soroban RPC server
  * @param {string} txHash - The transaction hash
  * @param {number} timeoutMs - Timeout in milliseconds
  * @param {number} pollIntervalMs - Polling interval in milliseconds
@@ -52,8 +52,19 @@ async function waitForTransaction(server, txHash, timeoutMs = 60000, pollInterva
       }
 
       // Get the transaction status
-      const txResponse = await server.getTransaction(txHash)
-      console.log(`Transaction status: ${txResponse.status}`)
+      let txResponse
+      try {
+        txResponse = await server.getTransaction(txHash)
+        console.log(`Transaction status: ${txResponse.status}`)
+      } catch (parseError) {
+        // Handle parsing error - might be due to SDK version mismatch
+        if (parseError.message && parseError.message.includes('Bad union switch')) {
+          console.warn('Encountered parsing error, retrying...', parseError.message)
+          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
+          continue
+        }
+        throw parseError
+      }
 
       // If status is no longer pending, return the response
       if (
@@ -88,7 +99,7 @@ async function waitForTransaction(server, txHash, timeoutMs = 60000, pollInterva
 
 /**
  * Create a new account using a parent account
- * @param {SorobanRpc.Server} server - The Soroban RPC server
+ * @param {rpc.Server} server - The Soroban RPC server
  * @param {Keypair} parentKeypair - The keypair of the parent account
  * @param {string} accountName - A descriptive name for the account (for logging)
  * @param {string} startingBalance - The starting balance for the new account (in XLM)
@@ -134,7 +145,23 @@ export async function createAccount(server, parentKeypair, accountName, starting
 
     // Wait for the transaction to complete with a 60-second timeout
     console.log(`Transaction submitted with hash: ${sendResponse.hash}`)
-    await waitForTransaction(server, sendResponse.hash, 60000, 3000)
+    try {
+      await waitForTransaction(server, sendResponse.hash, 60000, 3000)
+    } catch (error) {
+      // If waitForTransaction fails due to parsing, try to verify account exists
+      if (error.message && error.message.includes('Bad union switch')) {
+        console.warn('Transaction parsing failed, checking if account was created...')
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+        try {
+          await server.getAccount(newAccountKeypair.publicKey())
+          console.log('Account creation confirmed despite parsing error')
+        } catch (accountError) {
+          throw new Error(`Account creation failed: ${error.message}`)
+        }
+      } else {
+        throw error
+      }
+    }
 
     console.log(`SUCCESS! Created new ${accountName} account: ${newAccountKeypair.publicKey()}`)
     return newAccountKeypair
@@ -149,7 +176,7 @@ export async function createAccount(server, parentKeypair, accountName, starting
  * This function creates auxiliary accounts for testing but requires the admin keypair
  * to be provided from the environment.
  *
- * @param {SorobanRpc.Server} server - The Soroban RPC server
+ * @param {rpc.Server} server - The Soroban RPC server
  * @returns {Promise<Object>} - Object containing all the keypairs for testing
  */
 export async function setupTestAccounts(server) {

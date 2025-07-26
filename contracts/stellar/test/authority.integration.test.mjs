@@ -8,7 +8,7 @@ import {
   xdr,
   Address,
   Contract,
-  SorobanRpc,
+  rpc,
   Account,
   TimeoutInfinite,
   BASE_FEE,
@@ -21,7 +21,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { randomBytes } from 'crypto'
-import { setupTestAccounts } from './account-setup.mjs'
+import { setupTestAccounts } from './setup.mjs'
 
 /* -----------------------------------------------------------------
 /--- Test Setup --------------------------------------------------*/
@@ -92,7 +92,7 @@ try {
 }
 
 // --- Stellar SDK Setup ---
-const server = new SorobanRpc.Server(RPC_URL, { allowHttp: true })
+const server = new rpc.Server(RPC_URL, { allowHttp: true })
 const adminKeypair = Keypair.fromSecret(ADMIN_SECRET_KEY)
 const adminAddress = adminKeypair.publicKey()
 
@@ -565,14 +565,7 @@ t.test('Authority Contract Integration Test', async (t) => {
           })
 
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
-    // --- Create correct Auth Entry ---
-    const authEntry = createAuthEntry(
-      adminAddress,
-      'admin_register_schema',
-      argsVec,
-      AUTHORITY_CONTRACT_ID
-    )
-    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] })
+    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
 
     try {
       const result = await invokeContract(operation, adminKeypair)
@@ -606,14 +599,7 @@ t.test('Authority Contract Integration Test', async (t) => {
 
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
 
-    // --- Create correct Auth Entry ---
-    const authEntry = createAuthEntry(
-      adminAddress,
-      'admin_set_schema_levy',
-      argsVec,
-      AUTHORITY_CONTRACT_ID
-    )
-    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] })
+    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
 
     try {
       const result = await invokeContract(operation, adminKeypair)
@@ -638,14 +624,7 @@ t.test('Authority Contract Integration Test', async (t) => {
 
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
 
-    // --- Create correct Auth Entry ---
-    const authEntry = createAuthEntry(
-      adminAddress,
-      'admin_register_authority',
-      argsVec,
-      AUTHORITY_CONTRACT_ID
-    )
-    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] })
+    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
 
     try {
       const result = await invokeContract(operation, adminKeypair)
@@ -780,9 +759,7 @@ t.test('Authority Contract Integration Test', async (t) => {
       args: argsVec,
     })
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
-    // --- Create correct Auth Entry ---
-    const authEntry = createAuthEntry(adminAddress, 'attest', argsVec, AUTHORITY_CONTRACT_ID)
-    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] })
+    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
 
     try {
       const result = await invokeContract(operation, adminKeypair)
@@ -839,9 +816,7 @@ t.test('Authority Contract Integration Test', async (t) => {
     })
 
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
-    // --- Create correct Auth Entry for the attester (admin) ---
-    const authEntry = createAuthEntry(adminAddress, 'revoke', argsVec, AUTHORITY_CONTRACT_ID)
-    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] })
+    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
 
     try {
       const result = await invokeContract(operation, adminKeypair)
@@ -864,14 +839,7 @@ t.test('Authority Contract Integration Test', async (t) => {
 
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeArgs)
 
-    // --- Create correct Auth Entry for the *authority* ---
-    const authEntry = createAuthEntry(
-      authorityToRegisterKp.publicKey(),
-      'withdraw_levies',
-      argsVec,
-      AUTHORITY_CONTRACT_ID
-    )
-    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [authEntry] })
+    const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
 
     try {
       const result = await invokeContract(operation, authorityToRegisterKp)

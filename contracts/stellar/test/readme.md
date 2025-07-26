@@ -32,7 +32,7 @@ The implementation is split across two files:
    - Creates Keypair from the secret key
    - Verifies it matches ADMIN_ADDRESS
 
-2. **account-setup.mjs**:
+2. **setup.mjs**:
    - Creates a random parent account and funds it using Friendbot
    - Creates role-specific test accounts using this parent
    - Does NOT create or manage the admin account
@@ -43,7 +43,7 @@ To use this approach in your tests:
 
 ```javascript
 // In your test file
-import { setupTestAccounts } from './account-setup.mjs'
+import { setupTestAccounts } from './setup.mjs'
 
 // 1. Load admin keypair directly from environment
 const adminKeypair = Keypair.fromSecret(env.ADMIN_SECRET_KEY)

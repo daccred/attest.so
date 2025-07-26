@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "NodeNext", 
+    "moduleResolution": "nodenext", 
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "emitDeclarationOnly": true,
+    "outFile": "./",
+    "outDir": "./dist",
+    "removeComments": true,
+    "noEmit": true,
+    "importHelpers": true,
+    "importsNotUsedAsValues": "remove",
+    "downlevelIteration": true,
+    "sourceRoot": "",
+    "mapRoot": "",
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "node_modules",
+    "authority",
+    "protocol",
+    "test",
+    "dist"
+  ],
+  // We only want to compile the 
+  // bindings/src folder
+  "include": [
+    "bindings/src/*"
+  ]
+}
