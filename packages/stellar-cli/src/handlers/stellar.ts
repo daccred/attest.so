@@ -1,6 +1,6 @@
 import { logger } from '../logger'
 import { green, red, yellow } from 'picocolors'
-// import AttestSDK, { SchemaConfig, StellarAttestationConfig, StellarAttestSDK } from '../../../sdk/dist'
+// import AttestSDK, { SchemaConfig, StellarAttestationConfig, StellarAttestProtocol } from '../../../sdk/dist'
 import { BaseHandler } from './base'
 import { validateStellarSchema, validateStellarAttestation } from '../utils'
 import { Command } from 'commander'
@@ -9,16 +9,16 @@ import * as StellarSdk from '@stellar/stellar-sdk'
 import AttestSDK, {
   StellarAttestationConfig,
   SchemaConfig,
-  StellarAttestSDK,
+  StellarAttestProtocol,
 } from '@attestprotocol/sdk' // Changed import path
 import { readAttestationConfig } from '../config/config'
 import { log } from '../log'
 
 export class StellarHandler extends BaseHandler {
-  declare protected client: StellarAttestSDK
+  declare protected client: StellarAttestProtocol
   private network: string = 'testnet' // Default to testnet
 
-  async initializeClient(secretKey: string): Promise<StellarAttestSDK> {
+  async initializeClient(secretKey: string): Promise<StellarAttestProtocol> {
     try {
       // Initialize Stellar SDK
       this.client = await AttestSDK.initializeStellar({

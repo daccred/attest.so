@@ -111,7 +111,7 @@ contracts/stellar/env.sh
 .vscode
 .idea
 .vercel
-/dist
+**/dist
 
 
 test-ledger
