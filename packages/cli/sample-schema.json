@@ -1,0 +1,7 @@
+{
+  "name": "identity-verification",
+  "content": "string name, string email, uint8 verification_level, bool is_verified",
+  "revocable": true,
+  "resolver": null,
+  "levy": null
+}
