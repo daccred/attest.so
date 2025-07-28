@@ -41,7 +41,7 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
-    "@attestprotocol/core": "^0.1.0",
+    "@attestprotocol/core": "workspace:*",
     "starknet": "^6.0.0"
   },
   "devDependencies": {

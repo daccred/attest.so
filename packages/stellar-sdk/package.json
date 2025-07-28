@@ -41,7 +41,7 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
-    "@attestprotocol/core": "^0.1.0",
+    "@attestprotocol/core": "workspace:*",
     "@stellar/stellar-sdk": "14.0.0-rc.3"
   },
   "devDependencies": {
@@ -49,6 +49,7 @@
     "eslint": "^8.0.0",
     "prettier": "^3.0.0",
     "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5.0.0",
     "vitest": "^1.0.0"
   },

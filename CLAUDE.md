@@ -37,9 +37,11 @@ contracts/
   sui/            # Move contracts
 packages/
   sdk/            # TypeScript SDK for all chains
-  solana-cli/     # Solana-specific CLI
-  stellar-cli/    # Stellar-specific CLI
-  starknet-cli/   # Starknet-specific CLI
+  cli/            # Unified CLI for all chains
+  core/           # Core SDK abstractions
+  stellar-sdk/    # Stellar-specific SDK implementation
+  solana-sdk/     # Solana-specific SDK implementation  
+  starknet-sdk/   # Starknet-specific SDK implementation
 examples/         # Example implementations
 ```
 

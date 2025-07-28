@@ -5,10 +5,10 @@
   "author": "daccred",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
-    "@attestprotocol/core": "^0.1.0",
-    "@attestprotocol/solana-sdk": "^0.1.0",
-    "@attestprotocol/starknet-sdk": "^0.1.0",
-    "@attestprotocol/stellar-sdk": "^0.1.0"
+    "@attestprotocol/core": "workspace:*",
+    "@attestprotocol/solana-sdk": "workspace:*",
+    "@attestprotocol/starknet-sdk": "workspace:*",
+    "@attestprotocol/stellar-sdk": "workspace:*"
   },
   "devDependencies": {
     "@sebbo2002/semantic-release-jsr": "3.0.0",
