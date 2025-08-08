@@ -1,63 +1,64 @@
-import { MongoClient, Db, Collection } from 'mongodb';
-import { MONGODB_URI } from './constants';
+import { PrismaClient } from '@prisma/client';
 
-let db: Db | undefined;
-let metadataCollection: Collection | undefined;
-let eventsCollection: Collection | undefined;
+let prisma: PrismaClient | undefined;
 
-export async function connectToMongoDB(): Promise<boolean> {
-  if (!MONGODB_URI) {
-    console.error('MongoDB URI is not defined. Please set MONGODB_URI environment variable.');
+export async function connectToPostgreSQL(): Promise<boolean> {
+  const databaseUrl = process.env.DATABASE_URL;
+  
+  if (!databaseUrl) {
+    console.error('DATABASE_URL is not defined. Please set DATABASE_URL environment variable.');
     if (process.env.NODE_ENV !== 'test') {
-        console.error("CRITICAL: MongoDB URI not set, indexer will not function.")
+      console.error("CRITICAL: DATABASE_URL not set, indexer will not function.")
     }
-    db = undefined;
-    metadataCollection = undefined;
-    eventsCollection = undefined;
+    prisma = undefined;
     return false;
   }
+  
   try {
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    db = client.db('horizon_indexer');
-    metadataCollection = db.collection('metadata');
-    eventsCollection = db.collection('contract_events_with_tx');
-    console.log('Successfully connected to MongoDB.');
-
+    prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: databaseUrl
+        }
+      },
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
+    });
+    
+    // Test the connection
+    await prisma.$connect();
+    console.log('Successfully connected to PostgreSQL.');
+    
     return true;
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
-    db = undefined;
-    metadataCollection = undefined;
-    eventsCollection = undefined;
+    console.error('Failed to connect to PostgreSQL:', error);
+    prisma = undefined;
     return false;
   }
 }
 
 // Connect to DB when module is loaded
-connectToMongoDB();
+connectToPostgreSQL();
 
-export async function getDbInstance(): Promise<Db | undefined> {
-    if (!db) {
-        console.warn("getDbInstance called before DB connection was established or connection failed. Attempting to reconnect...");
-        await connectToMongoDB();
-    }
-    return db;
+export async function getDbInstance(): Promise<PrismaClient | undefined> {
+  if (!prisma) {
+    console.warn("getDbInstance called before DB connection was established or connection failed. Attempting to reconnect...");
+    await connectToPostgreSQL();
+  }
+  return prisma;
 }
 
 export async function getLastProcessedLedgerFromDB(): Promise<number> {
-  if (!metadataCollection) {
-    console.warn('getLastProcessedLedgerFromDB: MongoDB metadataCollection not initialized. Attempting to connect to DB.');
-    await connectToMongoDB();
-    if (!metadataCollection) {
-        console.error('Failed to initialize metadataCollection after reconnect attempt.');
-        return 0;
-    }
+  const db = await getDbInstance();
+  if (!db) {
+    console.error('Failed to get database instance.');
+    return 0;
   }
+  
   try {
-    const metadata = await metadataCollection.findOne({ key: 'lastProcessedLedgerMeta' });
-    return metadata ? (metadata.value as number) : 0;
+    const metadata = await db.metadata.findUnique({
+      where: { key: 'lastProcessedLedgerMeta' }
+    });
+    return metadata ? parseInt(metadata.value) : 0;
   } catch (error) {
     console.error('Error fetching last processed ledger from DB:', error);
     return 0;
@@ -65,20 +66,21 @@ export async function getLastProcessedLedgerFromDB(): Promise<number> {
 }
 
 export async function updateLastProcessedLedgerInDB(ledgerSequence: number) {
-  if (!metadataCollection) {
-    console.warn('updateLastProcessedLedgerInDB: MongoDB metadataCollection not initialized. Attempting to connect to DB.');
-    await connectToMongoDB();
-    if (!metadataCollection) {
-        console.error('Cannot update last processed ledger, metadataCollection still not initialized.');
-        return;
-    }
+  const db = await getDbInstance();
+  if (!db) {
+    console.error('Cannot update last processed ledger, database not initialized.');
+    return;
   }
+  
   try {
-    await metadataCollection.updateOne(
-      { key: 'lastProcessedLedgerMeta' },
-      { $set: { value: ledgerSequence, key: 'lastProcessedLedgerMeta' } },
-      { upsert: true }
-    );
+    await db.metadata.upsert({
+      where: { key: 'lastProcessedLedgerMeta' },
+      update: { value: ledgerSequence.toString() },
+      create: { 
+        key: 'lastProcessedLedgerMeta',
+        value: ledgerSequence.toString()
+      }
+    });
     console.log(`Updated lastProcessedLedger in DB to: ${ledgerSequence}`);
   } catch (error) {
     console.error('Error updating last processed ledger in DB:', error);
@@ -86,30 +88,55 @@ export async function updateLastProcessedLedgerInDB(ledgerSequence: number) {
 }
 
 export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]) {
-  if (!eventsCollection) {
-    console.warn('storeEventsAndTransactionsInDB: MongoDB eventsCollection not initialized. Attempting to connect to DB.');
-    await connectToMongoDB();
-    if (!eventsCollection) {
-        console.error('Cannot store events, eventsCollection still not initialized.');
-        return;
-    }
+  const db = await getDbInstance();
+  if (!db) {
+    console.error('Cannot store events, database not initialized.');
+    return;
   }
+  
   if (eventsWithTransactions.length === 0) return;
 
-  const operations = eventsWithTransactions.map((item) => ({
-    updateOne: {
-      filter: { eventId: item.event.id }, // Assuming event.id is unique and suitable as eventId
-      update: { $set: { ...item, ingestedAt: new Date() } },
-      upsert: true,
-    },
-  }));
-
   try {
-    const result = await eventsCollection.bulkWrite(operations);
-    console.log(
-      `Stored ${result.upsertedCount + result.modifiedCount} event-transaction pairs. New: ${result.upsertedCount}, Updated: ${result.modifiedCount}`
-    );
+    // Process events in a transaction for consistency
+    const results = await db.$transaction(async (tx) => {
+      const operations = eventsWithTransactions.map(async (item) => {
+        const eventData = {
+          eventId: item.event.id,
+          ledger: item.event.ledger,
+          timestamp: new Date(item.event.timestamp),
+          contractId: item.event.contractId,
+          eventType: item.event.type || 'unknown',
+          eventData: item.event.data || {},
+          
+          // Transaction details
+          txHash: item.transaction?.hash || '',
+          txEnvelope: item.transaction?.envelope || '',
+          txResult: item.transaction?.result || '',
+          txMeta: item.transaction?.meta || '',
+          txFeeBump: item.transaction?.feeBump || false,
+          txStatus: item.transaction?.status || 'unknown',
+          txCreatedAt: item.transaction?.createdAt ? new Date(item.transaction.createdAt) : new Date(),
+        };
+
+        return tx.contractEvent.upsert({
+          where: { eventId: item.event.id },
+          update: eventData,
+          create: eventData
+        });
+      });
+      
+      return Promise.all(operations);
+    });
+    
+    console.log(`Stored ${results.length} event-transaction pairs.`);
   } catch (error) {
-    console.error('Error storing event-transaction pairs in MongoDB:', error);
+    console.error('Error storing event-transaction pairs in PostgreSQL:', error);
   }
-} 
+}
+
+// Clean up on process exit
+process.on('beforeExit', async () => {
+  if (prisma) {
+    await prisma.$disconnect();
+  }
+});

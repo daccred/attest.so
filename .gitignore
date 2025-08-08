@@ -113,5 +113,11 @@ contracts/stellar/env.sh
 .vercel
 **/dist
 
+# claude
+.claude
 
+# prisma
+prisma/migrations
+
+# test ledger
 test-ledger

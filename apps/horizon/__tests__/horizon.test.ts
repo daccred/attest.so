@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { MongoClient, Db } from 'mongodb';
+import { PrismaClient } from '@prisma/client';
 import horizonRouter from '../src/api/indexer/api'; 
 
 
@@ -9,32 +9,34 @@ const app = express();
 app.use(express.json());
 app.use('/api/horizon', horizonRouter);
 
-let client: MongoClient;
-let dbInstance: Db;
+let prisma: PrismaClient;
 
 
 describe('Horizon API Event Ingester (Integration with Live RPC)', () => {
   beforeAll(async () => {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('Test MongoDB URI not set. Check setup.ts');
+    if (!process.env.DATABASE_URL) {
+      throw new Error('Test DATABASE_URL not set. Check setup.ts');
     }
-    client = new MongoClient(process.env.MONGODB_URI);
-    await client.connect();
-    dbInstance = client.db(); 
+    prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL
+        }
+      }
+    });
+    await prisma.$connect();
   });
 
   afterAll(async () => {
-    await client.close();
+    await prisma.$disconnect();
   });
 
   beforeEach(async () => {
-    if (dbInstance) {
-      try {
-        await dbInstance.collection('metadata').deleteMany({});
-        await dbInstance.collection('contract_events').deleteMany({});
-      } catch (e) {
-        console.error("Error clearing DB collections:", e);
-      }
+    try {
+      await prisma.metadata.deleteMany({});
+      await prisma.contractEvent.deleteMany({});
+    } catch (e) {
+      console.error("Error clearing DB tables:", e);
     }
   });
 
@@ -55,13 +57,13 @@ describe('Horizon API Event Ingester (Integration with Live RPC)', () => {
       // Wait significantly longer for real network calls and processing
       await new Promise(resolve => setTimeout(resolve, 15000)); // Adjust based on typical ingestion time
 
-      const eventsInDb = await dbInstance.collection('contract_events').find({}).toArray();
+      const eventsInDb = await prisma.contractEvent.findMany();
       // We can't know the exact number of events, but expect some if the contract is active.
       // If testing a specific known emission, you could assert more precisely.
       console.log(`Found ${eventsInDb.length} events in DB after live ingestion.`);
       expect(eventsInDb.length).toBeGreaterThanOrEqual(0); // At least 0, hopefully more
 
-      const metadata = await dbInstance.collection('metadata').findOne({ key: 'lastProcessedLedgerMeta' });
+      const metadata = await prisma.metadata.findUnique({ where: { key: 'lastProcessedLedgerMeta' } });
       if (eventsInDb.length > 0) {
         expect(metadata).not.toBeNull();
         expect(metadata?.value).toBeGreaterThan(0);
@@ -108,13 +110,13 @@ describe('Horizon API Event Ingester (Integration with Live RPC)', () => {
         
         await new Promise(resolve => setTimeout(resolve, 15000)); // Wait
   
-        const metadata = await dbInstance.collection('metadata').findOne({ key: 'lastProcessedLedgerMeta' });
+        const metadata = await prisma.metadata.findUnique({ where: { key: 'lastProcessedLedgerMeta' } });
         if (metadata) {
-            expect(metadata.value).toBeGreaterThanOrEqual(testStartLedger -1); // Should have processed at least up to where it started or beyond
+            expect(parseInt(metadata.value)).toBeGreaterThanOrEqual(testStartLedger -1); // Should have processed at least up to where it started or beyond
         } else {
             console.warn(`No metadata found after ingesting from ledger ${testStartLedger}. This might mean no events were found in that range.`);
         }
-        const eventsCount = await dbInstance.collection('contract_events').countDocuments({ ledger: { $gte: testStartLedger.toString() } });
+        const eventsCount = await prisma.contractEvent.count({ where: { ledger: { gte: testStartLedger } } });
         console.log(`Events found from ledger ${testStartLedger}: ${eventsCount}`);
         // No strict assertion on count due to live network unpredictability
     });
@@ -130,14 +132,14 @@ describe('Horizon API Event Ingester (Integration with Live RPC)', () => {
   });
 
   describe('GET /api/horizon/health', () => {
-    it('should return health status with MongoDB connected and RPC healthy', async () => {
+    it('should return health status with PostgreSQL connected and RPC healthy', async () => {
       // Relies on the actual RPC server being healthy.
-      await dbInstance.collection('metadata').insertOne({ key: 'lastProcessedLedgerMeta', value: 90 });
+      await prisma.metadata.create({ data: { key: 'lastProcessedLedgerMeta', value: '90' } });
 
       const response = await request(app).get('/api/horizon/health');
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('ok');
-      expect(response.body.mongodb_status).toBe('connected');
+      expect(response.body.database_status).toBe('connected');
       expect(response.body.soroban_rpc_status).toBe('healthy'); // This depends on live RPC
       expect(response.body.last_processed_ledger_in_db).toBe(90);
     });

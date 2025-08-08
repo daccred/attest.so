@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Metadata {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("metadata")
+}
+
+model ContractEvent {
+  id          String   @id @default(uuid())
+  eventId     String   @unique
+  ledger      Int
+  timestamp   DateTime
+  contractId  String
+  eventType   String
+  eventData   Json
+  
+  // Transaction details
+  txHash      String
+  txEnvelope  String
+  txResult    String
+  txMeta      String
+  txFeeBump   Boolean  @default(false)
+  txStatus    String
+  txCreatedAt DateTime
+  
+  // Indexer metadata
+  ingestedAt  DateTime @default(now())
+  
+  @@index([ledger])
+  @@index([contractId])
+  @@index([timestamp])
+  @@index([eventType])
+  @@map("contract_events")
+}

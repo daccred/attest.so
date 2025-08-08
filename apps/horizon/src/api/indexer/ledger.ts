@@ -29,7 +29,7 @@ export async function fetchAndStoreEvents(startLedgerFromRequest?: number): Prom
 
   const db = await getDbInstance();
   if (!db) {
-    const errMsg = 'MongoDB not connected (checked in fetchAndStoreEvents). Aborting event fetch.';
+    const errMsg = 'Database not connected (checked in fetchAndStoreEvents). Aborting event fetch.';
     console.error(errMsg);
     console.log(`------------------------------------------------------`);
     throw new Error(errMsg);
