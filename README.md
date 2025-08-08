@@ -262,9 +262,8 @@ Optionally you can create a `.vscode/settings.json` file in the root of the proj
 ## 📚 Resources & Links
 
 - [Product Development Log](https://daccred.notion.site/We-re-building-https-on-the-blockchain-df20b05cb5a04e379a165714aab024fb?pvs=4)
-- [Solana Radar Public Goods Award](https://x.com/solana/status/1856362113561964676)
-- [Technical Documentation](https://docs.attest.so) (Coming Soon)
-- [API Reference](https://docs.attest.so/api) (Coming Soon)
+- [Technical Documentation](https://attest.so) (Coming Soon)
+- [API Reference](https://attest.so) (Coming Soon)
 
 ## 📝 License
 

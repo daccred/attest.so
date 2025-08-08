@@ -1,147 +1,68 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { PrismaClient } from '@prisma/client';
-import horizonRouter from '../src/api/indexer/api'; 
 
+// Mock ledger and db modules before importing the router
+vi.mock('../src/api/indexer/ledger', () => ({
+  fetchAndStoreEvents: vi.fn().mockResolvedValue({
+    message: 'ok',
+    eventsFetched: 1,
+    processedUpToLedger: 5,
+    lastRpcLedger: 5,
+  }),
+  getRpcHealth: vi.fn().mockResolvedValue('healthy'),
+  getLatestRPCLedgerIndex: vi.fn().mockResolvedValue(123456),
+}));
+
+vi.mock('../src/api/indexer/db', () => ({
+  getLastProcessedLedgerFromDB: vi.fn().mockResolvedValue(10),
+  connectToPostgreSQL: vi.fn().mockResolvedValue(true),
+  getDbInstance: vi.fn().mockResolvedValue({ 
+    $queryRaw: vi.fn().mockResolvedValue([{ 1: 1 }])
+  }),
+}));
+
+import horizonRouter from '../src/api/indexer/api';
+import { fetchAndStoreEvents } from '../src/api/indexer/ledger';
+import { getRpcHealth } from '../src/api/indexer/ledger';
+import { getLastProcessedLedgerFromDB } from '../src/api/indexer/db';
 
 const app = express();
 app.use(express.json());
 app.use('/api/horizon', horizonRouter);
 
-let prisma: PrismaClient;
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
+describe('Horizon API', () => {
+  it('POST /events/ingest triggers ingestion', async () => {
+    const res = await request(app)
+      .post('/api/horizon/events/ingest')
+      .send({ startLedger: 123 });
 
-describe('Horizon API Event Ingester (Integration with Live RPC)', () => {
-  beforeAll(async () => {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Test DATABASE_URL not set. Check setup.ts');
-    }
-    prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL
-        }
-      }
-    });
-    await prisma.$connect();
+    expect(res.status).toBe(202);
+    expect(res.body.success).toBe(true);
+    expect(fetchAndStoreEvents).toHaveBeenCalledWith(123);
   });
 
-  afterAll(async () => {
-    await prisma.$disconnect();
+  it('POST /events/ingest with invalid startLedger returns 400', async () => {
+    const res = await request(app)
+      .post('/api/horizon/events/ingest')
+      .send({ startLedger: 'abc' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid startLedger parameter');
   });
 
-  beforeEach(async () => {
-    try {
-      await prisma.metadata.deleteMany({});
-      await prisma.contractEvent.deleteMany({});
-    } catch (e) {
-      console.error("Error clearing DB tables:", e);
-    }
-  });
+  it('GET /health returns status information', async () => {
+    const res = await request(app).get('/api/horizon/health');
 
-  describe('POST /api/horizon/events/ingest', () => {
-    it('should initiate event ingestion and fetch some events from a live contract', async () => {
-      // This test assumes CONTRACT_ID_TO_INDEX is valid and has emitted events recently
-      // or within the LEDGER_HISTORY_LIMIT_DAYS.
-      // For a truly deterministic test, you might need to trigger events on your test contract first.
-
-      const response = await request(app)
-        .post('/api/horizon/events/ingest')
-        .send({}); // Start from latest in DB or default lookback
-
-      expect(response.status).toBe(202);
-      expect(response.body.success).toBe(true);
-      expect(response.body.message).toContain('Event ingestion process initiated');
-
-      // Wait significantly longer for real network calls and processing
-      await new Promise(resolve => setTimeout(resolve, 15000)); // Adjust based on typical ingestion time
-
-      const eventsInDb = await prisma.contractEvent.findMany();
-      // We can't know the exact number of events, but expect some if the contract is active.
-      // If testing a specific known emission, you could assert more precisely.
-      console.log(`Found ${eventsInDb.length} events in DB after live ingestion.`);
-      expect(eventsInDb.length).toBeGreaterThanOrEqual(0); // At least 0, hopefully more
-
-      const metadata = await prisma.metadata.findUnique({ where: { key: 'lastProcessedLedgerMeta' } });
-      if (eventsInDb.length > 0) {
-        expect(metadata).not.toBeNull();
-        expect(metadata?.value).toBeGreaterThan(0);
-      } else {
-        console.warn("No events were ingested. This might be okay if the contract had no recent events or if start ledger was ahead.");
-        // If metadata exists, it means fetchAndStoreEvents ran.
-        // If it doesn't, it implies no events were processed to the point of updating metadata.
-      }
-    });
-
-    it('should ingest events starting from a specified ledger', async () => {
-        // To make this test reliable, you need to know a ledger range on testnet
-        // where your CONTRACT_ID_TO_INDEX *definitely* emitted events.
-        // Or, have a mechanism to emit test events before this test.
-        // For now, this will just call it and we hope for the best or check logs.
-        const knownStartLedgerWithEvents = 1; // Replace with an actual ledger if possible, or a very old one.
-                                            // For a generic test, starting from 1 might fetch many events or hit limits.
-                                            // A more controlled approach is better.
-
-        // For a more controlled test, you'd find the latest ledger, then query a small range
-        // slightly behind it, assuming some very recent activity.
-        // For now, we'll use a dynamic approach based on latest ledger for demonstration.
-        
-        const tempServer = new (require('@stellar/stellar-sdk').rpc.Server)(process.env.STELLAR_RPC_URL || 'https://soroban-testnet.stellar.org');
-        let latestLedger;
-        try {
-            latestLedger = await tempServer.getLatestLedger();
-        } catch (e) {
-            console.error("Could not fetch latest ledger for test setup", e);
-            throw e; // Fail fast if we can't set up the test range
-        }
-
-        // Let's try to get events from a small, very recent window.
-        // This is still non-deterministic but better than a fixed old ledger.
-        const testStartLedger = Math.max(1, latestLedger.sequence - 50); // Look back 50 ledgers
-        console.log(`Testing ingestion with startLedger: ${testStartLedger}`);
-
-
-        const response = await request(app)
-          .post('/api/horizon/events/ingest')
-          .send({ startLedger: testStartLedger });
-  
-        expect(response.status).toBe(202);
-        
-        await new Promise(resolve => setTimeout(resolve, 15000)); // Wait
-  
-        const metadata = await prisma.metadata.findUnique({ where: { key: 'lastProcessedLedgerMeta' } });
-        if (metadata) {
-            expect(parseInt(metadata.value)).toBeGreaterThanOrEqual(testStartLedger -1); // Should have processed at least up to where it started or beyond
-        } else {
-            console.warn(`No metadata found after ingesting from ledger ${testStartLedger}. This might mean no events were found in that range.`);
-        }
-        const eventsCount = await prisma.contractEvent.count({ where: { ledger: { gte: testStartLedger } } });
-        console.log(`Events found from ledger ${testStartLedger}: ${eventsCount}`);
-        // No strict assertion on count due to live network unpredictability
-    });
-
-    it('should handle invalid startLedger parameter', async () => {
-      const response = await request(app)
-        .post('/api/horizon/events/ingest')
-        .send({ startLedger: 'not-a-number' });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('Invalid startLedger parameter');
-    });
-  });
-
-  describe('GET /api/horizon/health', () => {
-    it('should return health status with PostgreSQL connected and RPC healthy', async () => {
-      // Relies on the actual RPC server being healthy.
-      await prisma.metadata.create({ data: { key: 'lastProcessedLedgerMeta', value: '90' } });
-
-      const response = await request(app).get('/api/horizon/health');
-      expect(response.status).toBe(200);
-      expect(response.body.status).toBe('ok');
-      expect(response.body.database_status).toBe('connected');
-      expect(response.body.soroban_rpc_status).toBe('healthy'); // This depends on live RPC
-      expect(response.body.last_processed_ledger_in_db).toBe(90);
-    });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ok');
+    expect(res.body.database_status).toBe('connected');
+    expect(res.body.soroban_rpc_status).toBe('healthy');
+    expect(getLastProcessedLedgerFromDB).toHaveBeenCalled();
+    expect(getRpcHealth).toHaveBeenCalled();
   });
 });
