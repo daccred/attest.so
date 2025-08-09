@@ -22,14 +22,113 @@ npm install -g @attestprotocol/cli
 
 ```bash
 # Install in your project
+<<<<<<< HEAD
+npm install @attestprotocol/stellar-cli @attest/solana-cli
+
+# Use with npx
+npx @attestprotocol/stellar-cli --help
+=======
 npm install @attestprotocol/cli
 
 # Use with npx
 npx @attestprotocol/cli --help
+>>>>>>> canary
 ```
 
 ---
 
+<<<<<<< HEAD
+## Common Operations
+
+### Authority Management
+
+Register as an authority on each chain:
+
+```bash
+# Stellar
+attest-stellar authority --register --signer-key=SXXXXXXX
+
+# Solana
+attest-solana authority --register --keypair=/path/to/keypair.json
+
+# Starknet
+attest-starknet authority --register --keypair=/path/to/keypair.json
+```
+
+Check authority status:
+
+```bash
+# Stellar
+attest-stellar authority --fetch --signer-key=SXXXXXXX
+
+# Solana
+attest-solana authority --fetch --keypair=/path/to/keypair.json
+```
+
+### Schema Operations
+
+**Create Schema:**
+
+```bash
+# Stellar
+attest-stellar schema --action=create --json-file=schema.json --signer-key=SXXXXXXX
+
+# Solana
+attest-solana schema --action=create --json-file=schema.json --keypair=/path/to/keypair.json
+
+# Starknet
+attest-starknet schema --action=create --json-file=schema.json --keypair=/path/to/keypair.json
+```
+
+**Fetch Schema:**
+
+```bash
+# Stellar (use transaction hash as UID)
+attest-stellar schema --action=fetch --uid=abc123def456... --signer-key=SXXXXXXX
+
+# Solana (use PDA as UID)
+attest-solana schema --action=fetch --uid=<PDA> --keypair=/path/to/keypair.json
+```
+
+### Attestation Operations
+
+**Create Attestation:**
+
+```bash
+# Stellar
+attest-stellar attestation \
+  --action=create \
+  --schema-uid=abc123def456... \
+  --json-file=attestation.json \
+  --signer-key=SXXXXXXX
+
+# Solana
+attest-solana attestation \
+  --action=create \
+  --schema-uid=<PDA> \
+  --json-file=attestation.json \
+  --keypair=/path/to/keypair.json
+```
+
+**Fetch Attestation:**
+
+```bash
+# Stellar
+attest-stellar attestation --action=fetch --uid=<attestation-uid> --signer-key=SXXXXXXX
+
+# Solana
+attest-solana attestation --action=fetch --uid=<PDA> --keypair=/path/to/keypair.json
+```
+
+**Revoke Attestation:**
+
+```bash
+# Stellar
+attest-stellar attestation --action=revoke --uid=<attestation-uid> --signer-key=SXXXXXXX
+
+# Solana
+attest-solana attestation --action=revoke --uid=<PDA> --keypair=/path/to/keypair.json
+=======
 ## Basic Usage
 
 ### Command Structure
@@ -167,6 +266,7 @@ attest-protocol attestation --chain=solana --action=revoke --uid=<attestation-ui
   "accountAddress": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
   "privateKey": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
 }
+>>>>>>> canary
 ```
 
 ---
@@ -177,11 +277,23 @@ attest-protocol attestation --chain=solana --action=revoke --uid=<attestation-ui
 
 ```json
 {
+<<<<<<< HEAD
+  "name": "KYCVerification",
+  "type": "object",
+  "properties": {
+    "verified": { "type": "boolean" },
+    "level": { "type": "string", "maxLength": 20 },
+    "score": { "type": "number", "minimum": 0, "maximum": 100 },
+    "timestamp": { "type": "number" }
+  },
+  "required": ["verified", "level"]
+=======
   "name": "identity-verification",
   "content": "string name, string email, uint8 verification_level, bool is_verified",
   "revocable": true,
   "resolver": null,
   "levy": null
+>>>>>>> canary
 }
 ```
 
@@ -189,16 +301,96 @@ attest-protocol attestation --chain=solana --action=revoke --uid=<attestation-ui
 
 ```json
 {
+<<<<<<< HEAD
+  "subject": "GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "data": "verified:true,level:enhanced,score:95,timestamp:1704067200",
+  "reference": "kyc-check-2024-001"
+}
+```
+
+### Stellar Key Configuration
+
+```json
+{
+  "publicKey": "GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "secretKey": "SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "network": "testnet"
+=======
   "schemaUid": "your-schema-uid-here",
   "subject": "GC7XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
   "data": "{\"name\": \"John Doe\", \"email\": \"john@example.com\", \"verification_level\": 3, \"is_verified\": true}",
   "reference": "optional-reference-string",
   "expirationTime": null
+>>>>>>> canary
 }
 ```
 
 ---
 
+<<<<<<< HEAD
+## Chain-Specific Features
+
+### Stellar CLI
+
+**Key Management:**
+- Uses Stellar secret keys (S...)  
+- Supports testnet and mainnet networks via `--url` parameter
+- Automatically handles account funding requirements
+
+**Commands:**
+```bash
+# Set custom RPC endpoint
+attest-stellar --url=https://soroban-testnet.stellar.org authority --register --signer-key=SXXXXXXX
+
+# Use mainnet (when available)  
+attest-stellar --url=https://soroban-mainnet.stellar.org schema --action=fetch --uid=abc123
+```
+
+### Solana CLI
+
+**Key Management:**
+- Uses Solana keypair files (JSON format)
+- Supports devnet, testnet, and mainnet-beta
+- Compatible with standard Solana CLI keypairs
+
+**Commands:**
+```bash
+# Generate new keypair
+solana-keygen new --outfile keypair.json
+
+# Use custom RPC endpoint
+attest-solana --url=https://api.devnet.solana.com authority --register --keypair=keypair.json
+
+# Check balance
+solana balance --keypair keypair.json
+```
+
+**Token Support:**
+```bash
+# Create attestation with custom levy token
+attest-solana attestation \
+  --action=create \
+  --schema-uid=<PDA> \
+  --json-file=attestation.json \
+  --keypair=keypair.json \
+  --levy-token=So11111111111111111111111111111111111111112
+```
+
+### Starknet CLI
+
+**Key Management:**
+- Uses Starknet keypair files
+- Supports testnet and mainnet networks
+- Compatible with Starknet account contracts
+
+**Commands:**
+```bash
+# Deploy account contract (if needed)
+starknet deploy_account --keystore keypair.json
+
+# Use custom network
+attest-starknet --url=https://starknet-testnet.gateway.fm authority --register --keypair=keypair.json
+=======
 ## Advanced Usage
 
 ### Custom RPC URLs
@@ -224,12 +416,153 @@ export SOLANA_PROGRAM_ID="your-custom-program-id"
 
 # Starknet
 export STARKNET_CONTRACT_ADDRESS="your-custom-contract-address"
+>>>>>>> canary
 ```
 
 ---
 
 ## Automation Scripts
 
+<<<<<<< HEAD
+### Batch Schema Creation
+
+```bash
+#!/bin/bash
+# create-schemas.sh
+
+SCHEMAS=("identity" "reputation" "certification")
+SIGNER_KEY="SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+for schema in "${SCHEMAS[@]}"; do
+  echo "Creating schema: $schema"
+  attest-stellar schema \
+    --action=create \
+    --json-file="schemas/${schema}.json" \
+    --signer-key=$SIGNER_KEY
+  sleep 2  # Rate limiting
+done
+```
+
+### Cross-Chain Authority Setup
+
+```bash
+#!/bin/bash
+# setup-authority.sh
+
+STELLAR_KEY="SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+SOLANA_KEYPAIR="/path/to/solana-keypair.json"
+
+echo "Registering Stellar authority..."
+attest-stellar authority --register --signer-key=$STELLAR_KEY
+
+echo "Registering Solana authority..."
+attest-solana authority --register --keypair=$SOLANA_KEYPAIR
+
+echo "Authority registration complete!"
+```
+
+### Attestation Verification
+
+```bash
+#!/bin/bash
+# verify-attestation.sh
+
+ATTESTATION_UID=$1
+CHAIN=$2
+
+case $chain in
+  "stellar")
+    attest-stellar attestation --action=fetch --uid=$ATTESTATION_UID --signer-key=$STELLAR_KEY
+    ;;
+  "solana")
+    attest-solana attestation --action=fetch --uid=$ATTESTATION_UID --keypair=$SOLANA_KEYPAIR
+    ;;
+  *)
+    echo "Unsupported chain: $CHAIN"
+    exit 1
+    ;;
+esac
+```
+
+---
+
+## Environment Configuration
+
+### Environment Variables
+
+```bash
+# Stellar configuration
+export ATTEST_STELLAR_URL="https://soroban-testnet.stellar.org"
+export ATTEST_STELLAR_SIGNER_KEY="SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+# Solana configuration  
+export ATTEST_SOLANA_URL="https://api.devnet.solana.com"
+export ATTEST_SOLANA_KEYPAIR="/home/user/.config/solana/id.json"
+
+# Starknet configuration
+export ATTEST_STARKNET_URL="https://starknet-testnet.gateway.fm"
+export ATTEST_STARKNET_KEYPAIR="/home/user/.starknet/keypair.json"
+```
+
+### Configuration File
+
+Create `~/.attestprotocol/config.json`:
+
+```json
+{
+  "stellar": {
+    "url": "https://soroban-testnet.stellar.org",
+    "signerKey": "SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  },
+  "solana": {
+    "url": "https://api.devnet.solana.com", 
+    "keypair": "/home/user/.config/solana/id.json"
+  },
+  "starknet": {
+    "url": "https://starknet-testnet.gateway.fm",
+    "keypair": "/home/user/.starknet/keypair.json"
+  }
+}
+```
+
+---
+
+## Error Handling
+
+### Common Issues
+
+**Insufficient Balance:**
+```bash
+# Check account balance first
+stellar-cli balance --source GXXXXXXX
+
+# Fund account if needed (testnet)
+curl "https://friendbot.stellar.org?addr=GXXXXXXX"
+```
+
+**Invalid Schema Format:**
+```bash
+# Validate JSON before submission
+jq . schema.json > /dev/null && echo "Valid JSON" || echo "Invalid JSON"
+```
+
+**Network Connectivity:**
+```bash
+# Test RPC connection
+curl -X POST https://soroban-testnet.stellar.org \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}'
+```
+
+### Debug Mode
+
+```bash
+# Enable verbose logging
+DEBUG=attest:* attest-stellar authority --register --signer-key=SXXXXXXX
+
+# Save output to file
+attest-stellar schema --action=create --json-file=schema.json --signer-key=SXXXXXXX > output.log 2>&1
+=======
 ### Cross-Chain Schema Creation
 
 ```bash
@@ -265,6 +598,7 @@ for chain in "${CHAINS[@]}"; do
 done
 
 echo "Authority registration complete on all chains!"
+>>>>>>> canary
 ```
 
 ---
@@ -283,10 +617,13 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+<<<<<<< HEAD
+=======
     strategy:
       matrix:
         chain: [stellar, solana, starknet]
     
+>>>>>>> canary
     steps:
       - uses: actions/checkout@v3
       
@@ -296,6 +633,18 @@ jobs:
           node-version: '18'
           
       - name: Install CLI
+<<<<<<< HEAD
+        run: npm install -g @attestprotocol/stellar-cli
+        
+      - name: Deploy Schema
+        run: |
+          attest-stellar schema \
+            --action=create \
+            --json-file=schemas/production.json \
+            --signer-key=${{ secrets.STELLAR_SIGNER_KEY }}
+        env:
+          ATTEST_STELLAR_URL: https://soroban-mainnet.stellar.org
+=======
         run: npm install -g @attestprotocol/cli
         
       - name: Deploy Schema
@@ -309,6 +658,7 @@ jobs:
           STELLAR_KEY: ${{ secrets.STELLAR_KEY }}
           SOLANA_KEY: ${{ secrets.SOLANA_KEY }}
           STARKNET_KEY: ${{ secrets.STARKNET_KEY }}
+>>>>>>> canary
 ```
 
 ### Docker Usage
@@ -316,10 +666,16 @@ jobs:
 ```dockerfile
 FROM node:18-alpine
 
+<<<<<<< HEAD
+RUN npm install -g @attestprotocol/stellar-cli @attest/solana-cli
+
+COPY schemas/ /app/schemas/
+=======
 RUN npm install -g @attestprotocol/cli
 
 COPY schemas/ /app/schemas/
 COPY keys/ /app/keys/
+>>>>>>> canary
 COPY scripts/ /app/scripts/
 
 WORKDIR /app
@@ -327,6 +683,9 @@ WORKDIR /app
 CMD ["./scripts/deploy-schemas.sh"]
 ```
 
+<<<<<<< HEAD
+The CLI tools provide a powerful interface for managing AttestProtocol operations across all supported blockchains, enabling seamless integration into development workflows and production systems.
+=======
 ---
 
 ## Error Handling
@@ -387,3 +746,4 @@ attest-protocol schema --chain=starknet --action=create --json-file=schema.json 
 ```
 
 The unified CLI provides a consistent interface across all supported blockchains, making it easier to manage multi-chain attestation workflows from a single tool.
+>>>>>>> canary
