@@ -88,12 +88,13 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    tx.sign(adminKeypair)
     const result = await tx.signAndSend({ 
       publicKey: adminKeypair.publicKey(), 
-      secretKey: config.adminSecretKey 
+      secretKey: adminKeypair.secret() 
     })
 
-    expect(result.isOk()).toBe(true)
+    expect(result.status).toBe('SUCCESS')
   }, 60000)
 
   it('should set schema levy through admin', async () => {
@@ -107,12 +108,13 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    tx.sign(adminKeypair)
     const result = await tx.signAndSend({ 
       publicKey: adminKeypair.publicKey(), 
-      secretKey: config.adminSecretKey 
+      secretKey: adminKeypair.secret() 
     })
 
-    expect(result.isOk()).toBe(true)
+    expect(result.status).toBe('SUCCESS')
   }, 60000)
 
   it('should register an authority through admin', async () => {
@@ -125,27 +127,23 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    tx.sign(adminKeypair)
     const result = await tx.signAndSend({ 
       publicKey: adminKeypair.publicKey(), 
-      secretKey: config.adminSecretKey 
+      secretKey: adminKeypair.secret() 
     })
 
-    expect(result.isOk()).toBe(true)
+    expect(result.status).toBe('SUCCESS')
   }, 60000)
 
   it('should verify authority is registered', async () => {
     const tx = await authorityClient.is_authority({
       authority: authorityToRegisterKp.publicKey()
-    }, {
-      simulate: true
     })
 
     const result = await tx.simulate()
 
-    expect(result.isOk()).toBe(true)
-    if (result.isOk()) {
-      expect(result.value).toBe(true)
-    }
+    expect(result).toBe(true)
   }, 60000)
 
   it('should create an attestation', async () => {
@@ -169,28 +167,24 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    tx.sign(adminKeypair)
     const result = await tx.signAndSend({ 
       publicKey: adminKeypair.publicKey(), 
-      secretKey: config.adminSecretKey 
+      secretKey: adminKeypair.secret() 
     })
 
-    expect(result.isOk()).toBe(true)
+    expect(result.status).toBe('SUCCESS')
   }, 60000)
 
   it('should check collected levies', async () => {
     const tx = await authorityClient.get_collected_levies({
       authority: authorityToRegisterKp.publicKey()
-    }, {
-      simulate: true
     })
 
     const result = await tx.simulate()
 
-    expect(result.isOk()).toBe(true)
-    if (result.isOk()) {
-      // Should have collected some levy from the attestation
-      expect(result.value).toBeGreaterThan(0n)
-    }
+    expect(typeof result).toBe('bigint')
+    expect(result).toBeGreaterThan(0n)
   }, 60000)
 
   it('should revoke an attestation', async () => {
@@ -214,12 +208,13 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    tx.sign(adminKeypair)
     const result = await tx.signAndSend({ 
       publicKey: adminKeypair.publicKey(), 
-      secretKey: config.adminSecretKey 
+      secretKey: adminKeypair.secret() 
     })
 
-    expect(result.isOk()).toBe(true)
+    expect(result.status).toBe('SUCCESS')
   }, 60000)
 
   it('should withdraw levies', async () => {
@@ -234,12 +229,13 @@ describe('Authority Contract Integration Tests', () => {
     })
 
     try {
+      tx.sign(authorityToRegisterKp)
       const result = await tx.signAndSend({ 
         publicKey: authorityToRegisterKp.publicKey(), 
         secretKey: authoritySecretKey 
       })
 
-      expect(result.isOk()).toBe(true)
+      expect(result.status).toBe('SUCCESS')
     } catch (error) {
       // Withdrawal might fail due to insufficient funds or other constraints
       // This is acceptable in test scenarios
@@ -251,16 +247,10 @@ describe('Authority Contract Integration Tests', () => {
   it('should check levies after withdrawal attempt', async () => {
     const tx = await authorityClient.get_collected_levies({
       authority: authorityToRegisterKp.publicKey()
-    }, {
-      simulate: true
     })
 
     const result = await tx.simulate()
 
-    expect(result.isOk()).toBe(true)
-    if (result.isOk()) {
-      // After withdrawal, levies should be 0 or still have value if withdrawal failed
-      expect(typeof result.value).toBe('bigint')
-    }
+    expect(typeof result).toBe('bigint')
   }, 60000)
 })

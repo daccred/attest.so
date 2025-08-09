@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
-import { Keypair } from '@stellar/stellar-sdk'
+import { Keypair, rpc } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
 import { loadTestConfig } from './test-utils'
 
@@ -28,13 +28,13 @@ describe('Protocol Contract Integration Tests', () => {
     adminKeypair = Keypair.fromSecret(config.adminSecretKey)
 
     // Initialize protocol client using testnet with contract ID from env.sh
+    const server = new rpc.Server(config.rpcUrl, { allowHttp: true })
     protocolClient = new ProtocolContract.Client({
       contractId: config.protocolContractId,
       networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
       rpcUrl: config.rpcUrl,
       allowHttp: true,
-      publicKey: adminKeypair.publicKey(),
-      secretKey: config.adminSecretKey
+      publicKey: adminKeypair.publicKey()
     })
 
     // Generate test data
@@ -60,19 +60,25 @@ describe('Protocol Contract Integration Tests', () => {
     const tx = await protocolClient.register({
       caller: adminKeypair.publicKey(),
       schema_definition: schemaDefinition,
-      resolver: null, // No resolver
+      resolver: undefined, // No resolver (Option<string>)
       revocable: true
     }, {
       fee: 1000000,
       timeoutInSeconds: 30
     })
 
-    const result = await tx.signAndSend({ publicKey: adminKeypair.publicKey(), secretKey: config.adminSecretKey })
+    const result = await tx.signAndSend({ 
+      signTransaction: (tx) => {
+        tx.sign(adminKeypair)
+        return Promise.resolve(tx)
+      }
+    })
 
-    expect(result.isOk()).toBe(true)
+    expect(result.status).toBe('SUCCESS')
     
-    if (result.isOk()) {
-      schemaUid = result.value
+    // Get the return value from the transaction
+    if (result.returnValue) {
+      schemaUid = result.returnValue
       expect(Buffer.isBuffer(schemaUid)).toBe(true)
       expect(schemaUid.length).toBe(32)
     }
@@ -92,9 +98,14 @@ describe('Protocol Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    const result = await tx.signAndSend({ publicKey: adminKeypair.publicKey(), secretKey: config.adminSecretKey })
+    const result = await tx.signAndSend({ 
+      signTransaction: (tx) => {
+        tx.sign(adminKeypair)
+        return Promise.resolve(tx)
+      }
+    })
 
-    expect(result.isOk()).toBe(true)
+    expect(result.status).toBe('SUCCESS')
   }, 60000)
 
   it('should read the attestation', async () => {
@@ -104,22 +115,16 @@ describe('Protocol Contract Integration Tests', () => {
       schema_uid: schemaUid,
       subject: recipient,
       reference: attestationReference
-    }, {
-      simulate: true // Read-only operation
     })
 
     const result = await tx.simulate()
 
-    expect(result.isOk()).toBe(true)
-    
-    if (result.isOk()) {
-      const attestation = result.value
-      expect(attestation.schema_uid.toString('hex')).toBe(schemaUid.toString('hex'))
-      expect(attestation.subject).toBe(recipient)
-      expect(attestation.value).toBe(attestationValue)
-      expect(attestation.reference).toBe(attestationReference)
-      expect(attestation.revoked).toBe(false)
-    }
+    expect(result).toBeDefined()
+    expect(result.schema_uid.toString('hex')).toBe(schemaUid.toString('hex'))
+    expect(result.subject).toBe(recipient)
+    expect(result.value).toBe(attestationValue)
+    expect(result.reference).toBe(attestationReference)
+    expect(result.revoked).toBe(false)
   }, 60000)
 
   it('should revoke the attestation', async () => {
@@ -135,9 +140,14 @@ describe('Protocol Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    const result = await tx.signAndSend({ publicKey: adminKeypair.publicKey(), secretKey: config.adminSecretKey })
+    const result = await tx.signAndSend({ 
+      signTransaction: (tx) => {
+        tx.sign(adminKeypair)
+        return Promise.resolve(tx)
+      }
+    })
 
-    expect(result.isOk()).toBe(true)
+    expect(result.status).toBe('SUCCESS')
   }, 60000)
 
   it('should verify attestation is revoked', async () => {
@@ -147,17 +157,11 @@ describe('Protocol Contract Integration Tests', () => {
       schema_uid: schemaUid,
       subject: recipient,
       reference: attestationReference
-    }, {
-      simulate: true
     })
 
     const result = await tx.simulate()
 
-    expect(result.isOk()).toBe(true)
-    
-    if (result.isOk()) {
-      const attestation = result.value
-      expect(attestation.revoked).toBe(true)
-    }
+    expect(result).toBeDefined()
+    expect(result.revoked).toBe(true)
   }, 60000)
 })
