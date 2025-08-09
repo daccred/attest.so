@@ -15,14 +15,27 @@ export async function connectToPostgreSQL(): Promise<boolean> {
   }
   
   try {
+    const enablePrismaDebug =
+      process.env.PRISMA_DEBUG === '1' ||
+      process.env.PRISMA_DEBUG === 'true' ||
+      process.env.NODE_ENV === 'development';
+
     prisma = new PrismaClient({
       datasources: {
         db: {
           url: databaseUrl
         }
       },
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
+      log: enablePrismaDebug
+        ? [{ emit: 'event', level: 'query' }, 'warn', 'error']
+        : ['error']
     });
+
+    if (enablePrismaDebug) {
+      (prisma as any).$on('query', (e: any) => {
+        console.debug(`[prisma] ${e.duration}ms ${e.query}`, e.params);
+      });
+    }
     
     // Test the connection
     await prisma.$connect();
@@ -98,28 +111,39 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
 
   try {
     // Process events in a transaction for consistency
-    const results = await db.$transaction(async (tx) => {
+    const results = await db.$transaction(async (prismaTx) => {
       const operations = eventsWithTransactions.map(async (item) => {
+        const ev: any = item.event || {};
+        const txDetails: any = item.transactionDetails || item.transaction || {};
+
+        const ledgerNumber = typeof ev.ledger === 'string' ? parseInt(ev.ledger, 10) : ev.ledger;
+        const eventTimestamp = ev.timestamp || ev.ledgerClosedAt;
+
         const eventData = {
-          eventId: item.event.id,
-          ledger: item.event.ledger,
-          timestamp: new Date(item.event.timestamp),
-          contractId: item.event.contractId,
-          eventType: item.event.type || 'unknown',
-          eventData: item.event.data || {},
-          
+          eventId: ev.id,
+          ledger: Number.isFinite(ledgerNumber) ? ledgerNumber : 0,
+          timestamp: eventTimestamp ? new Date(eventTimestamp) : new Date(),
+          contractId: ev.contractId || '',
+          eventType: ev.type || 'unknown',
+          eventData: ev.data ?? {
+            topic: ev.topic ?? null,
+            value: ev.value ?? null,
+            pagingToken: ev.pagingToken ?? null,
+            inSuccessfulContractCall: ev.inSuccessfulContractCall ?? null,
+          },
+
           // Transaction details
-          txHash: item.transaction?.hash || '',
-          txEnvelope: item.transaction?.envelope || '',
-          txResult: item.transaction?.result || '',
-          txMeta: item.transaction?.meta || '',
-          txFeeBump: item.transaction?.feeBump || false,
-          txStatus: item.transaction?.status || 'unknown',
-          txCreatedAt: item.transaction?.createdAt ? new Date(item.transaction.createdAt) : new Date(),
+          txHash: ev.txHash || txDetails.txHash || txDetails.hash || '',
+          txEnvelope: txDetails.envelopeXdr || txDetails.envelope || '',
+          txResult: txDetails.resultXdr || txDetails.result || '',
+          txMeta: txDetails.resultMetaXdr || txDetails.meta || '',
+          txFeeBump: Boolean(txDetails.feeBump),
+          txStatus: txDetails.status || 'unknown',
+          txCreatedAt: eventTimestamp ? new Date(eventTimestamp) : new Date(),
         };
 
-        return tx.contractEvent.upsert({
-          where: { eventId: item.event.id },
+        return prismaTx.contractEvent.upsert({
+          where: { eventId: ev.id },
           update: eventData,
           create: eventData
         });

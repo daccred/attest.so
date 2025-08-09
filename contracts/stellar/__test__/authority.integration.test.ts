@@ -81,10 +81,24 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    // Check if additional signing is needed
+    const needsSigningBy = tx.needsNonInvokerSigningBy()
+    
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
         transaction.sign(adminKeypair)
+        
+        // Sign with any additional required signers
+        for (const signer of needsSigningBy) {
+          if (signer === adminKeypair.publicKey()) {
+            // Already signed above
+            continue
+          }
+          // For this test, admin should be the only signer needed
+          console.log(`Additional signer required: ${signer}`)
+        }
+        
         return { signedTxXdr: transaction.toXDR() }
       }
     })
@@ -108,10 +122,17 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    const needsSigningBy = tx.needsNonInvokerSigningBy()
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
         transaction.sign(adminKeypair)
+        
+        for (const signer of needsSigningBy) {
+          if (signer === adminKeypair.publicKey()) continue
+          console.log(`Additional signer required: ${signer}`)
+        }
+        
         return { signedTxXdr: transaction.toXDR() }
       }
     })
@@ -131,10 +152,17 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    const needsSigningBy = tx.needsNonInvokerSigningBy()
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
         transaction.sign(adminKeypair)
+        
+        for (const signer of needsSigningBy) {
+          if (signer === adminKeypair.publicKey()) continue
+          console.log(`Additional signer required: ${signer}`)
+        }
+        
         return { signedTxXdr: transaction.toXDR() }
       }
     })
@@ -153,10 +181,17 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    const needsSigningBy = tx.needsNonInvokerSigningBy()
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
         transaction.sign(adminKeypair)
+        
+        for (const signer of needsSigningBy) {
+          if (signer === adminKeypair.publicKey()) continue
+          console.log(`Additional signer required: ${signer}`)
+        }
+        
         return { signedTxXdr: transaction.toXDR() }
       }
     })
@@ -196,10 +231,17 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    const needsSigningBy = tx.needsNonInvokerSigningBy()
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
         transaction.sign(adminKeypair)
+        
+        for (const signer of needsSigningBy) {
+          if (signer === adminKeypair.publicKey()) continue
+          console.log(`Additional signer required: ${signer}`)
+        }
+        
         return { signedTxXdr: transaction.toXDR() }
       }
     })
@@ -240,10 +282,17 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
+    const needsSigningBy = tx.needsNonInvokerSigningBy()
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
         transaction.sign(adminKeypair)
+        
+        for (const signer of needsSigningBy) {
+          if (signer === adminKeypair.publicKey()) continue
+          console.log(`Additional signer required: ${signer}`)
+        }
+        
         return { signedTxXdr: transaction.toXDR() }
       }
     })
@@ -253,8 +302,6 @@ describe('Authority Contract Integration Tests', () => {
   }, 60000)
 
   it('should withdraw levies', async () => {
-    // This should be called by the authority that collected the levies
-    const authoritySecretKey = authorityToRegisterKp.secret()
     
     const tx = await authorityClient.withdraw_levies({
       caller: authorityToRegisterKp.publicKey()

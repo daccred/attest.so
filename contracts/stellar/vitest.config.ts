@@ -7,7 +7,7 @@ export default defineConfig({
     testTimeout: 120000, // 2 minutes timeout for integration tests
     hookTimeout: 30000,  // 30 second timeout for setup hooks
     teardownTimeout: 30000,
-    include: ['test/**/*.test.ts'],
+    include: ['__test__/**/*.test.ts'],
     exclude: ['node_modules', 'dist', 'authority', 'protocol'],
     // Run tests serially to avoid conflicts with testnet
     pool: 'threads',

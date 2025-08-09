@@ -34,6 +34,6 @@
   // Include bindings and test files
   "include": [
     "bindings/src/*",
-    "test/**/*"
+    "__test__/**/*"
   ]
 }
