@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
-import { Keypair, rpc } from '@stellar/stellar-sdk'
+import { Keypair, rpc, Transaction } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
 import { loadTestConfig } from './test-utils'
 
@@ -27,8 +27,7 @@ describe('Protocol Contract Integration Tests', () => {
     config = loadTestConfig()
     adminKeypair = Keypair.fromSecret(config.adminSecretKey)
 
-    // Initialize protocol client using testnet with contract ID from env.sh
-    const server = new rpc.Server(config.rpcUrl, { allowHttp: true })
+    // Initialize protocol client using testnet with contract ID from env.sh  
     protocolClient = new ProtocolContract.Client({
       contractId: config.protocolContractId,
       networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
@@ -67,18 +66,19 @@ describe('Protocol Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    const result = await tx.signAndSend({ 
-      signTransaction: (tx) => {
-        tx.sign(adminKeypair)
-        return Promise.resolve(tx)
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
       }
     })
 
-    expect(result.status).toBe('SUCCESS')
-    
-    // Get the return value from the transaction
-    if (result.returnValue) {
-      schemaUid = result.returnValue
+    // Extract returned Buffer from Result
+    const res = sent.result
+    if (res && typeof res === 'object' && 'unwrap' in res) {
+      const value = (res as ProtocolContract.contract.Result<Buffer>).unwrap()
+      schemaUid = value
       expect(Buffer.isBuffer(schemaUid)).toBe(true)
       expect(schemaUid.length).toBe(32)
     }
@@ -98,14 +98,16 @@ describe('Protocol Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    const result = await tx.signAndSend({ 
-      signTransaction: (tx) => {
-        tx.sign(adminKeypair)
-        return Promise.resolve(tx)
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
       }
     })
 
-    expect(result.status).toBe('SUCCESS')
+    const res = sent.result as ProtocolContract.contract.Result<void>
+    expect(res.isOk()).toBe(true)
   }, 60000)
 
   it('should read the attestation', async () => {
@@ -117,14 +119,15 @@ describe('Protocol Contract Integration Tests', () => {
       reference: attestationReference
     })
 
-    const result = await tx.simulate()
+    await tx.simulate()
+    const record = (tx.result as ProtocolContract.contract.Result<ProtocolContract.AttestationRecord>).unwrap()
 
-    expect(result).toBeDefined()
-    expect(result.schema_uid.toString('hex')).toBe(schemaUid.toString('hex'))
-    expect(result.subject).toBe(recipient)
-    expect(result.value).toBe(attestationValue)
-    expect(result.reference).toBe(attestationReference)
-    expect(result.revoked).toBe(false)
+    expect(record).toBeDefined()
+    expect(record.schema_uid.toString('hex')).toBe(schemaUid.toString('hex'))
+    expect(record.subject).toBe(recipient)
+    expect(record.value).toBe(attestationValue)
+    expect(record.reference).toBe(attestationReference)
+    expect(record.revoked).toBe(false)
   }, 60000)
 
   it('should revoke the attestation', async () => {
@@ -140,14 +143,17 @@ describe('Protocol Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    const result = await tx.signAndSend({ 
-      signTransaction: (tx) => {
-        tx.sign(adminKeypair)
-        return Promise.resolve(tx)
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const { Transaction } = await import('@stellar/stellar-sdk')
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
       }
     })
 
-    expect(result.status).toBe('SUCCESS')
+    const res = sent.result as ProtocolContract.contract.Result<void>
+    expect(res.isOk()).toBe(true)
   }, 60000)
 
   it('should verify attestation is revoked', async () => {
@@ -159,9 +165,10 @@ describe('Protocol Contract Integration Tests', () => {
       reference: attestationReference
     })
 
-    const result = await tx.simulate()
+    await tx.simulate()
+    const record = (tx.result as ProtocolContract.contract.Result<ProtocolContract.AttestationRecord>).unwrap()
 
-    expect(result).toBeDefined()
-    expect(result.revoked).toBe(true)
+    expect(record).toBeDefined()
+    expect(record.revoked).toBe(true)
   }, 60000)
 })

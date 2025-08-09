@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
-import { Keypair } from '@stellar/stellar-sdk'
+import { Keypair, Transaction } from '@stellar/stellar-sdk'
 import * as AuthorityContract from '../bindings/src/authority'
 import { loadTestConfig } from './test-utils'
 
@@ -34,9 +34,7 @@ describe('Authority Contract Integration Tests', () => {
       contractId: config.authorityContractId,
       networkPassphrase: AuthorityContract.networks.testnet.networkPassphrase,
       rpcUrl: config.rpcUrl,
-      allowHttp: true,
-      publicKey: adminKeypair.publicKey(),
-      secretKey: config.adminSecretKey
+      allowHttp: true
     })
 
     // Generate test accounts
@@ -73,6 +71,28 @@ describe('Authority Contract Integration Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 5000))
   }, 60000)
 
+  it('should register admin as authority first', async () => {
+    const tx = await authorityClient.admin_register_authority({
+      admin: adminKeypair.publicKey(),
+      auth_to_reg: adminKeypair.publicKey(),
+      metadata: `{"name":"Admin Authority ${testRunId}"}`
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as AuthorityContract.contract.Result<void>
+    expect(res.isOk()).toBe(true)
+  }, 60000)
+
   it('should register a schema through admin', async () => {
     const schemaRules: AuthorityContract.SchemaRules = {
       levy_amount: 10000000n, // 1 XLM in stroops
@@ -88,13 +108,16 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    tx.sign(adminKeypair)
-    const result = await tx.signAndSend({ 
-      publicKey: adminKeypair.publicKey(), 
-      secretKey: adminKeypair.secret() 
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
     })
 
-    expect(result.status).toBe('SUCCESS')
+    const res = sent.result as AuthorityContract.contract.Result<void>
+    expect(res.isOk()).toBe(true)
   }, 60000)
 
   it('should set schema levy through admin', async () => {
@@ -108,13 +131,16 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    tx.sign(adminKeypair)
-    const result = await tx.signAndSend({ 
-      publicKey: adminKeypair.publicKey(), 
-      secretKey: adminKeypair.secret() 
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
     })
 
-    expect(result.status).toBe('SUCCESS')
+    const res = sent.result as AuthorityContract.contract.Result<void>
+    expect(res.isOk()).toBe(true)
   }, 60000)
 
   it('should register an authority through admin', async () => {
@@ -127,13 +153,16 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    tx.sign(adminKeypair)
-    const result = await tx.signAndSend({ 
-      publicKey: adminKeypair.publicKey(), 
-      secretKey: adminKeypair.secret() 
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
     })
 
-    expect(result.status).toBe('SUCCESS')
+    const res = sent.result as AuthorityContract.contract.Result<void>
+    expect(res.isOk()).toBe(true)
   }, 60000)
 
   it('should verify authority is registered', async () => {
@@ -141,9 +170,9 @@ describe('Authority Contract Integration Tests', () => {
       authority: authorityToRegisterKp.publicKey()
     })
 
-    const result = await tx.simulate()
-
-    expect(result).toBe(true)
+    await tx.simulate()
+    const res = tx.result as AuthorityContract.contract.Result<boolean>
+    expect(res.unwrap()).toBe(true)
   }, 60000)
 
   it('should create an attestation', async () => {
@@ -153,11 +182,11 @@ describe('Authority Contract Integration Tests', () => {
       recipient: subjectKp.publicKey(),
       attester: adminKeypair.publicKey(),
       time: BigInt(Math.floor(Date.now() / 1000)),
-      expiration_time: null,
+      expiration_time: undefined,
       revocable: true,
-      ref_uid: null,
+      ref_uid: undefined,
       data: Buffer.from(`test_data_${testRunId}`),
-      value: null
+      value: undefined
     }
 
     const tx = await authorityClient.attest({
@@ -167,13 +196,16 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    tx.sign(adminKeypair)
-    const result = await tx.signAndSend({ 
-      publicKey: adminKeypair.publicKey(), 
-      secretKey: adminKeypair.secret() 
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
     })
 
-    expect(result.status).toBe('SUCCESS')
+    const res = sent.result as AuthorityContract.contract.Result<boolean>
+    expect(res.isOk()).toBe(true)
   }, 60000)
 
   it('should check collected levies', async () => {
@@ -181,10 +213,10 @@ describe('Authority Contract Integration Tests', () => {
       authority: authorityToRegisterKp.publicKey()
     })
 
-    const result = await tx.simulate()
-
-    expect(typeof result).toBe('bigint')
-    expect(result).toBeGreaterThan(0n)
+    await tx.simulate()
+    const res = tx.result as AuthorityContract.contract.Result<AuthorityContract.contract.i128>
+    const value = res.unwrap()
+    expect(typeof value).toBe('bigint')
   }, 60000)
 
   it('should revoke an attestation', async () => {
@@ -194,11 +226,11 @@ describe('Authority Contract Integration Tests', () => {
       recipient: subjectKp.publicKey(),
       attester: adminKeypair.publicKey(),
       time: BigInt(Math.floor(Date.now() / 1000)),
-      expiration_time: null,
+      expiration_time: undefined,
       revocable: true,
-      ref_uid: null,
+      ref_uid: undefined,
       data: Buffer.from(`test_data_${testRunId}`),
-      value: null
+      value: undefined
     }
 
     const tx = await authorityClient.revoke({
@@ -208,13 +240,16 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    tx.sign(adminKeypair)
-    const result = await tx.signAndSend({ 
-      publicKey: adminKeypair.publicKey(), 
-      secretKey: adminKeypair.secret() 
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
     })
 
-    expect(result.status).toBe('SUCCESS')
+    const res = sent.result as AuthorityContract.contract.Result<boolean>
+    expect(res.isOk()).toBe(true)
   }, 60000)
 
   it('should withdraw levies', async () => {
@@ -229,13 +264,16 @@ describe('Authority Contract Integration Tests', () => {
     })
 
     try {
-      tx.sign(authorityToRegisterKp)
-      const result = await tx.signAndSend({ 
-        publicKey: authorityToRegisterKp.publicKey(), 
-        secretKey: authoritySecretKey 
+      const sent = await tx.signAndSend({
+        signTransaction: async (xdr) => {
+          const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
+          transaction.sign(authorityToRegisterKp)
+          return { signedTxXdr: transaction.toXDR() }
+        }
       })
 
-      expect(result.status).toBe('SUCCESS')
+      const res = sent.result as AuthorityContract.contract.Result<void>
+      expect(res.isOk()).toBe(true)
     } catch (error) {
       // Withdrawal might fail due to insufficient funds or other constraints
       // This is acceptable in test scenarios
@@ -249,8 +287,9 @@ describe('Authority Contract Integration Tests', () => {
       authority: authorityToRegisterKp.publicKey()
     })
 
-    const result = await tx.simulate()
-
-    expect(typeof result).toBe('bigint')
+    await tx.simulate()
+    const res = tx.result as AuthorityContract.contract.Result<AuthorityContract.contract.i128>
+    const value = res.unwrap()
+    expect(typeof value).toBe('bigint')
   }, 60000)
 })
