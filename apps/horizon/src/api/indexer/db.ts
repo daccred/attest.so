@@ -1,162 +1,166 @@
-import { MongoClient, ObjectId, Db } from 'mongodb';
-import dotenv from 'dotenv';
-dotenv.config({}); 
+import { PrismaClient } from '@prisma/client';
 
-interface EventWithTransaction {
-  event: any; // Define more specific types based on actual event structure
-  transactionDetails: any; // Define more specific types for transaction details
+let prisma: PrismaClient | undefined;
+
+export async function connectToPostgreSQL(): Promise<boolean> {
+  const databaseUrl = process.env.DATABASE_URL;
+  
+  if (!databaseUrl) {
+    console.error('DATABASE_URL is not defined. Please set DATABASE_URL environment variable.');
+    if (process.env.NODE_ENV !== 'test') {
+      console.error("CRITICAL: DATABASE_URL not set, indexer will not function.")
+    }
+    prisma = undefined;
+    return false;
+  }
+  
+  try {
+    const enablePrismaDebug =
+      process.env.PRISMA_DEBUG === '1' ||
+      process.env.PRISMA_DEBUG === 'true' ||
+      process.env.NODE_ENV === 'development';
+
+    prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: databaseUrl
+        }
+      },
+      log: enablePrismaDebug
+        ? [{ emit: 'event', level: 'query' }, 'warn', 'error']
+        : ['error']
+    });
+
+    if (enablePrismaDebug) {
+      (prisma as any).$on('query', (e: any) => {
+        console.debug(`[prisma] ${e.duration}ms ${e.query}`, e.params);
+      });
+    }
+    
+    // Test the connection
+    await prisma.$connect();
+    console.log('Successfully connected to PostgreSQL.');
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to connect to PostgreSQL:', error);
+    prisma = undefined;
+    return false;
+  }
 }
 
-export class DatabaseClient {
-  private mongoUri: string;
-  private dbName: string;
-  private client: MongoClient;
+// Connect to DB when module is loaded
+connectToPostgreSQL();
 
-  constructor() {
-    const mongoUriFromEnv = process.env.MONGODB_URI;
-    if (!mongoUriFromEnv) {
-      console.error('[ERROR] MONGODB_URI is not defined in environment variables.');
-      throw new Error('MONGODB_URI is not defined');
-    }
-    this.mongoUri = mongoUriFromEnv;
-    this.dbName = process.env.MONGO_DB_NAME || new URL(this.mongoUri).pathname.substring(1) || 'horizon_dev';
-    this.client = new MongoClient(this.mongoUri);
-    console.log(`[INFO] DatabaseClient initialized. Target DB: ${this.dbName}`);
+export async function getDbInstance(): Promise<PrismaClient | undefined> {
+  if (!prisma) {
+    console.warn("getDbInstance called before DB connection was established or connection failed. Attempting to reconnect...");
+    await connectToPostgreSQL();
   }
+  return prisma;
+}
 
-  public async getDb(): Promise<Db> {
-    // MongoClient.connect() is idempotent if already connected or connecting
-    await this.client.connect(); 
-    return this.client.db(this.dbName);
+export async function getLastProcessedLedgerFromDB(): Promise<number> {
+  const db = await getDbInstance();
+  if (!db) {
+    console.error('Failed to get database instance.');
+    return 0;
   }
-
-  public async disconnect(): Promise<void> {
-    // MongoClient.close() will no-op if not connected.
-    await this.client.close();
-    console.debug('[DEBUG] MongoDB client disconnected or was already disconnected.');
+  
+  try {
+    const metadata = await db.metadata.findUnique({
+      where: { key: 'lastProcessedLedgerMeta' }
+    });
+    return metadata ? parseInt(metadata.value) : 0;
+  } catch (error) {
+    console.error('Error fetching last processed ledger from DB:', error);
+    return 0;
   }
+}
 
-  public async getLastProcessedLedger(): Promise<number> {
-    console.debug('[DEBUG] Attempting to fetch last processed ledger from DB (MongoDB).');
-    try {
-      const db = await this.getDb();
-      const metadataCollection = db.collection('Metadata');
-      const metadata = await metadataCollection.findOne({ key: 'lastProcessedLedgerMeta' });
-      const ledger = metadata ? Number(metadata.value) : 0;
-      console.log(`[INFO] Fetched last processed ledger: ${ledger} (MongoDB).`);
-      return ledger;
-    } catch (error) {
-      console.error('[ERROR] Error fetching last processed ledger from DB (MongoDB):', error);
-      return 0; // Fallback to 0 in case of error
-    }
+export async function updateLastProcessedLedgerInDB(ledgerSequence: number) {
+  const db = await getDbInstance();
+  if (!db) {
+    console.error('Cannot update last processed ledger, database not initialized.');
+    return;
   }
-
-  public async updateLastProcessedLedger(ledgerSequence: number): Promise<void> {
-    console.debug(`[DEBUG] Attempting to upsert lastProcessedLedgerMeta to ${ledgerSequence} in DB (MongoDB).`);
-    try {
-      const db = await this.getDb();
-      const metadataCollection = db.collection('Metadata');
-      await metadataCollection.updateOne(
-        { key: 'lastProcessedLedgerMeta' },
-        { $set: { value: ledgerSequence } },
-        { upsert: true }
-      );
-      console.log(`[INFO] Successfully upserted lastProcessedLedger in DB to: ${ledgerSequence} (MongoDB).`);
-    } catch (error) {
-      console.error('[ERROR] Error updating last processed ledger in DB (MongoDB):', error);
-    }
-  }
-
-  public async storeEventsAndTransactions(eventsWithTransactions: EventWithTransaction[]): Promise<void> {
-    console.debug(
-      `[DEBUG] storeEventsAndTransactions (MongoDB) called with ${eventsWithTransactions.length} items at ${new Date().toISOString()}`
-    );
-    if (eventsWithTransactions.length === 0) {
-      console.debug('[DEBUG] No events to store (MongoDB), exiting function.');
-      return;
-    }
-
-    console.info(`[INFO] Attempting to process and store ${eventsWithTransactions.length} event-transaction groups (MongoDB).`);
-    const db = await this.getDb(); // Ensure client is connected before starting a session
-    const transactionsCollection = db.collection('ContractTransaction');
-    const eventsCollection = db.collection('ContractEvent');
-
-    let successfulGroups = 0;
-    let failedGroups = 0;
-
-    for (const item of eventsWithTransactions) {
-      const event = item.event;
-      const transactionDetails = item.transactionDetails;
-      const txHash = event?.txHash;
-
-      if (!txHash) {
-        console.warn('[WARN] Event item found without a txHash (MongoDB), skipping:', event?.id);
-        failedGroups++;
-        continue;
+  
+  try {
+    await db.metadata.upsert({
+      where: { key: 'lastProcessedLedgerMeta' },
+      update: { value: ledgerSequence.toString() },
+      create: { 
+        key: 'lastProcessedLedgerMeta',
+        value: ledgerSequence.toString()
       }
-      if (!transactionDetails) {
-        console.warn(`[WARN] No transactionDetails for txHash ${txHash} (MongoDB), skipping event: ${event?.id}.`);
-        failedGroups++;
-        continue;
-      }
-      
-      const session = this.client.startSession();
-      try {
-        console.debug(`[DEBUG] Starting MongoDB session for txHash: ${txHash}`);
-        await session.withTransaction(async () => {
-          const transactionDoc = {
-            txHash: txHash,
-            status: transactionDetails.status || 'UNKNOWN',
-            ledger: parseInt(transactionDetails.ledger, 10),
-            createdAt: new Date(parseInt(transactionDetails.createdAt, 10) * 1000),
-            applicationOrder: transactionDetails.applicationOrder,
-            feeBump: transactionDetails.feeBump || false,
-            envelopeXdr: transactionDetails.envelopeXdr,
-            resultXdr: transactionDetails.resultXdr,
-            resultMetaXdr: transactionDetails.resultMetaXdr,
-            diagnosticEventsXdr: transactionDetails.diagnosticEventsXdr || [],
-            latestLedgerRpc: parseInt(transactionDetails.latestLedger, 10),
-            latestLedgerCloseTimeRpc: new Date(parseInt(transactionDetails.latestLedgerCloseTime, 10) * 1000),
-            oldestLedgerRpc: parseInt(transactionDetails.oldestLedger, 10),
-            oldestLedgerCloseTimeRpc: new Date(parseInt(transactionDetails.oldestLedgerCloseTime, 10) * 1000),
-            ingestedAt: new Date(),
-          };
+    });
+    console.log(`Updated lastProcessedLedger in DB to: ${ledgerSequence}`);
+  } catch (error) {
+    console.error('Error updating last processed ledger in DB:', error);
+  }
+}
 
-          console.debug(`[DEBUG] Upserting ContractTransaction for txHash: ${txHash} (MongoDB)`);
-          await transactionsCollection.updateOne(
-            { txHash: txHash }, 
-            { $set: transactionDoc }, 
-            { upsert: true, session }
-          );
-          console.debug(`[DEBUG] Upserted ContractTransaction for txHash: ${txHash} (MongoDB)`);
+export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]) {
+  const db = await getDbInstance();
+  if (!db) {
+    console.error('Cannot store events, database not initialized.');
+    return;
+  }
+  
+  if (eventsWithTransactions.length === 0) return;
 
-          const eventDoc = {
-            eventId: event.id,
-            type: event.type,
-            ledger: parseInt(event.ledger, 10),
-            ledgerClosedAt: new Date(event.ledgerClosedAt),
-            contractId: event.contractId,
-            pagingToken: event.pagingToken,
-            inSuccessfulContractCall: event.inSuccessfulContractCall,
-            topics: event.topic || [],
-            value: event.value,
-            transactionTxHash: txHash, 
-            ingestedAt: new Date(),
-          };
-          console.debug(`[DEBUG] Inserting ContractEvent for eventId: ${event.id} (MongoDB)`);
-          await eventsCollection.insertOne(eventDoc, { session });
-          console.debug(`[DEBUG] Inserted ContractEvent for eventId: ${event.id} (MongoDB)`);
+  try {
+    // Process events in a transaction for consistency
+    const results = await db.$transaction(async (prismaTx) => {
+      const operations = eventsWithTransactions.map(async (item) => {
+        const ev: any = item.event || {};
+        const txDetails: any = item.transactionDetails || item.transaction || {};
+
+        const ledgerNumber = typeof ev.ledger === 'string' ? parseInt(ev.ledger, 10) : ev.ledger;
+        const eventTimestamp = ev.timestamp || ev.ledgerClosedAt;
+
+        const eventData = {
+          eventId: ev.id,
+          ledger: Number.isFinite(ledgerNumber) ? ledgerNumber : 0,
+          timestamp: eventTimestamp ? new Date(eventTimestamp) : new Date(),
+          contractId: ev.contractId || '',
+          eventType: ev.type || 'unknown',
+          eventData: ev.data ?? {
+            topic: ev.topic ?? null,
+            value: ev.value ?? null,
+            pagingToken: ev.pagingToken ?? null,
+            inSuccessfulContractCall: ev.inSuccessfulContractCall ?? null,
+          },
+
+          // Transaction details
+          txHash: ev.txHash || txDetails.txHash || txDetails.hash || '',
+          txEnvelope: txDetails.envelopeXdr || txDetails.envelope || '',
+          txResult: txDetails.resultXdr || txDetails.result || '',
+          txMeta: txDetails.resultMetaXdr || txDetails.meta || '',
+          txFeeBump: Boolean(txDetails.feeBump),
+          txStatus: txDetails.status || 'unknown',
+          txCreatedAt: eventTimestamp ? new Date(eventTimestamp) : new Date(),
+        };
+
+        return prismaTx.contractEvent.upsert({
+          where: { eventId: ev.id },
+          update: eventData,
+          create: eventData
         });
-        console.log(`[INFO] Successfully processed and stored transaction ${txHash} and its event ${event.id} (MongoDB).`);
-        successfulGroups++;
-      } catch (error) {
-        console.error(`[ERROR] Failed to store transaction ${txHash} and event ${event.id} via MongoDB session:`, error);
-        failedGroups++;
-      } finally {
-        await session.endSession();
-        console.debug(`[DEBUG] Ended MongoDB session for txHash: ${txHash}`);
-      }
-    }
-    console.log(`[INFO] Finished storing events (MongoDB). Successful groups: ${successfulGroups}, Failed groups: ${failedGroups}.`);
+      });
+      
+      return Promise.all(operations);
+    });
+    
+    console.log(`Stored ${results.length} event-transaction pairs.`);
+  } catch (error) {
+    console.error('Error storing event-transaction pairs in PostgreSQL:', error);
   }
 }
+
+// Clean up on process exit
+process.on('beforeExit', async () => {
+  if (prisma) {
+    await prisma.$disconnect();
+  }
+});

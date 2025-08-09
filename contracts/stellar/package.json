@@ -4,12 +4,13 @@
   "version": "1.5.2",
   "author": "",
   "dependencies": {
-    "@stellar/stellar-sdk": "14.0.0-rc.3",
+    "@stellar/stellar-sdk": "^13.3.0",
     "buffer": "6.0.3"
   },
-"devDependencies": {
-  "tap": "^21.1.0",
-  "typescript": "^5.6.2"
+  "devDependencies": {
+    "@types/node": "^24.2.1",
+    "typescript": "^5.6.2",
+    "vitest": "^3.2.4"
   },
   "keywords": [],
   "license": "MIT",
@@ -19,7 +20,7 @@
   },
   "scripts": {
     "start": "node scripts/run.mjs",
-    "test": "tap"
+    "test": "vitest"
   },
   "type": "module"
 }

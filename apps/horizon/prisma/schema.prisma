@@ -1,57 +1,47 @@
-// Prisma schema for Horizon project using MongoDB
-// Save this as prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["interactiveTransactions", "jsonProtocol"]
-  log             = ["query", "info", "warn", "error"]
 }
 
 datasource db {
-  provider = "mongodb"
-  url      = env("MONGODB_URI")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Metadata {
-  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  id    String @id @default(uuid())
   key   String @unique
-  value Int
-}
-
-model ContractTransaction {
-  id                        String     @id @default(auto()) @map("_id") @db.ObjectId
-  txHash                    String     @unique // Transaction hash, primary business key
-  status                    String
-  ledger                    Int        // Ledger sequence where the transaction was included
-  createdAt                 DateTime   // Timestamp when the transaction was processed/created by Soroban
-  applicationOrder          Int
-  feeBump                   Boolean
-  envelopeXdr               String
-  resultXdr                 String
-  resultMetaXdr             String
-  diagnosticEventsXdr       String[]
-  latestLedgerRpc           Int        // Latest ledger from RPC at time of getTransaction call
-  latestLedgerCloseTimeRpc  DateTime   // Latest ledger close time from RPC
-  oldestLedgerRpc           Int        // Oldest ledger from RPC
-  oldestLedgerCloseTimeRpc  DateTime   // Oldest ledger close time from RPC
-  ingestedAt                DateTime   @default(now())
-  events                    ContractEvent[] // Relation to multiple events
+  value String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("metadata")
 }
 
 model ContractEvent {
-  id                        String    @id @default(auto()) @map("_id") @db.ObjectId
-  eventId                   String    @unique // Event ID from RPC
-  type                      String    // Added: Type of the event, e.g., "contract", "diagnostic"
-  ledger                    Int       // Ledger sequence where the event occurred
-  ledgerClosedAt            DateTime
-  contractId                String
-  pagingToken               String
-  inSuccessfulContractCall  Boolean
-  topics                    String[]
-  value                     String
-  ingestedAt                DateTime  @default(now())
-
-  // Relation to ContractTransaction
-  transactionTxHash         String // Foreign key storing the txHash
-  transaction               ContractTransaction @relation(fields: [transactionTxHash], references: [txHash])
+  id          String   @id @default(uuid())
+  eventId     String   @unique
+  ledger      Int
+  timestamp   DateTime
+  contractId  String
+  eventType   String
+  eventData   Json
+  
+  // Transaction details
+  txHash      String
+  txEnvelope  String
+  txResult    String
+  txMeta      String
+  txFeeBump   Boolean  @default(false)
+  txStatus    String
+  txCreatedAt DateTime
+  
+  // Indexer metadata
+  ingestedAt  DateTime @default(now())
+  
+  @@index([ledger])
+  @@index([contractId])
+  @@index([timestamp])
+  @@index([eventType])
+  @@map("contract_events")
 }

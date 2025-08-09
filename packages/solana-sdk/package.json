@@ -1,0 +1,61 @@
+{
+  "name": "@attestprotocol/solana-sdk",
+  "description": "Solana implementation of the Attest Protocol SDK",
+  "version": "0.1.0",
+  "author": "daccred",
+  "license": "MIT",
+  "repository": "daccred/attest.so.git",
+  "bugs": "https://github.com/daccred/attest.so/issues",
+  "homepage": "https://github.com/daccred/attest.so#readme",
+  "keywords": [
+    "attestation",
+    "blockchain",
+    "solana",
+    "anchor",
+    "sdk"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "pnpm clean && pnpm build:cjs && pnpm build:esm && pnpm build:types",
+    "build:cjs": "tsc -p tsconfig.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rimraf dist",
+    "dev": "tsc --watch",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "@attestprotocol/core": "workspace:*",
+    "@coral-xyz/anchor": "0.31.1",
+    "@solana/spl-token": "^0.4.6",
+    "@solana/web3.js": "^1.95.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/bn.js": "^5.1.6",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

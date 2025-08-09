@@ -111,7 +111,13 @@ contracts/stellar/env.sh
 .vscode
 .idea
 .vercel
-/dist
+**/dist
 
+# claude
+.claude
 
+# prisma
+prisma/migrations
+
+# test ledger
 test-ledger
