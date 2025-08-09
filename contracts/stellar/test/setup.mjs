@@ -40,9 +40,11 @@ export async function fundAccountWithFriendbot(publicKey) {
  * @param {number} pollIntervalMs - Polling interval in milliseconds
  * @returns {Promise<Object>} - The final transaction response
  */
-async function waitForTransaction(server, txHash, timeoutMs = 60000, pollIntervalMs = 3000) {
+async function waitForTransaction(server, txHash, timeoutMs = 120000, pollIntervalMs = 5000) {
   console.log(`Waiting for transaction ${txHash} to complete...`)
   const startTime = Date.now()
+  let parseErrorCount = 0
+  const maxParseErrors = 10
 
   while (true) {
     try {
@@ -56,10 +58,18 @@ async function waitForTransaction(server, txHash, timeoutMs = 60000, pollInterva
       try {
         txResponse = await server.getTransaction(txHash)
         console.log(`Transaction status: ${txResponse.status}`)
+        parseErrorCount = 0 // Reset on successful parse
       } catch (parseError) {
         // Handle parsing error - might be due to SDK version mismatch
         if (parseError.message && parseError.message.includes('Bad union switch')) {
-          console.warn('Encountered parsing error, retrying...', parseError.message)
+          parseErrorCount++
+          console.warn(`Encountered parsing error (${parseErrorCount}/${maxParseErrors}), retrying...`, parseError.message)
+          
+          if (parseErrorCount >= maxParseErrors) {
+            console.warn('Too many parsing errors, checking if account was created anyway...')
+            break // Exit to fallback check
+          }
+          
           await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
           continue
         }
@@ -143,23 +153,21 @@ export async function createAccount(server, parentKeypair, accountName, starting
       )
     }
 
-    // Wait for the transaction to complete with a 60-second timeout
+    // Wait for the transaction to complete with a 120-second timeout
     console.log(`Transaction submitted with hash: ${sendResponse.hash}`)
     try {
-      await waitForTransaction(server, sendResponse.hash, 60000, 3000)
+      await waitForTransaction(server, sendResponse.hash, 120000, 5000)
     } catch (error) {
-      // If waitForTransaction fails due to parsing, try to verify account exists
-      if (error.message && error.message.includes('Bad union switch')) {
-        console.warn('Transaction parsing failed, checking if account was created...')
-        await new Promise((resolve) => setTimeout(resolve, 5000))
-        try {
-          await server.getAccount(newAccountKeypair.publicKey())
-          console.log('Account creation confirmed despite parsing error')
-        } catch (accountError) {
-          throw new Error(`Account creation failed: ${error.message}`)
-        }
-      } else {
-        throw error
+      // If waitForTransaction fails, try to verify account exists anyway
+      console.warn('Transaction tracking failed, checking if account was created...')
+      await new Promise((resolve) => setTimeout(resolve, 10000)) // Wait longer for network propagation
+      
+      try {
+        await server.getAccount(newAccountKeypair.publicKey())
+        console.log('Account creation confirmed despite transaction tracking failure')
+      } catch (accountError) {
+        // Account doesn't exist, the transaction truly failed
+        throw new Error(`Account creation failed: ${error.message}`)
       }
     }
 
@@ -181,56 +189,73 @@ export async function createAccount(server, parentKeypair, accountName, starting
  */
 export async function setupTestAccounts(server) {
   console.log('Setting up authority test accounts...')
+  const maxRetries = 3
 
-  // Create a new parent account for this test run
-  const parentKeypair = Keypair.random()
-  console.log(`Generated parent account: ${parentKeypair.publicKey()}`)
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Create a new parent account for this test run
+      const parentKeypair = Keypair.random()
+      console.log(`Generated parent account (attempt ${attempt}/${maxRetries}): ${parentKeypair.publicKey()}`)
 
-  // Fund the parent account with Friendbot
-  await fundAccountWithFriendbot(parentKeypair.publicKey())
+      // Fund the parent account with Friendbot
+      await fundAccountWithFriendbot(parentKeypair.publicKey())
 
-  // Add a delay to ensure the parent account is properly funded and ready
-  console.log('Waiting for parent account to be ready...')
-  await new Promise((resolve) => setTimeout(resolve, 5000))
+      // Add a delay to ensure the parent account is properly funded and ready
+      console.log('Waiting for parent account to be ready...')
+      await new Promise((resolve) => setTimeout(resolve, 10000)) // Increased wait time
 
-  try {
-    // Verify parent account exists by loading it
-    await server.getAccount(parentKeypair.publicKey())
-    console.log('Parent account is ready')
-  } catch (error) {
-    console.error('Parent account not found after funding:', error)
-    throw new Error('Failed to setup parent account')
+      try {
+        // Verify parent account exists by loading it
+        await server.getAccount(parentKeypair.publicKey())
+        console.log('Parent account is ready')
+      } catch (error) {
+        console.error('Parent account not found after funding:', error)
+        if (attempt === maxRetries) {
+          throw new Error('Failed to setup parent account after all retries')
+        }
+        console.log(`Retrying account setup (attempt ${attempt + 1}/${maxRetries})...`)
+        continue
+      }
+
+      // Create auxiliary accounts with error handling
+      console.log('Creating auxiliary accounts...')
+      
+      const authorityToRegisterKp = await createAccountWithRetry(server, parentKeypair, 'authority', '3')
+      const levyRecipientKp = await createAccountWithRetry(server, parentKeypair, 'levy-recipient', '2')
+      const subjectKp = await createAccountWithRetry(server, parentKeypair, 'attestation-subject', '1')
+      const userKp = await createAccountWithRetry(server, parentKeypair, 'general-user', '1')
+
+      console.log('Account setup completed successfully')
+
+      return {
+        parentKeypair,
+        authorityToRegisterKp,
+        levyRecipientKp,
+        subjectKp,
+        userKp,
+      }
+    } catch (error) {
+      console.error(`Setup attempt ${attempt} failed:`, error)
+      if (attempt === maxRetries) {
+        throw error
+      }
+      console.log(`Retrying full setup in 15 seconds...`)
+      await new Promise((resolve) => setTimeout(resolve, 15000))
+    }
   }
+}
 
-  // Create authority account - the one we will register as an authority
-  const authorityToRegisterKp = await createAccount(server, parentKeypair, 'authority', '3')
-
-  // Create levy recipient account - receives levy payments
-  const levyRecipientKp = await createAccount(
-    server,
-    parentKeypair,
-    'levy-recipient',
-    '2' // 2 XLM starting balance
-  )
-
-  // Create subject account - the subject of attestations
-  const subjectKp = await createAccount(server, parentKeypair, 'attestation-subject', '1')
-
-  // Create an additional user account if needed for specific tests
-  const userKp = await createAccount(
-    server,
-    parentKeypair,
-    'general-user',
-    '1' // 1 XLM starting balance
-  )
-
-  console.log('Account setup completed successfully')
-
-  return {
-    parentKeypair,
-    authorityToRegisterKp,
-    levyRecipientKp,
-    subjectKp,
-    userKp,
+async function createAccountWithRetry(server, parentKeypair, accountName, startingBalance, maxRetries = 2) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await createAccount(server, parentKeypair, accountName, startingBalance)
+    } catch (error) {
+      console.error(`Failed to create ${accountName} account (attempt ${attempt}/${maxRetries}):`, error)
+      if (attempt === maxRetries) {
+        throw error
+      }
+      console.log(`Retrying ${accountName} account creation in 10 seconds...`)
+      await new Promise((resolve) => setTimeout(resolve, 10000))
+    }
   }
 }
