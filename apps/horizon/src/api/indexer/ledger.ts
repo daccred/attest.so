@@ -9,6 +9,7 @@ import {
   getLastProcessedLedgerFromDB,
   updateLastProcessedLedgerInDB,
   storeEventsAndTransactionsInDB,
+  getDbInstance,
 } from './db';
 
 const sorobanServer = new rpc.Server(sorobanRpcUrl, {
@@ -59,6 +60,13 @@ export async function fetchAndStoreEvents(startLedgerFromRequest?: number): Prom
   console.log(`---------------- FETCH AND STORE EVENTS CYCLE (ledger.ts) ----------------`);
   console.log(`Requested start ledger: ${startLedgerFromRequest === undefined ? 'latest from DB/default' : startLedgerFromRequest}`);
 
+  const db = await getDbInstance();
+  if (!db) {
+    const errMsg = 'Database not connected (checked in fetchAndStoreEvents). Aborting event fetch.';
+    console.error(errMsg);
+    console.log(`------------------------------------------------------`);
+    throw new Error(errMsg);
+  }
   if (!CONTRACT_ID_TO_INDEX) {
     const errMsg = 'CONTRACT_ID_TO_INDEX is not defined. Aborting event fetch.';
     console.error(errMsg);

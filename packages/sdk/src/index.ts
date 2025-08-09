@@ -1,43 +1,141 @@
-import { SolanaConfig, StarknetConfig, StellarConfig } from './core/types'
-// import { StellarAttestSDK } from './core/stellar'
-import { SolanaAttestSDK } from './core/solana'
-import { StellarAttestSDK } from './core/stellar'
-// import { StarknetAttestSDK } from './core/starknet'
+/**
+ * @attestprotocol/sdk
+ *
+ * Meta-package that provides unified access to all Attest Protocol blockchain implementations
+ * This package exports all chain-specific SDKs and provides factory methods for easy initialization
+ */
 
-export * from './core/types'
-export * from './core/stellar'
-export * from './core/solana'
+// Export all chain-specific SDKs
+export { StellarAttestProtocol } from '@attestprotocol/stellar-sdk'
+export { SolanaAttestProtocol } from '@attestprotocol/solana-sdk'
+export { StarknetAttestProtocol } from '@attestprotocol/starknet-sdk'
 
-// export * from './core/starknet'
+// Export all chain-specific types
+export * from '@attestprotocol/stellar-sdk'
+export * from '@attestprotocol/solana-sdk'
+export * from '@attestprotocol/starknet-sdk'
+
+// Export core types and interfaces
+export * from '@attestprotocol/core'
+
+// Import for factory methods
+import { StellarAttestProtocol, StellarConfig } from '@attestprotocol/stellar-sdk'
+import { SolanaAttestProtocol, SolanaConfig } from '@attestprotocol/solana-sdk'
+import { StarknetAttestProtocol, StarknetConfig } from '@attestprotocol/starknet-sdk'
+import { AttestProtocolResponse } from '@attestprotocol/core'
 
 /**
- * Factory function to create the appropriate AttestSDKBase implementation
- * based on the provided configuration
+ * Factory class to create the appropriate AttestProtocol implementation based on configuration
+ * Provides backward compatibility with the previous SDK interface
  */
-export class AttestSDK {
-  static async initializeStellar(config: StellarConfig): Promise<StellarAttestSDK> {
-    const stellarClient = new StellarAttestSDK(config)
-    // try {
-    //   // Initialize will return an AttestSDKResponse<void>
-    //   const result = await stellarClient.initialize()
-    //   if (result.error) {
-    //     console.warn("Initialization completed with warnings:", result.error)
-    //     // Continue anyway since some errors might be recoverable
-    //   }
-    // } catch (error) {
-    //   console.error("Fatal error during Stellar SDK initialization:", error)
-    //   throw error
-    // }
+export class AttestProtocol {
+  /**
+   * Initialize a Stellar SDK instance
+   * @param config Stellar-specific configuration
+   * @returns Promise resolving to initialized Stellar SDK
+   */
+  static async initializeStellar(config: StellarConfig): Promise<StellarAttestProtocol> {
+    const stellarClient = new StellarAttestProtocol(config)
+
+    try {
+      const result = await stellarClient.initialize()
+      if (result.error) {
+        console.warn('Stellar SDK initialization completed with warnings:', result.error)
+      }
+    } catch (error) {
+      console.error('Fatal error during Stellar SDK initialization:', error)
+      throw error
+    }
+
     return stellarClient
   }
-  static async initializeSolana(config: SolanaConfig): Promise<SolanaAttestSDK> {
-    const solanaClient = new SolanaAttestSDK(config)
-    await solanaClient.initialize()
+
+  /**
+   * Initialize a Solana SDK instance
+   * @param config Solana-specific configuration
+   * @returns Promise resolving to initialized Solana SDK
+   */
+  static async initializeSolana(config: SolanaConfig): Promise<SolanaAttestProtocol> {
+    const solanaClient = new SolanaAttestProtocol(config)
+
+    const result = await solanaClient.initialize()
+    if (result.error) {
+      console.error('Solana SDK initialization failed:', result.error)
+      throw result.error
+    }
+
     return solanaClient
   }
-  // static async initializeStarknet(config: StarknetConfig): Promise<StarknetAttestSDK> {
-  //   const starknetClient = new StarknetAttestSDK(config)
-  //   await starknetClient.initialize()
-  //   return starknetClient
-  // }
+
+  /**
+   * Initialize a Starknet SDK instance
+   * @param config Starknet-specific configuration
+   * @returns Promise resolving to initialized Starknet SDK
+   */
+  static async initializeStarknet(config: StarknetConfig): Promise<StarknetAttestProtocol> {
+    const starknetClient = new StarknetAttestProtocol(config)
+
+    const result = await starknetClient.initialize()
+    if (result.error) {
+      console.error('Starknet SDK initialization failed:', result.error)
+      throw result.error
+    }
+
+    return starknetClient
+  }
+
+  /**
+   * Auto-detect and initialize the appropriate SDK based on configuration
+   * @param config Configuration object with a 'chain' property indicating the target blockchain
+   * @returns Promise resolving to initialized SDK
+   */
+  static async initialize(
+    config: (StellarConfig | SolanaConfig | StarknetConfig) & {
+      chain: 'stellar' | 'solana' | 'starknet'
+    }
+  ) {
+    switch (config.chain) {
+      case 'stellar':
+        return this.initializeStellar(config as StellarConfig)
+      case 'solana':
+        return this.initializeSolana(config as SolanaConfig)
+      case 'starknet':
+        return this.initializeStarknet(config as StarknetConfig)
+      default:
+        throw new Error(
+          `Unsupported chain: ${(config as any).chain}. Supported chains: stellar, solana, starknet`
+        )
+    }
+  }
 }
+
+// Export the factory as default for backward compatibility
+export default AttestProtocol
+
+/**
+ * Utility type to help with chain detection
+ */
+export type ChainType = 'stellar' | 'solana' | 'starknet'
+
+/**
+ * Utility type for unified configuration
+ */
+export type UnifiedConfig = {
+  chain: ChainType
+} & (StellarConfig | SolanaConfig | StarknetConfig)
+
+/**
+ * Helper function to create a unified configuration
+ */
+export function createConfig<T extends ChainType>(
+  chain: T,
+  config: T extends 'stellar' ? StellarConfig : T extends 'solana' ? SolanaConfig : StarknetConfig
+): UnifiedConfig {
+  return { chain, ...config } as UnifiedConfig
+}
+
+/**
+ * Version information
+ */
+export const SDK_VERSION = '2.0.0'
+export const SUPPORTED_CHAINS = ['stellar', 'solana', 'starknet'] as const

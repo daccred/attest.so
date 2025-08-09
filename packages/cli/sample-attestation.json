@@ -1,0 +1,7 @@
+{
+  "schemaUid": "your-schema-uid-here",
+  "subject": "GC7XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "data": "{\"name\": \"John Doe\", \"email\": \"john@example.com\", \"verification_level\": 3, \"is_verified\": true}",
+  "reference": "optional-reference-string",
+  "expirationTime": null
+}

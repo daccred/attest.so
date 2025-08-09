@@ -1,17 +1,14 @@
 {
   "name": "@attestprotocol/sdk",
-  "description": "JavaScript SDK for interacting with Attest Protocol",
-  "version": "1.5.2",
+  "description": "Meta-package SDK for interacting with Attest Protocol across multiple blockchains",
+  "version": "2.0.0",
   "author": "daccred",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
-    "@coral-xyz/anchor": "0.31.1",
-    "@solana/spl-token": "^0.4.6",
-    "@solana/web3.js": "^1.95.5",
-    "@stellar/stellar-sdk": "13.3.0",
-    "isomorphic-unfetch": "^4.0.2",
-    "json-schema": "^0.4.0",
-    "ts-loader": "^9.5.2"
+    "@attestprotocol/core": "workspace:*",
+    "@attestprotocol/solana-sdk": "workspace:*",
+    "@attestprotocol/starknet-sdk": "workspace:*",
+    "@attestprotocol/stellar-sdk": "workspace:*"
   },
   "devDependencies": {
     "@sebbo2002/semantic-release-jsr": "3.0.0",
@@ -29,10 +26,11 @@
     "test": "test"
   },
   "exports": {
-    "types": "./dist/index.d.ts",
-    "import": "./dist/index.js",
-    "require": "./dist/index.js",
-    "default": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js"
+    }
   },
   "files": [
     "dist",
@@ -42,23 +40,20 @@
   "jsdelivr": "dist/umd/attestprotocol.js",
   "keywords": [],
   "license": "MIT",
-  "main": "dist/main/index.js",
-  "module": "dist/module/index.js",
+  "main": "dist/index.js",
+  "module": "dist/esm/index.js",
   "publishConfig": {
     "access": "public"
   },
   "repository": "daccred/attest.so.git",
   "scripts": {
-    "build": "pnpm clean && pnpm build:main && pnpm build:module && pnpm build:umd",
-    "build:main": "tsc -p tsconfig.json",
-    "build:module": "tsc -p tsconfig.module.json",
-    "build:umd": "webpack",
-    "clean": "rimraf dist docs/v2",
-    "format": "prettier --write \"{src,test}/**/*.ts\"",
-    "test": "node --test",
-    "test-solana": "ts-node ./test/run-solana.ts",
-    "test-stellar": "ts-node ./test/run-stellar.ts"
-  },
-  "types": "dist/module/index.d.ts",
-  "unpkg": "dist/umd/attestprotocol.js"
+    "build": "pnpm clean && pnpm build:cjs && pnpm build:esm && pnpm build:types",
+    "build:cjs": "tsc -p tsconfig.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rimraf dist",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
+  }
 }

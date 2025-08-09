@@ -11,12 +11,15 @@ vi.mock('../src/api/indexer/ledger', () => ({
     lastRpcLedger: 5,
   }),
   getRpcHealth: vi.fn().mockResolvedValue('healthy'),
+  getLatestRPCLedgerIndex: vi.fn().mockResolvedValue(123456),
 }));
 
 vi.mock('../src/api/indexer/db', () => ({
   getLastProcessedLedgerFromDB: vi.fn().mockResolvedValue(10),
-  connectToMongoDB: vi.fn().mockResolvedValue(true),
-  getDbInstance: vi.fn().mockResolvedValue({ command: vi.fn().mockResolvedValue(true) }),
+  connectToPostgreSQL: vi.fn().mockResolvedValue(true),
+  getDbInstance: vi.fn().mockResolvedValue({ 
+    $queryRaw: vi.fn().mockResolvedValue([{ 1: 1 }])
+  }),
 }));
 
 import horizonRouter from '../src/api/indexer/api';
@@ -57,7 +60,7 @@ describe('Horizon API', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
-    expect(res.body.mongodb_status).toBe('connected');
+    expect(res.body.database_status).toBe('connected');
     expect(res.body.soroban_rpc_status).toBe('healthy');
     expect(getLastProcessedLedgerFromDB).toHaveBeenCalled();
     expect(getRpcHealth).toHaveBeenCalled();

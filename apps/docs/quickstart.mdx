@@ -45,11 +45,8 @@ pnpm add @attestprotocol/sdk
 
 <CodeGroup>
 ```bash CLI Tools
-# Stellar CLI
-npm install -g @attestprotocol/stellar-cli
-
-# Solana CLI
-npm install -g @attestprotocol/solana-cli
+# Unified CLI (supports all chains)
+npm install -g @attestprotocol/cli
 ```
 
 ```bash Development
@@ -67,9 +64,9 @@ Choose your blockchain and initialize the SDK:
 
 <CodeGroup>
 ```typescript Stellar
-import { AttestSDK } from '@attestprotocol/sdk';
+import { AttestProtocol } from '@attestprotocol/sdk';
 
-const sdk = await AttestSDK.initializeStellar({
+const sdk = await AttestProtocol.initializeStellar({
   secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY,
   publicKey: process.env.STELLAR_PUBLIC_KEY,
   url: 'https://soroban-testnet.stellar.org'
@@ -79,9 +76,9 @@ console.log('Stellar SDK initialized');
 ```
 
 ```typescript Solana
-import { AttestSDK } from '@attestprotocol/sdk';
+import { AttestProtocol } from '@attestprotocol/sdk';
 
-const sdk = await AttestSDK.initializeSolana({
+const sdk = await AttestProtocol.initializeSolana({
   walletOrSecretKey: process.env.SOLANA_SECRET_KEY,
   url: 'https://api.devnet.solana.com'
 });
@@ -212,7 +209,7 @@ Here's a complete working example:
 
 <CodeGroup>
 ```typescript Node.js
-import { AttestSDK } from '@attestprotocol/sdk';
+import { AttestProtocol } from '@attestprotocol/sdk';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -220,7 +217,7 @@ dotenv.config();
 async function main() {
   try {
     // Initialize SDK
-    const sdk = await AttestSDK.initializeStellar({
+    const sdk = await AttestProtocol.initializeStellar({
       secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY,
       publicKey: process.env.STELLAR_PUBLIC_KEY,
       url: 'https://soroban-testnet.stellar.org'
@@ -266,7 +263,7 @@ main();
 ```
 
 ```typescript TypeScript
-import { AttestSDK, AttestSDKResponse } from '@attestprotocol/sdk';
+import { AttestSDK, AttestProtocolResponse } from '@attestprotocol/sdk';
 
 interface KYCData {
   verified: boolean;
@@ -276,7 +273,7 @@ interface KYCData {
 }
 
 async function main(): Promise<void> {
-  const sdk = await AttestSDK.initializeStellar({
+  const sdk = await AttestProtocol.initializeStellar({
     secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY!,
     publicKey: process.env.STELLAR_PUBLIC_KEY!,
     url: 'https://soroban-testnet.stellar.org'

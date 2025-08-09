@@ -1,9 +1,11 @@
-import { beforeAll, afterAll, vi } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 dotenv.config();
 
-let mongod: MongoMemoryServer;
+// For tests, we'll use a test PostgreSQL database
+// Make sure to set TEST_DATABASE_URL in your test environment
+const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/horizon_test';
 
 // Mock the Stellar SDK's rpc.Server for all tests in this suite
 // This ensures that any import of horizon.ts gets the mocked version
@@ -26,17 +28,39 @@ vi.mock('@stellar/stellar-sdk', async () => {
 
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
-  const uri = mongod.getUri();
-  process.env.MONGODB_URI = uri; // Override MONGODB_URI for tests
+  // Set test database URL
+  process.env.DATABASE_URL = TEST_DATABASE_URL;
   process.env.STELLAR_NETWORK = 'testnet'; // Consistent test network
   process.env.CONTRACT_ID_TO_INDEX = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM'; // Valid example contract ID
-  console.log(`Test MongoDB URI: ${uri}`);
+  
+  console.log(`Test Database URL: ${TEST_DATABASE_URL}`);
+});
+
+beforeEach(async () => {
+  // Clear test database before each test
+  const prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: TEST_DATABASE_URL
+      }
+    }
+  });
+  
+  await prisma.contractEvent.deleteMany();
+  await prisma.metadata.deleteMany();
+  await prisma.$disconnect();
 });
 
 afterAll(async () => {
-  if (mongod) {
-    await mongod.stop();
-    console.log('Test MongoDB stopped.');
-  }
+  // Clean up test database
+  const prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: TEST_DATABASE_URL
+      }
+    }
+  });
+  
+  await prisma.$disconnect();
+  console.log('Test database connection closed.');
 });
