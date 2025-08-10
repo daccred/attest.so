@@ -19,6 +19,7 @@ import {
   storePaymentsInDB
 } from './db';
 import { ingestQueue } from './queue';
+import { queueLogger } from './logger';
 import { STELLAR_NETWORK, CONTRACT_ID_TO_INDEX } from './constants';
 
 const router = Router();
@@ -26,12 +27,12 @@ const router = Router();
 // Start the ingest queue on module load (idempotent)
 try {
   ingestQueue.start();
-  ingestQueue.on('enqueued', (job) => console.log('[queue] enqueued', job.id));
-  ingestQueue.on('started:job', (job) => console.log('[queue] started', job.id));
-  ingestQueue.on('completed:job', ({ job, result }) => console.log('[queue] completed', job.id, result));
-  ingestQueue.on('requeued:job', ({ job, backoffMs }) => console.log('[queue] requeued', job.id, 'in', backoffMs, 'ms'));
-  ingestQueue.on('failed:job', ({ job, error }) => console.warn('[queue] failed', job.id, error));
-  ingestQueue.on('dead:job', (job) => console.error('[queue] dead', job.id));
+  ingestQueue.on('enqueued', (job) => queueLogger.info('event: enqueued', { id: job.id }));
+  ingestQueue.on('started:job', (job) => queueLogger.info('event: started:job', { id: job.id }));
+  ingestQueue.on('completed:job', ({ job, result }) => queueLogger.info('event: completed:job', { id: job.id, result }));
+  ingestQueue.on('requeued:job', ({ job, backoffMs }) => queueLogger.info('event: requeued:job', { id: job.id, backoffMs }));
+  ingestQueue.on('failed:job', ({ job, error }) => queueLogger.warn('event: failed:job', { id: job.id, error }));
+  ingestQueue.on('dead:job', (job) => queueLogger.error('event: dead:job', { id: job.id }));
 } catch (e) {
   // ignore if already started
 }

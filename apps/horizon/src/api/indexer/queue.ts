@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { fetchAndStoreEvents } from './ledger';
+import { queueLogger } from './logger';
 
 export type IngestJobType = 'fetch-events';
 
@@ -33,6 +34,7 @@ class IngestQueue extends EventEmitter {
     this.isRunning = true;
     this.intervalHandle = setInterval(() => this.tick(), this.pollIntervalMs);
     this.emit('started');
+    queueLogger.info('queue started', { pollIntervalMs: this.pollIntervalMs, baseBackoffMs: this.baseBackoffMs });
   }
 
   stop() {
@@ -40,6 +42,7 @@ class IngestQueue extends EventEmitter {
     if (this.intervalHandle) clearInterval(this.intervalHandle);
     this.intervalHandle = null;
     this.emit('stopped');
+    queueLogger.info('queue stopped');
   }
 
   enqueueFetchEvents(startLedger?: number, opts?: { maxAttempts?: number; delayMs?: number }) {
@@ -53,6 +56,7 @@ class IngestQueue extends EventEmitter {
     };
     this.pendingJobs.push(job);
     this.emit('enqueued', job);
+    queueLogger.info('job enqueued', { id: job.id, type: job.type, payload: job.payload, nextRunAt: job.nextRunAt });
     return job.id;
   }
 
@@ -75,10 +79,15 @@ class IngestQueue extends EventEmitter {
     const job = this.pendingJobs.splice(idx, 1)[0];
     this.processing = true;
     this.emit('started:job', job);
+    queueLogger.info('job started', { id: job.id, type: job.type, attempts: job.attempts, payload: job.payload });
 
     try {
       if (job.type === 'fetch-events') {
+        // Input: job payload
+        queueLogger.debug('fetchAndStoreEvents request', { id: job.id, payload: job.payload });
         const result = await fetchAndStoreEvents(job.payload.startLedger);
+        // Output: ingestion result
+        queueLogger.info('fetchAndStoreEvents result', { id: job.id, result });
         this.emit('completed:job', { job, result });
 
         // If no events fetched, schedule a retry with backoff (events may land later on Horizon)
@@ -91,18 +100,22 @@ class IngestQueue extends EventEmitter {
           };
           this.pendingJobs.push(retryJob);
           this.emit('requeued:job', { job: retryJob, backoffMs: backoff });
+          queueLogger.info('job requeued', { id: retryJob.id, attempts: retryJob.attempts, backoffMs: backoff });
         }
       }
     } catch (error: any) {
       job.attempts += 1;
       this.emit('failed:job', { job, error: error?.message || String(error) });
+      queueLogger.error('job failed', { id: job.id, error: error?.message || String(error), attempts: job.attempts });
       if (job.attempts < job.maxAttempts) {
         const backoff = this.computeBackoffMs(job.attempts - 1);
         job.nextRunAt = Date.now() + backoff;
         this.pendingJobs.push(job);
         this.emit('requeued:job', { job, backoffMs: backoff });
+        queueLogger.info('job requeued after failure', { id: job.id, attempts: job.attempts, backoffMs: backoff });
       } else {
         this.emit('dead:job', job);
+        queueLogger.warn('job dead', { id: job.id, attempts: job.attempts });
       }
     } finally {
       this.processing = false;

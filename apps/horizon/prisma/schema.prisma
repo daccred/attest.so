@@ -28,7 +28,7 @@ model HorizonEvent {
   eventData   Json
   
   // Transaction details
-  txHash      String
+  txHash      String?
   txEnvelope  String
   txResult    String
   txMeta      String

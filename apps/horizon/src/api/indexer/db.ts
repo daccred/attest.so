@@ -118,8 +118,9 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
 
         const ledgerNumber = typeof ev.ledger === 'string' ? parseInt(ev.ledger, 10) : ev.ledger;
         const eventTimestamp = ev.timestamp || ev.ledgerClosedAt;
+        const txHash = ev.txHash || txDetails.txHash || txDetails.hash;
 
-        // Store transaction first
+        // Store transaction FIRST (before event that references it)
         if (txDetails && txDetails.hash) {
           const transactionData = {
             hash: txDetails.hash,
@@ -147,7 +148,7 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
           });
         }
 
-        // Store event
+        // Store event AFTER transaction exists
         const eventData = {
           eventId: ev.id,
           ledger: Number.isFinite(ledgerNumber) ? ledgerNumber : 0,
@@ -161,8 +162,8 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
             inSuccessfulContractCall: ev.inSuccessfulContractCall ?? null,
           },
 
-          // Transaction details
-          txHash: ev.txHash || txDetails.txHash || txDetails.hash || '',
+          // Transaction details - only set txHash if transaction was actually stored
+          txHash: (txDetails && txDetails.hash) ? txHash : null,
           txEnvelope: txDetails.envelopeXdr || txDetails.envelope || '',
           txResult: txDetails.resultXdr || txDetails.result || '',
           txMeta: txDetails.resultMetaXdr || txDetails.meta || '',
