@@ -131,6 +131,8 @@ async function storeTransactionsInDB(transactions: any[]): Promise<number> {
 
           const existing = await db.horizonTransaction.findUnique({ where: { hash } })
           if (existing) {
+            // Skipping update for existing transaction hashes; not merging data
+            /*
             const updateData: any = {
               ledger: Math.max(num(existing.ledger, 0), num(incoming.ledger, 0)),
               timestamp: new Date(
@@ -164,6 +166,8 @@ async function storeTransactionsInDB(transactions: any[]): Promise<number> {
               ),
             }
             await db.horizonTransaction.update({ where: { hash }, data: updateData })
+            */
+            continue
           } else {
             await db.horizonTransaction.create({ data: incoming })
           }
