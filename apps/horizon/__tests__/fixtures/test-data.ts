@@ -84,6 +84,16 @@ export const mockHorizonOperation = {
   ingestedAt: new Date('2025-05-17T21:36:05Z')
 };
 
+export const mockHorizonContractOperation = {
+  id: 'contract-op-uuid-1',
+  transactionHash: '12069247060c6f1a0f4244555a841dd76d5acb2194ead69da5a99fb4c5327478',
+  contractId: 'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
+  sourceAccount: 'GDAQ7GDVA4KJYYK6S7QKQFLMHQFNMJ3M4Q7I3J3FZHXLNXGP4IXMRJMC',
+  type: 'invoke_host_function',
+  successful: true,
+  ingestedAt: new Date('2025-05-17T21:36:05Z')
+};
+
 export const mockHorizonEffect = {
   id: 'effect-uuid-1',
   effectId: '0004387339157639168-0000000001',
@@ -200,6 +210,15 @@ export const createMockDb = () => ({
   },
   horizonOperation: {
     findMany: vi.fn().mockResolvedValue([mockHorizonOperation]),
+    count: vi.fn().mockResolvedValue(1),
+    upsert: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    deleteMany: vi.fn()
+  },
+  horizonContractOperation: {
+    findMany: vi.fn().mockResolvedValue([mockHorizonContractOperation]),
     count: vi.fn().mockResolvedValue(1),
     upsert: vi.fn(),
     create: vi.fn(),

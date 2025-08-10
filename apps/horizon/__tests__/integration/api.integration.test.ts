@@ -8,8 +8,8 @@
 import fetch from 'node-fetch';
 
 // Configuration
-const BASE_URL = process.env.HORIZON_API_URL || 'http://localhost:3000';
-const API_BASE = `${BASE_URL}/api/indexer`;
+const BASE_URL = process.env.HORIZON_API_URL || 'http://localhost:3001';
+const API_BASE = `${BASE_URL}`;
 
 interface TestResult {
   endpoint: string;
@@ -98,79 +98,79 @@ class APITester {
   async runHealthChecks() {
     console.log('\n🔍 Running Health Checks...\n');
     
-    await this.testEndpoint('/health');
+    await this.testEndpoint('/api/health');
   }
 
   async runBasicAPITests() {
     console.log('\n📊 Running Basic API Tests...\n');
     
     // Test events API
-    await this.testEndpoint('/events');
-    await this.testEndpoint('/events?limit=10');
-    await this.testEndpoint('/events?eventType=ATTEST');
-    await this.testEndpoint('/events?ledgerStart=1000000');
+    await this.testEndpoint('/api/data/events');
+    await this.testEndpoint('/api/data/events?limit=10');
+    await this.testEndpoint('/api/data/events?eventType=ATTEST');
+    await this.testEndpoint('/api/data/events?ledgerStart=1000000');
     
     // Test transactions API
-    await this.testEndpoint('/transactions');
-    await this.testEndpoint('/transactions?limit=5');
-    await this.testEndpoint('/transactions?successful=true');
+    await this.testEndpoint('/api/data/transactions');
+    await this.testEndpoint('/api/data/transactions?limit=5');
+    await this.testEndpoint('/api/data/transactions?successful=true');
     
     // Test operations API
-    await this.testEndpoint('/operations');
-    await this.testEndpoint('/operations?type=invoke_host_function');
+    await this.testEndpoint('/api/data/operations');
+    await this.testEndpoint('/api/data/operations?type=invoke_host_function');
     
     // Test effects API
-    await this.testEndpoint('/effects');
+    await this.testEndpoint('/api/data/effects');
     
     // Test contract data API
-    await this.testEndpoint('/contract-data');
-    await this.testEndpoint('/contract-data?latest=true');
+    await this.testEndpoint('/api/data/contract-data');
+    await this.testEndpoint('/api/data/contract-data?latest=true');
     
     // Test accounts API
-    await this.testEndpoint('/accounts');
-    await this.testEndpoint('/accounts?isContract=true');
+    await this.testEndpoint('/api/data/accounts');
+    await this.testEndpoint('/api/data/accounts?isContract=true');
     
     // Test payments API
-    await this.testEndpoint('/payments');
+    await this.testEndpoint('/api/data/payments');
     
     // Test analytics API
-    await this.testEndpoint('/analytics');
-    await this.testEndpoint('/analytics?timeframe=1h');
-    await this.testEndpoint('/analytics?timeframe=7d');
+    await this.testEndpoint('/api/analytics');
+    await this.testEndpoint('/api/analytics?timeframe=1h');
+    await this.testEndpoint('/api/analytics?timeframe=7d');
     
     // Test activity API
-    await this.testEndpoint('/activity');
-    await this.testEndpoint('/activity?limit=10');
+    await this.testEndpoint('/api/analytics/activity');
+    await this.testEndpoint('/api/analytics/activity?limit=10');
   }
 
   async runDataIngestionTests() {
     console.log('\n⚡ Running Data Ingestion Tests...\n');
     
     // Test event ingestion
-    await this.testEndpoint('/events/ingest', 'POST', {}, 202);
-    await this.testEndpoint('/events/ingest', 'POST', { startLedger: 1000000 }, 202);
+    await this.testEndpoint('/api/ingest/events', 'POST', {}, 202);
+    await this.testEndpoint('/api/ingest/events', 'POST', { startLedger: 1000000 }, 202);
     
     // Test comprehensive ingestion
-    await this.testEndpoint('/comprehensive/ingest', 'POST', {}, 202);
-    await this.testEndpoint('/comprehensive/ingest', 'POST', { startLedger: 1000000 }, 202);
+    await this.testEndpoint('/api/ingest/comprehensive', 'POST', {}, 202);
+    await this.testEndpoint('/api/ingest/comprehensive', 'POST', { startLedger: 1000000 }, 202);
   }
 
   async runErrorHandlingTests() {
     console.log('\n⚠️ Running Error Handling Tests...\n');
     
     // Test invalid parameters
-    await this.testEndpoint('/events?limit=abc', 'GET', undefined, 200); // Should handle gracefully
-    await this.testEndpoint('/events?ledgerStart=invalid', 'GET', undefined, 200);
+    await this.testEndpoint('/api/data/events?limit=abc', 'GET', undefined, 200); // Should handle gracefully
+    await this.testEndpoint('/api/data/events?ledgerStart=invalid', 'GET', undefined, 200);
     
     // Test invalid ingestion parameters
-    await this.testEndpoint('/events/ingest', 'POST', { startLedger: 'invalid' }, 400);
+    await this.testEndpoint('/api/ingest/events', 'POST', { startLedger: 'invalid' }, 400);
     
     // Test non-existent endpoints
-    await this.testEndpoint('/nonexistent', 'GET', undefined, 404);
+    await this.testEndpoint('/api/nonexistent', 'GET', undefined, 404);
     
     // Test invalid JSON
     try {
-      const response = await fetch(`${API_BASE}/events/ingest`, {
+      const response = await fetch(`${API_BASE}/api/ingest/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{"invalid": json}'
@@ -185,13 +185,13 @@ class APITester {
     console.log('\n🚀 Running Performance Tests...\n');
     
     // Test large limit requests
-    await this.testEndpoint('/events?limit=200');
-    await this.testEndpoint('/transactions?limit=200');
+    await this.testEndpoint('/api/data/events?limit=200');
+    await this.testEndpoint('/api/data/transactions?limit=200');
     
     // Test concurrent requests
     console.log('Testing concurrent requests...');
     const concurrentTests = Array(5).fill(null).map(() => 
-      this.testEndpoint('/events?limit=50')
+      this.testEndpoint('/api/data/events?limit=50')
     );
     
     const results = await Promise.all(concurrentTests);
@@ -204,11 +204,11 @@ class APITester {
     
     const contractId = 'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO';
     
-    await this.testEndpoint(`/events?contractId=${contractId}`);
-    await this.testEndpoint(`/transactions?sourceAccount=${contractId.slice(0, 56)}`);
-    await this.testEndpoint(`/analytics?contractId=${contractId}`);
-    await this.testEndpoint(`/activity?contractId=${contractId}`);
-    await this.testEndpoint(`/contract-data?contractId=${contractId}`);
+    await this.testEndpoint(`/api/data/events?contractId=${contractId}`);
+    await this.testEndpoint(`/api/data/transactions?sourceAccount=${contractId.slice(0, 56)}`);
+    await this.testEndpoint(`/api/analytics?contractId=${contractId}`);
+    await this.testEndpoint(`/api/analytics/activity?contractId=${contractId}`);
+    await this.testEndpoint(`/api/data/contract-data?contractId=${contractId}`);
   }
 
   printSummary() {
@@ -275,11 +275,11 @@ class APITester {
     console.log('\n🔧 Sample cURL Commands:\n');
     
     const sampleEndpoints = [
-      '/health',
-      '/events?limit=10',
-      '/transactions?successful=true&limit=5',
-      '/analytics?timeframe=24h',
-      '/activity?limit=20'
+      '/api/health',
+      '/api/data/events?limit=10',
+      '/api/data/transactions?successful=true&limit=5',
+      '/api/analytics?timeframe=24h',
+      '/api/analytics/activity?limit=20'
     ];
     
     sampleEndpoints.forEach(endpoint => {
@@ -287,8 +287,8 @@ class APITester {
     });
     
     console.log('\n# Data ingestion:');
-    console.log(`curl -X POST "${API_BASE}/events/ingest" -H "Content-Type: application/json" -d '{"startLedger": 1000000}'`);
-    console.log(`curl -X POST "${API_BASE}/comprehensive/ingest" -H "Content-Type: application/json" -d '{"startLedger": 1000000}'`);
+    console.log(`curl -X POST "${API_BASE}/api/ingest/events" -H "Content-Type: application/json" -d '{"startLedger": 1000000}'`);
+    console.log(`curl -X POST "${API_BASE}/api/ingest/comprehensive" -H "Content-Type: application/json" -d '{"startLedger": 1000000}'`);
   }
 }
 
