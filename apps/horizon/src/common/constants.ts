@@ -25,6 +25,13 @@ if (STELLAR_NETWORK === 'mainnet') {
   sorobanRpcUrl = 'https://soroban-testnet.stellar.org'; // Testnet RPC (default)
 }
 
+// Utility: Horizon base URL by network
+export function getHorizonBaseUrl(): string {
+  return STELLAR_NETWORK === 'mainnet'
+    ? 'https://horizon.stellar.org'
+    : 'https://horizon-testnet.stellar.org';
+}
+
 // Initial console logs for verification (optional to remove for production)
 console.log(`---------------- HORIZON CONSTANTS INIT (constants.ts) ----------------`);
 console.log(`STELLAR_NETWORK: ${STELLAR_NETWORK}`);

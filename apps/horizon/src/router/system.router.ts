@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { ingestQueue } from '../common/queue';
-import { getRpcHealth, getLatestRPCLedgerIndex } from '../repository/ledger';
-import { getLastProcessedLedgerFromDB, connectToPostgreSQL, getDbInstance } from '../repository/db';
+import { getRpcHealth, getLatestRPCLedgerIndex } from '../repository/rpc.repository';
+import { getLastProcessedLedgerFromDB, getDB } from '../common/db';
+import { connectToPostgreSQL } from '../common/prisma';
 import { STELLAR_NETWORK, CONTRACT_ID_TO_INDEX } from '../common/constants';
 
 const router = Router();
@@ -22,22 +23,22 @@ router.get('/health', async (req: Request, res: Response) => {
   let dbConnectionAttempted = false;
 
   try {
-    let db = await getDbInstance();
+    let db = await getDB();
     if (db) {
       try {
         await db.$queryRaw`SELECT 1`;
         dbStatus = 'connected';
         lastLedgerDb = await getLastProcessedLedgerFromDB();
       } catch (dbPingErr: any) {
-        console.warn('Health check: PostgreSQL ping failed after getDbInstance succeeded.', dbPingErr.message);
+        console.warn('Health check: PostgreSQL ping failed after DB instance succeeded.', dbPingErr.message);
         dbStatus = 'ping_failed';
       }
     } else {
-      console.warn('Health check: getDbInstance returned undefined. Attempting explicit connect.');
+      console.warn('Health check: DB instance undefined. Attempting explicit connect.');
       dbConnectionAttempted = true;
       const connected = await connectToPostgreSQL();
       if (connected) {
-        db = await getDbInstance(); // try getting it again
+        db = await getDB(); // try getting it again
         if (db) {
             try {
                 await db.$queryRaw`SELECT 1`;
@@ -48,7 +49,7 @@ router.get('/health', async (req: Request, res: Response) => {
                 dbStatus = 'ping_failed_after_retry';
             }
         } else {
-             console.warn('Health check: getDbInstance still undefined after explicit reconnect attempt.');
+             console.warn('Health check: DB still undefined after explicit reconnect attempt.');
              dbStatus = 'reconnect_attempt_db_undefined';
         }
       } else {

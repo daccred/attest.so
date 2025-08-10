@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { ingestQueue } from '../common/queue';
-import { fetchComprehensiveContractData, fetchContractOperations } from '../repository/ledger';
-import { storeOperationsInDB, storeEffectsInDB, storeAccountsInDB, storePaymentsInDB } from '../repository/db';
+import { fetchContractComprehensiveData, fetchContractOperations } from '../repository/contracts.repository';
 import { CONTRACT_IDS } from '../common/constants';
 
 const router = Router();
@@ -45,32 +44,17 @@ router.post('/comprehensive', async (req: Request, res: Response) => {
     }
 
     // Non-blocking: Trigger comprehensive data ingestion
-    fetchComprehensiveContractData(startLedgerFromRequest)
-      .then(async (result) => {
+    fetchContractComprehensiveData(startLedgerFromRequest)
+      .then(async (result: any) => {
         console.log("Comprehensive data ingestion completed:", {
           events: result.events.length,
           operations: result.operations.length,
-          effects: result.effects.length,
-          accounts: result.accounts.length,
-          payments: result.payments.length,
-          contractData: result.contractData.length
+          transactions: result.transactions.length,
+          accounts: result.accounts.size,
+          failedOperations: result.failedOperations.length
         });
-
-        // Store additional data types
-        if (result.operations.length > 0) {
-          await storeOperationsInDB(result.operations);
-        }
-        if (result.effects.length > 0) {
-          await storeEffectsInDB(result.effects);
-        }
-        if (result.accounts.length > 0) {
-          await storeAccountsInDB(result.accounts);
-        }
-        if (result.payments.length > 0) {
-          await storePaymentsInDB(result.payments);
-        }
       })
-      .catch(err => console.error("Comprehensive data ingestion failed:", err.message));
+      .catch((err: Error) => console.error("Comprehensive data ingestion failed:", err.message));
 
     res.status(202).json({
       success: true,

@@ -9,6 +9,7 @@ import systemRouter from './router/system.router';
 import ingestRouter from './router/ingest.router';
 import dataRouter from './router/data.router';
 import analyticsRouter from './router/analytics.router';
+import { logRouter } from './common/logger';
 
 
 require('dotenv').config();
@@ -34,5 +35,13 @@ app.use('/api/analytics', analyticsRouter);
 
 app.use(middlewares.notFound);
 app.use(middlewares.errorHandler);
+ 
+
+
+logRouter('/api', systemRouter);
+logRouter('/api/ingest', ingestRouter);
+logRouter('/api/data', dataRouter);
+logRouter('/api/analytics', analyticsRouter);
+
 
 export default app;

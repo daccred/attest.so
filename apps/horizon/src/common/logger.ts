@@ -44,3 +44,13 @@ export const queueLogger = {
   },
   filePath: LOG_FILE
 }; 
+
+export const logRouter = (basePath: string, router: any) => {
+  const stack = router?.stack || [];
+  for (const layer of stack) {
+    const route = layer?.route;
+    if (!route) continue;
+    const methods = Object.keys(route.methods).map(m => m.toUpperCase()).join(',');
+    console.log(`${methods.padEnd(10)} ${basePath}${route.path}`);
+  }
+};

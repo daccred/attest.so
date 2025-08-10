@@ -1,12 +1,12 @@
 import { Router, Request, Response } from 'express';
-import { getDbInstance } from '../repository/db';
+import { getDB } from '../common/db';
 
 const router = Router();
 
 // Contract Events API
 router.get('/events', async (req: Request, res: Response) => {
   try {
-    const db = await getDbInstance();
+    const db = await getDB();
     if (!db) {
       return res.status(503).json({ error: 'Database not available' });
     }
@@ -33,7 +33,7 @@ router.get('/events', async (req: Request, res: Response) => {
         transaction: true,
         operations: true
       },
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: 'asc' as const },
       take: Math.min(parseInt(limit as string), 200),
       skip: parseInt(offset as string)
     });
@@ -58,7 +58,7 @@ router.get('/events', async (req: Request, res: Response) => {
 // Transactions API
 router.get('/transactions', async (req: Request, res: Response) => {
   try {
-    const db = await getDbInstance();
+    const db = await getDB();
     if (!db) {
       return res.status(503).json({ error: 'Database not available' });
     }
@@ -113,7 +113,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
 // Operations API
 router.get('/operations', async (req: Request, res: Response) => {
   try {
-    const db = await getDbInstance();
+    const db = await getDB();
     if (!db) {
       return res.status(503).json({ error: 'Database not available' });
     }
@@ -165,7 +165,7 @@ router.get('/operations', async (req: Request, res: Response) => {
 // Effects API
 router.get('/effects', async (req: Request, res: Response) => {
   try {
-    const db = await getDbInstance();
+    const db = await getDB();
     if (!db) {
       return res.status(503).json({ error: 'Database not available' });
     }
@@ -216,7 +216,7 @@ router.get('/effects', async (req: Request, res: Response) => {
 // Contract Data API
 router.get('/contract-data', async (req: Request, res: Response) => {
   try {
-    const db = await getDbInstance();
+    const db = await getDB();
     if (!db) {
       return res.status(503).json({ error: 'Database not available' });
     }
@@ -241,7 +241,7 @@ router.get('/contract-data', async (req: Request, res: Response) => {
       // Get latest version of each key
       contractData = await db.horizonContractData.findMany({
         where,
-        orderBy: { ledger: 'desc' },
+        orderBy: { ledger: 'asc' as const },
         take: Math.min(parseInt(limit as string), 200),
         skip: parseInt(offset as string),
         distinct: ['contractId', 'key']
@@ -276,7 +276,7 @@ router.get('/contract-data', async (req: Request, res: Response) => {
 // Accounts API
 router.get('/accounts', async (req: Request, res: Response) => {
   try {
-    const db = await getDbInstance();
+    const db = await getDB();
     if (!db) {
       return res.status(503).json({ error: 'Database not available' });
     }
@@ -319,7 +319,7 @@ router.get('/accounts', async (req: Request, res: Response) => {
 // Payments API  
 router.get('/payments', async (req: Request, res: Response) => {
   try {
-    const db = await getDbInstance();
+    const db = await getDB();
     if (!db) {
       return res.status(503).json({ error: 'Database not available' });
     }

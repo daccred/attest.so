@@ -1,16 +1,18 @@
 import { EventEmitter } from 'events';
 import { 
-  fetchAndStoreEvents, 
+  fetchAndStoreEvents
+} from '../repository/events.repository';
+import {
   fetchContractOperations,
-  fetchContractComprehensiveData 
-} from '../repository/ledger';
+  fetchContractComprehensiveData
+} from '../repository/contracts.repository';
 import { queueLogger } from './logger';
 
 export type IngestJobType = 
-  | 'fetch-events'                    // Current: Contract events
-  | 'fetch-contract-operations'       // NEW: All operations for contracts
-  | 'fetch-comprehensive-data'        // NEW: Complete contract data collection
-  | 'backfill-missing-operations';    // NEW: Find operations without events
+  | 'fetch-events'                    
+  | 'fetch-contract-operations'      
+  | 'fetch-comprehensive-data'   
+  | 'backfill-missing-operations';
 
 export interface IngestJob {
   id: string;

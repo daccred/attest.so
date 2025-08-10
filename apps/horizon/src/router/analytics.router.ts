@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getDbInstance } from '../repository/db';
+import { getDB } from '../common/db';
 import { CONTRACT_IDS } from '../common/constants';
 
 const router = Router();
@@ -7,7 +7,7 @@ const router = Router();
 // Analytics API
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const db = await getDbInstance();
+    const db = await getDB();
     if (!db) {
       return res.status(503).json({ error: 'Database not available' });
     }
@@ -71,7 +71,7 @@ router.get('/', async (req: Request, res: Response) => {
           successfulTransactions: successfulTxs,
           successRate: totalTransactions > 0 ? (successfulTxs / totalTransactions * 100).toFixed(2) + '%' : '0%'
         },
-        eventsByType: eventsByType.map(et => ({
+        eventsByType: eventsByType.map((et: any) => ({
           type: et.eventType,
           count: et._count.eventType
         })),
@@ -89,7 +89,7 @@ router.get('/', async (req: Request, res: Response) => {
 // Contract Analytics Dashboard API
 router.get('/contracts', async (req: Request, res: Response) => {
   try {
-    const db = await getDbInstance();
+    const db = await getDB();
     if (!db) {
       return res.status(503).json({ error: 'Database not available' });
     }
@@ -112,7 +112,7 @@ router.get('/contracts', async (req: Request, res: Response) => {
             where: { contractId },
             select: { sourceAccount: true },
             distinct: ['sourceAccount']
-          }).then(ops => ops.length),
+          }).then((ops: any[]) => ops.length),
           db.horizonEvent.count({
             where: {
               contractId,
@@ -145,10 +145,10 @@ router.get('/contracts', async (req: Request, res: Response) => {
       data: analytics,
       summary: {
         totalContracts: targetContractIds.length,
-        totalOperations: analytics.reduce((sum, a) => sum + a.operations.total, 0),
-        totalUsers: analytics.reduce((sum, a) => sum + a.users.unique, 0),
+        totalOperations: analytics.reduce((sum: number, a: any) => sum + a.operations.total, 0),
+        totalUsers: analytics.reduce((sum: number, a: any) => sum + a.users.unique, 0),
         averageSuccessRate: analytics.length > 0 
-          ? (analytics.reduce((sum, a) => sum + parseFloat(a.operations.successRate), 0) / analytics.length).toFixed(2) + '%'
+          ? (analytics.reduce((sum: number, a: any) => sum + parseFloat(a.operations.successRate), 0) / analytics.length).toFixed(2) + '%'
           : '0%'
       }
     });
@@ -160,7 +160,7 @@ router.get('/contracts', async (req: Request, res: Response) => {
 // Real-time Activity Feed API
 router.get('/activity', async (req: Request, res: Response) => {
   try {
-    const db = await getDbInstance();
+    const db = await getDB();
     if (!db) {
       return res.status(503).json({ error: 'Database not available' });
     }
@@ -188,7 +188,7 @@ router.get('/activity', async (req: Request, res: Response) => {
         take: Math.min(parseInt(limit as string), 50)
       });
 
-      activities.push(...events.map(e => ({
+      activities.push(...events.map((e: any) => ({
         type: 'event',
         id: e.eventId,
         timestamp: e.timestamp,
@@ -212,7 +212,7 @@ router.get('/activity', async (req: Request, res: Response) => {
         take: Math.min(parseInt(limit as string), 50)
       });
 
-      activities.push(...transactions.map(t => ({
+      activities.push(...transactions.map((t: any) => ({
         type: 'transaction',
         id: t.hash,
         timestamp: t.timestamp,
@@ -239,7 +239,7 @@ router.get('/activity', async (req: Request, res: Response) => {
         take: Math.min(parseInt(limit as string), 50)
       });
 
-      activities.push(...payments.map(p => ({
+      activities.push(...payments.map((p: any) => ({
         type: 'payment',
         id: p.paymentId,
         timestamp: p.timestamp,
@@ -252,7 +252,7 @@ router.get('/activity', async (req: Request, res: Response) => {
     }
 
     // Sort all activities by timestamp
-    activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    activities.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     res.json({
       success: true,
