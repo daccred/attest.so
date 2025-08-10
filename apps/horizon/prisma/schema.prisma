@@ -38,7 +38,6 @@ model HorizonEvent {
   
   // Relations
   transaction HorizonTransaction? @relation(fields: [txHash], references: [hash])
-  operations  HorizonOperation[]
   contractOperation HorizonContractOperation? @relation(fields: [contractOperationId], references: [id])
   contractOperationId String?
   effects     HorizonEffect[]
@@ -76,7 +75,6 @@ model HorizonTransaction {
   sorobanResourceUsage Json?
   
   // Relations
-  operations        HorizonOperation[]
   contractOperations HorizonContractOperation[]
   events            HorizonEvent[]
   effects          HorizonEffect[]
@@ -92,36 +90,6 @@ model HorizonTransaction {
   @@map("horizon_transactions")
 }
 
-model HorizonOperation {
-  id                String   @id @default(uuid())
-  operationId       String   @unique
-  transactionHash   String
-  operationIndex    Int
-  type              String
-  typeI             Int
-  details           Json
-  sourceAccount     String?
-  
-  // Soroban-specific fields
-  contractId        String?
-  function          String?
-  parameters        Json?
-  
-  // Relations
-  transaction       HorizonTransaction @relation(fields: [transactionHash], references: [hash])
-  events            HorizonEvent[]
-  effects          HorizonEffect[]
-  
-  // Indexer metadata
-  ingestedAt        DateTime @default(now())
-  
-  @@index([transactionHash])
-  @@index([type])
-  @@index([contractId])
-  @@index([sourceAccount])
-  @@map("horizon_operations")
-}
-
 model HorizonEffect {
   id              String   @id @default(uuid())
   effectId        String   @unique
@@ -131,12 +99,11 @@ model HorizonEffect {
   typeI           Int
   details         Json
   account         String?
+  eventId         String?
   
   // Relations
-  operation       HorizonOperation @relation(fields: [operationId], references: [operationId])
   transaction     HorizonTransaction @relation(fields: [transactionHash], references: [hash])
   event           HorizonEvent? @relation(fields: [eventId], references: [id])
-  eventId         String?
   
   // Indexer metadata
   ingestedAt      DateTime @default(now())

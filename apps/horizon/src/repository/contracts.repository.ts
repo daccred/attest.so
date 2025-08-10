@@ -2,7 +2,7 @@ import { sorobanRpcUrl, CONTRACT_IDS, MAX_OPERATIONS_PER_FETCH } from '../common
 import { getDB } from '../common/db';
 import { fetchOperationsFromHorizon, storeContractOperationsInDB } from './operations.repository';
 import { fetchAndStoreEvents } from './events.repository';
-import { fetchTransactionDetails } from './transactions.repository';
+import { fetchTransactionDetails, storeTransactionsInDB } from './transactions.repository';
 
 export async function fetchContractDataFromSoroban(params: {
   contractId: string;
@@ -104,7 +104,6 @@ export async function fetchContractOperations(
     transactionsFetched: number;
   }> {
     const operations: any[] = [];
-    const transactions: any[] = [];
     const accountsSet = new Set<string>();
     const failedOperations: any[] = [];
     
@@ -146,17 +145,23 @@ export async function fetchContractOperations(
     const txHashes = [...new Set(operations.map(op => op.transaction_hash).filter(Boolean))];
     console.log(`📦 Fetching ${txHashes.length} unique transactions for operations`);
     
+    const txDetailsList: any[] = [];
     for (const txHash of txHashes) {
       try {
-        const txDetails = await fetchTransactionDetails(txHash);
+        const txDetails = await fetchTransactionDetails(txHash as string);
         if (txDetails) {
-          transactions.push(txDetails);
+          txDetailsList.push(txDetails);
         }
       } catch (error: any) {
         console.error(`❌ Error fetching transaction ${txHash}:`, error.message);
       }
     }
-    
+
+    // Ensure transactions are stored before operations (satisfy FK)
+    if (txDetailsList.length > 0) {
+      await storeTransactionsInDB(txDetailsList);
+    }
+
     // Store contract operations in database with proper contract mapping
     if (operations.length > 0) {
       console.log(`💾 Storing ${operations.length} contract operations in database...`);
@@ -176,6 +181,9 @@ export async function fetchContractOperations(
       console.log(`✅ Stored ${storedCount} contract operations successfully`);
     }
     
+    // Use the original transactions array for return (operationsResult.transactions expected)
+    const transactions = txDetailsList;
+
     return {
       operations,
       transactions,

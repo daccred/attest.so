@@ -1,4 +1,5 @@
 import { sorobanRpcUrl } from '../common/constants';
+import { getDB } from '../common/db';
 
 async function fetchTransactionDetails(txHash: string): Promise<any | null> {
     try {
@@ -32,4 +33,73 @@ async function fetchTransactionDetails(txHash: string): Promise<any | null> {
     }
 }
 
-export { fetchTransactionDetails }; 
+async function storeTransactionsInDB(transactions: any[]): Promise<number> {
+  const db = await getDB();
+  if (!db || transactions.length === 0) return 0;
+
+  const toBoolean = (v: any) => {
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'string') return v.toLowerCase() === 'true' || v.toUpperCase() === 'SUCCESS';
+    return Boolean(v);
+  };
+
+  const num = (v: any, d: number = 0) => {
+    const n = typeof v === 'string' ? parseInt(v, 10) : (typeof v === 'number' ? v : NaN);
+    return Number.isFinite(n) ? n : d;
+  };
+
+  const toDate = (v: any) => {
+    try {
+      if (!v) return new Date();
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? new Date() : d;
+    } catch {
+      return new Date();
+    }
+  };
+
+  try {
+    const results = await db.$transaction(async (prismaTx) => {
+      const ops = transactions.map(async (tx: any) => {
+        const hash = tx.hash || tx.txHash;
+        if (!hash) return null;
+
+        const transactionData = {
+          hash,
+          ledger: num(tx.ledger, 0),
+          timestamp: toDate(tx.createdAt || tx.timestamp),
+          sourceAccount: tx.sourceAccount || tx.source_account || '',
+          fee: (tx.fee || tx.feeCharged || 0).toString(),
+          operationCount: num(tx.operationCount || tx.operation_count, 0),
+          envelope: tx.envelopeXdr || tx.envelope || {},
+          result: tx.resultXdr || tx.result || {},
+          meta: tx.resultMetaXdr || tx.meta || {},
+          feeBump: toBoolean(tx.feeBump),
+          successful: typeof tx.successful === 'boolean' ? tx.successful : toBoolean(tx.status),
+          memo: tx.memo,
+          memoType: tx.memoType || tx.memo_type,
+          inclusionFee: tx.inclusionFee ? String(tx.inclusionFee) : undefined,
+          resourceFee: tx.resourceFee ? String(tx.resourceFee) : undefined,
+          sorobanResourceUsage: tx.sorobanResourceUsage || null,
+        } as any;
+
+        return prismaTx.horizonTransaction.upsert({
+          where: { hash },
+          update: transactionData,
+          create: transactionData,
+        });
+      });
+
+      const stored = await Promise.all(ops);
+      return stored.filter(Boolean).length;
+    });
+
+    console.log(`Stored/ensured ${results} transactions.`);
+    return results;
+  } catch (error) {
+    console.error('Error storing transactions:', error);
+    return 0;
+  }
+}
+
+export { fetchTransactionDetails, storeTransactionsInDB }; 
