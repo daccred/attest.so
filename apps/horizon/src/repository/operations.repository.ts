@@ -124,6 +124,29 @@ export async function storeContractOperationsInDB(operations: any[], contractIds
             contractIds[0] ||
             ''
 
+          // Ensure the parent transaction exists to satisfy FK constraint
+          const txHash: string | undefined = operation.transaction_hash
+          if (txHash) {
+            await prismaTx.horizonTransaction.upsert({
+              where: { hash: txHash },
+              update: {},
+              create: {
+                hash: txHash,
+                ledger: typeof operation.ledger === 'number' ? operation.ledger : 0,
+                timestamp: operation.created_at ? new Date(operation.created_at) : new Date(),
+                sourceAccount: operation.source_account || '',
+                fee: '0',
+                operationCount: 0,
+                envelope: {},
+                result: {},
+                meta: {},
+                feeBump: false,
+                successful:
+                  operation.successful !== false && operation.transaction_successful !== false,
+              },
+            })
+          }
+
           const operationData = {
             operationId: operation.id,
             transactionHash: operation.transaction_hash,
