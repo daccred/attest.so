@@ -97,30 +97,7 @@ async function storeTransactionsInDB(transactions: any[]): Promise<number> {
 
   const isObject = (val: any) => val && typeof val === 'object' && !Array.isArray(val)
   const mergeJson = (a: any, b: any) => merge({}, isObject(a) ? a : {}, isObject(b) ? b : {})
-
-  const mergeTransactionData = (existing: any, incoming: any) => {
-    // Prefer non-empty incoming values; for numeric counters, take max; for dates, take latest
-    const merged: any = { ...existing }
-    merged.hash = existing.hash || incoming.hash
-    merged.ledger = Math.max(num(existing.ledger, 0), num(incoming.ledger, 0))
-    merged.timestamp = new Date(
-      Math.max(new Date(existing.timestamp || 0).getTime(), new Date(incoming.timestamp).getTime())
-    )
-    merged.sourceAccount = incoming.sourceAccount || existing.sourceAccount || ''
-    merged.fee = (incoming.fee ?? existing.fee ?? '0').toString()
-    merged.operationCount = Math.max(num(existing.operationCount, 0), num(incoming.operationCount, 0))
-    merged.envelope = mergeJson(existing.envelope, incoming.envelope)
-    merged.result = mergeJson(existing.result, incoming.result)
-    merged.meta = mergeJson(existing.meta, incoming.meta)
-    merged.feeBump = typeof incoming.feeBump === 'boolean' ? incoming.feeBump : Boolean(existing.feeBump)
-    merged.successful = typeof incoming.successful === 'boolean' ? incoming.successful : Boolean(existing.successful)
-    merged.memo = incoming.memo ?? existing.memo ?? null
-    merged.memoType = incoming.memoType ?? existing.memoType ?? null
-    merged.inclusionFee = incoming.inclusionFee ?? existing.inclusionFee ?? undefined
-    merged.resourceFee = incoming.resourceFee ?? existing.resourceFee ?? undefined
-    merged.sorobanResourceUsage = mergeJson(existing.sorobanResourceUsage, incoming.sorobanResourceUsage)
-    return merged
-  }
+  // Removed mergeTransactionData helper; merging done inline below
 
   try {
     const BATCH_SIZE = 100
@@ -154,8 +131,39 @@ async function storeTransactionsInDB(transactions: any[]): Promise<number> {
 
           const existing = await db.horizonTransaction.findUnique({ where: { hash } })
           if (existing) {
-            const merged = mergeTransactionData(existing, incoming)
-            await db.horizonTransaction.update({ where: { hash }, data: merged })
+            const updateData: any = {
+              ledger: Math.max(num(existing.ledger, 0), num(incoming.ledger, 0)),
+              timestamp: new Date(
+                Math.max(
+                  new Date(existing.timestamp || 0).getTime(),
+                  new Date(incoming.timestamp).getTime()
+                )
+              ),
+              sourceAccount: incoming.sourceAccount || existing.sourceAccount || '',
+              fee: (incoming.fee ?? existing.fee ?? '0').toString(),
+              operationCount: Math.max(
+                num(existing.operationCount, 0),
+                num(incoming.operationCount, 0)
+              ),
+              envelope: mergeJson(existing.envelope, incoming.envelope),
+              result: mergeJson(existing.result, incoming.result),
+              meta: mergeJson(existing.meta, incoming.meta),
+              feeBump:
+                typeof incoming.feeBump === 'boolean' ? incoming.feeBump : Boolean(existing.feeBump),
+              successful:
+                typeof incoming.successful === 'boolean'
+                  ? incoming.successful
+                  : Boolean(existing.successful),
+              memo: incoming.memo ?? existing.memo ?? null,
+              memoType: incoming.memoType ?? existing.memoType ?? null,
+              inclusionFee: incoming.inclusionFee ?? existing.inclusionFee ?? undefined,
+              resourceFee: incoming.resourceFee ?? existing.resourceFee ?? undefined,
+              sorobanResourceUsage: mergeJson(
+                existing.sorobanResourceUsage,
+                incoming.sorobanResourceUsage
+              ),
+            }
+            await db.horizonTransaction.update({ where: { hash }, data: updateData })
           } else {
             await db.horizonTransaction.create({ data: incoming })
           }
