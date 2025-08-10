@@ -6,7 +6,7 @@ import {
   MAX_EVENTS_PER_FETCH,
   MAX_OPERATIONS_PER_FETCH,
   LEDGER_HISTORY_LIMIT_DAYS,
-} from './constants';
+} from '../common/constants';
 import {
   getLastProcessedLedgerFromDB,
   updateLastProcessedLedgerInDB,
@@ -14,7 +14,7 @@ import {
   storeContractOperationsInDB,
   getDbInstance,
 } from './db';
-import { IndexerErrorHandler, PerformanceMonitor, RateLimiter } from './error-handler';
+import { IndexerErrorHandler, PerformanceMonitor, RateLimiter } from '../common/errors';
 
 const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://'),

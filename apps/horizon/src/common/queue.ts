@@ -3,7 +3,7 @@ import {
   fetchAndStoreEvents, 
   fetchContractOperations,
   fetchContractComprehensiveData 
-} from './ledger';
+} from '../repository/ledger';
 import { queueLogger } from './logger';
 
 export type IngestJobType = 
