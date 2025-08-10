@@ -4129,9 +4129,6 @@ packages:
   bignumber.js@9.2.1:
     resolution: {integrity: sha512-+NzaKgOUvInq9TIUZ1+DRspzf/HApkCwD4btfuasFTdrfnOxqx853TgDpMolp+uv4RpRp7bPcEU2zKr9+fRmyw==}
 
-  bignumber.js@9.3.0:
-    resolution: {integrity: sha512-EM7aMFTXbptt/wZdMlBv2t8IViwQL+h6SLHosp8Yf0dqJMTnY6iL32opnAB6kAdL0SZPuvcAzFr31o0c/R3/RA==}
-
   bignumber.js@9.3.1:
     resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
 
@@ -13444,7 +13441,7 @@ snapshots:
     dependencies:
       '@stellar/js-xdr': 3.1.2
       base32.js: 0.1.0
-      bignumber.js: 9.3.0
+      bignumber.js: 9.3.1
       buffer: 6.0.3
       sha.js: 2.4.11
       tweetnacl: 1.0.3
@@ -13464,7 +13461,7 @@ snapshots:
     dependencies:
       '@stellar/stellar-base': 13.1.0
       axios: 1.8.4
-      bignumber.js: 9.3.0
+      bignumber.js: 9.3.1
       eventsource: 2.0.2
       feaxios: 0.0.23
       randombytes: 2.1.0
@@ -14697,7 +14694,7 @@ snapshots:
   axios@1.8.4:
     dependencies:
       follow-redirects: 1.15.9
-      form-data: 4.0.2
+      form-data: 4.0.4
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
       - debug
@@ -14849,8 +14846,6 @@ snapshots:
       bindings: 1.5.0
 
   bignumber.js@9.2.1: {}
-
-  bignumber.js@9.3.0: {}
 
   bignumber.js@9.3.1: {}
 
