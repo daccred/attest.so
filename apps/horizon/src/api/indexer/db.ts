@@ -110,7 +110,7 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
   if (eventsWithTransactions.length === 0) return;
 
   try {
-    // Process events in a transaction for consistency
+    // Process events in a transaction for consistency (increase timeout for transaction fetching)
     const results = await db.$transaction(async (prismaTx) => {
       const operations = eventsWithTransactions.map(async (item) => {
         const ev: any = item.event || {};
@@ -121,9 +121,9 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
         const txHash = ev.txHash || txDetails.txHash || txDetails.hash;
 
         // Store transaction FIRST (before event that references it)
-        if (txDetails && txDetails.hash) {
+        if (txDetails && (txDetails.hash || txDetails.txHash)) {
           const transactionData = {
-            hash: txDetails.hash,
+            hash: txDetails.hash || txDetails.txHash,
             ledger: ledgerNumber,
             timestamp: eventTimestamp ? new Date(eventTimestamp) : new Date(),
             sourceAccount: txDetails.sourceAccount || '',
@@ -142,7 +142,7 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
           };
 
           await prismaTx.horizonTransaction.upsert({
-            where: { hash: txDetails.hash },
+            where: { hash: txDetails.hash || txDetails.txHash },
             update: transactionData,
             create: transactionData
           });
@@ -163,7 +163,7 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
           },
 
           // Transaction details - only set txHash if transaction was actually stored
-          txHash: (txDetails && txDetails.hash) ? txHash : null,
+          txHash: (txDetails && (txDetails.hash || txDetails.txHash)) ? txHash : null,
           txEnvelope: txDetails.envelopeXdr || txDetails.envelope || '',
           txResult: txDetails.resultXdr || txDetails.result || '',
           txMeta: txDetails.resultMetaXdr || txDetails.meta || '',
@@ -180,6 +180,8 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
       });
       
       return Promise.all(operations);
+    }, {
+      timeout: 30000, // 30 seconds timeout instead of default 5 seconds
     });
     
     console.log(`Stored ${results.length} event-transaction pairs.`);
