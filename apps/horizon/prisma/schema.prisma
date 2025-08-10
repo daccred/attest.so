@@ -39,6 +39,8 @@ model HorizonEvent {
   // Relations
   transaction HorizonTransaction? @relation(fields: [txHash], references: [hash])
   operations  HorizonOperation[]
+  contractOperation HorizonContractOperation? @relation(fields: [contractOperationId], references: [id])
+  contractOperationId String?
   effects     HorizonEffect[]
   
   // Indexer metadata
@@ -75,6 +77,7 @@ model HorizonTransaction {
   
   // Relations
   operations        HorizonOperation[]
+  contractOperations HorizonContractOperation[]
   events            HorizonEvent[]
   effects          HorizonEffect[]
   payments         HorizonPayment[]
@@ -220,6 +223,37 @@ model HorizonPayment {
   @@index([timestamp])
   @@index([transactionHash])
   @@map("horizon_payments")
+}
+
+// Enhanced model for contract-specific operations tracking
+model HorizonContractOperation {
+  id                String   @id @default(uuid())
+  operationId       String   @unique
+  transactionHash   String
+  contractId        String   // Which specific contract this operation targets
+  operationType     String   // e.g., "invoke_host_function", "restore_footprint"
+  successful        Boolean  @default(true)
+  sourceAccount     String
+  operationIndex    Int      @default(0)
+  
+  // Enhanced contract-specific data
+  function          String?  // Contract function called
+  parameters        Json?    // Function parameters
+  details           Json     // Full operation details
+  
+  // Relations
+  transaction       HorizonTransaction @relation(fields: [transactionHash], references: [hash])
+  events            HorizonEvent[]     // Events emitted by this operation
+  
+  // Indexer metadata  
+  ingestedAt        DateTime @default(now())
+  
+  @@index([contractId])
+  @@index([operationType])
+  @@index([successful])
+  @@index([sourceAccount])
+  @@index([transactionHash])
+  @@map("horizon_contract_operations")
 }
 
 model HorizonIndexerState {

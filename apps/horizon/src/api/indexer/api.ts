@@ -4,6 +4,8 @@ import {
   getRpcHealth, 
   getLatestRPCLedgerIndex,
   fetchComprehensiveContractData,
+  fetchContractOperations,
+  fetchContractComprehensiveData,
   fetchOperationsFromHorizon,
   fetchEffectsFromHorizon,
   fetchAccountFromHorizon,
@@ -20,7 +22,7 @@ import {
 } from './db';
 import { ingestQueue } from './queue';
 import { queueLogger } from './logger';
-import { STELLAR_NETWORK, CONTRACT_ID_TO_INDEX } from './constants';
+import { STELLAR_NETWORK, CONTRACT_ID_TO_INDEX, CONTRACT_IDS } from './constants';
 
 const router = Router();
 
@@ -628,6 +630,196 @@ router.post('/comprehensive/ingest', async (req: Request, res: Response) => {
 
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message || 'Failed to initiate comprehensive data ingestion' });
+  }
+});
+
+// Enhanced Contract Operations API - uses new HorizonContractOperation model
+router.get('/contract-operations', async (req: Request, res: Response) => {
+  try {
+    const db = await getDbInstance();
+    if (!db) {
+      return res.status(503).json({ error: 'Database not available' });
+    }
+
+    const {
+      contractId,
+      operationType,
+      successful,
+      sourceAccount,
+      transactionHash,
+      limit = '50',
+      offset = '0'
+    } = req.query;
+
+    const where: any = {};
+    if (contractId) where.contractId = contractId as string;
+    if (operationType) where.operationType = operationType as string;
+    if (successful !== undefined) where.successful = successful === 'true';
+    if (sourceAccount) where.sourceAccount = sourceAccount as string;
+    if (transactionHash) where.transactionHash = transactionHash as string;
+
+    const operations = await db.horizonContractOperation.findMany({
+      where,
+      include: {
+        transaction: true,
+        events: true
+      },
+      orderBy: { ingestedAt: 'desc' },
+      take: Math.min(parseInt(limit as string), 200),
+      skip: parseInt(offset as string)
+    });
+
+    const total = await db.horizonContractOperation.count({ where });
+
+    res.json({
+      success: true,
+      data: operations,
+      pagination: {
+        total,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+        hasMore: total > parseInt(offset as string) + operations.length
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Enhanced Contract-Specific Operations Ingestion
+router.post('/contracts/operations/ingest', async (req: Request, res: Response) => {
+  try {
+    const { startLedger, contractIds, includeFailedTx = true } = req.body;
+    
+    const targetContractIds = contractIds || CONTRACT_IDS;
+    let startLedgerFromRequest: number | undefined = undefined;
+
+    if (startLedger !== undefined) {
+      startLedgerFromRequest = parseInt(startLedger);
+      if (isNaN(startLedgerFromRequest)) {
+        return res.status(400).json({ error: 'Invalid startLedger parameter. Must be a number.' });
+      }
+    }
+
+    const jobId = ingestQueue.enqueueContractOperations(
+      targetContractIds, 
+      startLedgerFromRequest,
+      { includeFailedTx }
+    );
+
+    res.status(202).json({
+      success: true,
+      message: `Contract operations ingestion job enqueued for ${targetContractIds.length} contracts. Start ledger: ${startLedgerFromRequest || 'latest'}.`,
+      jobId,
+      contractIds: targetContractIds
+    });
+
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message || 'Failed to enqueue contract operations ingestion' });
+  }
+});
+
+// Enhanced Comprehensive Contract Data Ingestion
+router.post('/contracts/comprehensive/ingest', async (req: Request, res: Response) => {
+  try {
+    const { startLedger, contractIds } = req.body;
+    
+    const targetContractIds = contractIds || CONTRACT_IDS;
+    let startLedgerFromRequest: number | undefined = undefined;
+
+    if (startLedger !== undefined) {
+      startLedgerFromRequest = parseInt(startLedger);
+      if (isNaN(startLedgerFromRequest)) {
+        return res.status(400).json({ error: 'Invalid startLedger parameter. Must be a number.' });
+      }
+    }
+
+    const jobId = ingestQueue.enqueueComprehensiveData(
+      targetContractIds, 
+      startLedgerFromRequest
+    );
+
+    res.status(202).json({
+      success: true,
+      message: `Comprehensive contract data ingestion job enqueued for ${targetContractIds.length} contracts. Start ledger: ${startLedgerFromRequest || 'latest'}.`,
+      jobId,
+      contractIds: targetContractIds,
+      strategy: 'events + operations + transactions + accounts'
+    });
+
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message || 'Failed to enqueue comprehensive contract data ingestion' });
+  }
+});
+
+// Contract Analytics Dashboard API
+router.get('/contracts/analytics', async (req: Request, res: Response) => {
+  try {
+    const db = await getDbInstance();
+    if (!db) {
+      return res.status(503).json({ error: 'Database not available' });
+    }
+
+    const { contractIds = CONTRACT_IDS } = req.query;
+    const targetContractIds = Array.isArray(contractIds) ? contractIds : [contractIds];
+
+    const analytics = await Promise.all(
+      (targetContractIds as string[]).map(async (contractId: string) => {
+        const [
+          totalOperations,
+          successfulOperations,
+          uniqueUsers,
+          recentEvents,
+          failedOperations
+        ] = await Promise.all([
+          db.horizonContractOperation.count({ where: { contractId } }),
+          db.horizonContractOperation.count({ where: { contractId, successful: true } }),
+          db.horizonContractOperation.findMany({ 
+            where: { contractId },
+            select: { sourceAccount: true },
+            distinct: ['sourceAccount']
+          }).then(ops => ops.length),
+          db.horizonEvent.count({
+            where: {
+              contractId,
+              timestamp: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+            }
+          }),
+          db.horizonContractOperation.count({ where: { contractId, successful: false } })
+        ]);
+
+        return {
+          contractId,
+          operations: {
+            total: totalOperations,
+            successful: successfulOperations,
+            failed: failedOperations,
+            successRate: totalOperations > 0 ? ((successfulOperations / totalOperations) * 100).toFixed(2) + '%' : '0%'
+          },
+          users: {
+            unique: uniqueUsers
+          },
+          activity: {
+            eventsLast24h: recentEvents
+          }
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: analytics,
+      summary: {
+        totalContracts: targetContractIds.length,
+        totalOperations: analytics.reduce((sum, a) => sum + a.operations.total, 0),
+        totalUsers: analytics.reduce((sum, a) => sum + a.users.unique, 0),
+        averageSuccessRate: analytics.length > 0 
+          ? (analytics.reduce((sum, a) => sum + parseFloat(a.operations.successRate), 0) / analytics.length).toFixed(2) + '%'
+          : '0%'
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 

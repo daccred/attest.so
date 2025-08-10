@@ -2,13 +2,16 @@ import { rpc } from '@stellar/stellar-sdk'; // SDK still used for getLatestLedge
 import {
   sorobanRpcUrl,
   CONTRACT_ID_TO_INDEX,
+  CONTRACT_IDS,
   MAX_EVENTS_PER_FETCH,
+  MAX_OPERATIONS_PER_FETCH,
   LEDGER_HISTORY_LIMIT_DAYS,
 } from './constants';
 import {
   getLastProcessedLedgerFromDB,
   updateLastProcessedLedgerInDB,
   storeEventsAndTransactionsInDB,
+  storeContractOperationsInDB,
   getDbInstance,
 } from './db';
 import { IndexerErrorHandler, PerformanceMonitor, RateLimiter } from './error-handler';
@@ -621,4 +624,192 @@ export async function fetchComprehensiveContractData(startLedger?: number): Prom
     payments,
     contractData
   };
+}
+
+/**
+ * Enhanced contract-specific operations fetcher
+ * Fetches all operations that involve any of the specified contracts
+ */
+export async function fetchContractOperations(
+  contractIds: string[] = CONTRACT_IDS,
+  startLedger?: number,
+  includeFailedTx?: boolean
+): Promise<{
+  operations: any[];
+  transactions: any[];
+  accounts: Set<string>;
+  failedOperations: any[];
+  operationsFetched: number;
+  transactionsFetched: number;
+}> {
+  const operations: any[] = [];
+  const transactions: any[] = [];
+  const accountsSet = new Set<string>();
+  const failedOperations: any[] = [];
+  
+  console.log(`🔍 Fetching contract operations for ${contractIds.length} contracts from ledger ${startLedger || 'latest'}`);
+  
+  // For each contract, fetch all operations
+  for (const contractId of contractIds) {
+    try {
+      console.log(`📋 Fetching operations for contract: ${contractId}`);
+      
+      const contractOps = await fetchOperationsFromHorizon({
+        contractId,
+        limit: MAX_OPERATIONS_PER_FETCH
+      });
+      
+      console.log(`✅ Found ${contractOps.length} operations for contract ${contractId}`);
+      
+      operations.push(...contractOps);
+      
+      // Extract unique accounts and track failed operations
+      for (const op of contractOps) {
+        if (op.source_account) {
+          accountsSet.add(op.source_account);
+        }
+        
+        // Check if operation was in a failed transaction
+        if (!op.successful || (op.transaction_successful === false)) {
+          failedOperations.push(op);
+        }
+      }
+      
+    } catch (error: any) {
+      console.error(`❌ Error fetching operations for contract ${contractId}:`, error.message);
+    }
+  }
+  
+  // Get unique transaction hashes and fetch full transaction details
+  const txHashes = [...new Set(operations.map(op => op.transaction_hash).filter(Boolean))];
+  console.log(`📦 Fetching ${txHashes.length} unique transactions for operations`);
+  
+  for (const txHash of txHashes) {
+    try {
+      const txDetails = await fetchTransactionDetails(txHash);
+      if (txDetails) {
+        transactions.push(txDetails);
+      }
+    } catch (error: any) {
+      console.error(`❌ Error fetching transaction ${txHash}:`, error.message);
+    }
+  }
+  
+  // Store contract operations in database
+  if (operations.length > 0) {
+    console.log(`💾 Storing ${operations.length} contract operations in database...`);
+    const storedCount = await storeContractOperationsInDB(operations, contractIds);
+    console.log(`✅ Stored ${storedCount} contract operations successfully`);
+  }
+  
+  return {
+    operations,
+    transactions,
+    accounts: accountsSet,
+    failedOperations,
+    operationsFetched: operations.length,
+    transactionsFetched: transactions.length
+  };
+}
+
+/**
+ * Comprehensive contract data fetcher - gets ALL data related to contracts
+ * Combines events, operations, transactions, and account activity
+ */
+export async function fetchContractComprehensiveData(
+  startLedger?: number,
+  contractIds: string[] = CONTRACT_IDS
+): Promise<{
+  events: any[];
+  operations: any[];
+  transactions: any[];
+  accounts: Set<string>;
+  failedOperations: any[];
+  summary: {
+    eventsFetched: number;
+    operationsFetched: number;
+    transactionsFetched: number;
+    accountsInvolved: number;
+    failedOperations: number;
+    processedUpToLedger: number;
+  };
+}> {
+  console.log(`🚀 Starting comprehensive contract data collection for ${contractIds.length} contracts`);
+  console.log(`📋 Contracts: ${contractIds.join(', ')}`);
+  
+  // 1. Fetch events using existing event-based approach (for events with data)
+  console.log('📅 Step 1: Fetching contract events...');
+  const eventsResult = await fetchAndStoreEvents(startLedger);
+  const events: any[] = []; // We'll need to query the DB for events to get them in the right format
+  
+  // 2. Fetch all contract operations (including those without events)
+  console.log('⚙️ Step 2: Fetching contract operations...');
+  const operationsResult = await fetchContractOperations(contractIds, startLedger, true);
+  
+  // 3. Combine transaction data from both sources
+  console.log('🔗 Step 3: Consolidating transaction data...');
+  const allTransactionHashes = new Set([
+    ...operationsResult.transactions.map(tx => tx.hash || tx.txHash),
+  ]);
+  
+  // 4. Identify accounts involved in contract interactions
+  const allAccounts = new Set([...operationsResult.accounts]);
+  
+  console.log(`✅ Comprehensive data collection completed:`);
+  console.log(`   - Events fetched: ${eventsResult.eventsFetched}`);
+  console.log(`   - Operations fetched: ${operationsResult.operationsFetched}`);
+  console.log(`   - Transactions processed: ${allTransactionHashes.size}`);
+  console.log(`   - Accounts involved: ${allAccounts.size}`);
+  console.log(`   - Failed operations: ${operationsResult.failedOperations.length}`);
+  
+  return {
+    events,
+    operations: operationsResult.operations,
+    transactions: operationsResult.transactions,
+    accounts: allAccounts,
+    failedOperations: operationsResult.failedOperations,
+    summary: {
+      eventsFetched: eventsResult.eventsFetched,
+      operationsFetched: operationsResult.operationsFetched,
+      transactionsFetched: allTransactionHashes.size,
+      accountsInvolved: allAccounts.size,
+      failedOperations: operationsResult.failedOperations.length,
+      processedUpToLedger: eventsResult.processedUpToLedger
+    }
+  };
+}
+
+/**
+ * Helper function to fetch transaction details by hash
+ */
+async function fetchTransactionDetails(txHash: string): Promise<any | null> {
+  try {
+    const txRpcPayload = {
+      jsonrpc: "2.0",
+      id: `getTx-${txHash}-${Date.now()}`,
+      method: "getTransaction",
+      params: { hash: txHash },
+    };
+    
+    const rawTxResponse = await fetch(sorobanRpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(txRpcPayload),
+    });
+    
+    if (!rawTxResponse.ok) {
+      throw new Error(`HTTP ${rawTxResponse.status}`);
+    }
+    
+    const txRpcResponse = await rawTxResponse.json();
+    
+    if (txRpcResponse.error) {
+      throw new Error(txRpcResponse.error.message);
+    }
+    
+    return txRpcResponse.result;
+  } catch (error: any) {
+    console.error(`Error fetching transaction ${txHash}:`, error.message);
+    return null;
+  }
 }

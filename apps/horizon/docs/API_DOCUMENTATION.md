@@ -168,31 +168,153 @@ GET /activity?contractId={CONTRACT_ID}&accountId={ACCOUNT_ID}&limit=20
 
 **Response:** Unified activity feed combining events, transactions, and payments chronologically.
 
-### Data Ingestion
+### Enhanced Contract-Specific APIs
 
-#### 10. Event Ingestion API
+#### 10. Contract Operations API (NEW)
+```http
+GET /contract-operations?contractId={CONTRACT_ID}&operationType={TYPE}&successful=true
+```
+
+**Query Parameters:**
+- `contractId` - Filter by specific contract (uses both protocol and authority contracts)
+- `operationType` - Filter by operation type (e.g., "invoke_host_function")
+- `successful` - Filter by success status (true/false)
+- `sourceAccount` - Filter by operation source account
+- `transactionHash` - Filter by specific transaction
+- `limit/offset` - Standard pagination
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "operationId": "4387339157639168-1",
+      "transactionHash": "abc123...",
+      "contractId": "CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM",
+      "operationType": "invoke_host_function",
+      "successful": true,
+      "sourceAccount": "GXYZ...",
+      "function": "attest",
+      "parameters": { ... },
+      "transaction": { ... },
+      "events": [ ... ]
+    }
+  ],
+  "pagination": { ... }
+}
+```
+
+#### 11. Contract Analytics Dashboard API (NEW)
+```http
+GET /contracts/analytics?contractIds=["CONTRACT_1","CONTRACT_2"]
+```
+
+**Query Parameters:**
+- `contractIds` - Array of contract IDs (defaults to all tracked contracts)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "contractId": "CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM",
+      "operations": {
+        "total": 1250,
+        "successful": 1201,
+        "failed": 49,
+        "successRate": "96.08%"
+      },
+      "users": {
+        "unique": 89
+      },
+      "activity": {
+        "eventsLast24h": 156
+      }
+    }
+  ],
+  "summary": {
+    "totalContracts": 2,
+    "totalOperations": 2456,
+    "totalUsers": 145,
+    "averageSuccessRate": "95.84%"
+  }
+}
+```
+
+### Enhanced Data Ingestion
+
+#### 12. Contract Operations Ingestion API (NEW)
+```http
+POST /contracts/operations/ingest
+Content-Type: application/json
+
+{
+  "startLedger": 880500,
+  "contractIds": ["CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM"],
+  "includeFailedTx": true
+}
+```
+
+**Purpose:** Focuses specifically on operations involving your contracts (including failed ones).
+
+**Body Parameters:**
+- `startLedger` - Starting ledger number (defaults to 880500)
+- `contractIds` - Array of contract IDs (defaults to all tracked contracts)
+- `includeFailedTx` - Whether to include failed transactions (default: true)
+
+#### 13. Enhanced Comprehensive Contract Ingestion API (NEW)
+```http
+POST /contracts/comprehensive/ingest
+Content-Type: application/json
+
+{
+  "startLedger": 880500,
+  "contractIds": ["CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM"]
+}
+```
+
+**Purpose:** Complete contract data collection combining events, operations, transactions, and accounts.
+
+**Strategy:** events + operations + transactions + accounts
+
+#### 14. Event Ingestion API (Legacy)
 ```http
 POST /events/ingest
 Content-Type: application/json
 
 {
-  "startLedger": 1021500
+  "startLedger": 880500
 }
 ```
 
-**Purpose:** Triggers background event ingestion from specified ledger.
+**Purpose:** Traditional event-based indexing (legacy approach).
 
-#### 11. Comprehensive Data Ingestion API
+#### 15. Queue Status API (NEW)
 ```http
-POST /comprehensive/ingest
-Content-Type: application/json
-
-{
-  "startLedger": 1021500
-}
+GET /queue/status
 ```
 
-**Purpose:** Triggers comprehensive data ingestion including events, transactions, operations, effects, accounts, and payments.
+**Response:**
+```json
+{
+  "success": true,
+  "queue": {
+    "size": 3,
+    "running": true,
+    "nextJobs": [
+      {
+        "id": "comprehensive-1691234567890-abc123",
+        "type": "fetch-comprehensive-data",
+        "nextRunInMs": 0,
+        "attempts": 0
+      }
+    ]
+  }
+}
+```
 
 ### System Health
 
@@ -329,18 +451,48 @@ const AttestationTimeline = ({ subjectId }: { subjectId: string }) => {
 };
 ```
 
-## Database Schema Summary
+## Enhanced Database Schema Summary
 
-The indexer now stores data in the following Horizon-prefixed tables:
+The indexer stores data in the following optimized Horizon-prefixed tables:
 
-- `horizon_events` - Contract events with full context
-- `horizon_transactions` - Transaction details with Soroban resource usage
-- `horizon_operations` - Individual operations with contract function calls
-- `horizon_effects` - State changes and side effects
-- `horizon_contract_data` - Contract storage data with history
-- `horizon_accounts` - Account details including contract accounts
+### Core Data Models:
+- `horizon_events` - Contract events with transaction relations and context
+- `horizon_transactions` - Complete transaction details with Soroban resource usage and gas tracking
+- `horizon_operations` - General operations with contract function calls
+- `horizon_contract_operations` - **NEW**: Enhanced contract-specific operations with success tracking and contract mapping
+- `horizon_effects` - State changes and side effects from operations
+- `horizon_contract_data` - Contract storage data with historical versioning
+- `horizon_accounts` - Account details including contract accounts and activity tracking
 - `horizon_payments` - Payment streams and transfers
 - `horizon_metadata` - Indexer state and configuration
+- `horizon_indexer_state` - Indexer performance metrics and sync status
+
+### Key Schema Enhancements:
+
+#### HorizonContractOperation (New Model)
+```sql
+- operationId (unique)
+- transactionHash (foreign key)
+- contractId (indexed for fast contract queries)
+- operationType (e.g., "invoke_host_function")
+- successful (boolean, indexed for filtering)
+- sourceAccount (indexed for user queries)
+- function (contract function name)
+- parameters (JSON, function parameters)
+- details (JSON, complete operation data)
+```
+
+#### Enhanced Relations:
+- Events ↔ ContractOperations (Many-to-One)
+- Transactions ↔ ContractOperations (One-to-Many)
+- ContractOperations ↔ Events (One-to-Many for events emitted by operations)
+
+This schema enables efficient queries for:
+- Contract-specific operation tracking
+- Success/failure rate analysis
+- User interaction patterns
+- Failed operation debugging
+- Complete transaction lifecycle tracking
 
 ## Performance & Reliability Features
 

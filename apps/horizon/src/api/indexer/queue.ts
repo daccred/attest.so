@@ -1,14 +1,25 @@
 import { EventEmitter } from 'events';
-import { fetchAndStoreEvents } from './ledger';
+import { 
+  fetchAndStoreEvents, 
+  fetchContractOperations,
+  fetchContractComprehensiveData 
+} from './ledger';
 import { queueLogger } from './logger';
 
-export type IngestJobType = 'fetch-events';
+export type IngestJobType = 
+  | 'fetch-events'                    // Current: Contract events
+  | 'fetch-contract-operations'       // NEW: All operations for contracts
+  | 'fetch-comprehensive-data'        // NEW: Complete contract data collection
+  | 'backfill-missing-operations';    // NEW: Find operations without events
 
 export interface IngestJob {
   id: string;
   type: IngestJobType;
   payload: {
     startLedger?: number;
+    contractIds?: string[];
+    includeFailedTx?: boolean;
+    operationType?: string;
   };
   attempts: number;
   maxAttempts: number;
@@ -60,6 +71,36 @@ class IngestQueue extends EventEmitter {
     return job.id;
   }
 
+  enqueueContractOperations(contractIds: string[], startLedger?: number, opts?: { maxAttempts?: number; delayMs?: number; includeFailedTx?: boolean }) {
+    const job: IngestJob = {
+      id: `contract-ops-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      type: 'fetch-contract-operations',
+      payload: { startLedger, contractIds, includeFailedTx: opts?.includeFailedTx ?? true },
+      attempts: 0,
+      maxAttempts: opts?.maxAttempts ?? 5,
+      nextRunAt: Date.now() + (opts?.delayMs ?? 0)
+    };
+    this.pendingJobs.push(job);
+    this.emit('enqueued', job);
+    queueLogger.info('job enqueued', { id: job.id, type: job.type, payload: job.payload, nextRunAt: job.nextRunAt });
+    return job.id;
+  }
+
+  enqueueComprehensiveData(contractIds: string[], startLedger?: number, opts?: { maxAttempts?: number; delayMs?: number }) {
+    const job: IngestJob = {
+      id: `comprehensive-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      type: 'fetch-comprehensive-data',
+      payload: { startLedger, contractIds },
+      attempts: 0,
+      maxAttempts: opts?.maxAttempts ?? 3,
+      nextRunAt: Date.now() + (opts?.delayMs ?? 0)
+    };
+    this.pendingJobs.push(job);
+    this.emit('enqueued', job);
+    queueLogger.info('job enqueued', { id: job.id, type: job.type, payload: job.payload, nextRunAt: job.nextRunAt });
+    return job.id;
+  }
+
   getStatus() {
     return {
       size: this.pendingJobs.length,
@@ -82,14 +123,13 @@ class IngestQueue extends EventEmitter {
     queueLogger.info('job started', { id: job.id, type: job.type, attempts: job.attempts, payload: job.payload });
 
     try {
+      let result: any;
+      
       if (job.type === 'fetch-events') {
-        // Input: job payload
         queueLogger.debug('fetchAndStoreEvents request', { id: job.id, payload: job.payload });
-        const result = await fetchAndStoreEvents(job.payload.startLedger);
-        // Output: ingestion result
+        result = await fetchAndStoreEvents(job.payload.startLedger);
         queueLogger.info('fetchAndStoreEvents result', { id: job.id, result });
-        this.emit('completed:job', { job, result });
-
+        
         // If no events fetched, schedule a retry with backoff (events may land later on Horizon)
         if (result.eventsFetched === 0 && job.attempts + 1 < job.maxAttempts) {
           const backoff = this.computeBackoffMs(job.attempts);
@@ -102,7 +142,26 @@ class IngestQueue extends EventEmitter {
           this.emit('requeued:job', { job: retryJob, backoffMs: backoff });
           queueLogger.info('job requeued', { id: retryJob.id, attempts: retryJob.attempts, backoffMs: backoff });
         }
+      } 
+      else if (job.type === 'fetch-contract-operations') {
+        queueLogger.debug('fetchContractOperations request', { id: job.id, payload: job.payload });
+        result = await fetchContractOperations(
+          job.payload.contractIds || [],
+          job.payload.startLedger,
+          job.payload.includeFailedTx
+        );
+        queueLogger.info('fetchContractOperations result', { id: job.id, result });
       }
+      else if (job.type === 'fetch-comprehensive-data') {
+        queueLogger.debug('fetchContractComprehensiveData request', { id: job.id, payload: job.payload });
+        result = await fetchContractComprehensiveData(
+          job.payload.startLedger,
+          job.payload.contractIds || []
+        );
+        queueLogger.info('fetchContractComprehensiveData result', { id: job.id, result });
+      }
+      
+      this.emit('completed:job', { job, result });
     } catch (error: any) {
       job.attempts += 1;
       this.emit('failed:job', { job, error: error?.message || String(error) });

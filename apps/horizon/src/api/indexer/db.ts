@@ -375,6 +375,54 @@ export async function storePaymentsInDB(payments: any[]) {
   }
 }
 
+export async function storeContractOperationsInDB(operations: any[], contractIds: string[] = []) {
+  const db = await getDbInstance();
+  if (!db || operations.length === 0) return 0;
+
+  try {
+    const results = await db.$transaction(async (prismaTx) => {
+      const ops = operations.map(async (operation) => {
+        // Determine which contract this operation is for
+        const targetContractId = contractIds.find(contractId => 
+          operation.contract_id === contractId || 
+          operation.contract?.includes(contractId) ||
+          JSON.stringify(operation).includes(contractId)
+        ) || contractIds[0] || '';
+
+        const operationData = {
+          operationId: operation.id,
+          transactionHash: operation.transaction_hash,
+          contractId: targetContractId,
+          operationType: operation.type || 'invoke_host_function',
+          successful: operation.successful !== false && operation.transaction_successful !== false,
+          sourceAccount: operation.source_account || '',
+          operationIndex: operation.operation_index || 0,
+          details: operation,
+          function: operation.function || null,
+          parameters: operation.parameters || null,
+        };
+
+        // Use the new HorizonContractOperation model for contract-specific operations
+        return prismaTx.horizonContractOperation.upsert({
+          where: { operationId: operation.id },
+          update: operationData,
+          create: operationData
+        });
+      });
+      
+      return Promise.all(ops);
+    }, {
+      timeout: 30000, // 30 seconds timeout for large batches
+    });
+    
+    console.log(`✅ Stored ${results.length} contract operations in HorizonContractOperation table.`);
+    return results.length;
+  } catch (error) {
+    console.error('❌ Error storing contract operations:', error);
+    return 0;
+  }
+}
+
 // Clean up on process exit
 process.on('beforeExit', async () => {
   if (prisma) {

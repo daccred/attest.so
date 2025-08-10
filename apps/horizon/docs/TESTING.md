@@ -187,43 +187,151 @@ All tests use consistent mock data defined in `__tests__/fixtures/test-data.ts`:
 - `mockHorizonAccount` - Sample account with contract info
 - `mockHorizonPayment` - Sample payment transaction
 
-## Testing Specific Endpoints
+## Testing Enhanced Contract-Specific Endpoints
+
+### Health Check Testing
+```bash
+# Test system health
+curl "http://localhost:3001/api/indexer/health"
+
+# Check queue status
+curl "http://localhost:3001/api/indexer/queue/status"
+```
 
 ### Events API Testing
 ```bash
 # Test events endpoint specifically
-curl "http://localhost:3000/api/indexer/events?limit=10"
-curl "http://localhost:3000/api/indexer/events?contractId=CDDRYX6CX..."
-curl "http://localhost:3000/api/indexer/events?eventType=ATTEST&ledgerStart=1000000"
+curl "http://localhost:3001/api/indexer/events?limit=10"
+curl "http://localhost:3001/api/indexer/events?contractId=CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM"
+curl "http://localhost:3001/api/indexer/events?eventType=ATTEST&ledgerStart=880500"
+```
+
+### Enhanced Contract Operations API Testing (NEW)
+```bash
+# Test contract operations endpoint
+curl "http://localhost:3001/api/indexer/contract-operations?limit=10"
+curl "http://localhost:3001/api/indexer/contract-operations?successful=true&limit=5"
+curl "http://localhost:3001/api/indexer/contract-operations?contractId=CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM"
+curl "http://localhost:3001/api/indexer/contract-operations?operationType=invoke_host_function"
 ```
 
 ### Transactions API Testing
 ```bash
 # Test transactions endpoint
-curl "http://localhost:3000/api/indexer/transactions?limit=5"
-curl "http://localhost:3000/api/indexer/transactions?successful=true"
-curl "http://localhost:3000/api/indexer/transactions?sourceAccount=GDAQ..."
+curl "http://localhost:3001/api/indexer/transactions?limit=5"
+curl "http://localhost:3001/api/indexer/transactions?successful=true"
+curl "http://localhost:3001/api/indexer/transactions?sourceAccount=GDAQ..."
 ```
 
-### Analytics API Testing
+### Enhanced Analytics API Testing (NEW)
 ```bash
-# Test analytics endpoint
-curl "http://localhost:3000/api/indexer/analytics"
-curl "http://localhost:3000/api/indexer/analytics?timeframe=7d"
-curl "http://localhost:3000/api/indexer/analytics?contractId=CDDRYX6CX..."
+# Test contract analytics dashboard
+curl "http://localhost:3001/api/indexer/contracts/analytics"
+
+# Test general analytics
+curl "http://localhost:3001/api/indexer/analytics?timeframe=7d"
+curl "http://localhost:3001/api/indexer/analytics?contractId=CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM"
 ```
 
-### Data Ingestion Testing
-```bash
-# Test event ingestion
-curl -X POST "http://localhost:3000/api/indexer/events/ingest" \
-     -H "Content-Type: application/json" \
-     -d '{"startLedger": 1000000}'
+### Enhanced Data Ingestion Testing
 
-# Test comprehensive ingestion
-curl -X POST "http://localhost:3000/api/indexer/comprehensive/ingest" \
+#### Comprehensive Contract Ingestion (Recommended)
+```bash
+# Test comprehensive contract data ingestion
+curl -X POST "http://localhost:3001/api/indexer/contracts/comprehensive/ingest" \
      -H "Content-Type: application/json" \
-     -d '{"startLedger": 1000000}'
+     -d '{"startLedger": 880500}'
+
+# Test with specific contracts
+curl -X POST "http://localhost:3001/api/indexer/contracts/comprehensive/ingest" \
+     -H "Content-Type: application/json" \
+     -d '{"startLedger": 880500, "contractIds": ["CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM"]}'
+```
+
+#### Contract Operations Ingestion (NEW)
+```bash
+# Test contract operations ingestion
+curl -X POST "http://localhost:3001/api/indexer/contracts/operations/ingest" \
+     -H "Content-Type: application/json" \
+     -d '{"startLedger": 880500, "includeFailedTx": true}'
+```
+
+#### Event Ingestion (Legacy)
+```bash
+# Test event ingestion (legacy approach)
+curl -X POST "http://localhost:3001/api/indexer/events/ingest" \
+     -H "Content-Type: application/json" \
+     -d '{"startLedger": 880500}'
+```
+
+### Activity Feed Testing
+```bash
+# Test activity feed
+curl "http://localhost:3001/api/indexer/activity?limit=20"
+curl "http://localhost:3001/api/indexer/activity?contractId=CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM"
+```
+
+## Testing Enhanced Indexing Strategy
+
+### Complete Integration Test Flow
+
+Test the full enhanced indexing strategy with these sequential commands:
+
+```bash
+# 1. Check system health
+curl "http://localhost:3001/api/indexer/health"
+
+# 2. Start comprehensive contract indexing (recommended approach)
+curl -X POST "http://localhost:3001/api/indexer/contracts/comprehensive/ingest" \
+     -H "Content-Type: application/json" \
+     -d '{"startLedger": 880500}'
+
+# 3. Monitor queue processing
+curl "http://localhost:3001/api/indexer/queue/status"
+
+# 4. After processing completes, check contract operations
+curl "http://localhost:3001/api/indexer/contract-operations?limit=5"
+
+# 5. View contract analytics
+curl "http://localhost:3001/api/indexer/contracts/analytics"
+
+# 6. Check activity feed
+curl "http://localhost:3001/api/indexer/activity?limit=10"
+
+# 7. Verify data completeness with events
+curl "http://localhost:3001/api/indexer/events?limit=5"
+
+# 8. Check transactions
+curl "http://localhost:3001/api/indexer/transactions?limit=5"
+```
+
+### Validation Checklist
+
+After running the enhanced indexing, verify:
+
+- ✅ **Contract Operations**: Successfully stored in `HorizonContractOperation` table
+- ✅ **Events**: Linked to contract operations via relations  
+- ✅ **Transactions**: Complete transaction details with Soroban resource usage
+- ✅ **Failed Operations**: Failed operations tracked for debugging
+- ✅ **Analytics**: Success rates and user metrics calculated correctly
+- ✅ **Performance**: Response times under acceptable thresholds
+
+### Contract-Specific Testing
+
+Test both tracked contracts individually:
+
+```bash
+# Protocol Contract Testing
+PROTOCOL_CONTRACT="CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM"
+
+curl "http://localhost:3001/api/indexer/contract-operations?contractId=$PROTOCOL_CONTRACT&limit=5"
+curl "http://localhost:3001/api/indexer/events?contractId=$PROTOCOL_CONTRACT&limit=5"
+
+# Authority Contract Testing  
+AUTHORITY_CONTRACT="CAD6YMZCO4Q3L5XZT2FD3MDHP3ZHFMYL24RZYG4YQAL4XQKVGVXYPSQQ"
+
+curl "http://localhost:3001/api/indexer/contract-operations?contractId=$AUTHORITY_CONTRACT&limit=5"
+curl "http://localhost:3001/api/indexer/events?contractId=$AUTHORITY_CONTRACT&limit=5"
 ```
 
 ## Environment Setup for Testing
