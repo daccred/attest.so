@@ -1,3 +1,18 @@
+/**
+ * Data ingestion control router for managing blockchain synchronization.
+ * 
+ * Provides endpoints for triggering and monitoring blockchain data ingestion
+ * processes. Supports manual triggering, queue management, and comprehensive
+ * data collection operations for maintaining database synchronization with
+ * the blockchain.
+ * 
+ * @module router/ingest
+ * @requires express
+ * @requires common/queue
+ * @requires repository/contracts
+ * @requires common/constants
+ */
+
 import { Router, Request, Response } from 'express'
 import { ingestQueue } from '../common/queue'
 import {
@@ -8,7 +23,23 @@ import { CONTRACT_IDS } from '../common/constants'
 
 const router = Router()
 
-// Legacy Event Ingestion API
+/**
+ * POST /ingest/events - Enqueue event ingestion job.
+ * 
+ * Adds an event fetching job to the processing queue for asynchronous
+ * execution. Supports configuration of retry attempts and initial delay.
+ * Returns the job ID for tracking purposes.
+ * 
+ * @route POST /ingest/events
+ * @param {number} [startLedger] - Starting ledger sequence
+ * @returns {Object} Queue job response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {string} response.jobId - Unique job identifier
+ * @returns {string} response.message - Status message
+ * @status 202 - Job enqueued successfully
+ * @status 400 - Invalid parameters
+ * @status 500 - Failed to enqueue job
+ */
 router.post('/events', async (req: Request, res: Response) => {
   try {
     const startLedgerParam = req.body.startLedger
@@ -36,7 +67,22 @@ router.post('/events', async (req: Request, res: Response) => {
   }
 })
 
-// Comprehensive Data Ingest API
+/**
+ * POST /ingest/comprehensive - Trigger comprehensive data collection.
+ * 
+ * Initiates a complete data synchronization process that fetches events,
+ * operations, and transactions for specified contracts. Runs asynchronously
+ * and provides status updates via server logs.
+ * 
+ * @route POST /ingest/comprehensive
+ * @param {number} [startLedger] - Starting ledger sequence
+ * @returns {Object} Ingestion initiation response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {string} response.message - Status message with tracking info
+ * @status 202 - Collection initiated successfully
+ * @status 400 - Invalid parameters
+ * @status 500 - Failed to initiate collection
+ */
 router.post('/comprehensive', async (req: Request, res: Response) => {
   try {
     const startLedgerParam = req.body.startLedger
@@ -76,7 +122,26 @@ router.post('/comprehensive', async (req: Request, res: Response) => {
   }
 })
 
-// Enhanced Contract-Specific Operations Ingestion
+/**
+ * POST /ingest/contracts/operations - Enqueue contract operations ingestion.
+ * 
+ * Queues a job to fetch operations for specified contracts with support
+ * for failed transaction inclusion and custom starting ledger. Returns
+ * job ID for tracking and monitoring purposes.
+ * 
+ * @route POST /ingest/contracts/operations
+ * @param {number} [startLedger] - Starting ledger sequence
+ * @param {string[]} [contractIds] - Target contract IDs (defaults to config)
+ * @param {boolean} [includeFailedTx=true] - Include failed transactions
+ * @returns {Object} Operation ingestion job response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {string} response.jobId - Unique job identifier
+ * @returns {string} response.message - Status message
+ * @returns {string[]} response.contractIds - Target contracts
+ * @status 202 - Job enqueued successfully
+ * @status 400 - Invalid parameters
+ * @status 500 - Failed to enqueue job
+ */
 router.post('/contracts/operations', async (req: Request, res: Response) => {
   try {
     const { startLedger, contractIds, includeFailedTx = true } = req.body
@@ -111,7 +176,26 @@ router.post('/contracts/operations', async (req: Request, res: Response) => {
   }
 })
 
-// Enhanced Comprehensive Contract Data Ingestion
+/**
+ * POST /ingest/contracts/comprehensive - Enqueue comprehensive contract data job.
+ * 
+ * Queues a comprehensive data collection job that fetches events, operations,
+ * transactions, and account data for specified contracts. Provides detailed
+ * tracking information and strategy confirmation.
+ * 
+ * @route POST /ingest/contracts/comprehensive
+ * @param {number} [startLedger] - Starting ledger sequence
+ * @param {string[]} [contractIds] - Target contract IDs (defaults to config)
+ * @returns {Object} Comprehensive ingestion job response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {string} response.jobId - Unique job identifier
+ * @returns {string} response.message - Status message
+ * @returns {string[]} response.contractIds - Target contracts
+ * @returns {string} response.strategy - Collection strategy description
+ * @status 202 - Job enqueued successfully
+ * @status 400 - Invalid parameters
+ * @status 500 - Failed to enqueue job
+ */
 router.post('/contracts/comprehensive', async (req: Request, res: Response) => {
   try {
     const { startLedger, contractIds } = req.body

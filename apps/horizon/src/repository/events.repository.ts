@@ -1,3 +1,17 @@
+/**
+ * Event repository for Soroban contract event synchronization.
+ * 
+ * Implements event fetching from Soroban RPC with pagination support,
+ * transaction enrichment, and database persistence. Handles ledger-based
+ * synchronization with automatic progress tracking and retry logic for
+ * resilient event ingestion.
+ * 
+ * @module repository/events
+ * @requires @stellar/stellar-sdk
+ * @requires common/constants
+ * @requires common/db
+ */
+
 import { rpc } from '@stellar/stellar-sdk'
 import {
   sorobanRpcUrl,
@@ -11,6 +25,12 @@ const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://'),
 })
 
+/**
+ * Result interface for event fetching operations.
+ * 
+ * Provides detailed information about the event synchronization process
+ * including counts, progress tracking, and RPC status information.
+ */
 export interface FetchEventsResult {
   message: string
   eventsFetched: number
@@ -18,6 +38,24 @@ export interface FetchEventsResult {
   lastRpcLedger: number
 }
 
+/**
+ * Fetches and stores contract events from Soroban RPC.
+ * 
+ * Performs incremental event synchronization starting from the specified
+ * or last processed ledger. Implements pagination handling, transaction
+ * detail enrichment, and atomic database storage. Tracks synchronization
+ * progress and handles empty ledger ranges gracefully.
+ * 
+ * @async
+ * @function fetchAndStoreEvents
+ * @param {number} [startLedgerFromRequest] - Override starting ledger
+ * @returns {Promise<FetchEventsResult>} Event fetch results
+ * @returns {string} result.message - Human-readable status message
+ * @returns {number} result.eventsFetched - Total events retrieved
+ * @returns {number} result.processedUpToLedger - Last processed ledger
+ * @returns {number} result.lastRpcLedger - Current RPC ledger height
+ * @throws {Error} Database connection errors or RPC failures
+ */
 export async function fetchAndStoreEvents(
   startLedgerFromRequest?: number
 ): Promise<FetchEventsResult> {
@@ -341,6 +379,20 @@ export async function fetchAndStoreEvents(
   }
 }
 
+/**
+ * Stores events and associated transactions atomically.
+ * 
+ * Persists event and transaction data in a database transaction to ensure
+ * consistency. Handles transaction storage before events to maintain
+ * foreign key integrity. Supports batch processing with configurable
+ * transaction timeout.
+ * 
+ * @async
+ * @function storeEventsAndTransactionsInDB
+ * @private
+ * @param {Array} eventsWithTransactions - Events with transaction details
+ * @returns {Promise<void>} Completes when storage successful
+ */
 async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]) {
   const db = await getDB()
   if (!db) {

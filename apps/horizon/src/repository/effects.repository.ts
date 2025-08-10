@@ -1,6 +1,35 @@
+/**
+ * Effects repository for blockchain operation effects.
+ * 
+ * Manages operation effects which represent state changes resulting
+ * from blockchain operations. Tracks account balance changes, trustline
+ * modifications, and other ledger state transitions.
+ * 
+ * @module repository/effects
+ * @requires common/constants
+ * @requires common/db
+ */
+
 import { getHorizonBaseUrl } from '../common/constants'
 import { getDB } from '../common/db'
 
+/**
+ * Fetches operation effects from Stellar Horizon API.
+ * 
+ * Retrieves effect records representing state changes from operations.
+ * Supports filtering by operation, transaction, account, and pagination
+ * for comprehensive effect tracking and analysis.
+ * 
+ * @async
+ * @function fetchEffectsFromHorizon
+ * @param {Object} params - Query parameters
+ * @param {string} [params.operationId] - Filter by operation ID
+ * @param {string} [params.transactionHash] - Filter by transaction hash
+ * @param {string} [params.accountId] - Filter by affected account
+ * @param {string} [params.cursor] - Pagination cursor
+ * @param {number} [params.limit=100] - Maximum results to fetch
+ * @returns {Promise<Array>} Effect records from Horizon
+ */
 export async function fetchEffectsFromHorizon(params: {
   operationId?: string
   transactionHash?: string
@@ -45,6 +74,18 @@ export async function fetchEffectsFromHorizon(params: {
   }
 }
 
+/**
+ * Stores operation effects in database with comprehensive metadata.
+ * 
+ * Persists effect records representing state changes from operations,
+ * including account credits/debits, trustline changes, and contract
+ * state modifications. Links effects to parent operations and transactions.
+ * 
+ * @async
+ * @function storeEffectsInDB
+ * @param {Array} effects - Effect records to store
+ * @returns {Promise<void>} Completes when storage is done
+ */
 export async function storeEffectsInDB(effects: any[]) {
   const db = await getDB()
   if (!db || effects.length === 0) return

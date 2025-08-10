@@ -1,3 +1,19 @@
+/**
+ * System management router for application health and configuration.
+ * 
+ * Provides endpoints for system health checks, configuration management,
+ * and operational status monitoring. Essential for deployment health
+ * monitoring and debugging production issues.
+ * 
+ * @module router/system
+ * @requires express
+ * @requires common/queue
+ * @requires repository/rpc
+ * @requires common/db
+ * @requires common/prisma
+ * @requires common/constants
+ */
+
 import { Router, Request, Response } from 'express'
 import { ingestQueue } from '../common/queue'
 import { getRpcHealth, getLatestRPCLedgerIndex } from '../repository/rpc.repository'
@@ -7,6 +23,23 @@ import { STELLAR_NETWORK, CONTRACT_ID_TO_INDEX } from '../common/constants'
 
 const router = Router()
 
+/**
+ * GET /system/queue/status - Retrieve ingestion queue status.
+ * 
+ * Provides current queue state including pending job count, processing
+ * status, and details of upcoming jobs. Useful for monitoring queue
+ * health and debugging ingestion issues.
+ * 
+ * @route GET /system/queue/status
+ * @returns {Object} Queue status response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {Object} response.queue - Queue state details
+ * @returns {number} response.queue.size - Pending job count
+ * @returns {boolean} response.queue.running - Queue active status
+ * @returns {Array} response.queue.nextJobs - Upcoming job details
+ * @status 200 - Status retrieved successfully
+ * @status 500 - Failed to get status
+ */
 router.get('/queue/status', async (_req: Request, res: Response) => {
   try {
     res.json({ success: true, queue: ingestQueue.getStatus() })
@@ -15,6 +48,27 @@ router.get('/queue/status', async (_req: Request, res: Response) => {
   }
 })
 
+/**
+ * GET /system/health - Application health check endpoint.
+ * 
+ * Performs comprehensive health assessment including database connectivity,
+ * RPC endpoint status, and configuration validation. Provides detailed status
+ * information for monitoring and alerting systems with automatic reconnection
+ * attempts for degraded services.
+ * 
+ * @route GET /system/health
+ * @returns {Object} Health status response
+ * @returns {string} response.status - Overall health: 'ok' or 'error'
+ * @returns {string} response.database_status - Database connection status
+ * @returns {string} response.soroban_rpc_status - RPC endpoint status
+ * @returns {string} response.network - Stellar network identifier
+ * @returns {string|number} response.latest_rpc_ledger - Latest RPC ledger or 'Not Available'
+ * @returns {string} response.indexing_contract - Contract being indexed or 'Not Set'
+ * @returns {number} response.last_processed_ledger_in_db - Last processed ledger
+ * @returns {boolean} response.db_connection_explicitly_attempted_in_health_check - Reconnection attempted
+ * @status 200 - System healthy (may include warnings)
+ * @status 500 - System unhealthy with errors
+ */
 router.get('/health', async (req: Request, res: Response) => {
   console.log('---------------- HEALTH CHECK REQUEST (system.router.ts) ----------------')
   let dbStatus = 'disconnected'

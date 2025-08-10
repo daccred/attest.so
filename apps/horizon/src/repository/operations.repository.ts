@@ -1,7 +1,37 @@
+/**
+ * Operations repository for Horizon blockchain operation management.
+ * 
+ * Provides data access layer for fetching and storing blockchain operations
+ * from Stellar Horizon API. Handles operation retrieval with pagination,
+ * contract association, and database persistence with transaction support.
+ * 
+ * @module repository/operations
+ * @requires common/constants
+ * @requires common/db
+ * @requires common/errors
+ */
+
 import { getHorizonBaseUrl } from '../common/constants'
 import { getDB } from '../common/db'
 import { IndexerErrorHandler, PerformanceMonitor, RateLimiter } from '../common/errors'
 
+/**
+ * Fetches operations from Horizon API with filtering options.
+ * 
+ * Retrieves blockchain operations using various filter criteria including
+ * account, transaction, and cursor-based pagination. Supports both forward
+ * and reverse ordering for comprehensive operation history retrieval.
+ * 
+ * @async
+ * @function fetchOperationsFromHorizon
+ * @param {Object} params - Query parameters
+ * @param {string} [params.transactionHash] - Filter by transaction hash
+ * @param {string} [params.accountId] - Filter by account/contract ID
+ * @param {string} [params.contractId] - Filter by contract ID
+ * @param {string} [params.cursor] - Pagination cursor
+ * @param {number} [params.limit=100] - Maximum results to fetch
+ * @returns {Promise<Array>} Array of operation records from Horizon
+ */
 export async function fetchOperationsFromHorizon(params: {
   transactionHash?: string
   accountId?: string
@@ -60,6 +90,19 @@ export async function fetchOperationsFromHorizon(params: {
   })
 }
 
+/**
+ * Stores contract operations in database with association mapping.
+ * 
+ * Persists operations with proper contract association and transaction
+ * relationships. Handles bulk upsert operations with transaction safety
+ * and maintains data integrity through foreign key constraints.
+ * 
+ * @async
+ * @function storeContractOperationsInDB
+ * @param {Array} operations - Operations with contract mapping
+ * @param {string[]} [contractIds] - Associated contract identifiers
+ * @returns {Promise<number>} Count of stored operations
+ */
 export async function storeContractOperationsInDB(operations: any[], contractIds: string[] = []) {
   const db = await getDB()
   if (!db || operations.length === 0) return 0

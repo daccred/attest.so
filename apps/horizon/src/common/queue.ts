@@ -1,3 +1,23 @@
+/**
+ * Asynchronous job queue system for managing blockchain data ingestion tasks.
+ * 
+ * Implements an in-memory priority queue with automatic retry logic, exponential
+ * backoff, and event-driven architecture for processing various blockchain data
+ * ingestion jobs. Supports multiple job types including event fetching, contract
+ * operations, and comprehensive data collection.
+ * 
+ * @module common/queue
+ * @requires events
+ * @fires IngestQueue#started - When queue processing begins
+ * @fires IngestQueue#stopped - When queue processing stops
+ * @fires IngestQueue#enqueued - When a new job is added
+ * @fires IngestQueue#started:job - When job processing begins
+ * @fires IngestQueue#completed:job - When job completes successfully
+ * @fires IngestQueue#failed:job - When job execution fails
+ * @fires IngestQueue#requeued:job - When job is retried with backoff
+ * @fires IngestQueue#dead:job - When job exceeds max attempts
+ */
+
 import { EventEmitter } from 'events'
 import { fetchAndStoreEvents } from '../repository/events.repository'
 import {
@@ -6,12 +26,24 @@ import {
 } from '../repository/contracts.repository'
 import { queueLogger } from './logger'
 
+/**
+ * Type definition for supported ingestion job types.
+ * 
+ * Defines the various types of blockchain data ingestion jobs that can be
+ * processed by the queue system, each with specific data collection strategies.
+ */
 export type IngestJobType =
   | 'fetch-events'
   | 'fetch-contract-operations'
   | 'fetch-comprehensive-data'
   | 'backfill-missing-operations'
 
+/**
+ * Interface defining the structure of ingestion jobs.
+ * 
+ * Represents a queued ingestion task with retry logic, payload data,
+ * and scheduling information for processing blockchain data.
+ */
 export interface IngestJob {
   id: string
   type: IngestJobType
@@ -26,6 +58,19 @@ export interface IngestJob {
   nextRunAt: number
 }
 
+/**
+ * Main ingestion queue class for managing asynchronous blockchain data fetching.
+ * 
+ * Provides a fault-tolerant job processing system with configurable polling intervals,
+ * exponential backoff for failed jobs, and comprehensive event emission for monitoring.
+ * Jobs are processed sequentially to prevent overwhelming the blockchain RPC endpoints.
+ * 
+ * @class IngestQueue
+ * @extends EventEmitter
+ * @param {Object} [options] - Queue configuration options
+ * @param {number} [options.pollIntervalMs=1000] - Milliseconds between queue polls
+ * @param {number} [options.baseBackoffMs=5000] - Base milliseconds for exponential backoff
+ */
 class IngestQueue extends EventEmitter {
   private pendingJobs: IngestJob[] = []
   private isRunning = false
@@ -40,6 +85,15 @@ class IngestQueue extends EventEmitter {
     this.baseBackoffMs = options?.baseBackoffMs ?? 5000
   }
 
+  /**
+   * Starts the queue processing with periodic job polling.
+   * 
+   * Initiates the queue's main processing loop using setInterval to check
+   * for ready jobs. Emits 'started' event for monitoring purposes.
+   * 
+   * @method start
+   * @returns {void}
+   */
   start() {
     if (this.isRunning) return
     this.isRunning = true
@@ -51,6 +105,15 @@ class IngestQueue extends EventEmitter {
     })
   }
 
+  /**
+   * Stops the queue processing and clears the polling interval.
+   * 
+   * Gracefully shuts down the queue processing loop and emits 'stopped'
+   * event. Jobs already in progress will complete, but no new jobs will start.
+   * 
+   * @method stop
+   * @returns {void}
+   */
   stop() {
     this.isRunning = false
     if (this.intervalHandle) clearInterval(this.intervalHandle)
@@ -59,6 +122,20 @@ class IngestQueue extends EventEmitter {
     queueLogger.info('queue stopped')
   }
 
+  /**
+   * Enqueues a job to fetch and store contract events from the blockchain.
+   * 
+   * Creates a fetch-events job that will retrieve contract events starting from the
+   * specified ledger. Jobs are retried with exponential backoff if no events are
+   * found, as events may appear on Horizon with some delay.
+   * 
+   * @method enqueueFetchEvents
+   * @param {number} [startLedger] - Starting ledger sequence number to fetch from
+   * @param {Object} [opts] - Job configuration options
+   * @param {number} [opts.maxAttempts=5] - Maximum retry attempts before marking as dead
+   * @param {number} [opts.delayMs=0] - Initial delay before first execution in milliseconds
+   * @returns {string} Unique job ID for tracking
+   */
   enqueueFetchEvents(startLedger?: number, opts?: { maxAttempts?: number; delayMs?: number }) {
     const job: IngestJob = {
       id: `fetch-events-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -79,6 +156,22 @@ class IngestQueue extends EventEmitter {
     return job.id
   }
 
+  /**
+   * Enqueues a job to fetch contract operations from the blockchain.
+   * 
+   * Creates a contract operations job that retrieves operations for specified
+   * contracts with optional failed transaction inclusion. Supports custom
+   * starting ledger and retry configuration.
+   * 
+   * @method enqueueContractOperations
+   * @param {string[]} contractIds - Target contract IDs to fetch operations for
+   * @param {number} [startLedger] - Starting ledger sequence number
+   * @param {Object} [opts] - Job configuration options
+   * @param {number} [opts.maxAttempts=5] - Maximum retry attempts
+   * @param {number} [opts.delayMs=0] - Initial execution delay
+   * @param {boolean} [opts.includeFailedTx=true] - Include failed transactions
+   * @returns {string} Unique job ID for tracking
+   */
   enqueueContractOperations(
     contractIds: string[],
     startLedger?: number,
@@ -103,6 +196,21 @@ class IngestQueue extends EventEmitter {
     return job.id
   }
 
+  /**
+   * Enqueues a job for comprehensive contract data collection.
+   * 
+   * Creates a comprehensive data job that fetches events, operations, and
+   * transactions for specified contracts. Provides complete synchronization
+   * with configurable retry behavior.
+   * 
+   * @method enqueueComprehensiveData
+   * @param {string[]} contractIds - Target contract IDs for data collection
+   * @param {number} [startLedger] - Starting ledger sequence number
+   * @param {Object} [opts] - Job configuration options
+   * @param {number} [opts.maxAttempts=3] - Maximum retry attempts
+   * @param {number} [opts.delayMs=0] - Initial execution delay
+   * @returns {string} Unique job ID for tracking
+   */
   enqueueComprehensiveData(
     contractIds: string[],
     startLedger?: number,
@@ -127,6 +235,18 @@ class IngestQueue extends EventEmitter {
     return job.id
   }
 
+  /**
+   * Retrieves the current status and state of the ingestion queue.
+   * 
+   * Provides a snapshot of queue health including pending job count, running state,
+   * and details of upcoming jobs. Useful for monitoring and debugging queue behavior.
+   * 
+   * @method getStatus
+   * @returns {Object} Queue status information
+   * @returns {number} status.size - Number of pending jobs in queue
+   * @returns {boolean} status.running - Whether queue is actively processing
+   * @returns {Array} status.nextJobs - Array of up to 10 upcoming jobs with details
+   */
   getStatus() {
     return {
       size: this.pendingJobs.length,
@@ -140,6 +260,18 @@ class IngestQueue extends EventEmitter {
     }
   }
 
+  /**
+   * Internal method for processing ready jobs from the queue.
+   * 
+   * Executes the next ready job based on scheduling time, handles job processing,
+   * implements retry logic with exponential backoff, and manages job lifecycle
+   * events. Called periodically by the queue's polling mechanism.
+   * 
+   * @private
+   * @async
+   * @method tick
+   * @returns {Promise<void>} Completes when job processing cycle is done
+   */
   private async tick() {
     if (this.processing) return
     const now = Date.now()
@@ -228,6 +360,18 @@ class IngestQueue extends EventEmitter {
     }
   }
 
+  /**
+   * Computes exponential backoff delay with jitter for job retries.
+   * 
+   * Calculates retry delay using exponential backoff algorithm with random
+   * jitter to prevent thundering herd problems. Ensures minimum delay based
+   * on configured base backoff time.
+   * 
+   * @private
+   * @method computeBackoffMs
+   * @param {number} attemptIndexZeroBased - Zero-based attempt number for backoff calculation
+   * @returns {number} Backoff delay in milliseconds
+   */
   private computeBackoffMs(attemptIndexZeroBased: number) {
     // exponential backoff with jitter: base * 2^n +/- 20%
     const factor = Math.pow(2, attemptIndexZeroBased)
@@ -237,4 +381,13 @@ class IngestQueue extends EventEmitter {
   }
 }
 
+/**
+ * Singleton instance of the ingestion queue.
+ * 
+ * Pre-configured queue instance with default settings for immediate use
+ * throughout the application. Provides centralized job processing for
+ * blockchain data ingestion tasks.
+ * 
+ * @constant {IngestQueue} ingestQueue
+ */
 export const ingestQueue = new IngestQueue()

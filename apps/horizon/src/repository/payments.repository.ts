@@ -1,6 +1,33 @@
+/**
+ * Payment repository for blockchain payment tracking.
+ * 
+ * Manages payment operations including transfers between accounts,
+ * with support for various asset types and comprehensive payment
+ * metadata storage for financial tracking and analysis.
+ * 
+ * @module repository/payments
+ * @requires common/constants
+ * @requires common/db
+ */
+
 import { getHorizonBaseUrl } from '../common/constants'
 import { getDB } from '../common/db'
 
+/**
+ * Fetches payment records from Stellar Horizon API.
+ * 
+ * Retrieves payment operations with support for account filtering
+ * and pagination. Includes asset details, amounts, and transaction
+ * associations for comprehensive payment tracking.
+ * 
+ * @async
+ * @function fetchPaymentsFromHorizon
+ * @param {Object} params - Query parameters
+ * @param {string} [params.accountId] - Filter by account (sender or receiver)
+ * @param {string} [params.cursor] - Pagination cursor
+ * @param {number} [params.limit=100] - Maximum results to fetch
+ * @returns {Promise<Array>} Payment records from Horizon
+ */
 export async function fetchPaymentsFromHorizon(params: {
   accountId?: string
   cursor?: string
@@ -41,6 +68,18 @@ export async function fetchPaymentsFromHorizon(params: {
   }
 }
 
+/**
+ * Stores payment records in database with transaction association.
+ * 
+ * Persists payment data including sender, receiver, asset details,
+ * amounts, and timestamps. Links payments to parent transactions
+ * and operations for comprehensive financial record keeping.
+ * 
+ * @async
+ * @function storePaymentsInDB
+ * @param {Array} payments - Payment records to store
+ * @returns {Promise<void>} Completes when storage is done
+ */
 export async function storePaymentsInDB(payments: any[]) {
   const db = await getDB()
   if (!db || payments.length === 0) return

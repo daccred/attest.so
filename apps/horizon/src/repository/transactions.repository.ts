@@ -1,6 +1,30 @@
+/**
+ * Transaction repository for blockchain transaction management.
+ * 
+ * Handles fetching transaction details from Horizon and Soroban RPC,
+ * with database persistence and comprehensive transaction data storage
+ * including fees, operations, and Soroban-specific metadata.
+ * 
+ * @module repository/transactions
+ * @requires common/constants
+ * @requires common/db
+ */
+
 import { sorobanRpcUrl } from '../common/constants'
 import { getDB } from '../common/db'
 
+/**
+ * Fetches detailed transaction information from Soroban RPC.
+ * 
+ * Retrieves complete transaction data including envelope, result,
+ * metadata, and Soroban resource usage. Handles both standard and
+ * fee bump transactions with proper error handling for missing data.
+ * 
+ * @async
+ * @function fetchTransactionDetails
+ * @param {string} txHash - Transaction hash to fetch
+ * @returns {Promise<Object|null>} Transaction details or null if not found
+ */
 async function fetchTransactionDetails(txHash: string): Promise<any | null> {
   try {
     const txRpcPayload = {
@@ -33,6 +57,18 @@ async function fetchTransactionDetails(txHash: string): Promise<any | null> {
   }
 }
 
+/**
+ * Stores transactions in database with full detail preservation.
+ * 
+ * Persists transaction records including all metadata, fees, and
+ * Soroban-specific fields. Uses bulk upsert for efficiency and
+ * maintains transaction history with proper indexing.
+ * 
+ * @async
+ * @function storeTransactionsInDB
+ * @param {Array} transactions - Transaction records to store
+ * @returns {Promise<number>} Count of stored transactions
+ */
 async function storeTransactionsInDB(transactions: any[]): Promise<number> {
   const db = await getDB()
   if (!db || transactions.length === 0) return 0

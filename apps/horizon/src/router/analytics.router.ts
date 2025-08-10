@@ -1,10 +1,47 @@
+/**
+ * Analytics API router providing aggregated metrics and insights.
+ * 
+ * Offers comprehensive analytics endpoints for monitoring blockchain activity,
+ * contract performance, and real-time event feeds. Supports time-based filtering,
+ * contract-specific queries, and activity aggregation across multiple dimensions.
+ * 
+ * @module router/analytics
+ * @requires express
+ * @requires common/db
+ * @requires common/constants
+ */
+
 import { Router, Request, Response } from 'express'
 import { getDB } from '../common/db'
 import { CONTRACT_IDS } from '../common/constants'
 
 const router = Router()
 
-// Analytics API
+/**
+ * GET /analytics - General analytics endpoint with time-based aggregation.
+ * 
+ * Retrieves aggregated metrics for blockchain activity within specified timeframes.
+ * Calculates event totals, transaction success rates, and event distribution by type.
+ * Supports filtering by contract ID and customizable time windows.
+ * 
+ * @route GET /analytics
+ * @param {string} [contractId] - Filter metrics to specific contract
+ * @param {string} [timeframe='24h'] - Time window: '1h', '24h', '7d', or '30d'
+ * @returns {Object} Analytics response object
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {string} response.timeframe - Applied timeframe filter
+ * @returns {Object} response.data - Analytics data
+ * @returns {Object} response.data.summary - Aggregated metrics summary
+ * @returns {number} response.data.summary.totalEvents - Total event count
+ * @returns {number} response.data.summary.totalTransactions - Total transaction count
+ * @returns {number} response.data.summary.successfulTransactions - Successful transaction count
+ * @returns {string} response.data.summary.successRate - Calculated success percentage
+ * @returns {Array} response.data.eventsByType - Event distribution by type
+ * @returns {Object} response.data.fees - Fee analytics (currently null)
+ * @status 200 - Success with analytics data
+ * @status 503 - Database unavailable
+ * @status 500 - Internal server error
+ */
 router.get('/', async (req: Request, res: Response) => {
   try {
     const db = await getDB()
@@ -81,7 +118,33 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
-// Contract Analytics Dashboard API
+/**
+ * GET /analytics/contracts - Contract-specific analytics dashboard.
+ * 
+ * Provides detailed analytics for specified contracts including operation counts,
+ * success rates, unique user metrics, and recent activity indicators. Supports
+ * bulk contract analysis with aggregated summary statistics.
+ * 
+ * @route GET /analytics/contracts
+ * @param {string|string[]} [contractIds] - Contract IDs to analyze (defaults to CONFIG)
+ * @returns {Object} Contract analytics response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {Array} response.data - Per-contract analytics array
+ * @returns {string} response.data[].contractId - Contract identifier
+ * @returns {Object} response.data[].operations - Operation metrics
+ * @returns {number} response.data[].operations.total - Total operation count
+ * @returns {number} response.data[].operations.successful - Successful operations
+ * @returns {number} response.data[].operations.failed - Failed operations
+ * @returns {string} response.data[].operations.successRate - Success percentage
+ * @returns {Object} response.data[].users - User engagement metrics
+ * @returns {number} response.data[].users.unique - Unique user count
+ * @returns {Object} response.data[].activity - Activity indicators
+ * @returns {number} response.data[].activity.eventsLast24h - Recent event count
+ * @returns {Object} response.summary - Aggregated summary across all contracts
+ * @status 200 - Success with contract analytics
+ * @status 503 - Database unavailable
+ * @status 500 - Internal server error
+ */
 router.get('/contracts', async (req: Request, res: Response) => {
   try {
     const db = await getDB()
@@ -158,7 +221,32 @@ router.get('/contracts', async (req: Request, res: Response) => {
   }
 })
 
-// Real-time Activity Feed API
+/**
+ * GET /analytics/activity - Real-time activity feed aggregator.
+ * 
+ * Retrieves and consolidates recent blockchain activity including events,
+ * transactions, and payments. Supports filtering by contract, account, and
+ * activity type with configurable result limits. Results are sorted by
+ * timestamp in descending order for real-time monitoring.
+ * 
+ * @route GET /analytics/activity
+ * @param {string} [contractId] - Filter to specific contract
+ * @param {string} [accountId] - Filter to specific account
+ * @param {string} [limit='20'] - Maximum results to return (max: 50)
+ * @param {string} [includeTransactions='true'] - Include transaction records
+ * @param {string} [includeEvents='true'] - Include event records
+ * @param {string} [includePayments='true'] - Include payment records
+ * @returns {Object} Activity feed response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {Array} response.data - Chronologically sorted activity items
+ * @returns {string} response.data[].type - Activity type: 'event', 'transaction', 'payment'
+ * @returns {string} response.data[].id - Unique activity identifier
+ * @returns {Date} response.data[].timestamp - Activity timestamp
+ * @returns {number} response.count - Total activities returned
+ * @status 200 - Success with activity data
+ * @status 503 - Database unavailable
+ * @status 500 - Internal server error
+ */
 router.get('/activity', async (req: Request, res: Response) => {
   try {
     const db = await getDB()

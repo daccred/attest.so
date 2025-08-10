@@ -1,9 +1,40 @@
+/**
+ * Contract data repository for Soroban smart contract interactions.
+ * 
+ * Provides data access layer for contract-related operations including
+ * fetching contract data from Soroban RPC, retrieving contract operations
+ * from Horizon, and comprehensive data synchronization. Handles both
+ * real-time and historical data collection with database persistence.
+ * 
+ * @module repository/contracts
+ * @requires common/constants
+ * @requires common/db
+ * @requires repository/operations
+ * @requires repository/events
+ * @requires repository/transactions
+ */
+
 import { sorobanRpcUrl, CONTRACT_IDS, MAX_OPERATIONS_PER_FETCH } from '../common/constants'
 import { getDB } from '../common/db'
 import { fetchOperationsFromHorizon, storeContractOperationsInDB } from './operations.repository'
 import { fetchAndStoreEvents } from './events.repository'
 import { fetchTransactionDetails, storeTransactionsInDB } from './transactions.repository'
 
+/**
+ * Fetches contract storage data directly from Soroban RPC.
+ * 
+ * Retrieves specific contract data entries using the Soroban RPC
+ * getLedgerEntries method. Supports both persistent and temporary
+ * storage durability types. Returns null if data not found or on error.
+ * 
+ * @async
+ * @function fetchContractDataFromSoroban
+ * @param {Object} params - Query parameters
+ * @param {string} params.contractId - Target contract ID
+ * @param {string} params.key - Storage key to retrieve
+ * @param {string} [params.durability='persistent'] - Storage durability type
+ * @returns {Promise<Object|null>} Contract data entry or null
+ */
 export async function fetchContractDataFromSoroban(params: {
   contractId: string
   key: string
@@ -56,6 +87,18 @@ export async function fetchContractDataFromSoroban(params: {
   }
 }
 
+/**
+ * Stores contract data entries in the database.
+ * 
+ * Persists contract storage data with support for versioning and
+ * change tracking. Uses database transactions for consistency and
+ * handles updates for existing entries.
+ * 
+ * @async
+ * @function storeContractDataInDB
+ * @param {Array} contractData - Array of contract data entries
+ * @returns {Promise<void>} Completes when storage is done
+ */
 export async function storeContractDataInDB(contractData: any[]) {
   const db = await getDB()
   if (!db || contractData.length === 0) return
@@ -96,6 +139,27 @@ export async function storeContractDataInDB(contractData: any[]) {
   }
 }
 
+/**
+ * Fetches and stores contract operations from Horizon.
+ * 
+ * Retrieves all operations for specified contracts using Horizon's
+ * account-based queries. Fetches associated transaction details and
+ * stores both operations and transactions in the database with proper
+ * foreign key relationships.
+ * 
+ * @async
+ * @function fetchContractOperations
+ * @param {string[]} [contractIds] - Target contract IDs (defaults to config)
+ * @param {number} [startLedger] - Starting ledger for filtering
+ * @param {boolean} [includeFailedTx] - Include failed transactions
+ * @returns {Promise<Object>} Operation fetch results
+ * @returns {Array} result.operations - Fetched operation records
+ * @returns {Array} result.transactions - Associated transactions
+ * @returns {Set} result.accounts - Unique account identifiers
+ * @returns {Array} result.failedOperations - Failed operation records
+ * @returns {number} result.operationsFetched - Total operations count
+ * @returns {number} result.transactionsFetched - Total transactions count
+ */
 export async function fetchContractOperations(
   contractIds: string[] = CONTRACT_IDS,
   startLedger?: number,
@@ -202,6 +266,32 @@ export async function fetchContractOperations(
   }
 }
 
+/**
+ * Performs comprehensive data collection for contracts.
+ * 
+ * Orchestrates complete data synchronization including events, operations,
+ * and transactions. Combines multiple data sources and provides detailed
+ * statistics about the collection process. Useful for initial sync or
+ * comprehensive updates.
+ * 
+ * @async
+ * @function fetchContractComprehensiveData
+ * @param {number} [startLedger] - Starting ledger sequence
+ * @param {string[]} [contractIds] - Target contracts (defaults to config)
+ * @returns {Promise<Object>} Comprehensive collection results
+ * @returns {Array} result.events - Collected event records
+ * @returns {Array} result.operations - Collected operations
+ * @returns {Array} result.transactions - Collected transactions
+ * @returns {Set} result.accounts - Involved account set
+ * @returns {Array} result.failedOperations - Failed operations
+ * @returns {Object} result.summary - Collection statistics
+ * @returns {number} result.summary.eventsFetched - Event count
+ * @returns {number} result.summary.operationsFetched - Operation count
+ * @returns {number} result.summary.transactionsFetched - Transaction count
+ * @returns {number} result.summary.accountsInvolved - Unique accounts
+ * @returns {number} result.summary.failedOperations - Failed count
+ * @returns {number} result.summary.processedUpToLedger - Last ledger
+ */
 export async function fetchContractComprehensiveData(
   startLedger?: number,
   contractIds: string[] = CONTRACT_IDS

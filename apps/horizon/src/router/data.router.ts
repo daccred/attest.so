@@ -1,9 +1,47 @@
+/**
+ * Data access router providing direct database query endpoints.
+ * 
+ * Implements RESTful endpoints for accessing blockchain data stored in the
+ * database. Provides paginated access to events, transactions, operations,
+ * effects, contract data, accounts, and payments with flexible filtering options.
+ * 
+ * @module router/data
+ * @requires express
+ * @requires common/db
+ */
+
 import { Router, Request, Response } from 'express'
 import { getDB } from '../common/db'
 
 const router = Router()
 
-// Contract Events API
+/**
+ * GET /data/events - Query contract events with filtering and pagination.
+ * 
+ * Retrieves stored contract events with support for filtering by contract,
+ * event type, and ledger range. Results include associated transaction data
+ * and are paginated for efficient data transfer.
+ * 
+ * @route GET /data/events
+ * @param {string} [contractId] - Filter events by contract ID
+ * @param {string} [eventType] - Filter by specific event type
+ * @param {string} [limit='50'] - Results per page (max: 200)
+ * @param {string} [offset='0'] - Pagination offset
+ * @param {string} [ledgerStart] - Minimum ledger sequence number
+ * @param {string} [ledgerEnd] - Maximum ledger sequence number
+ * @param {string} [cursor] - Pagination cursor (future use)
+ * @returns {Object} Paginated event response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {Array} response.data - Event records with transaction details
+ * @returns {Object} response.pagination - Pagination metadata
+ * @returns {number} response.pagination.total - Total matching records
+ * @returns {number} response.pagination.limit - Applied page size
+ * @returns {number} response.pagination.offset - Current offset
+ * @returns {boolean} response.pagination.hasMore - More pages available
+ * @status 200 - Success with event data
+ * @status 503 - Database unavailable
+ * @status 500 - Internal server error
+ */
 router.get('/events', async (req: Request, res: Response) => {
   try {
     const db = await getDB()
@@ -54,7 +92,26 @@ router.get('/events', async (req: Request, res: Response) => {
   }
 })
 
-// Transactions API
+/**
+ * GET /data/transactions - Query blockchain transactions.
+ * 
+ * Provides access to transaction records with comprehensive filtering options
+ * including hash lookup, account filtering, and success status. Returns full
+ * transaction details including associated events, effects, and payments.
+ * 
+ * @route GET /data/transactions
+ * @param {string} [hash] - Filter by transaction hash
+ * @param {string} [sourceAccount] - Filter by source account
+ * @param {string} [successful] - Filter by success status ('true'/'false')
+ * @param {string} [limit='50'] - Results per page (max: 200)
+ * @param {string} [offset='0'] - Pagination offset
+ * @param {string} [ledgerStart] - Minimum ledger sequence
+ * @param {string} [ledgerEnd] - Maximum ledger sequence
+ * @returns {Object} Paginated transaction response with full details
+ * @status 200 - Success with transaction data
+ * @status 503 - Database unavailable
+ * @status 500 - Internal server error
+ */
 router.get('/transactions', async (req: Request, res: Response) => {
   try {
     const db = await getDB()
@@ -108,7 +165,25 @@ router.get('/transactions', async (req: Request, res: Response) => {
   }
 })
 
-// Operations API
+/**
+ * GET /data/operations - Query contract operations.
+ * 
+ * Retrieves contract operation records with filtering by transaction,
+ * contract, operation type, and source account. Includes related transaction
+ * and event data for comprehensive operation context.
+ * 
+ * @route GET /data/operations
+ * @param {string} [transactionHash] - Filter by parent transaction
+ * @param {string} [contractId] - Filter by contract ID
+ * @param {string} [type] - Filter by operation type
+ * @param {string} [sourceAccount] - Filter by source account
+ * @param {string} [limit='50'] - Results per page (max: 200)
+ * @param {string} [offset='0'] - Pagination offset
+ * @returns {Object} Paginated operations response
+ * @status 200 - Success with operation data
+ * @status 503 - Database unavailable
+ * @status 500 - Internal server error
+ */
 router.get('/operations', async (req: Request, res: Response) => {
   try {
     const db = await getDB()
@@ -159,7 +234,25 @@ router.get('/operations', async (req: Request, res: Response) => {
   }
 })
 
-// Effects API
+/**
+ * GET /data/effects - Query operation effects.
+ * 
+ * Retrieves operation effects representing state changes from blockchain
+ * operations. Includes balance changes, trustline modifications, and
+ * other ledger state transitions with transaction context.
+ * 
+ * @route GET /data/effects
+ * @param {string} [operationId] - Filter by parent operation
+ * @param {string} [transactionHash] - Filter by transaction
+ * @param {string} [account] - Filter by affected account
+ * @param {string} [type] - Filter by effect type
+ * @param {string} [limit='50'] - Results per page (max: 200)
+ * @param {string} [offset='0'] - Pagination offset
+ * @returns {Object} Paginated effects response
+ * @status 200 - Success with effect data
+ * @status 503 - Database unavailable
+ * @status 500 - Internal server error
+ */
 router.get('/effects', async (req: Request, res: Response) => {
   try {
     const db = await getDB()
@@ -202,7 +295,25 @@ router.get('/effects', async (req: Request, res: Response) => {
   }
 })
 
-// Contract Data API
+/**
+ * GET /data/contract-data - Query contract storage data.
+ * 
+ * Accesses contract storage entries with support for key-based queries,
+ * durability filtering, and historical data retrieval. Can return either
+ * the latest state or full historical versions of contract data.
+ * 
+ * @route GET /data/contract-data
+ * @param {string} [contractId] - Filter by contract ID
+ * @param {string} [key] - Filter by storage key
+ * @param {string} [durability] - Filter by durability type
+ * @param {string} [latest='true'] - Return only latest values
+ * @param {string} [limit='50'] - Results per page (max: 200)
+ * @param {string} [offset='0'] - Pagination offset
+ * @returns {Object} Contract data response with storage entries
+ * @status 200 - Success with contract data
+ * @status 503 - Database unavailable
+ * @status 500 - Internal server error
+ */
 router.get('/contract-data', async (req: Request, res: Response) => {
   try {
     const db = await getDB()
@@ -255,7 +366,23 @@ router.get('/contract-data', async (req: Request, res: Response) => {
   }
 })
 
-// Accounts API
+/**
+ * GET /data/accounts - Query blockchain accounts.
+ * 
+ * Retrieves account records including regular accounts and contract accounts.
+ * Tracks account activity, contract associations, and last activity timestamps
+ * for account lifecycle monitoring.
+ * 
+ * @route GET /data/accounts
+ * @param {string} [accountId] - Filter by account ID
+ * @param {string} [isContract] - Filter by contract status ('true'/'false')
+ * @param {string} [limit='50'] - Results per page (max: 200)
+ * @param {string} [offset='0'] - Pagination offset
+ * @returns {Object} Paginated accounts response
+ * @status 200 - Success with account data
+ * @status 503 - Database unavailable
+ * @status 500 - Internal server error
+ */
 router.get('/accounts', async (req: Request, res: Response) => {
   try {
     const db = await getDB()
@@ -293,7 +420,24 @@ router.get('/accounts', async (req: Request, res: Response) => {
   }
 })
 
-// Payments API
+/**
+ * GET /data/payments - Query payment operations.
+ * 
+ * Retrieves payment records including transfers between accounts with
+ * asset details, amounts, and transaction associations. Supports filtering
+ * by sender, receiver, and transaction for payment tracking.
+ * 
+ * @route GET /data/payments
+ * @param {string} [from] - Filter by sender account
+ * @param {string} [to] - Filter by receiver account
+ * @param {string} [transactionHash] - Filter by transaction
+ * @param {string} [limit='50'] - Results per page (max: 200)
+ * @param {string} [offset='0'] - Pagination offset
+ * @returns {Object} Paginated payments response
+ * @status 200 - Success with payment data
+ * @status 503 - Database unavailable
+ * @status 500 - Internal server error
+ */
 router.get('/payments', async (req: Request, res: Response) => {
   try {
     const db = await getDB()
