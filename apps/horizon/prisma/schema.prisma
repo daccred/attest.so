@@ -75,7 +75,6 @@ model HorizonTransaction {
   sorobanResourceUsage Json?
   
   // Relations
-  contractOperations HorizonContractOperation[]
   events            HorizonEvent[]
   effects          HorizonEffect[]
   payments         HorizonPayment[]
@@ -209,7 +208,6 @@ model HorizonContractOperation {
   details           Json     // Full operation details
   
   // Relations
-  transaction       HorizonTransaction @relation(fields: [transactionHash], references: [hash])
   events            HorizonEvent[]     // Events emitted by this operation
   
   // Indexer metadata  

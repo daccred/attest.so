@@ -108,12 +108,17 @@ export async function storeContractOperationsInDB(operations: any[], contractIds
   if (!db || operations.length === 0) return 0
 
   try {
-    const results = await db.$transaction(
-      async (prismaTx) => {
-        const ops = operations.map(async (operation) => {
+    const BATCH_SIZE = 100
+    let totalCreated = 0
+
+    for (let i = 0; i < operations.length; i += BATCH_SIZE) {
+      const batch = operations.slice(i, i + BATCH_SIZE)
+
+      for (const operation of batch) {
+        try {
           // Determine which contract this operation is for
           const targetContractId =
-            operation._contractId || // Use pre-mapped contract ID
+            operation._contractId ||
             contractIds.find(
               (contractId) =>
                 operation.contract_id === contractId ||
@@ -123,29 +128,6 @@ export async function storeContractOperationsInDB(operations: any[], contractIds
             ) ||
             contractIds[0] ||
             ''
-
-          // Ensure the parent transaction exists to satisfy FK constraint
-          const txHash: string | undefined = operation.transaction_hash
-          if (txHash) {
-            await prismaTx.horizonTransaction.upsert({
-              where: { hash: txHash },
-              update: {},
-              create: {
-                hash: txHash,
-                ledger: typeof operation.ledger === 'number' ? operation.ledger : 0,
-                timestamp: operation.created_at ? new Date(operation.created_at) : new Date(),
-                sourceAccount: operation.source_account || '',
-                fee: '0',
-                operationCount: 0,
-                envelope: {},
-                result: {},
-                meta: {},
-                feeBump: false,
-                successful:
-                  operation.successful !== false && operation.transaction_successful !== false,
-              },
-            })
-          }
 
           const operationData = {
             operationId: operation.id,
@@ -161,25 +143,25 @@ export async function storeContractOperationsInDB(operations: any[], contractIds
             parameters: operation.parameters || null,
           }
 
-          // Use the new HorizonContractOperation model for contract-specific operations
-          return prismaTx.horizonContractOperation.upsert({
+          // Skip if already present
+          const existing = await db.horizonContractOperation.findUnique({
             where: { operationId: operation.id },
-            update: operationData,
-            create: operationData,
           })
-        })
+          if (existing) {
+            continue
+          }
 
-        return Promise.all(ops)
-      },
-      {
-        timeout: 30000, // 30 seconds timeout for large batches
+          await db.horizonContractOperation.create({ data: operationData })
+          totalCreated++
+        } catch (opErr: any) {
+          console.error('Error storing single contract operation:', opErr?.message || opErr)
+          // continue with next operation
+        }
       }
-    )
+    }
 
-    console.log(
-      `✅ Stored ${results.length} contract operations in HorizonContractOperation table.`
-    )
-    return results.length
+    console.log(`✅ Created ${totalCreated} new contract operations.`)
+    return totalCreated
   } catch (error) {
     console.error('❌ Error storing contract operations:', error)
     return 0
