@@ -1,68 +1,68 @@
-import { sorobanRpcUrl } from '../common/constants';
-import { getDB } from '../common/db';
+import { sorobanRpcUrl } from '../common/constants'
+import { getDB } from '../common/db'
 
 async function fetchTransactionDetails(txHash: string): Promise<any | null> {
-    try {
-      const txRpcPayload = {
-        jsonrpc: "2.0",
-        id: `getTx-${txHash}-${Date.now()}`,
-        method: "getTransaction",
-        params: { hash: txHash },
-      };
-      
-      const rawTxResponse = await fetch(sorobanRpcUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(txRpcPayload),
-      });
-      
-      if (!rawTxResponse.ok) {
-        throw new Error(`HTTP ${rawTxResponse.status}`);
-      }
-      
-      const txRpcResponse = await rawTxResponse.json();
-      
-      if (txRpcResponse.error) {
-        throw new Error(txRpcResponse.error.message);
-      }
-      
-      return txRpcResponse.result;
-    } catch (error: any) {
-      console.error(`Error fetching transaction ${txHash}:`, error.message);
-      return null;
+  try {
+    const txRpcPayload = {
+      jsonrpc: '2.0',
+      id: `getTx-${txHash}-${Date.now()}`,
+      method: 'getTransaction',
+      params: { hash: txHash },
     }
+
+    const rawTxResponse = await fetch(sorobanRpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(txRpcPayload),
+    })
+
+    if (!rawTxResponse.ok) {
+      throw new Error(`HTTP ${rawTxResponse.status}`)
+    }
+
+    const txRpcResponse = await rawTxResponse.json()
+
+    if (txRpcResponse.error) {
+      throw new Error(txRpcResponse.error.message)
+    }
+
+    return txRpcResponse.result
+  } catch (error: any) {
+    console.error(`Error fetching transaction ${txHash}:`, error.message)
+    return null
+  }
 }
 
 async function storeTransactionsInDB(transactions: any[]): Promise<number> {
-  const db = await getDB();
-  if (!db || transactions.length === 0) return 0;
+  const db = await getDB()
+  if (!db || transactions.length === 0) return 0
 
   const toBoolean = (v: any) => {
-    if (typeof v === 'boolean') return v;
-    if (typeof v === 'string') return v.toLowerCase() === 'true' || v.toUpperCase() === 'SUCCESS';
-    return Boolean(v);
-  };
+    if (typeof v === 'boolean') return v
+    if (typeof v === 'string') return v.toLowerCase() === 'true' || v.toUpperCase() === 'SUCCESS'
+    return Boolean(v)
+  }
 
   const num = (v: any, d: number = 0) => {
-    const n = typeof v === 'string' ? parseInt(v, 10) : (typeof v === 'number' ? v : NaN);
-    return Number.isFinite(n) ? n : d;
-  };
+    const n = typeof v === 'string' ? parseInt(v, 10) : typeof v === 'number' ? v : NaN
+    return Number.isFinite(n) ? n : d
+  }
 
   const toDate = (v: any) => {
     try {
-      if (!v) return new Date();
-      const d = new Date(v);
-      return isNaN(d.getTime()) ? new Date() : d;
+      if (!v) return new Date()
+      const d = new Date(v)
+      return isNaN(d.getTime()) ? new Date() : d
     } catch {
-      return new Date();
+      return new Date()
     }
-  };
+  }
 
   try {
     const results = await db.$transaction(async (prismaTx) => {
       const ops = transactions.map(async (tx: any) => {
-        const hash = tx.hash || tx.txHash;
-        if (!hash) return null;
+        const hash = tx.hash || tx.txHash
+        if (!hash) return null
 
         const transactionData = {
           hash,
@@ -81,25 +81,25 @@ async function storeTransactionsInDB(transactions: any[]): Promise<number> {
           inclusionFee: tx.inclusionFee ? String(tx.inclusionFee) : undefined,
           resourceFee: tx.resourceFee ? String(tx.resourceFee) : undefined,
           sorobanResourceUsage: tx.sorobanResourceUsage || null,
-        } as any;
+        } as any
 
         return prismaTx.horizonTransaction.upsert({
           where: { hash },
           update: transactionData,
           create: transactionData,
-        });
-      });
+        })
+      })
 
-      const stored = await Promise.all(ops);
-      return stored.filter(Boolean).length;
-    });
+      const stored = await Promise.all(ops)
+      return stored.filter(Boolean).length
+    })
 
-    console.log(`Stored/ensured ${results} transactions.`);
-    return results;
+    console.log(`Stored/ensured ${results} transactions.`)
+    return results
   } catch (error) {
-    console.error('Error storing transactions:', error);
-    return 0;
+    console.error('Error storing transactions:', error)
+    return 0
   }
 }
 
-export { fetchTransactionDetails, storeTransactionsInDB }; 
+export { fetchTransactionDetails, storeTransactionsInDB }

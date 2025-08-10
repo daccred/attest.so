@@ -1,147 +1,121 @@
-import { sorobanRpcUrl, CONTRACT_IDS, MAX_OPERATIONS_PER_FETCH, getHorizonBaseUrl } from '../common/constants';
-import { getDB } from '../common/db';
-import { IndexerErrorHandler, PerformanceMonitor, RateLimiter } from '../common/errors';
+import { getHorizonBaseUrl } from '../common/constants'
+import { getDB } from '../common/db'
+import { IndexerErrorHandler, PerformanceMonitor, RateLimiter } from '../common/errors'
 
 export async function fetchOperationsFromHorizon(params: {
-  transactionHash?: string;
-  accountId?: string;
-  contractId?: string;
-  cursor?: string;
-  limit?: number;
+  transactionHash?: string
+  accountId?: string
+  contractId?: string
+  cursor?: string
+  limit?: number
 }): Promise<any[]> {
-  const { transactionHash, accountId, contractId, cursor, limit = 100 } = params;
-  
+  const { transactionHash, accountId, contractId, cursor, limit = 100 } = params
+
   return await PerformanceMonitor.measureAsync('fetchOperationsFromHorizon', async () => {
     // Rate limiting: max 50 requests per minute
     if (!RateLimiter.canProceed('operations', 50, 60000)) {
-      IndexerErrorHandler.logWarning('Rate limit reached for operations API');
-      return [];
+      IndexerErrorHandler.logWarning('Rate limit reached for operations API')
+      return []
     }
 
     try {
       const baseParams: any = {
         limit: Math.min(limit, 200), // Enforce maximum limit
-        order: 'desc'
-      };
-      
-      if (cursor) baseParams.cursor = cursor;
-      if (transactionHash) baseParams.for_transaction = transactionHash;
-      if (accountId) baseParams.for_account = accountId;
-      
-      IndexerErrorHandler.logInfo('Fetching operations from Horizon', baseParams);
-
-      // Use Stellar Horizon API for operations (not Soroban RPC)
-      const horizonUrl = getHorizonBaseUrl();
-      const queryString = new URLSearchParams(baseParams).toString();
-      const url = `${horizonUrl}/operations?${queryString}`;
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+        order: 'desc',
       }
 
-      const data = await response.json();
-      const operations = data._embedded?.records || [];
-      
-      IndexerErrorHandler.logSuccess(`Fetched ${operations.length} operations`);
-      return operations;
+      if (cursor) baseParams.cursor = cursor
+      if (transactionHash) baseParams.for_transaction = transactionHash
+      if (accountId) baseParams.for_account = accountId
+
+      IndexerErrorHandler.logInfo('Fetching operations from Horizon', baseParams)
+
+      // Use Stellar Horizon API for operations (not Soroban RPC)
+      const horizonUrl = getHorizonBaseUrl()
+      const queryString = new URLSearchParams(baseParams).toString()
+      const url = `${horizonUrl}/operations?${queryString}`
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+      }
+
+      const data = await response.json()
+      const operations = data._embedded?.records || []
+
+      IndexerErrorHandler.logSuccess(`Fetched ${operations.length} operations`)
+      return operations
     } catch (error: any) {
-      IndexerErrorHandler.handleRpcError(error, 'fetchOperationsFromHorizon');
-      return [];
+      IndexerErrorHandler.handleRpcError(error, 'fetchOperationsFromHorizon')
+      return []
     }
-  });
-}
-
-export async function storeOperationsInDB(operations: any[]) {
-  const db = await getDB();
-  if (!db || operations.length === 0) return;
-
-  try {
-    const results = await db.$transaction(async (prismaTx) => {
-      const ops = operations.map(async (op) => {
-        const operationData = {
-          operationId: op.id,
-          transactionHash: op.transaction_hash,
-          operationIndex: op.operation_index || 0,
-          type: op.type,
-          typeI: op.type_i || 0,
-          details: op,
-          sourceAccount: op.source_account,
-          contractId: op.contract_id,
-          function: op.function,
-          parameters: op.parameters || null,
-        };
-
-        return prismaTx.horizonOperation.upsert({
-          where: { operationId: op.id },
-          update: operationData,
-          create: operationData
-        });
-      });
-      
-      return Promise.all(ops);
-    });
-    
-    console.log(`Stored ${results.length} operations.`);
-  } catch (error) {
-    console.error('Error storing operations:', error);
-  }
+  })
 }
 
 export async function storeContractOperationsInDB(operations: any[], contractIds: string[] = []) {
-    const db = await getDB();
-    if (!db || operations.length === 0) return 0;
-  
-    try {
-      const results = await db.$transaction(async (prismaTx) => {
+  const db = await getDB()
+  if (!db || operations.length === 0) return 0
+
+  try {
+    const results = await db.$transaction(
+      async (prismaTx) => {
         const ops = operations.map(async (operation) => {
           // Determine which contract this operation is for
-          const targetContractId = operation._contractId ||   // Use pre-mapped contract ID
-            contractIds.find(contractId => 
-              operation.contract_id === contractId || 
-              operation.source_account === contractId ||
-              operation.account === contractId ||
-              JSON.stringify(operation).includes(contractId)
-            ) || contractIds[0] || '';
-  
+          const targetContractId =
+            operation._contractId || // Use pre-mapped contract ID
+            contractIds.find(
+              (contractId) =>
+                operation.contract_id === contractId ||
+                operation.source_account === contractId ||
+                operation.account === contractId ||
+                JSON.stringify(operation).includes(contractId)
+            ) ||
+            contractIds[0] ||
+            ''
+
           const operationData = {
             operationId: operation.id,
             transactionHash: operation.transaction_hash,
             contractId: targetContractId,
             operationType: operation.type || 'invoke_host_function',
-            successful: operation.successful !== false && operation.transaction_successful !== false,
+            successful:
+              operation.successful !== false && operation.transaction_successful !== false,
             sourceAccount: operation.source_account || '',
             operationIndex: operation.operation_index || 0,
             details: operation,
             function: operation.function || null,
             parameters: operation.parameters || null,
-          };
-  
+          }
+
           // Use the new HorizonContractOperation model for contract-specific operations
           return prismaTx.horizonContractOperation.upsert({
             where: { operationId: operation.id },
             update: operationData,
-            create: operationData
-          });
-        });
-        
-        return Promise.all(ops);
-      }, {
+            create: operationData,
+          })
+        })
+
+        return Promise.all(ops)
+      },
+      {
         timeout: 30000, // 30 seconds timeout for large batches
-      });
-      
-      console.log(`✅ Stored ${results.length} contract operations in HorizonContractOperation table.`);
-      return results.length;
-    } catch (error) {
-      console.error('❌ Error storing contract operations:', error);
-      return 0;
-    }
-} 
+      }
+    )
+
+    console.log(
+      `✅ Stored ${results.length} contract operations in HorizonContractOperation table.`
+    )
+    return results.length
+  } catch (error) {
+    console.error('❌ Error storing contract operations:', error)
+    return 0
+  }
+}
