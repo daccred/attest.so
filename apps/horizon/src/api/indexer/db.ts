@@ -68,7 +68,7 @@ export async function getLastProcessedLedgerFromDB(): Promise<number> {
   }
   
   try {
-    const metadata = await db.metadata.findUnique({
+    const metadata = await db.horizonMetadata.findUnique({
       where: { key: 'lastProcessedLedgerMeta' }
     });
     return metadata ? parseInt(metadata.value) : 0;
@@ -86,7 +86,7 @@ export async function updateLastProcessedLedgerInDB(ledgerSequence: number) {
   }
   
   try {
-    await db.metadata.upsert({
+    await db.horizonMetadata.upsert({
       where: { key: 'lastProcessedLedgerMeta' },
       update: { value: ledgerSequence.toString() },
       create: { 
@@ -119,6 +119,35 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
         const ledgerNumber = typeof ev.ledger === 'string' ? parseInt(ev.ledger, 10) : ev.ledger;
         const eventTimestamp = ev.timestamp || ev.ledgerClosedAt;
 
+        // Store transaction first
+        if (txDetails && txDetails.hash) {
+          const transactionData = {
+            hash: txDetails.hash,
+            ledger: ledgerNumber,
+            timestamp: eventTimestamp ? new Date(eventTimestamp) : new Date(),
+            sourceAccount: txDetails.sourceAccount || '',
+            fee: txDetails.fee?.toString() || '0',
+            operationCount: txDetails.operationCount || 0,
+            envelope: txDetails.envelopeXdr || txDetails.envelope || {},
+            result: txDetails.resultXdr || txDetails.result || {},
+            meta: txDetails.resultMetaXdr || txDetails.meta || {},
+            feeBump: Boolean(txDetails.feeBump),
+            successful: txDetails.successful !== false,
+            memo: txDetails.memo,
+            memoType: txDetails.memoType,
+            inclusionFee: txDetails.inclusionFee?.toString(),
+            resourceFee: txDetails.resourceFee?.toString(),
+            sorobanResourceUsage: txDetails.sorobanResourceUsage || null,
+          };
+
+          await prismaTx.horizonTransaction.upsert({
+            where: { hash: txDetails.hash },
+            update: transactionData,
+            create: transactionData
+          });
+        }
+
+        // Store event
         const eventData = {
           eventId: ev.id,
           ledger: Number.isFinite(ledgerNumber) ? ledgerNumber : 0,
@@ -142,7 +171,7 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
           txCreatedAt: eventTimestamp ? new Date(eventTimestamp) : new Date(),
         };
 
-        return prismaTx.contractEvent.upsert({
+        return prismaTx.horizonEvent.upsert({
           where: { eventId: ev.id },
           update: eventData,
           create: eventData
@@ -155,6 +184,191 @@ export async function storeEventsAndTransactionsInDB(eventsWithTransactions: any
     console.log(`Stored ${results.length} event-transaction pairs.`);
   } catch (error) {
     console.error('Error storing event-transaction pairs in PostgreSQL:', error);
+  }
+}
+
+export async function storeOperationsInDB(operations: any[]) {
+  const db = await getDbInstance();
+  if (!db || operations.length === 0) return;
+
+  try {
+    const results = await db.$transaction(async (prismaTx) => {
+      const ops = operations.map(async (op) => {
+        const operationData = {
+          operationId: op.id,
+          transactionHash: op.transaction_hash,
+          operationIndex: op.operation_index || 0,
+          type: op.type,
+          typeI: op.type_i || 0,
+          details: op,
+          sourceAccount: op.source_account,
+          contractId: op.contract_id,
+          function: op.function,
+          parameters: op.parameters || null,
+        };
+
+        return prismaTx.horizonOperation.upsert({
+          where: { operationId: op.id },
+          update: operationData,
+          create: operationData
+        });
+      });
+      
+      return Promise.all(ops);
+    });
+    
+    console.log(`Stored ${results.length} operations.`);
+  } catch (error) {
+    console.error('Error storing operations:', error);
+  }
+}
+
+export async function storeEffectsInDB(effects: any[]) {
+  const db = await getDbInstance();
+  if (!db || effects.length === 0) return;
+
+  try {
+    const results = await db.$transaction(async (prismaTx) => {
+      const effs = effects.map(async (effect) => {
+        const effectData = {
+          effectId: effect.id,
+          operationId: effect.operation_id,
+          transactionHash: effect.transaction_hash,
+          type: effect.type,
+          typeI: effect.type_i || 0,
+          details: effect,
+          account: effect.account,
+        };
+
+        return prismaTx.horizonEffect.upsert({
+          where: { effectId: effect.id },
+          update: effectData,
+          create: effectData
+        });
+      });
+      
+      return Promise.all(effs);
+    });
+    
+    console.log(`Stored ${results.length} effects.`);
+  } catch (error) {
+    console.error('Error storing effects:', error);
+  }
+}
+
+export async function storeContractDataInDB(contractData: any[]) {
+  const db = await getDbInstance();
+  if (!db || contractData.length === 0) return;
+
+  try {
+    const results = await db.$transaction(async (prismaTx) => {
+      const data = contractData.map(async (item) => {
+        const dataEntry = {
+          contractId: item.contract_id,
+          key: item.key,
+          value: item.val,
+          durability: item.durability || 'persistent',
+          ledger: item.ledger || 0,
+          timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+          previousValue: item.previous_val || null,
+          isDeleted: Boolean(item.deleted),
+        };
+
+        return prismaTx.horizonContractData.upsert({
+          where: { 
+            contractId_key_ledger: {
+              contractId: item.contract_id,
+              key: item.key,
+              ledger: item.ledger || 0
+            }
+          },
+          update: dataEntry,
+          create: dataEntry
+        });
+      });
+      
+      return Promise.all(data);
+    });
+    
+    console.log(`Stored ${results.length} contract data entries.`);
+  } catch (error) {
+    console.error('Error storing contract data:', error);
+  }
+}
+
+export async function storeAccountsInDB(accounts: any[]) {
+  const db = await getDbInstance();
+  if (!db || accounts.length === 0) return;
+
+  try {
+    const results = await db.$transaction(async (prismaTx) => {
+      const accs = accounts.map(async (account) => {
+        const accountData = {
+          accountId: account.account_id,
+          sequence: account.sequence,
+          balances: account.balances || [],
+          signers: account.signers || [],
+          data: account.data || {},
+          flags: account.flags || 0,
+          homeDomain: account.home_domain,
+          thresholds: account.thresholds || {},
+          isContract: Boolean(account.is_contract),
+          contractCode: account.contract_code,
+          operationCount: account.operation_count || 0,
+          lastActivity: account.last_modified_time ? new Date(account.last_modified_time) : null,
+        };
+
+        return prismaTx.horizonAccount.upsert({
+          where: { accountId: account.account_id },
+          update: accountData,
+          create: accountData
+        });
+      });
+      
+      return Promise.all(accs);
+    });
+    
+    console.log(`Stored ${results.length} accounts.`);
+  } catch (error) {
+    console.error('Error storing accounts:', error);
+  }
+}
+
+export async function storePaymentsInDB(payments: any[]) {
+  const db = await getDbInstance();
+  if (!db || payments.length === 0) return;
+
+  try {
+    const results = await db.$transaction(async (prismaTx) => {
+      const pymnts = payments.map(async (payment) => {
+        const paymentData = {
+          paymentId: payment.id,
+          transactionHash: payment.transaction_hash,
+          operationId: payment.operation_id,
+          from: payment.from,
+          to: payment.to,
+          asset: {
+            type: payment.asset_type,
+            code: payment.asset_code,
+            issuer: payment.asset_issuer
+          },
+          amount: payment.amount,
+          timestamp: payment.created_at ? new Date(payment.created_at) : new Date(),
+        };
+
+        return prismaTx.horizonPayment.upsert({
+          where: { paymentId: payment.id },
+          update: paymentData,
+          create: paymentData
+        });
+      });
+      
+      return Promise.all(pymnts);
+    });
+    
+    console.log(`Stored ${results.length} payments.`);
+  } catch (error) {
+    console.error('Error storing payments:', error);
   }
 }
 

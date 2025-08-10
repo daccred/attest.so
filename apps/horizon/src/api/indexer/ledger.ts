@@ -11,6 +11,7 @@ import {
   storeEventsAndTransactionsInDB,
   getDbInstance,
 } from './db';
+import { IndexerErrorHandler, PerformanceMonitor, RateLimiter } from './error-handler';
 
 const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://'),
@@ -303,4 +304,288 @@ export async function getRpcHealth(): Promise<string> {
       return 'error_invalid_response';
     }
     return rpcHealth.status;
-} 
+}
+
+/**
+ * Fetch operations for a transaction or account from Horizon
+ */
+export async function fetchOperationsFromHorizon(params: {
+  transactionHash?: string;
+  accountId?: string;
+  contractId?: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<any[]> {
+  const { transactionHash, accountId, contractId, cursor, limit = 100 } = params;
+  
+  return await PerformanceMonitor.measureAsync('fetchOperationsFromHorizon', async () => {
+    // Rate limiting: max 50 requests per minute
+    if (!RateLimiter.canProceed('operations', 50, 60000)) {
+      IndexerErrorHandler.logWarning('Rate limit reached for operations API');
+      return [];
+    }
+
+    try {
+      const baseParams: any = {
+        limit: Math.min(limit, 200), // Enforce maximum limit
+        order: 'desc'
+      };
+      
+      if (cursor) baseParams.cursor = cursor;
+      if (transactionHash) baseParams.for_transaction = transactionHash;
+      if (accountId) baseParams.for_account = accountId;
+      
+      IndexerErrorHandler.logInfo('Fetching operations from Horizon', baseParams);
+
+      const horizonUrl = sorobanRpcUrl.replace('/soroban/rpc', '');
+      const queryString = new URLSearchParams(baseParams).toString();
+      const url = `${horizonUrl}/operations?${queryString}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        timeout: 30000 // 30 second timeout
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      }
+
+      const data = await response.json();
+      const operations = data._embedded?.records || [];
+      
+      IndexerErrorHandler.logSuccess(`Fetched ${operations.length} operations`);
+      return operations;
+    } catch (error: any) {
+      IndexerErrorHandler.handleRpcError(error, 'fetchOperationsFromHorizon');
+      return [];
+    }
+  });
+}
+
+/**
+ * Fetch effects for an operation or transaction from Horizon
+ */
+export async function fetchEffectsFromHorizon(params: {
+  operationId?: string;
+  transactionHash?: string;
+  accountId?: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<any[]> {
+  const { operationId, transactionHash, accountId, cursor, limit = 100 } = params;
+  
+  try {
+    const baseParams: any = {
+      limit,
+      order: 'desc'
+    };
+    
+    if (cursor) baseParams.cursor = cursor;
+    if (operationId) baseParams.for_operation = operationId;
+    if (transactionHash) baseParams.for_transaction = transactionHash;
+    if (accountId) baseParams.for_account = accountId;
+    
+    console.log('Fetching effects from Horizon with params:', baseParams);
+
+    const response = await fetch(sorobanRpcUrl.replace('/soroban/rpc', '') + '/effects', {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Effects request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data._embedded?.records || [];
+  } catch (error: any) {
+    console.error('Error fetching effects:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Fetch payments for an account from Horizon
+ */
+export async function fetchPaymentsFromHorizon(params: {
+  accountId?: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<any[]> {
+  const { accountId, cursor, limit = 100 } = params;
+  
+  try {
+    const baseParams: any = {
+      limit,
+      order: 'desc'
+    };
+    
+    if (cursor) baseParams.cursor = cursor;
+    if (accountId) baseParams.for_account = accountId;
+    
+    console.log('Fetching payments from Horizon with params:', baseParams);
+
+    const response = await fetch(sorobanRpcUrl.replace('/soroban/rpc', '') + '/payments', {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Payments request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data._embedded?.records || [];
+  } catch (error: any) {
+    console.error('Error fetching payments:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Fetch account details from Horizon
+ */
+export async function fetchAccountFromHorizon(accountId: string): Promise<any | null> {
+  try {
+    console.log(`Fetching account ${accountId} from Horizon`);
+
+    const response = await fetch(sorobanRpcUrl.replace('/soroban/rpc', '') + `/accounts/${accountId}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log(`Account ${accountId} not found`);
+        return null;
+      }
+      throw new Error(`Account request failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error(`Error fetching account ${accountId}:`, error.message);
+    return null;
+  }
+}
+
+/**
+ * Fetch contract data from Soroban RPC
+ */
+export async function fetchContractDataFromSoroban(params: {
+  contractId: string;
+  key: string;
+  durability?: 'persistent' | 'temporary';
+}): Promise<any | null> {
+  const { contractId, key, durability = 'persistent' } = params;
+  
+  try {
+    const rpcPayload = {
+      jsonrpc: "2.0",
+      id: `getContractData-${Date.now()}`,
+      method: "getLedgerEntries",
+      params: {
+        keys: [{
+          type: 'contractData',
+          contractId,
+          key,
+          durability
+        }]
+      },
+    };
+
+    console.log(`Fetching contract data for ${contractId}/${key}:`, JSON.stringify(rpcPayload, null, 2));
+
+    const response = await fetch(sorobanRpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(rpcPayload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Contract data request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (data.error) {
+      console.error('RPC error fetching contract data:', data.error);
+      return null;
+    }
+
+    return data.result?.entries?.[0] || null;
+  } catch (error: any) {
+    console.error(`Error fetching contract data for ${contractId}/${key}:`, error.message);
+    return null;
+  }
+}
+
+/**
+ * Comprehensive data fetcher that gets all related data for events
+ */
+export async function fetchComprehensiveContractData(startLedger?: number): Promise<{
+  events: any[];
+  operations: any[];
+  effects: any[];
+  accounts: any[];
+  payments: any[];
+  contractData: any[];
+}> {
+  console.log('Starting comprehensive contract data fetch...');
+  
+  // First fetch events (existing logic)
+  const eventResults = await fetchAndStoreEvents(startLedger);
+  
+  // Get all unique transaction hashes and account IDs from events
+  const db = await getDbInstance();
+  if (!db) return { events: [], operations: [], effects: [], accounts: [], payments: [], contractData: [] };
+  
+  const recentEvents = await db.horizonEvent.findMany({
+    take: 1000,
+    orderBy: { timestamp: 'desc' },
+    select: { txHash: true, contractId: true }
+  });
+  
+  const txHashes = [...new Set(recentEvents.map(e => e.txHash).filter(Boolean))];
+  const contractIds = [...new Set(recentEvents.map(e => e.contractId).filter(Boolean))];
+  
+  // Fetch operations for these transactions
+  const operations: any[] = [];
+  for (const txHash of txHashes.slice(0, 100)) { // Limit to avoid rate limits
+    const ops = await fetchOperationsFromHorizon({ transactionHash: txHash });
+    operations.push(...ops);
+  }
+  
+  // Fetch effects for these operations
+  const effects: any[] = [];
+  for (const op of operations.slice(0, 100)) {
+    const effs = await fetchEffectsFromHorizon({ operationId: op.id });
+    effects.push(...effs);
+  }
+  
+  // Fetch account details for contract accounts
+  const accounts: any[] = [];
+  for (const contractId of contractIds.slice(0, 50)) {
+    const account = await fetchAccountFromHorizon(contractId);
+    if (account) accounts.push(account);
+  }
+  
+  // Fetch payments for these accounts
+  const payments: any[] = [];
+  for (const contractId of contractIds.slice(0, 20)) {
+    const pymts = await fetchPaymentsFromHorizon({ accountId: contractId });
+    payments.push(...pymts);
+  }
+  
+  // TODO: Fetch contract data entries would require knowing specific keys
+  const contractData: any[] = [];
+  
+  return {
+    events: eventResults ? [eventResults] : [],
+    operations,
+    effects,
+    accounts,
+    payments,
+    contractData
+  };
+}
