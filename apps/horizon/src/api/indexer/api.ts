@@ -18,9 +18,23 @@ import {
   storeAccountsInDB,
   storePaymentsInDB
 } from './db';
+import { ingestQueue } from './queue';
 import { STELLAR_NETWORK, CONTRACT_ID_TO_INDEX } from './constants';
 
 const router = Router();
+
+// Start the ingest queue on module load (idempotent)
+try {
+  ingestQueue.start();
+  ingestQueue.on('enqueued', (job) => console.log('[queue] enqueued', job.id));
+  ingestQueue.on('started:job', (job) => console.log('[queue] started', job.id));
+  ingestQueue.on('completed:job', ({ job, result }) => console.log('[queue] completed', job.id, result));
+  ingestQueue.on('requeued:job', ({ job, backoffMs }) => console.log('[queue] requeued', job.id, 'in', backoffMs, 'ms'));
+  ingestQueue.on('failed:job', ({ job, error }) => console.warn('[queue] failed', job.id, error));
+  ingestQueue.on('dead:job', (job) => console.error('[queue] dead', job.id));
+} catch (e) {
+  // ignore if already started
+}
 
 router.post('/events/ingest', async (req: Request, res: Response) => {
   try {
@@ -34,18 +48,23 @@ router.post('/events/ingest', async (req: Request, res: Response) => {
       }
     }
 
-    // Non-blocking: Trigger ingestion, don't wait for it to complete for HTTP response.
-    fetchAndStoreEvents(startLedgerFromRequest)
-      .then(result => console.log("Background event ingestion triggered from API completed successfully.", result))
-      .catch(err => console.error("Background event ingestion triggered from API failed with error:", err.message));
-
+    const jobId = ingestQueue.enqueueFetchEvents(startLedgerFromRequest);
     res.status(202).json({
       success: true,
-      message: `Event ingestion process initiated. Requested start ledger: ${startLedgerFromRequest === undefined ? 'latest from DB/default' : startLedgerFromRequest}. Check server logs for progress.`,
+      message: `Event ingestion job enqueued. Requested start ledger: ${startLedgerFromRequest === undefined ? 'latest from DB/default' : startLedgerFromRequest}.`,
+      jobId
     });
 
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message || 'Failed to initiate event ingestion' });
+    res.status(500).json({ success: false, error: error.message || 'Failed to enqueue event ingestion' });
+  }
+});
+
+router.get('/queue/status', async (_req: Request, res: Response) => {
+  try {
+    res.json({ success: true, queue: ingestQueue.getStatus() });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -512,8 +531,7 @@ router.get('/analytics', async (req: Request, res: Response) => {
       totalEvents,
       totalTransactions,
       successfulTxs,
-      eventsByType,
-      transactionVolume
+      eventsByType
     ] = await Promise.all([
       db.horizonEvent.count({ where }),
       db.horizonTransaction.count({
@@ -533,14 +551,6 @@ router.get('/analytics', async (req: Request, res: Response) => {
         by: ['eventType'],
         where,
         _count: { eventType: true }
-      }),
-      db.horizonTransaction.aggregate({
-        where: {
-          timestamp: { gte: startTime },
-          ...(contractId && { events: { some: { contractId: contractId as string } } })
-        },
-        _avg: { fee: true },
-        _sum: { fee: true }
       })
     ]);
 
@@ -559,8 +569,8 @@ router.get('/analytics', async (req: Request, res: Response) => {
           count: et._count.eventType
         })),
         fees: {
-          average: transactionVolume._avg.fee,
-          total: transactionVolume._sum.fee
+          average: null,
+          total: null
         }
       }
     });

@@ -126,6 +126,8 @@ export async function fetchAndStoreEvents(startLedgerFromRequest?: number): Prom
     let totalEventsFetchedThisRun = 0;
     let processedItemsForStorage: any[] = [];
     let iteration = 0;
+    let prevCursor: string | undefined = undefined;
+    let staleCursorCount = 0;
 
     do {
       iteration++;
@@ -191,6 +193,7 @@ export async function fetchAndStoreEvents(startLedgerFromRequest?: number): Prom
         totalEventsFetchedThisRun += eventsResponse.events.length;
         console.log(`Fetched ${eventsResponse.events.length} events.`);
 
+        const batchItems: any[] = [];
         for (const event of eventsResponse.events) {
           let transactionDetails: any = null;
           if (event.txHash) {
@@ -224,7 +227,7 @@ export async function fetchAndStoreEvents(startLedgerFromRequest?: number): Prom
               console.error(`Error fetching transaction ${event.txHash} for event ${event.id} (fetch):`, txError.message);
             }
           }
-          processedItemsForStorage.push({ event, transactionDetails, eventId: event.id });
+          batchItems.push({ event, transactionDetails, eventId: event.id });
         }
 
         const lastEventInBatch = eventsResponse.events[eventsResponse.events.length - 1];
@@ -233,8 +236,33 @@ export async function fetchAndStoreEvents(startLedgerFromRequest?: number): Prom
           : lastEventInBatch.ledger;
 
         lastLedgerProcessedInCycle = Math.max(lastLedgerProcessedInCycle, ledgerOfLastEventInBatch);
+
+        // Flush this batch immediately to avoid losing progress if we later get stuck on a stale cursor
+        try {
+          await storeEventsAndTransactionsInDB(batchItems);
+          // Reset any accumulated items since we flush per batch now
+          processedItemsForStorage = [];
+        } catch (storeErr) {
+          console.error('Error flushing batch to DB:', (storeErr as any)?.message || storeErr);
+        }
+
+        staleCursorCount = 0; // reset on progress
       } else {
         console.log('No events found for this request (or empty events array in response.result).');
+        // If RPC keeps returning the same cursor with no events, break to avoid an infinite loop
+        if (eventsResponse?.cursor) {
+          if (prevCursor === eventsResponse.cursor) {
+            staleCursorCount++;
+            console.log(`Cursor unchanged with empty events. Repeat count: ${staleCursorCount}`);
+            if (staleCursorCount >= 3) {
+              console.log('Breaking fetch loop due to repeated empty responses with unchanged cursor.');
+              nextCursor = undefined;
+              break;
+            }
+          } else {
+            staleCursorCount = 0;
+          }
+        }
       }
 
       nextCursor = eventsResponse?.cursor;
@@ -249,6 +277,8 @@ export async function fetchAndStoreEvents(startLedgerFromRequest?: number): Prom
           break;
         }
       }
+
+      prevCursor = nextCursor;
 
       if (currentLedgerToQuery > latestLedgerSequenceOnRpc + 1 && !nextCursor) {
         console.warn('Safety break: currentLedgerToQuery advanced beyond latest RPC ledger without a new cursor. Stopping cycle.');
@@ -341,11 +371,14 @@ export async function fetchOperationsFromHorizon(params: {
       const queryString = new URLSearchParams(baseParams).toString();
       const url = `${horizonUrl}/operations?${queryString}`;
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       const response = await fetch(url, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
-        timeout: 30000 // 30 second timeout
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${await response.text()}`);
@@ -540,14 +573,14 @@ export async function fetchComprehensiveContractData(startLedger?: number): Prom
   const db = await getDbInstance();
   if (!db) return { events: [], operations: [], effects: [], accounts: [], payments: [], contractData: [] };
   
-  const recentEvents = await db.horizonEvent.findMany({
+  const recentEvents = await (db as any).horizonEvent.findMany({
     take: 1000,
     orderBy: { timestamp: 'desc' },
     select: { txHash: true, contractId: true }
   });
   
-  const txHashes = [...new Set(recentEvents.map(e => e.txHash).filter(Boolean))];
-  const contractIds = [...new Set(recentEvents.map(e => e.contractId).filter(Boolean))];
+  const txHashes = [...new Set((recentEvents as any[]).map((e: any) => e.txHash as string).filter((h: string) => !!h))];
+  const contractIds = [...new Set((recentEvents as any[]).map((e: any) => e.contractId as string).filter((c: string) => !!c))];
   
   // Fetch operations for these transactions
   const operations: any[] = [];

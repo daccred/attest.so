@@ -41,7 +41,32 @@ The indexer follows a modular architecture:
 
 ## Development
 
+Start the Ingester :
+
+```bash
+  curl -X POST http://localhost:3001/api/indexer/events/ingest \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+Ingest from a specific ledger:
+
+```bash
+  curl -X POST http://localhost:3001/api/indexer/events/ingest \
+    -H 'Content-Type: application/json' \
+    -d '{"ledger": 880111}'
+```
+
+Ingest everything including effects, accounts and payments:
+
+```bash
+  curl -X POST http://localhost:3001/api/indexer/comprehensive/ingest \
+    -H 'Content-Type: application/json' \
+    -d '{"startLedger": 1021000}'
+```
+
 ### Prerequisites
+Start the API Server:
 
 - Node.js 16+
 - PostgreSQL 13+
