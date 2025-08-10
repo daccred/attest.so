@@ -383,11 +383,13 @@ export async function storeContractOperationsInDB(operations: any[], contractIds
     const results = await db.$transaction(async (prismaTx) => {
       const ops = operations.map(async (operation) => {
         // Determine which contract this operation is for
-        const targetContractId = contractIds.find(contractId => 
-          operation.contract_id === contractId || 
-          operation.contract?.includes(contractId) ||
-          JSON.stringify(operation).includes(contractId)
-        ) || contractIds[0] || '';
+        const targetContractId = operation._contractId ||   // Use pre-mapped contract ID
+          contractIds.find(contractId => 
+            operation.contract_id === contractId || 
+            operation.source_account === contractId ||
+            operation.account === contractId ||
+            JSON.stringify(operation).includes(contractId)
+          ) || contractIds[0] || '';
 
         const operationData = {
           operationId: operation.id,

@@ -370,7 +370,10 @@ export async function fetchOperationsFromHorizon(params: {
       
       IndexerErrorHandler.logInfo('Fetching operations from Horizon', baseParams);
 
-      const horizonUrl = sorobanRpcUrl.replace('/soroban/rpc', '');
+      // Use Stellar Horizon API for operations (not Soroban RPC)
+      const horizonUrl = sorobanRpcUrl.includes('testnet') 
+        ? 'https://horizon-testnet.stellar.org'
+        : 'https://horizon.stellar.org';
       const queryString = new URLSearchParams(baseParams).toString();
       const url = `${horizonUrl}/operations?${queryString}`;
 
@@ -424,7 +427,14 @@ export async function fetchEffectsFromHorizon(params: {
     
     console.log('Fetching effects from Horizon with params:', baseParams);
 
-    const response = await fetch(sorobanRpcUrl.replace('/soroban/rpc', '') + '/effects', {
+    // Use Stellar Horizon API for effects (not Soroban RPC)
+    const horizonUrl = sorobanRpcUrl.includes('testnet') 
+      ? 'https://horizon-testnet.stellar.org'
+      : 'https://horizon.stellar.org';
+    const queryString = new URLSearchParams(baseParams).toString();
+    const url = `${horizonUrl}/effects?${queryString}`;
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
     });
@@ -462,7 +472,14 @@ export async function fetchPaymentsFromHorizon(params: {
     
     console.log('Fetching payments from Horizon with params:', baseParams);
 
-    const response = await fetch(sorobanRpcUrl.replace('/soroban/rpc', '') + '/payments', {
+    // Use Stellar Horizon API for payments (not Soroban RPC)
+    const horizonUrl = sorobanRpcUrl.includes('testnet') 
+      ? 'https://horizon-testnet.stellar.org'
+      : 'https://horizon.stellar.org';
+    const queryString = new URLSearchParams(baseParams).toString();
+    const url = `${horizonUrl}/payments?${queryString}`;
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
     });
@@ -486,7 +503,12 @@ export async function fetchAccountFromHorizon(accountId: string): Promise<any | 
   try {
     console.log(`Fetching account ${accountId} from Horizon`);
 
-    const response = await fetch(sorobanRpcUrl.replace('/soroban/rpc', '') + `/accounts/${accountId}`, {
+    // Use Stellar Horizon API for accounts (not Soroban RPC)
+    const horizonUrl = sorobanRpcUrl.includes('testnet') 
+      ? 'https://horizon-testnet.stellar.org'
+      : 'https://horizon.stellar.org';
+
+    const response = await fetch(`${horizonUrl}/accounts/${accountId}`, {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
     });
@@ -649,13 +671,14 @@ export async function fetchContractOperations(
   
   console.log(`🔍 Fetching contract operations for ${contractIds.length} contracts from ledger ${startLedger || 'latest'}`);
   
-  // For each contract, fetch all operations
+  // For each contract, fetch all operations using account-based queries
+  // In Stellar, contracts are accounts, so we can fetch operations by account
   for (const contractId of contractIds) {
     try {
       console.log(`📋 Fetching operations for contract: ${contractId}`);
       
       const contractOps = await fetchOperationsFromHorizon({
-        contractId,
+        accountId: contractId,  // Use accountId instead of contractId
         limit: MAX_OPERATIONS_PER_FETCH
       });
       
@@ -695,10 +718,22 @@ export async function fetchContractOperations(
     }
   }
   
-  // Store contract operations in database
+  // Store contract operations in database with proper contract mapping
   if (operations.length > 0) {
     console.log(`💾 Storing ${operations.length} contract operations in database...`);
-    const storedCount = await storeContractOperationsInDB(operations, contractIds);
+    
+    // Add contract ID mapping to each operation before storing
+    const operationsWithContract = operations.map(op => ({
+      ...op,
+      _contractId: contractIds.find(id => 
+        // The operation belongs to whichever contract account we fetched it from
+        op.source_account === id || 
+        op.account === id ||
+        JSON.stringify(op).includes(id)
+      ) || contractIds[0]
+    }));
+    
+    const storedCount = await storeContractOperationsInDB(operationsWithContract, contractIds);
     console.log(`✅ Stored ${storedCount} contract operations successfully`);
   }
   
