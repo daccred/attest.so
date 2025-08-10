@@ -1,10 +1,10 @@
 /**
  * Analytics API router providing aggregated metrics and insights.
- * 
+ *
  * Offers comprehensive analytics endpoints for monitoring blockchain activity,
  * contract performance, and real-time event feeds. Supports time-based filtering,
  * contract-specific queries, and activity aggregation across multiple dimensions.
- * 
+ *
  * @module router/analytics
  * @requires express
  * @requires common/db
@@ -19,11 +19,11 @@ const router = Router()
 
 /**
  * GET /analytics - General analytics endpoint with time-based aggregation.
- * 
+ *
  * Retrieves aggregated metrics for blockchain activity within specified timeframes.
  * Calculates event totals, transaction success rates, and event distribution by type.
  * Supports filtering by contract ID and customizable time windows.
- * 
+ *
  * @route GET /analytics
  * @param {string} [contractId] - Filter metrics to specific contract
  * @param {string} [timeframe='24h'] - Time window: '1h', '24h', '7d', or '30d'
@@ -120,11 +120,11 @@ router.get('/', async (req: Request, res: Response) => {
 
 /**
  * GET /analytics/contracts - Contract-specific analytics dashboard.
- * 
+ *
  * Provides detailed analytics for specified contracts including operation counts,
  * success rates, unique user metrics, and recent activity indicators. Supports
  * bulk contract analysis with aggregated summary statistics.
- * 
+ *
  * @route GET /analytics/contracts
  * @param {string|string[]} [contractIds] - Contract IDs to analyze (defaults to CONFIG)
  * @returns {Object} Contract analytics response
@@ -223,12 +223,12 @@ router.get('/contracts', async (req: Request, res: Response) => {
 
 /**
  * GET /analytics/activity - Real-time activity feed aggregator.
- * 
+ *
  * Retrieves and consolidates recent blockchain activity including events,
  * transactions, and payments. Supports filtering by contract, account, and
  * activity type with configurable result limits. Results are sorted by
  * timestamp in descending order for real-time monitoring.
- * 
+ *
  * @route GET /analytics/activity
  * @param {string} [contractId] - Filter to specific contract
  * @param {string} [accountId] - Filter to specific account

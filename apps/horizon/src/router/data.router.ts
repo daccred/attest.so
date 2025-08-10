@@ -1,10 +1,10 @@
 /**
  * Data access router providing direct database query endpoints.
- * 
+ *
  * Implements RESTful endpoints for accessing blockchain data stored in the
  * database. Provides paginated access to events, transactions, operations,
  * effects, contract data, accounts, and payments with flexible filtering options.
- * 
+ *
  * @module router/data
  * @requires express
  * @requires common/db
@@ -17,11 +17,11 @@ const router = Router()
 
 /**
  * GET /data/events - Query contract events with filtering and pagination.
- * 
+ *
  * Retrieves stored contract events with support for filtering by contract,
  * event type, and ledger range. Results include associated transaction data
  * and are paginated for efficient data transfer.
- * 
+ *
  * @route GET /data/events
  * @param {string} [contractId] - Filter events by contract ID
  * @param {string} [eventType] - Filter by specific event type
@@ -94,11 +94,11 @@ router.get('/events', async (req: Request, res: Response) => {
 
 /**
  * GET /data/transactions - Query blockchain transactions.
- * 
+ *
  * Provides access to transaction records with comprehensive filtering options
  * including hash lookup, account filtering, and success status. Returns full
  * transaction details including associated events, effects, and payments.
- * 
+ *
  * @route GET /data/transactions
  * @param {string} [hash] - Filter by transaction hash
  * @param {string} [sourceAccount] - Filter by source account
@@ -167,11 +167,11 @@ router.get('/transactions', async (req: Request, res: Response) => {
 
 /**
  * GET /data/operations - Query contract operations.
- * 
+ *
  * Retrieves contract operation records with filtering by transaction,
  * contract, operation type, and source account. Includes related transaction
  * and event data for comprehensive operation context.
- * 
+ *
  * @route GET /data/operations
  * @param {string} [transactionHash] - Filter by parent transaction
  * @param {string} [contractId] - Filter by contract ID
@@ -236,11 +236,11 @@ router.get('/operations', async (req: Request, res: Response) => {
 
 /**
  * GET /data/effects - Query operation effects.
- * 
+ *
  * Retrieves operation effects representing state changes from blockchain
  * operations. Includes balance changes, trustline modifications, and
  * other ledger state transitions with transaction context.
- * 
+ *
  * @route GET /data/effects
  * @param {string} [operationId] - Filter by parent operation
  * @param {string} [transactionHash] - Filter by transaction
@@ -297,11 +297,11 @@ router.get('/effects', async (req: Request, res: Response) => {
 
 /**
  * GET /data/contract-data - Query contract storage data.
- * 
+ *
  * Accesses contract storage entries with support for key-based queries,
  * durability filtering, and historical data retrieval. Can return either
  * the latest state or full historical versions of contract data.
- * 
+ *
  * @route GET /data/contract-data
  * @param {string} [contractId] - Filter by contract ID
  * @param {string} [key] - Filter by storage key
@@ -368,11 +368,11 @@ router.get('/contract-data', async (req: Request, res: Response) => {
 
 /**
  * GET /data/accounts - Query blockchain accounts.
- * 
+ *
  * Retrieves account records including regular accounts and contract accounts.
  * Tracks account activity, contract associations, and last activity timestamps
  * for account lifecycle monitoring.
- * 
+ *
  * @route GET /data/accounts
  * @param {string} [accountId] - Filter by account ID
  * @param {string} [isContract] - Filter by contract status ('true'/'false')
@@ -422,11 +422,11 @@ router.get('/accounts', async (req: Request, res: Response) => {
 
 /**
  * GET /data/payments - Query payment operations.
- * 
+ *
  * Retrieves payment records including transfers between accounts with
  * asset details, amounts, and transaction associations. Supports filtering
  * by sender, receiver, and transaction for payment tracking.
- * 
+ *
  * @route GET /data/payments
  * @param {string} [from] - Filter by sender account
  * @param {string} [to] - Filter by receiver account

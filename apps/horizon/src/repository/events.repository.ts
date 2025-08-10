@@ -1,11 +1,11 @@
 /**
  * Event repository for Soroban contract event synchronization.
- * 
+ *
  * Implements event fetching from Soroban RPC with pagination support,
  * transaction enrichment, and database persistence. Handles ledger-based
  * synchronization with automatic progress tracking and retry logic for
  * resilient event ingestion.
- * 
+ *
  * @module repository/events
  * @requires @stellar/stellar-sdk
  * @requires common/constants
@@ -27,7 +27,7 @@ const sorobanServer = new rpc.Server(sorobanRpcUrl, {
 
 /**
  * Result interface for event fetching operations.
- * 
+ *
  * Provides detailed information about the event synchronization process
  * including counts, progress tracking, and RPC status information.
  */
@@ -40,12 +40,12 @@ export interface FetchEventsResult {
 
 /**
  * Fetches and stores contract events from Soroban RPC.
- * 
+ *
  * Performs incremental event synchronization starting from the specified
  * or last processed ledger. Implements pagination handling, transaction
  * detail enrichment, and atomic database storage. Tracks synchronization
  * progress and handles empty ledger ranges gracefully.
- * 
+ *
  * @async
  * @function fetchAndStoreEvents
  * @param {number} [startLedgerFromRequest] - Override starting ledger
@@ -59,9 +59,7 @@ export interface FetchEventsResult {
 export async function fetchAndStoreEvents(
   startLedgerFromRequest?: number
 ): Promise<FetchEventsResult> {
-  console.log(
-    `---------------- FETCH AND STORE EVENTS CYCLE (events.repository.ts) ----------------`
-  )
+  console.log(`---------------- FETCH AND STORE EVENTS CYCLE (events.repository.ts) ----------------`)
   console.log(
     `Requested start ledger: ${
       startLedgerFromRequest === undefined ? 'latest from DB/default' : startLedgerFromRequest
@@ -226,9 +224,7 @@ export async function fetchAndStoreEvents(
           let transactionDetails: any = null
           if (event.txHash) {
             try {
-              console.log(
-                `----------- Fetching tx: ${event.txHash} for event ${event.id} -----------`
-              )
+              console.log(`----------- Fetching tx: ${event.txHash} for event ${event.id} -----------`)
               const txRpcPayload = {
                 jsonrpc: '2.0',
                 id: `getTx-${event.txHash}-${Date.now()}`,
@@ -381,12 +377,12 @@ export async function fetchAndStoreEvents(
 
 /**
  * Stores events and associated transactions atomically.
- * 
+ *
  * Persists event and transaction data in a database transaction to ensure
  * consistency. Handles transaction storage before events to maintain
  * foreign key integrity. Supports batch processing with configurable
  * transaction timeout.
- * 
+ *
  * @async
  * @function storeEventsAndTransactionsInDB
  * @private

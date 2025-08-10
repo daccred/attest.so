@@ -1,11 +1,11 @@
 /**
  * Contract data repository for Soroban smart contract interactions.
- * 
+ *
  * Provides data access layer for contract-related operations including
  * fetching contract data from Soroban RPC, retrieving contract operations
  * from Horizon, and comprehensive data synchronization. Handles both
  * real-time and historical data collection with database persistence.
- * 
+ *
  * @module repository/contracts
  * @requires common/constants
  * @requires common/db
@@ -22,11 +22,11 @@ import { fetchTransactionDetails, storeTransactionsInDB } from './transactions.r
 
 /**
  * Fetches contract storage data directly from Soroban RPC.
- * 
+ *
  * Retrieves specific contract data entries using the Soroban RPC
  * getLedgerEntries method. Supports both persistent and temporary
  * storage durability types. Returns null if data not found or on error.
- * 
+ *
  * @async
  * @function fetchContractDataFromSoroban
  * @param {Object} params - Query parameters
@@ -89,11 +89,11 @@ export async function fetchContractDataFromSoroban(params: {
 
 /**
  * Stores contract data entries in the database.
- * 
+ *
  * Persists contract storage data with support for versioning and
  * change tracking. Uses database transactions for consistency and
  * handles updates for existing entries.
- * 
+ *
  * @async
  * @function storeContractDataInDB
  * @param {Array} contractData - Array of contract data entries
@@ -141,12 +141,12 @@ export async function storeContractDataInDB(contractData: any[]) {
 
 /**
  * Fetches and stores contract operations from Horizon.
- * 
+ *
  * Retrieves all operations for specified contracts using Horizon's
  * account-based queries. Fetches associated transaction details and
  * stores both operations and transactions in the database with proper
  * foreign key relationships.
- * 
+ *
  * @async
  * @function fetchContractOperations
  * @param {string[]} [contractIds] - Target contract IDs (defaults to config)
@@ -268,12 +268,12 @@ export async function fetchContractOperations(
 
 /**
  * Performs comprehensive data collection for contracts.
- * 
+ *
  * Orchestrates complete data synchronization including events, operations,
  * and transactions. Combines multiple data sources and provides detailed
  * statistics about the collection process. Useful for initial sync or
  * comprehensive updates.
- * 
+ *
  * @async
  * @function fetchContractComprehensiveData
  * @param {number} [startLedger] - Starting ledger sequence

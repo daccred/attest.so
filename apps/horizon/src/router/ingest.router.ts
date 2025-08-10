@@ -1,11 +1,11 @@
 /**
  * Data ingestion control router for managing blockchain synchronization.
- * 
+ *
  * Provides endpoints for triggering and monitoring blockchain data ingestion
  * processes. Supports manual triggering, queue management, and comprehensive
  * data collection operations for maintaining database synchronization with
  * the blockchain.
- * 
+ *
  * @module router/ingest
  * @requires express
  * @requires common/queue
@@ -25,11 +25,11 @@ const router = Router()
 
 /**
  * POST /ingest/events - Enqueue event ingestion job.
- * 
+ *
  * Adds an event fetching job to the processing queue for asynchronous
  * execution. Supports configuration of retry attempts and initial delay.
  * Returns the job ID for tracking purposes.
- * 
+ *
  * @route POST /ingest/events
  * @param {number} [startLedger] - Starting ledger sequence
  * @returns {Object} Queue job response
@@ -52,12 +52,26 @@ router.post('/events', async (req: Request, res: Response) => {
       }
     }
 
-    const jobId = ingestQueue.enqueueFetchEvents(startLedgerFromRequest)
+    let endLedgerFromRequest: number | undefined = undefined
+    if (req.body.endLedger !== undefined) {
+      endLedgerFromRequest = parseInt(req.body.endLedger)
+      if (isNaN(endLedgerFromRequest)) {
+        return res.status(400).json({ error: 'Invalid endLedger parameter. Must be a number.' })
+      }
+    }
+
+    const jobId = ingestQueue.enqueueFetchEvents(startLedgerFromRequest, {
+      endLedger: endLedgerFromRequest,
+    })
     res.status(202).json({
       success: true,
       message: `Event ingestion job enqueued. Requested start ledger: ${
         startLedgerFromRequest === undefined ? 'latest from DB/default' : startLedgerFromRequest
-      }.`,
+      }. ${
+        endLedgerFromRequest && endLedgerFromRequest > 0
+          ? `End ledger: ${endLedgerFromRequest}.`
+          : 'End ledger: unbounded.'
+      }`,
       jobId,
     })
   } catch (error: any) {
@@ -69,11 +83,11 @@ router.post('/events', async (req: Request, res: Response) => {
 
 /**
  * POST /ingest/comprehensive - Trigger comprehensive data collection.
- * 
+ *
  * Initiates a complete data synchronization process that fetches events,
  * operations, and transactions for specified contracts. Runs asynchronously
  * and provides status updates via server logs.
- * 
+ *
  * @route POST /ingest/comprehensive
  * @param {number} [startLedger] - Starting ledger sequence
  * @returns {Object} Ingestion initiation response
@@ -95,6 +109,14 @@ router.post('/comprehensive', async (req: Request, res: Response) => {
       }
     }
 
+    let endLedgerFromRequest: number | undefined = undefined
+    if (req.body.endLedger !== undefined) {
+      endLedgerFromRequest = parseInt(req.body.endLedger)
+      if (isNaN(endLedgerFromRequest)) {
+        return res.status(400).json({ error: 'Invalid endLedger parameter. Must be a number.' })
+      }
+    }
+
     // Non-blocking: Trigger comprehensive data ingestion
     fetchContractComprehensiveData(startLedgerFromRequest)
       .then(async (result: any) => {
@@ -112,7 +134,11 @@ router.post('/comprehensive', async (req: Request, res: Response) => {
       success: true,
       message: `Comprehensive data ingestion initiated. Requested start ledger: ${
         startLedgerFromRequest === undefined ? 'latest from DB/default' : startLedgerFromRequest
-      }. Check server logs for progress.`,
+      }. ${
+        endLedgerFromRequest && endLedgerFromRequest > 0
+          ? `End ledger: ${endLedgerFromRequest}.`
+          : 'End ledger: unbounded.'
+      } Check server logs for progress.`,
     })
   } catch (error: any) {
     res.status(500).json({
@@ -124,11 +150,11 @@ router.post('/comprehensive', async (req: Request, res: Response) => {
 
 /**
  * POST /ingest/contracts/operations - Enqueue contract operations ingestion.
- * 
+ *
  * Queues a job to fetch operations for specified contracts with support
  * for failed transaction inclusion and custom starting ledger. Returns
  * job ID for tracking and monitoring purposes.
- * 
+ *
  * @route POST /ingest/contracts/operations
  * @param {number} [startLedger] - Starting ledger sequence
  * @param {string[]} [contractIds] - Target contract IDs (defaults to config)
@@ -178,11 +204,11 @@ router.post('/contracts/operations', async (req: Request, res: Response) => {
 
 /**
  * POST /ingest/contracts/comprehensive - Enqueue comprehensive contract data job.
- * 
+ *
  * Queues a comprehensive data collection job that fetches events, operations,
  * transactions, and account data for specified contracts. Provides detailed
  * tracking information and strategy confirmation.
- * 
+ *
  * @route POST /ingest/contracts/comprehensive
  * @param {number} [startLedger] - Starting ledger sequence
  * @param {string[]} [contractIds] - Target contract IDs (defaults to config)
@@ -210,7 +236,17 @@ router.post('/contracts/comprehensive', async (req: Request, res: Response) => {
       }
     }
 
-    const jobId = ingestQueue.enqueueComprehensiveData(targetContractIds, startLedgerFromRequest)
+    let endLedgerFromRequest: number | undefined = undefined
+    if (req.body.endLedger !== undefined) {
+      endLedgerFromRequest = parseInt(req.body.endLedger)
+      if (isNaN(endLedgerFromRequest)) {
+        return res.status(400).json({ error: 'Invalid endLedger parameter. Must be a number.' })
+      }
+    }
+
+    const jobId = ingestQueue.enqueueComprehensiveData(targetContractIds, startLedgerFromRequest, {
+      endLedger: endLedgerFromRequest,
+    })
 
     res.status(202).json({
       success: true,

@@ -1,10 +1,10 @@
 /**
  * Database connection management module for PostgreSQL via Prisma ORM.
- * 
+ *
  * This module provides centralized database connection management with automatic
  * connection pooling, debug logging, and graceful shutdown handling. It ensures
  * a singleton pattern for the Prisma client instance across the application.
- * 
+ *
  * @module common/prisma
  * @requires @prisma/client
  */
@@ -15,11 +15,11 @@ let prisma: PrismaClient | undefined
 
 /**
  * Establishes and manages the PostgreSQL database connection.
- * 
+ *
  * Creates a new Prisma client instance with environment-specific configuration,
  * including optional debug logging for development environments. Handles connection
  * testing and provides appropriate error messages for missing configuration.
- * 
+ *
  * @async
  * @function connectToPostgreSQL
  * @returns {Promise<boolean>} Returns true if connection successful, false otherwise
@@ -75,11 +75,11 @@ connectToPostgreSQL()
 
 /**
  * Retrieves the singleton Prisma client instance.
- * 
+ *
  * Returns the active Prisma client instance if connected, or undefined if the
  * database connection has not been established or has failed. This ensures
  * safe access to the database throughout the application.
- * 
+ *
  * @function getPrismaInstance
  * @returns {PrismaClient | undefined} The active Prisma client or undefined
  */

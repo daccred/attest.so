@@ -1,10 +1,10 @@
 /**
  * System management router for application health and configuration.
- * 
+ *
  * Provides endpoints for system health checks, configuration management,
  * and operational status monitoring. Essential for deployment health
  * monitoring and debugging production issues.
- * 
+ *
  * @module router/system
  * @requires express
  * @requires common/queue
@@ -25,11 +25,11 @@ const router = Router()
 
 /**
  * GET /system/queue/status - Retrieve ingestion queue status.
- * 
+ *
  * Provides current queue state including pending job count, processing
  * status, and details of upcoming jobs. Useful for monitoring queue
  * health and debugging ingestion issues.
- * 
+ *
  * @route GET /system/queue/status
  * @returns {Object} Queue status response
  * @returns {boolean} response.success - Operation success indicator
@@ -50,12 +50,12 @@ router.get('/queue/status', async (_req: Request, res: Response) => {
 
 /**
  * GET /system/health - Application health check endpoint.
- * 
+ *
  * Performs comprehensive health assessment including database connectivity,
  * RPC endpoint status, and configuration validation. Provides detailed status
  * information for monitoring and alerting systems with automatic reconnection
  * attempts for degraded services.
- * 
+ *
  * @route GET /system/health
  * @returns {Object} Health status response
  * @returns {string} response.status - Overall health: 'ok' or 'error'

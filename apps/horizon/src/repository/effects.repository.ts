@@ -1,10 +1,10 @@
 /**
  * Effects repository for blockchain operation effects.
- * 
+ *
  * Manages operation effects which represent state changes resulting
  * from blockchain operations. Tracks account balance changes, trustline
  * modifications, and other ledger state transitions.
- * 
+ *
  * @module repository/effects
  * @requires common/constants
  * @requires common/db
@@ -15,11 +15,11 @@ import { getDB } from '../common/db'
 
 /**
  * Fetches operation effects from Stellar Horizon API.
- * 
+ *
  * Retrieves effect records representing state changes from operations.
  * Supports filtering by operation, transaction, account, and pagination
  * for comprehensive effect tracking and analysis.
- * 
+ *
  * @async
  * @function fetchEffectsFromHorizon
  * @param {Object} params - Query parameters
@@ -76,11 +76,11 @@ export async function fetchEffectsFromHorizon(params: {
 
 /**
  * Stores operation effects in database with comprehensive metadata.
- * 
+ *
  * Persists effect records representing state changes from operations,
  * including account credits/debits, trustline changes, and contract
  * state modifications. Links effects to parent operations and transactions.
- * 
+ *
  * @async
  * @function storeEffectsInDB
  * @param {Array} effects - Effect records to store

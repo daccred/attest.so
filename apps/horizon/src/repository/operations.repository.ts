@@ -1,10 +1,10 @@
 /**
  * Operations repository for Horizon blockchain operation management.
- * 
+ *
  * Provides data access layer for fetching and storing blockchain operations
  * from Stellar Horizon API. Handles operation retrieval with pagination,
  * contract association, and database persistence with transaction support.
- * 
+ *
  * @module repository/operations
  * @requires common/constants
  * @requires common/db
@@ -17,11 +17,11 @@ import { IndexerErrorHandler, PerformanceMonitor, RateLimiter } from '../common/
 
 /**
  * Fetches operations from Horizon API with filtering options.
- * 
+ *
  * Retrieves blockchain operations using various filter criteria including
  * account, transaction, and cursor-based pagination. Supports both forward
  * and reverse ordering for comprehensive operation history retrieval.
- * 
+ *
  * @async
  * @function fetchOperationsFromHorizon
  * @param {Object} params - Query parameters
@@ -92,11 +92,11 @@ export async function fetchOperationsFromHorizon(params: {
 
 /**
  * Stores contract operations in database with association mapping.
- * 
+ *
  * Persists operations with proper contract association and transaction
  * relationships. Handles bulk upsert operations with transaction safety
  * and maintains data integrity through foreign key constraints.
- * 
+ *
  * @async
  * @function storeContractOperationsInDB
  * @param {Array} operations - Operations with contract mapping

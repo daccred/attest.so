@@ -1,10 +1,10 @@
 /**
  * Payment repository for blockchain payment tracking.
- * 
+ *
  * Manages payment operations including transfers between accounts,
  * with support for various asset types and comprehensive payment
  * metadata storage for financial tracking and analysis.
- * 
+ *
  * @module repository/payments
  * @requires common/constants
  * @requires common/db
@@ -15,11 +15,11 @@ import { getDB } from '../common/db'
 
 /**
  * Fetches payment records from Stellar Horizon API.
- * 
+ *
  * Retrieves payment operations with support for account filtering
  * and pagination. Includes asset details, amounts, and transaction
  * associations for comprehensive payment tracking.
- * 
+ *
  * @async
  * @function fetchPaymentsFromHorizon
  * @param {Object} params - Query parameters
@@ -70,11 +70,11 @@ export async function fetchPaymentsFromHorizon(params: {
 
 /**
  * Stores payment records in database with transaction association.
- * 
+ *
  * Persists payment data including sender, receiver, asset details,
  * amounts, and timestamps. Links payments to parent transactions
  * and operations for comprehensive financial record keeping.
- * 
+ *
  * @async
  * @function storePaymentsInDB
  * @param {Array} payments - Payment records to store

@@ -1,10 +1,10 @@
 /**
  * RPC repository for direct blockchain RPC interactions.
- * 
+ *
  * Provides low-level RPC communication layer for Soroban endpoints.
  * Handles RPC method calls, response parsing, and error handling
  * for reliable blockchain data access.
- * 
+ *
  * @module repository/rpc
  * @requires @stellar/stellar-sdk
  * @requires common/constants
@@ -19,11 +19,11 @@ const sorobanServer = new rpc.Server(sorobanRpcUrl, {
 
 /**
  * Retrieves the latest ledger sequence from Soroban RPC.
- * 
+ *
  * Fetches the most recent ledger sequence number from the RPC endpoint
  * with comprehensive logging for debugging. Essential for synchronization
  * and determining the current blockchain height.
- * 
+ *
  * @async
  * @function getLatestRPCLedgerIndex
  * @returns {Promise<number>} Latest ledger sequence number
@@ -43,11 +43,11 @@ export async function getLatestRPCLedgerIndex(): Promise<number> {
 
 /**
  * Checks the health status of the Soroban RPC endpoint.
- * 
+ *
  * Performs a health check against the RPC endpoint to determine
  * service availability and status. Returns standardized status
  * strings for monitoring and alerting purposes.
- * 
+ *
  * @async
  * @function getRpcHealth
  * @returns {Promise<string>} RPC health status string

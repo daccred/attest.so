@@ -1,10 +1,10 @@
 /**
  * Account repository for blockchain account management.
- * 
+ *
  * Manages account data including regular accounts and contract accounts,
  * tracking account activity, balances, and contract associations with
  * automatic classification and activity timestamp updates.
- * 
+ *
  * @module repository/accounts
  * @requires common/constants
  * @requires common/db
@@ -15,11 +15,11 @@ import { getDB } from '../common/db'
 
 /**
  * Fetches account details from Stellar Horizon API.
- * 
+ *
  * Retrieves comprehensive account information including balances, signers,
  * contract status, and operational metrics. Handles both regular accounts
  * and contract accounts with proper error handling for missing accounts.
- * 
+ *
  * @async
  * @function fetchAccountFromHorizon
  * @param {string} accountId - Account identifier to fetch
@@ -56,11 +56,11 @@ export async function fetchAccountFromHorizon(accountId: string): Promise<any | 
 
 /**
  * Stores account records in database with comprehensive details.
- * 
+ *
  * Persists account data including balances, signers, contract information,
  * and activity timestamps. Uses bulk upsert operations for efficiency and
  * maintains account history with proper classification.
- * 
+ *
  * @async
  * @function storeAccountsInDB
  * @param {Array} accounts - Account records to store
