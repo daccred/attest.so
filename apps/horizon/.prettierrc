@@ -3,7 +3,7 @@
   "tabWidth": 2,
   "semi": false,
   "singleQuote": true,
-  "printWidth": 120,
+  "printWidth": 100,
   "endOfLine": "lf",
   "overrides": [
     {

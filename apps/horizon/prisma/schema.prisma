@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Metadata {
+model HorizonMetadata {
   id    String @id @default(uuid())
   key   String @unique
   value String
@@ -15,10 +15,10 @@ model Metadata {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@map("metadata")
+  @@map("horizon_metadata")
 }
 
-model ContractEvent {
+model HorizonEvent {
   id          String   @id @default(uuid())
   eventId     String   @unique
   ledger      Int
@@ -28,13 +28,19 @@ model ContractEvent {
   eventData   Json
   
   // Transaction details
-  txHash      String
+  txHash      String?
   txEnvelope  String
   txResult    String
   txMeta      String
   txFeeBump   Boolean  @default(false)
   txStatus    String
   txCreatedAt DateTime
+  
+  // Relations
+  transaction HorizonTransaction? @relation(fields: [txHash], references: [hash])
+  contractOperation HorizonContractOperation? @relation(fields: [contractOperationId], references: [id])
+  contractOperationId String?
+  effects     HorizonEffect[]
   
   // Indexer metadata
   ingestedAt  DateTime @default(now())
@@ -43,5 +49,190 @@ model ContractEvent {
   @@index([contractId])
   @@index([timestamp])
   @@index([eventType])
-  @@map("contract_events")
+  @@index([txHash])
+  @@map("horizon_events")
+}
+
+model HorizonTransaction {
+  id                String   @id @default(uuid())
+  hash              String   @unique
+  ledger            Int
+  timestamp         DateTime
+  sourceAccount     String
+  fee               String
+  operationCount    Int
+  envelope          Json
+  result            Json
+  meta              Json
+  feeBump           Boolean  @default(false)
+  successful        Boolean
+  memo              String?
+  memoType          String?
+  
+  // Gas and resource usage
+  inclusionFee      String?
+  resourceFee       String?
+  sorobanResourceUsage Json?
+  
+  // Relations
+  events            HorizonEvent[]
+  effects          HorizonEffect[]
+  payments         HorizonPayment[]
+  
+  // Indexer metadata
+  ingestedAt        DateTime @default(now())
+  
+  @@index([ledger])
+  @@index([timestamp])
+  @@index([sourceAccount])
+  @@index([successful])
+  @@map("horizon_transactions")
+}
+
+model HorizonEffect {
+  id              String   @id @default(uuid())
+  effectId        String   @unique
+  operationId     String
+  transactionHash String
+  type            String
+  typeI           Int
+  details         Json
+  account         String?
+  eventId         String?
+  
+  // Relations
+  transaction     HorizonTransaction @relation(fields: [transactionHash], references: [hash])
+  event           HorizonEvent? @relation(fields: [eventId], references: [id])
+  
+  // Indexer metadata
+  ingestedAt      DateTime @default(now())
+  
+  @@index([operationId])
+  @@index([transactionHash])
+  @@index([type])
+  @@index([account])
+  @@map("horizon_effects")
+}
+
+model HorizonContractData {
+  id            String   @id @default(uuid())
+  contractId    String
+  key           String
+  value         Json
+  durability    String   // "persistent" or "temporary"
+  ledger        Int
+  timestamp     DateTime
+  
+  // Track data evolution
+  previousValue Json?
+  isDeleted     Boolean  @default(false)
+  
+  // Indexer metadata
+  ingestedAt    DateTime @default(now())
+  lastUpdated   DateTime @updatedAt
+  
+  @@unique([contractId, key, ledger])
+  @@index([contractId])
+  @@index([ledger])
+  @@index([timestamp])
+  @@index([durability])
+  @@map("horizon_contract_data")
+}
+
+model HorizonAccount {
+  id              String   @id @default(uuid())
+  accountId       String   @unique
+  sequence        String
+  balances        Json
+  signers         Json
+  data            Json
+  flags           Int
+  homeDomain      String?
+  thresholds      Json
+  
+  // Contract-specific fields
+  isContract      Boolean  @default(false)
+  contractCode    String?
+  
+  // Metrics
+  operationCount  Int      @default(0)
+  lastActivity    DateTime?
+  
+  // Indexer metadata
+  ingestedAt      DateTime @default(now())
+  lastUpdated     DateTime @updatedAt
+  
+  @@index([isContract])
+  @@index([lastActivity])
+  @@map("horizon_accounts")
+}
+
+model HorizonPayment {
+  id              String   @id @default(uuid())
+  paymentId       String   @unique
+  transactionHash String
+  operationId     String
+  from            String
+  to              String
+  asset           Json
+  amount          String
+  timestamp       DateTime
+  
+  // Relations
+  transaction     HorizonTransaction @relation(fields: [transactionHash], references: [hash])
+  
+  // Indexer metadata
+  ingestedAt      DateTime @default(now())
+  
+  @@index([from])
+  @@index([to])
+  @@index([timestamp])
+  @@index([transactionHash])
+  @@map("horizon_payments")
+}
+
+// Enhanced model for contract-specific operations tracking
+model HorizonContractOperation {
+  id                String   @id @default(uuid())
+  operationId       String   @unique
+  transactionHash   String
+  contractId        String   // Which specific contract this operation targets
+  operationType     String   // e.g., "invoke_host_function", "restore_footprint"
+  successful        Boolean  @default(true)
+  sourceAccount     String
+  operationIndex    Int      @default(0)
+  
+  // Enhanced contract-specific data
+  function          String?  // Contract function called
+  parameters        Json?    // Function parameters
+  details           Json     // Full operation details
+  
+  // Relations
+  events            HorizonEvent[]     // Events emitted by this operation
+  
+  // Indexer metadata  
+  ingestedAt        DateTime @default(now())
+  
+  @@index([contractId])
+  @@index([operationType])
+  @@index([successful])
+  @@index([sourceAccount])
+  @@index([transactionHash])
+  @@map("horizon_contract_operations")
+}
+
+model HorizonIndexerState {
+  id                    String   @id @default(uuid())
+  lastProcessedLedger   Int
+  lastProcessedAt       DateTime
+  syncStatus            String   // "syncing", "synced", "error"
+  errorMessage          String?
+  
+  // Performance metrics
+  eventsPerSecond       Float?
+  ledgersPerMinute      Float?
+  
+  updatedAt             DateTime @updatedAt
+  
+  @@map("horizon_indexer_state")
 }

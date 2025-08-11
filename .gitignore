@@ -115,6 +115,9 @@ contracts/stellar/env.sh
 
 # claude
 .claude
+.cursor
+
+
 
 # prisma
 prisma/migrations
