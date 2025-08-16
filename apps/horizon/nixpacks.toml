@@ -1,6 +1,0 @@
-[phases.setup]
-nixPkgs = ["nodejs_20", "nodePackages.pnpm"]
-
-[variables]
-NODE_VERSION = "20"
-NODE_OPTIONS = "--max-old-space-size=8192"
