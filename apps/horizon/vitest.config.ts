@@ -11,5 +11,13 @@ export default defineConfig({
       provider: 'v8', // or 'istanbul'
       reporter: ['text', 'json', 'html'],
     },
+    sequence: {
+      concurrent: false,
+    },
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '__tests__/integration/**',
+    ],
   },
 });

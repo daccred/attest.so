@@ -37,18 +37,31 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  // Clear test database before each test
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: TEST_DATABASE_URL
+  // Only clean test database for integration tests, not unit tests with mocks
+  if (process.env.VITEST_MODE === 'integration') {
+    const prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: TEST_DATABASE_URL
+        }
       }
+    });
+    
+    try {
+      // Clean up all Horizon data tables
+      await prisma.horizonPayment.deleteMany();
+      await prisma.horizonAccount.deleteMany();
+      await prisma.horizonContractData.deleteMany();
+      await prisma.horizonEffect.deleteMany();
+      await prisma.horizonEvent.deleteMany();
+      await prisma.horizonTransaction.deleteMany();
+      await prisma.horizonMetadata.deleteMany();
+    } catch (error) {
+      console.warn('Database cleanup failed:', error);
+    } finally {
+      await prisma.$disconnect();
     }
-  });
-  
-  await prisma.contractEvent.deleteMany();
-  await prisma.metadata.deleteMany();
-  await prisma.$disconnect();
+  }
 });
 
 afterAll(async () => {

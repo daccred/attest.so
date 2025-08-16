@@ -1,13 +1,19 @@
 {
   "name": "@attestprotocol/core",
   "description": "Core abstractions and interfaces for Attest Protocol SDKs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "daccred",
   "license": "MIT",
   "repository": "daccred/attest.so.git",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "homepage": "https://github.com/daccred/attest.so#readme",
-  "keywords": ["attestation", "blockchain", "core", "sdk", "abstract"],
+  "keywords": [
+    "attestation",
+    "blockchain",
+    "core",
+    "sdk",
+    "abstract"
+  ],
   "main": "dist/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
@@ -18,7 +24,10 @@
       "require": "./dist/index.js"
     }
   },
-  "files": ["dist", "src"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "build": "pnpm clean && pnpm build:cjs && pnpm build:esm && pnpm build:types",
     "build:cjs": "tsc -p tsconfig.json",
