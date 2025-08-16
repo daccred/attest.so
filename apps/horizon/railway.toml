@@ -1,7 +1,8 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd ../.. && pnpm install --ignore-scripts --filter @attestprotocol/horizon... && cd apps/horizon && pnpm run postinstall && pnpm build"
+buildCommand = "cd ../.. && NODE_OPTIONS='--max-old-space-size=8192' pnpm install --ignore-scripts --filter @attestprotocol/horizon... && cd apps/horizon && pnpm run postinstall && NODE_OPTIONS='--max-old-space-size=8192' pnpm build"
 watchPatterns = ["apps/horizon/**"]
+nixpacksConfigPath = "nixpacks.toml"
 
 [deploy]
 startCommand = "pnpm start"
