@@ -38,12 +38,14 @@ COPY apps/horizon/package.json ./apps/horizon/
 ENV NODE_ENV=production
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Copy built application
+# Copy built application and source
 COPY --from=base /app/apps/horizon/dist ./apps/horizon/dist
 COPY --from=base /app/apps/horizon/prisma ./apps/horizon/prisma
-COPY --from=base /app/node_modules/.prisma ./node_modules/.prisma
 
 WORKDIR /app/apps/horizon
+
+# Generate Prisma client in production environment
+RUN pnpm prisma generate
 
 # Expose port
 EXPOSE 8080
