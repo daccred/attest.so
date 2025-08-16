@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd ../.. && pnpm install --filter @attestprotocol/horizon... && cd apps/horizon && pnpm prisma:generate && pnpm build"
+buildCommand = "cd ../.. && pnpm install --ignore-scripts --filter @attestprotocol/horizon... && cd apps/horizon && pnpm run postinstall && pnpm build"
 watchPatterns = ["apps/horizon/**"]
 
 [deploy]
