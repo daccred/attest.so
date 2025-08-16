@@ -1,4 +1,4 @@
-import StellarAttestProtocol from './src'
+import StellarAttestProtocol from '../src'
 import * as client from '@stellar/stellar-sdk'
 
 async function run(options: any = {}) {
