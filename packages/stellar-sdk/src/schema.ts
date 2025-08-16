@@ -108,15 +108,9 @@ export class StellarSchemaService {
    */
   async generateIdFromSchema(schema: SchemaDefinition): Promise<AttestProtocolResponse<string>> {
     try {
-      const authority = this.publicKey
-      const content = `${authority}:${schema.name}:${schema.content}`
-      const encoder = new TextEncoder()
-      const data = encoder.encode(content)
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-      const hashArray = Array.from(new Uint8Array(hashBuffer))
-      return createSuccessResponse(
-        hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-      )
+      const { generateIdFromSchema: generateId } = await import('./_internal')
+      const uid = await generateId(schema, this.publicKey)
+      return createSuccessResponse(uid)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(

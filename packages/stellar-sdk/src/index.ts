@@ -50,6 +50,9 @@ export {
   type SchemaRules,
 } from '@attestprotocol/stellar/dist/bindings/src/authority'
 
+// Internal utilities (for advanced usage and testing)
+export * as _internal from './_internal'
+
 // Default export for convenience
 import { StellarAttestProtocol } from './stellar-sdk'
 export default StellarAttestProtocol

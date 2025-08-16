@@ -1,22 +1,19 @@
-import StellarAttestProtocol from '../src'
-import * as client from '@stellar/stellar-sdk'
+import StellarAttestProtocol, { _internal } from '../src'
 
 async function run(options: any = {}) {
   console.log('Starting Stellar attestation test...')
 
-  // Authority Keypair: SALAT34FZK3CSTAWIOT6D4PY6UWKSG6AABGJHXJZCOUHUGP75DDOFPO4
-  // Recipient Keypair: SCA2IFDKXLRPWCMUWIW6RLOCVGXOQOFQJIODGGGJQ2UAD2RI3WQAXLKX
-  // Authority public key: GBULAMIEKTTBKNV44XSC3SQZ7P2YU5BTBZI3WG3ZDYBPIH7N74D3SXAA
-  // Recipient public key: GCBG6NXX3TNAYFSJMJ6XZWJOZHIUSEHIXTTZ3HHRVPWLBIH427OYGZ4C
-  const authorityKeypair = client.Keypair.fromSecret(
-    'SALAT34FZK3CSTAWIOT6D4PY6UWKSG6AABGJHXJZCOUHUGP75DDOFPO4'
-  )
-  const recipientKeypair = client.Keypair.fromSecret(
-    'SCA2IFDKXLRPWCMUWIW6RLOCVGXOQOFQJIODGGGJQ2UAD2RI3WQAXLKX'
-  )
+  // Use internal utilities to create test keypairs
+  const { authority: authorityKeypair, recipient: recipientKeypair } = _internal.createTestKeypairs()
 
   console.log('Authority public key:', authorityKeypair.publicKey())
   console.log('Recipient public key:', recipientKeypair.publicKey())
+
+  // Generate funding URLs using internal utility
+  const fundingUrls = _internal.generateFundingUrls([
+    authorityKeypair.publicKey(),
+    recipientKeypair.publicKey()
+  ])
 
   // Check if accounts need funding and display info
   console.log(`
@@ -25,10 +22,10 @@ IMPORTANT: Before running this test, make sure to fund the test accounts
 with XLM on the Stellar Testnet. Use the Stellar Friendbot to fund them:
 
 Authority Account:
-https://friendbot.stellar.org/?addr=${authorityKeypair.publicKey()}
+${fundingUrls[0]}
 
 Recipient Account:
-https://friendbot.stellar.org/?addr=${recipientKeypair.publicKey()}
+${fundingUrls[1]}
 
 You can also visit https://laboratory.stellar.org/ to fund the accounts
 and explore your transactions.
@@ -62,31 +59,22 @@ If you're already funded, please ignore this message.
     console.log('SDK initialized')
 
     console.log('\nCreating schema...')
-    const { data: schema, error: schemaError } = await client.createSchema({
-      name: 'test-schema',
-      content: 'TestSchema(Name=string, Age=u32)',
-      revocable: true,
-    })
+    // Use internal utility to create a realistic identity verification schema
+    const testSchema = _internal.createTestSchema('identity', 'identity-verification-v1')
+    const { data: schema, error: schemaError } = await client.createSchema(testSchema)
 
-    console.log(schema, schemaError)
+    console.log('Schema:', schema)
+    if (schemaError) console.log('Schema Error:', schemaError)
 
     if (schemaError || !schema) {
       throw new Error(schemaError || 'Cannot continue without a valid schema')
     }
 
-    console.log('Schema created with UID:', schema)
+    console.log('Schema created with UID:', schema.uid)
+    console.log('Formatted UID:', _internal.formatSchemaUid(schema.uid))
 
-    const reference = `sample_reference_${Date.now()}`
-
-    const attestData = {
-      schemaUid: schema.uid,
-      subject: recipientKeypair.publicKey(),
-      data: JSON.stringify({
-        Name: 'Chill Guy',
-        Age: 50,
-      }),
-      reference,
-    }
+    // Use internal utility to create realistic identity attestation
+    const attestData = _internal.createTestAttestation(schema.uid, 'identity', recipientKeypair.publicKey())
 
     // Step 6: Create attestation
     console.log('\nCreating attestation...')
