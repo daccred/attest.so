@@ -51,6 +51,10 @@ import {
   rpc,
 } from '@stellar/stellar-sdk'
 
+// Import contract bindings
+import * as ProtocolContract from '@attestprotocol/stellar/bindings/protocol'
+import * as AuthorityContract from '@attestprotocol/stellar/bindings/authority'
+
 // Default contract addresses
 const PROTOCOL_CONTRACT_ID = 'CDUHCKCAQWWWGNPNPBV5KOQP2WIIRIEJHJVPYRFGZ2FGJQLBN557LBDH'
 const AUTHORITY_CONTRACT_ID = 'CD2AGNVUJD7AGGJ7GDUET4YZOVFBGT4SQJ6PMHV3T7V2MN5UCT7IABOI'

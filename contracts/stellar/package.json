@@ -3,6 +3,30 @@
   "description": "Stellar Attestation Service",
   "version": "1.6.0",
   "author": "",
+  "main": "scripts/run.mjs",
+  "types": "bindings/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./scripts/run.mjs",
+      "import": "./scripts/run.mjs",
+      "require": "./scripts/run.mjs"
+    },
+    "./bindings": {
+      "types": "./bindings/src/index.d.ts",
+      "import": "./bindings/src/index.ts",
+      "require": "./bindings/src/index.ts"
+    },
+    "./bindings/*": {
+      "types": "./bindings/src/*.d.ts",
+      "import": "./bindings/src/*.ts",
+      "require": "./bindings/src/*.ts"
+    }
+  },
+  "files": [
+    "bindings/",
+    "scripts/",
+    "deployments.json"
+  ],
   "dependencies": {
     "@stellar/stellar-sdk": "^13.3.0",
     "buffer": "6.0.3"
@@ -12,15 +36,22 @@
     "typescript": "^5.6.2",
     "vitest": "^3.2.4"
   },
-  "keywords": [],
+  "keywords": [
+    "stellar",
+    "soroban",
+    "smart-contracts",
+    "attestation",
+    "bindings"
+  ],
   "license": "MIT",
-  "main": "scripts/run.mjs",
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
     "start": "node scripts/run.mjs",
-    "test": "vitest"
+    "test": "vitest",
+    "build": "echo 'Contracts built with Rust toolchain'",
+    "clean": "echo 'Use make clean in individual contract directories'"
   },
   "type": "module"
 }

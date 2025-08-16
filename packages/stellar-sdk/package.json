@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@attestprotocol/core": "workspace:*",
+    "@attestprotocol/stellar": "workspace:*",
     "@stellar/stellar-sdk": "14.0.0-rc.3"
   },
   "devDependencies": {
