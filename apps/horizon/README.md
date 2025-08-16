@@ -70,14 +70,14 @@ The indexer follows an enhanced modular architecture:
 pnpm dev
 ```
 
-Server runs on `http://localhost:3001`
+Server runs on `http://localhost:3001` (development) or `https://horizon.attest.so` (production)
 
 ### Enhanced Indexing Commands
 
 #### 1. Comprehensive Contract Indexing (Recommended)
 Indexes ALL contract data: events + operations + transactions + accounts
 ```bash
-curl -X POST http://localhost:3001/api/indexer/contracts/comprehensive/ingest \
+curl -X POST https://horizon.attest.so/api/contracts/comprehensive/ingest \
   -H 'Content-Type: application/json' \
   -d '{"startLedger": 880500}'
 ```
@@ -85,7 +85,7 @@ curl -X POST http://localhost:3001/api/indexer/contracts/comprehensive/ingest \
 #### 2. Contract Operations Only
 Focuses on operations involving your contracts (including failed ones)
 ```bash
-curl -X POST http://localhost:3001/api/indexer/contracts/operations/ingest \
+curl -X POST https://horizon.attest.so/api/contracts/operations/ingest \
   -H 'Content-Type: application/json' \
   -d '{"startLedger": 880500, "includeFailedTx": true}'
 ```
@@ -93,7 +93,7 @@ curl -X POST http://localhost:3001/api/indexer/contracts/operations/ingest \
 #### 3. Events Only (Legacy)
 Traditional event-based indexing
 ```bash
-curl -X POST http://localhost:3001/api/indexer/events/ingest \
+curl -X POST https://horizon.attest.so/api/events/ingest \
   -H 'Content-Type: application/json' \
   -d '{"startLedger": 880500}'
 ```
@@ -102,22 +102,22 @@ curl -X POST http://localhost:3001/api/indexer/events/ingest \
 
 #### Get Contract Operations
 ```bash
-curl "http://localhost:3001/api/indexer/contract-operations?limit=10&successful=true"
+curl "https://horizon.attest.so/api/contract-operations?limit=10&successful=true"
 ```
 
 #### View Contract Analytics
 ```bash
-curl "http://localhost:3001/api/indexer/contracts/analytics"
+curl "https://horizon.attest.so/api/contracts/analytics"
 ```
 
 #### Check Queue Status
 ```bash
-curl "http://localhost:3001/api/indexer/queue/status"
+curl "https://horizon.attest.so/api/queue/status"
 ```
 
 ### Monitor Health
 ```bash
-curl "http://localhost:3001/api/indexer/health"
+curl "https://horizon.attest.so/api/health"
 ```
 
 ## Prerequisites
