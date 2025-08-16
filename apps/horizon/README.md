@@ -77,7 +77,7 @@ Server runs on `http://localhost:3001` (development) or `https://horizon.attest.
 #### 1. Comprehensive Contract Indexing (Recommended)
 Indexes ALL contract data: events + operations + transactions + accounts
 ```bash
-curl -X POST https://horizon.attest.so/api/contracts/comprehensive/ingest \
+curl -X POST https://horizon.attest.so/api/ingest/contracts/comprehensive \
   -H 'Content-Type: application/json' \
   -d '{"startLedger": 880500}'
 ```
@@ -85,7 +85,7 @@ curl -X POST https://horizon.attest.so/api/contracts/comprehensive/ingest \
 #### 2. Contract Operations Only
 Focuses on operations involving your contracts (including failed ones)
 ```bash
-curl -X POST https://horizon.attest.so/api/contracts/operations/ingest \
+curl -X POST https://horizon.attest.so/api/ingest/contracts/operations \
   -H 'Content-Type: application/json' \
   -d '{"startLedger": 880500, "includeFailedTx": true}'
 ```
@@ -93,7 +93,7 @@ curl -X POST https://horizon.attest.so/api/contracts/operations/ingest \
 #### 3. Events Only (Legacy)
 Traditional event-based indexing
 ```bash
-curl -X POST https://horizon.attest.so/api/events/ingest \
+curl -X POST https://horizon.attest.so/api/ingest/events \
   -H 'Content-Type: application/json' \
   -d '{"startLedger": 880500}'
 ```
@@ -102,12 +102,12 @@ curl -X POST https://horizon.attest.so/api/events/ingest \
 
 #### Get Contract Operations
 ```bash
-curl "https://horizon.attest.so/api/contract-operations?limit=10&successful=true"
+curl "https://horizon.attest.so/api/data/operations?limit=10&type=invoke_host_function"
 ```
 
 #### View Contract Analytics
 ```bash
-curl "https://horizon.attest.so/api/contracts/analytics"
+curl "https://horizon.attest.so/api/analytics/contracts"
 ```
 
 #### Check Queue Status
