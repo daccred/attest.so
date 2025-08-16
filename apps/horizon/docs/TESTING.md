@@ -181,7 +181,6 @@ All tests use consistent mock data defined in `__tests__/fixtures/test-data.ts`:
 
 - `mockHorizonEvent` - Sample contract event
 - `mockHorizonTransaction` - Sample transaction with Soroban data
-- `mockHorizonOperation` - Sample contract operation
 - `mockHorizonEffect` - Sample state change effect
 - `mockHorizonContractData` - Sample contract storage data
 - `mockHorizonAccount` - Sample account with contract info
