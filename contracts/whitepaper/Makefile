@@ -9,8 +9,8 @@ help:
 pdf:
 	@mkdir -p release
 	tectonic whitepaper.tex --outdir release
-	@mv -f release/whitepaper.pdf release/attestprotocol_$$(date +%Y%m%d).pdf
-	@echo "PDF successfully generated: release/attestprotocol_$$(date +%Y%m%d).pdf"
+	@mv -f release/whitepaper.pdf release/attestprotocol_$(shell date +%Y%m%d).pdf
+	@echo "PDF successfully generated: release/attestprotocol_$(shell date +%Y%m%d).pdf"
 
 watch:
 	tectonic whitepaper.tex --outdir release --watch

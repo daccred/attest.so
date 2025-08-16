@@ -1,6 +1,6 @@
 {
   "name": "attestprotocol",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "author": "Andrew Miracle <andrew@daccred.co>",
   "devDependencies": {
     "@changesets/cli": "^2.29.4",
@@ -10,7 +10,6 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.1",
     "conventional-changelog-conventionalcommits": "^8.0.0",
-    "dotenv": "^16.4.5",
     "semantic-release": "^24.2.3"
   },
   "keywords": [

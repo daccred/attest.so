@@ -1,7 +1,8 @@
 # Makefile for building the authority resolver contract
 
-TARGET=wasm32-unknown-unknown
-# WASM=target/$(TARGET)/release/authority.wasm # Path might vary depending on build context
+TARGET=wasm32v1-none
+WASM=target/$(TARGET)/release/authority.wasm 
+
 
 .PHONY: build
 build:

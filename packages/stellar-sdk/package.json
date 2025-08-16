@@ -1,7 +1,7 @@
 {
   "name": "@attestprotocol/stellar-sdk",
   "description": "Stellar implementation of the Attest Protocol SDK",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "daccred",
   "license": "MIT",
   "repository": "daccred/attest.so.git",
@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@attestprotocol/core": "workspace:*",
+    "@attestprotocol/stellar": "workspace:*",
     "@stellar/stellar-sdk": "14.0.0-rc.3"
   },
   "devDependencies": {

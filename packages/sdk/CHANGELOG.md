@@ -1,5 +1,19 @@
 # @attestprotocol/sdk
 
+## 2.1.0
+
+### Minor Changes
+
+- f319433: minor update
+
+### Patch Changes
+
+- Updated dependencies [f319433]
+  - @attestprotocol/core@0.2.0
+  - @attestprotocol/solana-sdk@0.2.0
+  - @attestprotocol/starknet-sdk@0.2.0
+  - @attestprotocol/stellar-sdk@0.2.0
+
 ## 1.5.2
 
 ### Patch Changes

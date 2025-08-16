@@ -7,7 +7,7 @@
 # Features: Multi-contract support, deployment history tracking, network selection,
 # clean build mode, automatic initialization, and robust error handling.
 #
-# Usage: ./deploy.sh [--authority] [--protocol] [--network <network_name>] [--source <identity_name>] [--mode <default|clean>] [--initialize] [--token-id <token_id>] [-h|--help]
+# Usage: ./deploy.sh [--authority] [--protocol] [--network <network_name>] [--source <identity_name>] [--mode <default|clean>] [--initialize] [--token-id <token_id>] [--bindings] [-h|--help]
 # Configuration can be set via command-line flags or by creating an env.sh file
 # in the parent directory (flags override env.sh).
 # Required env.sh variables if not using flags:
@@ -51,8 +51,8 @@ token_contract_id="${TOKEN_CONTRACT_ID:-}" # Use TOKEN_CONTRACT_ID from env if s
 # Contract definitions (WASM paths relative to project root)
 AUTHORITY_CONTRACT_NAME="authority"    # Handles permissions/access control
 PROTOCOL_CONTRACT_NAME="protocol"      # Implements core business logic
-AUTHORITY_WASM_PATH="target/wasm32-unknown-unknown/release/${AUTHORITY_CONTRACT_NAME}.wasm"
-PROTOCOL_WASM_PATH="target/wasm32-unknown-unknown/release/${PROTOCOL_CONTRACT_NAME}.wasm"
+AUTHORITY_WASM_PATH="target/wasm32v1-none/release/${AUTHORITY_CONTRACT_NAME}.wasm"
+PROTOCOL_WASM_PATH="target/wasm32v1-none/release/${PROTOCOL_CONTRACT_NAME}.wasm"
 
 # === Runtime Variables ===
 deploy_authority=false   # Deploy authority contract flag
@@ -60,13 +60,14 @@ deploy_protocol=false    # Deploy protocol contract flag
 # network_name, source_identity, token_contract_id now initialized above from env or empty
 mode="default"           # Mode: 'default' (build+deploy) or 'clean' (clean+test+build+deploy)
 initialize_contracts=false # Initialize contracts after deployment flag
+generate_bindings=false # Generate TypeScript bindings after deployment flag
 # token_contract_id is now initialized above
 
 # === Helper Functions ===
 
 # Display usage info (exit: 1 = help displayed)
 usage() {
-  echo "Usage: $0 [--authority] [--protocol] [--network <network_name>] [--source <identity_name>] [--mode <default|clean>] [--initialize] [--token-id <token_id>] [-h|--help]"
+  echo "Usage: $0 [--authority] [--protocol] [--network <network_name>] [--source <identity_name>] [--mode <default|clean>] [--initialize] [--token-id <token_id>] [--bindings] [-h|--help]"
   echo ""
   echo "Builds, tests (optional), deploys, and optionally initializes Soroban contracts, storing details in ${CONTRACTS_JSON_FILE}."
   echo "Configuration defaults can be set in '${ENV_FILE_PATH}'. Command-line flags override environment settings."
@@ -79,6 +80,7 @@ usage() {
   echo "  --mode <mode>       Deployment mode: 'clean' (clean, test, build, deploy) or 'default' (build, deploy). Default: default"
   echo "  --initialize        Initialize deployed contracts using the source identity as admin. Default: false"
   echo "  --token-id <id>     The contract ID of the token for the authority contract (required if --initialize and --authority). (Can be set via TOKEN_CONTRACT_ID in env.sh)"
+  echo "  --bindings          Generate TypeScript bindings for deployed contracts and organize them in bindings/src/. Default: false"
   echo "  -h, --help          Display this help message."
   exit 1
 }
@@ -215,6 +217,79 @@ extract_deployment_details() {
     update_contracts_json "$network" "$contract_name" "$contract_id" "$tx_hash" "$deploy_timestamp"
 }
 
+# === Bindings Generation Functions ===
+# Generate TypeScript bindings for a single contract
+# Args: contract_name, contract_id, temp_bindings_dir
+# Creates organized bindings in bindings/src/
+# Exit: 0=success, 1=failure
+generate_single_contract_bindings() {
+    local contract_name="$1"
+    local contract_id="$2"
+    local temp_bindings_dir="$3"
+    
+    if [[ -z "$contract_id" ]]; then
+        echo "Error: Cannot generate bindings for ${contract_name} - no contract ID available."
+        return 1
+    fi
+    
+    echo "Generating TypeScript bindings for ${contract_name} contract..."
+    echo "Contract ID: ${contract_id}"
+    
+    local contract_temp_dir="${temp_bindings_dir}/${contract_name}"
+    
+    # Generate bindings using stellar CLI
+    echo "Generating bindings to temporary directory: ${contract_temp_dir}"
+    stellar contract bindings typescript \
+        --network "$network_name" \
+        --contract-id "$contract_id" \
+        --output-dir "$contract_temp_dir"
+    
+    local bindings_exit_code=$?
+    if [[ $bindings_exit_code -ne 0 ]]; then
+        echo "Error: Failed to generate TypeScript bindings for ${contract_name} (Exit Code: $bindings_exit_code)."
+        return 1
+    fi
+    
+    # Create target bindings directory structure
+    local target_bindings_dir="bindings/src"
+    mkdir -p "$target_bindings_dir"
+    
+    # Move and organize the generated files
+    local src_index="${contract_temp_dir}/src/index.ts"
+    local src_readme="${contract_temp_dir}/README.md"
+    local target_ts="${target_bindings_dir}/${contract_name}.ts"
+    local target_md="${target_bindings_dir}/${contract_name}.md"
+    
+    if [[ -f "$src_index" ]]; then
+        echo "Moving TypeScript bindings: ${src_index} -> ${target_ts}"
+        mv "$src_index" "$target_ts"
+    else
+        echo "Warning: Expected TypeScript file not found at ${src_index}"
+    fi
+    
+    if [[ -f "$src_readme" ]]; then
+        echo "Moving README: ${src_readme} -> ${target_md}"
+        mv "$src_readme" "$target_md"
+    else
+        echo "Warning: Expected README file not found at ${src_readme}"
+    fi
+    
+    echo "TypeScript bindings for ${contract_name} generated successfully."
+    echo "  TypeScript file: ${target_ts}"
+    echo "  Documentation: ${target_md}"
+    
+    return 0
+}
+
+# Cleanup function for temporary bindings directory
+cleanup_bindings_temp() {
+    local temp_dir="$1"
+    if [[ -n "$temp_dir" && -d "$temp_dir" ]]; then
+        echo "Cleaning up temporary bindings directory: ${temp_dir}"
+        rm -rf "$temp_dir"
+    fi
+}
+
 # === Command Line Processing ===
 # Parse arguments - these will override any values sourced from env.sh
 while [[ $# -gt 0 ]]; do
@@ -249,6 +324,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --initialize)
       initialize_contracts=true
+      shift # past argument
+      ;;
+    --bindings)
+      generate_bindings=true
       shift # past argument
       ;;
     --token-id)
@@ -295,6 +374,7 @@ echo "Mode: ${mode}"
 echo "Deploy Authority: ${deploy_authority}"
 echo "Deploy Protocol: ${deploy_protocol}"
 echo "Initialize Contracts: ${initialize_contracts}"
+echo "Generate Bindings: ${generate_bindings}"
 if [[ "$initialize_contracts" = true && "$deploy_authority" = true ]]; then
     echo "Authority Token ID: ${token_contract_id}"
 fi
@@ -575,6 +655,54 @@ if [[ "$initialize_contracts" = true ]]; then
 
 fi
 
+# === TypeScript Bindings Generation ===
+# Generate bindings if requested and contracts were successfully deployed
+if [[ "$generate_bindings" = true ]]; then
+    log_step "Starting TypeScript Bindings Generation"
+
+    # Create temporary bindings directory
+    TEMP_BINDINGS_DIR=".bindings"
+    
+    # Set up cleanup trap to ensure temp directory is removed even if script exits unexpectedly
+    trap "cleanup_bindings_temp '$TEMP_BINDINGS_DIR'" EXIT INT TERM
+    
+    # Clean and create temporary directory
+    rm -rf "$TEMP_BINDINGS_DIR"
+    mkdir -p "$TEMP_BINDINGS_DIR"
+    echo "Created temporary bindings directory: ${TEMP_BINDINGS_DIR}"
+
+    # Generate Authority Bindings
+    if [[ "$deploy_authority" = true && -n "$authority_contract_id" ]]; then
+        set +e # Allow bindings generation failure without stopping the script
+        generate_single_contract_bindings "$AUTHORITY_CONTRACT_NAME" "$authority_contract_id" "$TEMP_BINDINGS_DIR"
+        if [[ $? -ne 0 ]]; then
+             echo "WARNING: Authority contract bindings generation failed. Check logs."
+        fi
+        set -e
+    elif [[ "$generate_bindings" = true && "$deploy_authority" = true && -z "$authority_contract_id" ]]; then
+         echo "Skipping Authority bindings generation: Deployment failed or ID not found."
+    fi
+
+    # Generate Protocol Bindings
+    if [[ "$deploy_protocol" = true && -n "$protocol_contract_id" ]]; then
+        set +e # Allow bindings generation failure without stopping the script
+        generate_single_contract_bindings "$PROTOCOL_CONTRACT_NAME" "$protocol_contract_id" "$TEMP_BINDINGS_DIR"
+        if [[ $? -ne 0 ]]; then
+             echo "WARNING: Protocol contract bindings generation failed. Check logs."
+        fi
+        set -e
+    elif [[ "$generate_bindings" = true && "$deploy_protocol" = true && -z "$protocol_contract_id" ]]; then
+         echo "Skipping Protocol bindings generation: Deployment failed or ID not found."
+    fi
+
+    # Clean up temporary directory
+    cleanup_bindings_temp "$TEMP_BINDINGS_DIR"
+    
+    # Remove the trap since we've cleaned up successfully
+    trap - EXIT INT TERM
+
+fi
+
 # === Summary ===
 # Display deployment results with explorer links
 log_step "Deployment Summary"
@@ -595,6 +723,9 @@ if [[ "$deploy_protocol" = true && -n "$protocol_contract_id" ]]; then
   fi
 fi
 echo "Contract details saved to ${CONTRACTS_JSON_FILE}"
+if [[ "$generate_bindings" = true ]]; then
+  echo "TypeScript bindings organized in bindings/src/"
+fi
 echo "Deployment script finished successfully."
 
 exit 0 
