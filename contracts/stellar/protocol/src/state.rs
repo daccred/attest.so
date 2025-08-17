@@ -26,10 +26,14 @@ pub enum DataKey {
     /// 
     /// Used to prevent replay attacks in delegated attestations
     AttesterNonce(Address),
-    /// Key for storing the BLS public key for an attester
+    /// Key for storing a BLS public key
     /// 
-    /// Used for verifying delegated attestation signatures
-    AttesterPublicKey(Address),
+    /// Indexed by the key itself for uniqueness
+    BlsPublicKey(BytesN<96>),
+    /// Key for mapping attester to their public keys
+    /// 
+    /// Maps attester address to list of their registered keys
+    AttesterKeys(Address),
 }
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
@@ -142,6 +146,8 @@ pub struct DelegatedAttestationRequest {
     pub deadline: u64,
     /// Optional expiration time for the attestation itself
     pub expiration_time: Option<u64>,
+    /// The BLS12-381 public key used to create the signature
+    pub public_key: BytesN<96>,
     /// BLS12-381 G1 signature of the request data (96 bytes)
     pub signature: BytesN<96>,
 }
@@ -167,6 +173,8 @@ pub struct DelegatedRevocationRequest {
     pub revoker: Address,
     /// Expiration timestamp for this signed request
     pub deadline: u64,
+    /// The BLS12-381 public key used to create the signature
+    pub public_key: BytesN<96>,
     /// BLS12-381 G1 signature of the request data (96 bytes)
     pub signature: BytesN<96>,
 }
@@ -211,17 +219,19 @@ pub struct Attestation {
 }
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
-/// ║                            BLS Public Key                                 ║
+/// ║                          BLS Public Key Info                              ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
 /// 
-/// Represents a BLS12-381 public key for an attester.
+/// Metadata about a registered BLS12-381 public key.
 /// 
-/// Stored as compressed G2 point bytes (96 bytes) for signature verification.
+/// The key itself is used as the storage index for uniqueness.
 #[contracttype]
 #[derive(Clone)]
-pub struct BlsPublicKey {
-    /// The BLS12-381 G2 public key (96 bytes compressed)
-    pub key_bytes: BytesN<96>,
+pub struct BlsPublicKeyInfo {
+    /// The address of the attester who owns this key
+    pub owner: Address,
     /// Timestamp when this key was registered
     pub registered_at: u64,
+    /// Whether this key is currently active for signing
+    pub is_active: bool,
 }
