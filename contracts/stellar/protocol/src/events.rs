@@ -1,5 +1,5 @@
-use soroban_sdk::{Env, symbol_short, String, BytesN, Address};
-use crate::state::AttestationRecord;
+use soroban_sdk::{Env, symbol_short, BytesN, Address};
+use crate::state::Attestation;
 
 pub fn schema_registered(
     env: &Env,
@@ -14,29 +14,27 @@ pub fn schema_registered(
     env.events().publish(topics, data);
 }
 
-pub fn publish_attestation_event(env: &Env, attestation: &AttestationRecord) {
+pub fn publish_attestation_event(env: &Env, attestation: &Attestation) {
     let topics = (symbol_short!("ATTEST"), symbol_short!("CREATE"));
     let data = (
         attestation.schema_uid.clone(),
         attestation.subject.clone(),
+        attestation.attester.clone(),
         attestation.value.clone(),
-        attestation.reference.clone(),
-        attestation.revoked,
+        attestation.nonce,
+        attestation.timestamp,
     );
     env.events().publish(topics, data);
 }
 
-pub fn publish_revocation_event(
-    env: &Env,
-    schema_uid: &BytesN<32>,
-    subject: &Address,
-    reference: &Option<String>,
-) {
+pub fn publish_revocation_event(env: &Env, attestation: &Attestation) {
     let topics = (symbol_short!("ATTEST"), symbol_short!("REVOKE"));
     let data = (
-        schema_uid.clone(),
-        subject.clone(),
-        reference.clone(),
+        attestation.schema_uid.clone(),
+        attestation.subject.clone(),
+        attestation.attester.clone(),
+        attestation.nonce,
+        attestation.revocation_time.clone(),
     );
     env.events().publish(topics, data);
 }
