@@ -108,7 +108,7 @@ export class StellarSchemaService {
    */
   async generateIdFromSchema(schema: SchemaDefinition): Promise<AttestProtocolResponse<string>> {
     try {
-      const { generateIdFromSchema: generateId } = await import('./_internal')
+      const { generateIdFromSchema: generateId } = await import('./internal')
       const uid = await generateId(schema, this.publicKey)
       return createSuccessResponse(uid)
     } catch (error: any) {

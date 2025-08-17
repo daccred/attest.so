@@ -12,6 +12,17 @@ export { StellarSchemaService } from './schema'
 export { StellarAttestationService } from './attest'
 export { StellarAuthorityService } from './authority'
 
+// Export standardized schema encoder
+export {
+  StellarSchemaEncoder,
+  StellarSchemaRegistry,
+  StellarDataType,
+  SchemaValidationError,
+  type StellarSchemaDefinition,
+  type SchemaField,
+  type EncodedAttestationData
+} from './internal/schema-encoder'
+
 // Export Stellar-specific types
 export * from './types'
 
@@ -51,7 +62,7 @@ export {
 } from '@attestprotocol/stellar/dist/bindings/src/authority'
 
 // Internal utilities (for advanced usage and testing)
-export * as _internal from './_internal'
+export * as _internal from './internal'
 
 // Default export for convenience
 import { StellarAttestProtocol } from './stellar-sdk'
