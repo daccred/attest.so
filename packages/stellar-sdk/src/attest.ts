@@ -88,6 +88,37 @@ export class StellarAttestationService {
   }
 
   /**
+   * Validate attestation definition
+   */
+  private validateAttestationDefinition(config: AttestationDefinition): any {
+    if (!config.schemaUid || config.schemaUid.trim() === '') {
+      return createAttestProtocolError(
+        AttestProtocolErrorType.VALIDATION_ERROR,
+        'Schema UID is required'
+      )
+    }
+
+    if (!config.subject || config.subject.trim() === '') {
+      return createAttestProtocolError(
+        AttestProtocolErrorType.VALIDATION_ERROR,
+        'Subject is required'
+      )
+    }
+
+    // Validate subject as Stellar address
+    try {
+      Address.fromString(config.subject)
+    } catch {
+      return createAttestProtocolError(
+        AttestProtocolErrorType.VALIDATION_ERROR,
+        'Invalid subject address format'
+      )
+    }
+
+    return null
+  }
+
+  /**
    * Fetch an attestation by its ID
    */
   async fetchAttestationById(id: string): Promise<AttestProtocolResponse<Attestation | null>> {
@@ -307,42 +338,6 @@ export class StellarAttestationService {
     )
   }
 
-  /**
-   * Validate attestation definition
-   */
-  private validateAttestationDefinition(config: AttestationDefinition): any {
-    if (!config.schemaUid || config.schemaUid.trim() === '') {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Schema UID is required'
-      )
-    }
-
-    if (!config.subject || config.subject.trim() === '') {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Subject is required'
-      )
-    }
-
-    try {
-      Address.fromString(config.subject)
-    } catch {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Invalid subject address format'
-      )
-    }
-
-    if (!config.data || config.data.trim() === '') {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Attestation data is required'
-      )
-    }
-
-    return null
-  }
 
   /**
    * Validate revocation definition

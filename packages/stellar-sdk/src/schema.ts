@@ -153,13 +153,6 @@ export class StellarSchemaService {
    * Validate schema definition
    */
   private validateSchemaDefinition(config: SchemaDefinition): any {
-    if (!config.name || config.name.trim() === '') {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Schema name is required'
-      )
-    }
-
     if (!config.content || config.content.trim() === '') {
       return createAttestProtocolError(
         AttestProtocolErrorType.VALIDATION_ERROR,
