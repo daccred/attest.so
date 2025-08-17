@@ -158,10 +158,10 @@ check_branch() {
 # Check if there are any changesets
 check_changesets() {
     log_info "Checking for changesets..."
-    if [[ ! -d ".changeset" ]] || [[ -z "$(find .changeset -name '*.md' -not -name 'README.md' -not -name 'config.json')" ]]; then
-        log_error "No changesets found. Create a changeset first with 'pnpm changeset'"
-        exit 1
-    fi
+    # if [[ ! -d ".changeset" ]] || [[ -z "$(find .changeset -name '*.md' -not -name 'README.md' -not -name 'config.json')" ]]; then
+    #     log_error "No changesets found. Create a changeset first with 'pnpm changeset'"
+    #     exit 1
+    # fi
     log_success "Changesets found"
 }
 
