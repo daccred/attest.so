@@ -1,7 +1,7 @@
 {
   "name": "@attestprotocol/sdk",
   "description": "Meta-package SDK for interacting with Attest Protocol across multiple blockchains",
-  "version": "2.1.0",
+  "version": "1.7.0",
   "author": "daccred",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {

@@ -1,5 +1,16 @@
 # @attestprotocol/cli
 
+## 1.7.0
+
+### Minor Changes
+
+- 1989554: sdk bundle tooling and packages
+
+### Patch Changes
+
+- Updated dependencies [1989554]
+  - @attestprotocol/sdk@1.7.0
+
 ## 2.1.0
 
 ### Minor Changes

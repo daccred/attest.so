@@ -1,7 +1,7 @@
 {
   "name": "@attestprotocol/core",
   "description": "Core abstractions and interfaces for Attest Protocol SDKs",
-  "version": "0.2.0",
+  "version": "1.7.0",
   "author": "daccred",
   "license": "MIT",
   "repository": "daccred/attest.so.git",
