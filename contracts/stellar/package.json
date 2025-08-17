@@ -18,15 +18,15 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
-    "./bindings": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+    "./dist/bindings/src/*": {
+      "types": "./dist/bindings/src/*.d.ts",
+      "import": "./dist/bindings/src/*.js",
+      "require": "./dist/bindings/src/*.js"
     },
     "./bindings/*": {
-      "types": "./dist/*.d.ts",
-      "import": "./dist/*.js",
-      "require": "./dist/*.js"
+      "types": "./dist/bindings/src/*.d.ts",
+      "import": "./dist/bindings/src/*.js",
+      "require": "./dist/bindings/src/*.js"
     }
   },
   "files": [

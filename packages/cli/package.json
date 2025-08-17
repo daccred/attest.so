@@ -4,7 +4,7 @@
   "version": "1.7.0",
   "author": "Andrew Miracle <andrew@daccred.co>",
   "bin": {
-    "attest-protocol": "./bin/run.js"
+    "attest-protocol": "./dist/bin/run.js"
   },
   "bugs": "https://github.com/daccred/attest.so/issues",
   "config": {
@@ -48,7 +48,6 @@
     "lib": "src"
   },
   "files": [
-    "bin",
     "dist"
   ],
   "homepage": "https://github.com/daccred/attest.so#readme",
@@ -61,14 +60,14 @@
     "stellar"
   ],
   "license": "MIT",
-  "main": "./bin/run.js",
+  "main": "./dist/bin/run.js",
   "publishConfig": {
     "access": "public"
   },
   "repository": "daccred/attest.so.git",
   "scripts": {
-    "build": "tsup-node",
-    "build:watch": "tsup-node --watch",
+    "build": "tsup",
+    "build:watch": "tsup --watch",
     "clean": "rimraf dist",
     "commit": "cz",
     "commitlint": "commitlint --edit",
