@@ -5,10 +5,10 @@
   "author": "daccred",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
-    "@attestprotocol/core": "workspace:*",
-    "@attestprotocol/solana-sdk": "workspace:*",
-    "@attestprotocol/starknet-sdk": "workspace:*",
-    "@attestprotocol/stellar-sdk": "workspace:*"
+    "@attestprotocol/core": "1.7.0",
+    "@attestprotocol/solana-sdk": "1.7.0",
+    "@attestprotocol/starknet-sdk": "1.7.0",
+    "@attestprotocol/stellar-sdk": "1.7.0"
   },
   "devDependencies": {
     "@sebbo2002/semantic-release-jsr": "3.0.0",
@@ -35,7 +35,6 @@
   "license": "MIT",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -46,5 +45,6 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest",
     "test:coverage": "vitest --coverage"
-  }
+  },
+  "types": "dist/index.d.ts"
 }
