@@ -13,14 +13,8 @@
   "devDependencies": {
     "@sebbo2002/semantic-release-jsr": "3.0.0",
     "@semantic-release/exec": "^7.0.3",
-    "@types/bn.js": "^5.1.6",
-    "@types/json-schema": "^7.0.15",
-    "@types/urijs": "^1.19.25",
-    "rimraf": "^6.0.1",
     "semantic-release-plugin-update-version-in-files": "^2.0.0",
-    "ts-node": "^10.9.2",
-    "webpack": "^5.99.5",
-    "webpack-cli": "^6.0.1"
+    "tsup": "^8.4.0"
   },
   "directories": {
     "test": "test"
@@ -28,7 +22,7 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/esm/index.js",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
   },
@@ -37,21 +31,18 @@
     "src"
   ],
   "homepage": "https://github.com/daccred/attest.so#readme",
-  "jsdelivr": "dist/umd/attestprotocol.js",
   "keywords": [],
   "license": "MIT",
   "main": "dist/index.js",
-  "module": "dist/esm/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
   "repository": "daccred/attest.so.git",
   "scripts": {
-    "build": "pnpm clean && pnpm build:cjs && pnpm build:esm && pnpm build:types",
-    "build:cjs": "tsc -p tsconfig.json",
-    "build:esm": "tsc -p tsconfig.esm.json",
-    "build:types": "tsc -p tsconfig.types.json",
-    "clean": "rimraf dist",
+    "build": "tsup",
+    "clean": "rm -rf dist",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest",
     "test:coverage": "vitest --coverage"

@@ -3,6 +3,29 @@
   "description": "Stellar Attestation Service",
   "version": "1.6.0",
   "author": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./bindings": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./bindings/*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "require": "./dist/*.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "deployments.json"
+  ],
   "dependencies": {
     "@stellar/stellar-sdk": "^13.3.0",
     "buffer": "6.0.3"
@@ -12,15 +35,21 @@
     "typescript": "^5.6.2",
     "vitest": "^3.2.4"
   },
-  "keywords": [],
+  "keywords": [
+    "stellar",
+    "soroban",
+    "smart-contracts",
+    "attestation",
+    "bindings"
+  ],
   "license": "MIT",
-  "main": "scripts/run.mjs",
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "start": "node scripts/run.mjs",
-    "test": "vitest"
+    "test": "vitest",
+    "build": "tsc",
+    "clean": "echo 'Use make clean in individual contract directories'"
   },
   "type": "module"
 }
