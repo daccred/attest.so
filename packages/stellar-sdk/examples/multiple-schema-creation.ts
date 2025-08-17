@@ -9,7 +9,7 @@ import StellarAttestProtocol, {
   StellarSchemaEncoder, 
   StellarSchemaRegistry,
   StellarDataType,
-  _internal 
+  common as _internal 
 } from '../src'
 
 async function demonstrateMultipleSchemas() {

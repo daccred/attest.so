@@ -21,7 +21,7 @@ export {
   type StellarSchemaDefinition,
   type SchemaField,
   type EncodedAttestationData
-} from './internal/schema-encoder'
+} from './common/schema-encoder'
 
 // Export Stellar-specific types
 export * from './types'
@@ -62,7 +62,7 @@ export {
 } from '@attestprotocol/stellar/dist/bindings/src/authority'
 
 // Internal utilities (for advanced usage and testing)
-export * as _internal from './internal'
+export * as common from './common'
 
 // Default export for convenience
 import { StellarAttestProtocol } from './stellar-sdk'
