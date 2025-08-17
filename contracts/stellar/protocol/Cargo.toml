@@ -1,7 +1,9 @@
 [package]
 name = "protocol"
-version.workspace = true
+version = { workspace = true }
 edition = "2021"
+authors = ["Immutable Labs (Daccred) <gm@daccred.xyz>"]
+license = "MIT"
 publish = false
 
 [lib]

@@ -1,4 +1,5 @@
-import * as publish from './publish'
-import * as fetch from './fetch'
+import * as schema from './schema'
+import * as authority from './authority'
+import * as attestation from './attestation'
 
-export const commands = [publish, fetch]
+export const commands = [schema, authority, attestation]

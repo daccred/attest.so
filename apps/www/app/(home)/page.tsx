@@ -45,17 +45,13 @@ export default function Page(): React.ReactElement {
               fill="currentColor"
             />
             <section className="flex flex-col min-h-screen">
-              <HeroBackdrop />
+              {/* <HeroBackdrop /> */}
 
-              <div className='py-6'>
-
-              <Footer />
-              </div>
+              <div className="py-6">{/* <Footer /> */}</div>
               <PreFooter />
 
-              <footer className='py-4'>
-
-              <ReverseHeader />
+              <footer className="py-4">
+                <ReverseHeader />
               </footer>
             </section>
           </div>
@@ -77,13 +73,13 @@ function PreFooter(): React.ReactElement {
       </p>
       <div className="inline-flex items-center gap-3">
         <Link
-          href="/docs/solana"
+          href="https://github.com/daccred/attest.so"
           className={cn(buttonVariants({ size: 'lg', className: 'rounded-full' }))}
         >
-          Getting Started
+          Star on Github
         </Link>
         <a
-          href="https://explorer.attest.so"
+          href="https://x.com/attestprotocol"
           className={cn(
             buttonVariants({
               size: 'lg',
@@ -92,7 +88,7 @@ function PreFooter(): React.ReactElement {
             })
           )}
         >
-          Open explorer
+          Follow us on X
         </a>
       </div>
       <svg

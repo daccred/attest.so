@@ -1,17 +1,55 @@
 {
-  "name": "@attestso/stellar",
-  "version": "1.0.0",
-  "main": "scripts/run.mjs",
-  "type": "module",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node scripts/run.mjs"
-  },
-  "keywords": [],
+  "name": "@attestprotocol/stellar",
+  "description": "Stellar Attestation Service",
+  "version": "1.7.0",
   "author": "",
-  "license": "MIT",
-  "description": "",
   "dependencies": {
-    "@stellar/stellar-sdk": "^12.0.0"
-  }
+    "@stellar/stellar-sdk": "14.0.0-rc.3",
+    "buffer": "6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.1",
+    "typescript": "^5.6.2",
+    "vitest": "^3.2.4"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./dist/bindings/src/*": {
+      "types": "./dist/bindings/src/*.d.ts",
+      "import": "./dist/bindings/src/*.js",
+      "require": "./dist/bindings/src/*.js"
+    },
+    "./bindings/*": {
+      "types": "./dist/bindings/src/*.d.ts",
+      "import": "./dist/bindings/src/*.js",
+      "require": "./dist/bindings/src/*.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "deployments.json"
+  ],
+  "keywords": [
+    "attestation",
+    "bindings",
+    "smart-contracts",
+    "soroban",
+    "stellar"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "echo 'Use make clean in individual contract directories'",
+    "test": "vitest"
+  },
+  "type": "module",
+  "types": "dist/index.d.ts"
 }

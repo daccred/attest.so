@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext", 
+    "moduleResolution": "bundler", 
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "removeComments": true,
+    "importHelpers": true,
+    "downlevelIteration": true,
+    "sourceRoot": "",
+    "mapRoot": "",
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "types": ["vitest/globals", "node"]
+  },
+  "exclude": [
+    "node_modules",
+    "authority",
+    "protocol",
+    "dist"
+  ],
+  // Include bindings and test files
+  "include": [
+    "bindings/src/*",
+    "__test__/**/*"
+  ]
+}

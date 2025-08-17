@@ -1,49 +1,50 @@
 {
-  "name": "@peke65/attest-sdk",
-  "version": "0.0.3",
-  "description": "`npm run build`",
-  "main": "dist/index.js",
-  "module": "dist/index.m.js",
-  "unpkg": "dist/index.umd.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    "require": "./dist/index.js",
-    "default": "./dist/index.modern.js",
-    "import": "./dist/index.js",
-    "types": "./dist/index.d.ts"
-  },
-  "scripts": {
-    "build": "rm -rf dist && microbundle --tsconfig tsconfig.json --no-sourcemap",
-    "dev": "microbundle --watch --tsconfig tsconfig.json --no-sourcemap",
-    "test-solana": "ts-node ./test/run-solana.ts",
-    "test-stellar": "ts-node ./test/run-stellar.ts"
-  },
-  "keywords": [],
+  "name": "@attestprotocol/sdk",
+  "description": "Meta-package SDK for interacting with Attest Protocol across multiple blockchains",
+  "version": "1.7.0",
   "author": "daccred",
-  "license": "MIT",
-  "devDependencies": {
-    "microbundle": "^0.15.1",
-    "ts-node": "^10.9.2"
-  },
+  "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
-    "@coral-xyz/anchor": "^0.30.1",
-    "@solana/spl-token": "^0.4.6",
-    "@solana/web3.js": "^1.95.3",
-    "@stellar/stellar-sdk": "^13.2.0",
-    "isomorphic-unfetch": "^4.0.2"
+    "@attestprotocol/core": "1.7.0",
+    "@attestprotocol/solana-sdk": "1.7.0",
+    "@attestprotocol/starknet-sdk": "1.7.0",
+    "@attestprotocol/stellar-sdk": "1.7.0"
   },
-  "files": [
-    "dist"
-  ],
+  "devDependencies": {
+    "@sebbo2002/semantic-release-jsr": "3.0.0",
+    "@semantic-release/exec": "^7.0.3",
+    "semantic-release-plugin-update-version-in-files": "^2.0.0",
+    "tsup": "^8.4.0"
+  },
   "directories": {
     "test": "test"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/daccred/attest.so.git"
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
   },
-  "bugs": {
-    "url": "https://github.com/daccred/attest.so/issues"
+  "files": [
+    "dist",
+    "src"
+  ],
+  "homepage": "https://github.com/daccred/attest.so#readme",
+  "keywords": [],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "publishConfig": {
+    "access": "public"
   },
-  "homepage": "https://github.com/daccred/attest.so#readme"
+  "repository": "daccred/attest.so.git",
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "types": "dist/index.d.ts"
 }

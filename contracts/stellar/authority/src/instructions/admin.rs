@@ -69,10 +69,8 @@ pub fn admin_register_schema(
         if !is_authority(env, recipient) {
             return Err(Error::RecipientNotAuthority);
         }
-    } else {
-        if rules.levy_amount.is_some() && rules.levy_amount.unwrap() > 0 {
-            return Err(Error::InvalidSchemaRules);
-        }
+    } else if rules.levy_amount.is_some() && rules.levy_amount.unwrap() > 0 {
+        return Err(Error::InvalidSchemaRules);
     }
 
     set_schema_rules(env, schema_uid, rules);

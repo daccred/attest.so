@@ -16,18 +16,22 @@ logger.log(
  ██╔══██║   ██║      ██║   ██╔══╝  ╚════██║   ██║     ╚════██║██║   ██║
  ██║  ██║   ██║      ██║   ███████╗███████║   ██║  ██╗███████║╚██████╔╝
  ╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚══════╝╚══════╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝ 
- `,
+ `
 )
-logger.log(bold('Welcome to the ATTEST.SO command line interface\n\n'))
+logger.log(bold('Welcome to the ATTEST.SO Unified CLI\n\n'))
 
 for (const command of commands) {
-  run.command(command as CommandModule)
+  run.command(command as unknown as CommandModule)
 }
 
 run
   .demandCommand(
     1,
     'You need at least one command before moving on\n\nSuggested Command: ' +
-      yellow(bold('pnpm start publish --json-file sample.json')),
+      yellow(
+        bold(
+          'attest-protocol schema --chain=stellar --action=create --json-file=sample.json --key-file=<key-file>'
+        )
+      )
   )
   .help().argv

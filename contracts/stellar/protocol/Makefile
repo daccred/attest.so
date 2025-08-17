@@ -2,11 +2,11 @@
 
 .PHONY: build
 build:
-	cargo build --target wasm32-unknown-unknown --release
+	cargo build --target wasm32v1-none --release
 
 .PHONY: test
 test:
-	cargo test
+	cargo test -- --nocapture 
 
 .PHONY: fmt
 fmt:

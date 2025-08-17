@@ -557,8 +557,8 @@ mod SAS {
             // let mut _uids: Array<u256> = ArrayTrait::new();
             // _uids.append(uid);
             let mut result: AttestationsResult = AttestationsResult { usedValue: 0, uids: uid };
-            let mut lastAttastationCount: u256 = self._noOfAttestation.read(schemaUID);
-            self._noOfAttestation.write(schemaUID, lastAttastationCount + 1);
+            let mut lastAttestationCount: u256 = self._noOfAttestation.read(schemaUID);
+            self._noOfAttestation.write(schemaUID, lastAttestationCount + 1);
             self
                 .emit(
                     Event::Attested(
@@ -574,19 +574,20 @@ mod SAS {
 
             return result;
         }
-        /// @dev Calculates a UID for a given schema.
-        /// @param schemaRecord The input schema.
-        /// @return schema UID.
-        fn _getUID(ref self: ContractState, _attestaion: Attestation, _bump: u32) -> u256 {
+        /// @dev Calculates a UID for a given attestation.
+        /// @param attestation The attestation to derive the UID from.
+        /// @param bump A nonce used when resolving UID collisions.
+        /// @return The calculated UID.
+        fn _getUID(ref self: ContractState, _attestation: Attestation, _bump: u32) -> u256 {
             let mut input_array: Array<u256> = ArrayTrait::new();
-            let schema: u256 = _attestaion.schema;
-            // let recipient = _attestaion.recipient;
-            // let attester: u256 = _attestaion.attester.into();
-            let time: u256 = _attestaion.time.into();
-            let expirationTime: u256 = _attestaion.expirationTime.into();
-            // let revocable: u256 = _attestaion.revocable.into();
-            let refUID: u256 = _attestaion.refUID;
-            // let data: u256 = _attestaion.data.into();
+            let schema: u256 = _attestation.schema;
+            // let recipient = _attestation.recipient;
+            // let attester: u256 = _attestation.attester.into();
+            let time: u256 = _attestation.time.into();
+            let expirationTime: u256 = _attestation.expirationTime.into();
+            // let revocable: u256 = _attestation.revocable.into();
+            let refUID: u256 = _attestation.refUID;
+            // let data: u256 = _attestation.data.into();
             input_array.append(schema);
             // input_array.append(recipient);
             // input_array.append(attester);

@@ -1,0 +1,411 @@
+---
+title: 'Quickstart'
+description: 'Get up and running with AttestProtocol in minutes. Create your first attestation.'
+---
+
+## Overview
+
+This quickstart guide will walk you through creating and verifying your first attestation using AttestProtocol. You'll learn how to:
+
+1. Install and initialize the SDK
+2. Register as an authority
+3. Create or select a schema
+4. Issue your first attestation
+5. Verify attestations
+
+<Note>
+This guide uses testnet environments for safe experimentation. Switch to mainnet when you're ready for production.
+</Note>
+
+## Prerequisites
+
+- Node.js 16+ installed
+- Basic familiarity with JavaScript/TypeScript
+- Wallet for your target blockchain (Stellar or Solana)
+
+## Step 1: Installation
+
+Install the AttestProtocol SDK for your target blockchain:
+
+<CodeGroup>
+```bash npm
+npm install @attestprotocol/sdk
+```
+
+```bash yarn
+yarn add @attestprotocol/sdk
+```
+
+```bash pnpm
+pnpm add @attestprotocol/sdk
+```
+</CodeGroup>
+
+### Optional Packages
+
+<CodeGroup>
+```bash CLI Tools
+# Unified CLI (supports all chains)
+npm install -g @attestprotocol/cli
+```
+
+```bash Development
+# TypeScript types
+npm install -D @attestprotocol/types
+
+# Testing utilities
+npm install -D @attestprotocol/test-utils
+```
+</CodeGroup>
+
+## Step 2: Initialize the SDK
+
+Choose your blockchain and initialize the SDK:
+
+<CodeGroup>
+```typescript Stellar
+<<<<<<< HEAD
+import { AttestSDK } from '@attestprotocol/sdk';
+
+const sdk = await AttestSDK.initializeStellar({
+=======
+import { AttestProtocol } from '@attestprotocol/sdk';
+
+const sdk = await AttestProtocol.initializeStellar({
+>>>>>>> canary
+  secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY,
+  publicKey: process.env.STELLAR_PUBLIC_KEY,
+  url: 'https://soroban-testnet.stellar.org'
+});
+
+console.log('Stellar SDK initialized');
+```
+
+```typescript Solana
+<<<<<<< HEAD
+import { AttestSDK } from '@attestprotocol/sdk';
+
+const sdk = await AttestSDK.initializeSolana({
+=======
+import { AttestProtocol } from '@attestprotocol/sdk';
+
+const sdk = await AttestProtocol.initializeSolana({
+>>>>>>> canary
+  walletOrSecretKey: process.env.SOLANA_SECRET_KEY,
+  url: 'https://api.devnet.solana.com'
+});
+
+console.log('Solana SDK initialized');
+```
+</CodeGroup>
+
+<Warning>
+Never commit private keys to version control. Use environment variables in production.
+</Warning>
+
+## Step 3: Register as Authority
+
+Before issuing attestations, register your wallet as an authority:
+
+```typescript
+const authority = await sdk.registerAuthority();
+
+if (authority.error) {
+  console.error('Registration failed:', authority.error);
+  process.exit(1);
+}
+
+console.log('Authority registered successfully');
+```
+
+<Info>
+Authority registration is a one-time process per wallet. You can check your status with `sdk.fetchAuthority()`.
+</Info>
+
+## Step 4: Create or Select Schema
+
+Schemas define the structure of your attestations:
+
+<CodeGroup>
+```typescript Use Existing Schema
+// Use pre-built KYC schema
+const schemaUID = 'kyc-basic-v1';
+console.log('Using existing schema:', schemaUID);
+```
+
+```typescript Create Custom Schema
+const schema = await sdk.createSchema({
+  schemaName: 'user-verification',
+  schemaContent: 'verified:bool,level:string,score:uint8,timestamp:uint64',
+  revocable: true
+});
+
+if (schema.data) {
+  console.log('Schema created:', schema.data.schemaUID);
+} else {
+  console.error('Schema creation failed:', schema.error);
+}
+```
+</CodeGroup>
+
+## Step 5: Issue Your First Attestation
+
+Create an attestation for a user:
+
+```typescript
+const attestation = await sdk.attest({
+  schemaUID: 'kyc-basic-v1',
+  subject: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1', // Target wallet
+  value: 'verified:true,level:enhanced,score:95,timestamp:1704067200',
+  reference: 'kyc-session-2024-001' // Optional reference
+});
+
+if (attestation.data) {
+  console.log('Attestation issued!');
+  console.log('UID:', attestation.data.attestationUID);
+} else {
+  console.error('Attestation failed:', attestation.error);
+}
+```
+
+<Note>
+The `value` field must match your schema definition. Each field is separated by commas in `fieldName:value` format.
+</Note>
+
+## Step 6: Verify Attestations
+
+Check if a user has valid attestations:
+
+<CodeGroup>
+```typescript Simple Check
+const result = await sdk.fetchAttestation({
+  schemaUID: 'kyc-basic-v1',
+  subject: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1'
+});
+
+if (result.data && !result.data.revoked) {
+  console.log('User has valid KYC attestation');
+} else {
+  console.log('No valid attestation found');
+}
+```
+
+```typescript Parse Data
+function parseAttestationData(value: string) {
+  const parts = value.split(',');
+  const data: any = {};
+  
+  parts.forEach(part => {
+    const [key, val] = part.split(':');
+    data[key] = val === 'true' ? true : 
+                val === 'false' ? false : 
+                isNaN(Number(val)) ? val : Number(val);
+  });
+  
+  return data;
+}
+
+// Usage
+if (result.data) {
+  const data = parseAttestationData(result.data.value);
+  console.log('Verified:', data.verified);
+  console.log('Level:', data.level);
+  console.log('Score:', data.score);
+}
+```
+</CodeGroup>
+
+## Step 7: Complete Example
+
+Here's a complete working example:
+
+<CodeGroup>
+```typescript Node.js
+<<<<<<< HEAD
+import { AttestSDK } from '@attestprotocol/sdk';
+=======
+import { AttestProtocol } from '@attestprotocol/sdk';
+>>>>>>> canary
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+async function main() {
+  try {
+    // Initialize SDK
+<<<<<<< HEAD
+    const sdk = await AttestSDK.initializeStellar({
+=======
+    const sdk = await AttestProtocol.initializeStellar({
+>>>>>>> canary
+      secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY,
+      publicKey: process.env.STELLAR_PUBLIC_KEY,
+      url: 'https://soroban-testnet.stellar.org'
+    });
+
+    console.log('✅ SDK initialized');
+
+    // Register authority (if needed)
+    const authority = await sdk.fetchAuthority();
+    if (authority.error) {
+      await sdk.registerAuthority();
+      console.log('✅ Authority registered');
+    }
+
+    // Issue attestation
+    const attestation = await sdk.attest({
+      schemaUID: 'kyc-basic-v1',
+      subject: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1',
+      value: 'verified:true,level:basic,score:85,timestamp:' + Date.now(),
+      reference: 'demo-' + Date.now()
+    });
+
+    if (attestation.data) {
+      console.log('✅ Attestation created:', attestation.data.attestationUID);
+    }
+
+    // Verify attestation
+    const verification = await sdk.fetchAttestation({
+      schemaUID: 'kyc-basic-v1',
+      subject: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1'
+    });
+
+    if (verification.data) {
+      console.log('✅ Attestation verified');
+    }
+
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+  }
+}
+
+main();
+```
+
+```typescript TypeScript
+<<<<<<< HEAD
+import { AttestSDK, AttestSDKResponse } from '@attestprotocol/sdk';
+=======
+import { AttestSDK, AttestProtocolResponse } from '@attestprotocol/sdk';
+>>>>>>> canary
+
+interface KYCData {
+  verified: boolean;
+  level: string;
+  score: number;
+  timestamp: number;
+}
+
+async function main(): Promise<void> {
+<<<<<<< HEAD
+  const sdk = await AttestSDK.initializeStellar({
+=======
+  const sdk = await AttestProtocol.initializeStellar({
+>>>>>>> canary
+    secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY!,
+    publicKey: process.env.STELLAR_PUBLIC_KEY!,
+    url: 'https://soroban-testnet.stellar.org'
+  });
+
+  // Type-safe attestation
+  const attestation = await sdk.attest({
+    schemaUID: 'kyc-basic-v1',
+    subject: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgHv1',
+    value: 'verified:true,level:basic,score:85,timestamp:' + Date.now(),
+    reference: 'typed-demo'
+  });
+
+  console.log('Attestation created:', attestation.data?.attestationUID);
+}
+
+main().catch(console.error);
+```
+</CodeGroup>
+
+## Environment Setup
+
+Create a `.env` file in your project root:
+
+```bash .env
+# Stellar
+STELLAR_SECRET_KEY=your_stellar_secret_key
+STELLAR_PUBLIC_KEY=your_stellar_public_key
+
+# Solana
+SOLANA_SECRET_KEY=your_solana_secret_key
+
+# Optional: Custom RPC endpoints
+STELLAR_RPC_URL=https://soroban-testnet.stellar.org
+SOLANA_RPC_URL=https://api.devnet.solana.com
+```
+
+## Next Steps
+
+Great! You've created your first attestation. Here's what to explore next:
+
+<CardGroup cols={2}>
+  <Card
+    title="Core Concepts"
+    icon="lightbulb"
+    href="/concepts/attestations"
+  >
+    Learn about attestations, schemas, and authorities
+  </Card>
+  <Card
+    title="SDK Methods"
+    icon="code"
+    href="/sdks/typescript/methods"
+  >
+    Explore all available SDK methods and options
+  </Card>
+  <Card
+    title="Use Cases"
+    icon="puzzle-piece"
+    href="/guides/use-cases"
+  >
+    Real-world applications and implementation patterns
+  </Card>
+  <Card
+    title="Workflow Guides"
+    icon="laptop-code"
+    href="/guides/kyc-integration"
+  >
+    Complete integration examples for common use cases
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="SDK Initialization Failed">
+    - Check your secret key format and permissions
+    - Verify RPC endpoint is accessible
+    - Ensure you have sufficient balance for transactions
+    - Try using testnet first before mainnet
+  </Accordion>
+
+  <Accordion title="Authority Registration Failed">
+    - Confirm wallet has sufficient balance for gas fees
+    - Check if authority is already registered with `fetchAuthority()`
+    - Verify network connectivity to blockchain RPC
+    - Review error message for specific failure reason
+  </Accordion>
+
+  <Accordion title="Attestation Creation Failed">
+    - Ensure you're registered as an authority first
+    - Verify schema exists or create it before use
+    - Check that value format matches schema definition
+    - Confirm target address format is correct for your blockchain
+  </Accordion>
+
+  <Accordion title="Attestation Not Found">
+    - Double-check the schema UID and subject address
+    - Confirm you're querying the correct network (testnet vs mainnet)
+    - Wait a few seconds for blockchain confirmation
+    - Verify the attestation wasn't revoked
+  </Accordion>
+</AccordionGroup>
+
+<Info>
+**Need Help?** Join our [Discord community](https://discord.com/invite/7kVur5ja5m) or check out our [troubleshooting guide](/guides/troubleshooting) for more detailed solutions.
+</Info>

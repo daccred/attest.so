@@ -1,6 +1,7 @@
-use soroban_sdk::{Address, Env, String as SorobanString, BytesN, Bytes, xdr::ToXdr};
+use soroban_sdk::{Address, Env, String, BytesN, Bytes, xdr::ToXdr};
 use crate::state::{DataKey, Schema};
 use crate::errors::Error;
+use crate::events;
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// Generates a unique identifier (SHA256 hash) for a schema.
@@ -28,7 +29,7 @@ use crate::errors::Error;
 /// ```
 pub fn generate_uid(
     env: &Env,
-    schema_definition: &SorobanString,
+    schema_definition: &String,
     authority: &Address,
     resolver: &Option<Address>,
 ) -> BytesN<32> {
@@ -53,7 +54,7 @@ pub fn generate_uid(
 ///
 /// # Errors
 /// * `Error::SchemaNotFound` - If no schema with the given UID exists in storage.
-pub fn get_schema_or_fail(
+pub fn _get_schema_or_fail(
     env: &Env,
     schema_uid: &BytesN<32>,
 ) -> Result<Schema, Error> {
@@ -92,7 +93,7 @@ pub fn get_schema_or_fail(
 ///
 /// # Example
 /// ```ignore
-/// let schema_definition = SorobanString::from_str(&env, 
+/// let schema_definition = String::from_str(&env, 
 ///     r#"{
 ///         "name": "Degree",
 ///         "version": "1.0",
@@ -115,7 +116,7 @@ pub fn get_schema_or_fail(
 pub fn register_schema(
     env: &Env,
     caller: Address,
-    schema_definition: SorobanString,
+    schema_definition: String,
     resolver: Option<Address>,
     revocable: bool,
 ) -> Result<BytesN<32>, Error> {
@@ -127,13 +128,16 @@ pub fn register_schema(
 
     // Store schema
     let schema = Schema {
-        authority: caller,
-        definition: schema_definition,
+        authority: caller.clone(),
+        definition: schema_definition.clone(),
         resolver,
         revocable,
     };
     let schema_key = DataKey::Schema(schema_uid.clone());
     env.storage().instance().set(&schema_key, &schema);
+
+    // Publish schema registration event
+    events::schema_registered(env, &schema_uid, &caller);
 
     Ok(schema_uid)
 }

@@ -1,0 +1,5 @@
+sign-commit = false
+sign-tag = false
+publish = true
+push = true
+consolidate-commits = true

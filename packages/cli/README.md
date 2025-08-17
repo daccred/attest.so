@@ -1,194 +1,168 @@
-# CLI TypeScript Starter
+# @attestprotocol/cli
 
-An all-inclusive starter kit for crafting command-line interfaces (CLI) using TypeScript, driven by Node.js. This kit is
-meticulously designed to kick-start your development journey with a solid foundation, encompassing features such as
-argument parsing, environment setup, logging, testing suites, as well as code formatting and linting capabilities.
+Unified CLI for Attest Protocol across all supported blockchains (Stellar, Solana, Starknet).
 
-## Features
+## Installation
 
-This template incorporates several key tools and libraries to enhance your CLI development experience:
-
-- **[Yargs](https://github.com/yargs/yargs):** A powerful library for parsing command-line arguments.
-- **[Dotenv](https://github.com/motdotla/dotenv):** Loads environment variables from a `.env` file into `process.env`,
-  making it easy to manage application configuration.
-- **[PicoColors](https://github.com/alexeyraspopov/picocolors):** Lightweight and fast library for styling terminal
-  text.
-- **[Consola](https://github.com/unjs/consola):** 🐨Elegant Console Logger for Node.js and Browser
-- **[Jest](https://jestjs.io/):** A delightful JavaScript Testing Framework with a focus on simplicity.
-- **[TS-Node](https://typestrong.org/ts-node/):** TypeScript execution and REPL for Node.js.
-- **[TSUP](https://tsup.egoist.dev/):** The simplest and fastest way to bundle your TypeScript libraries.
-- **[Prettier](https://prettier.io/):** An opinionated code formatter that supports many languages and integrates with
-  most editors.
-- **[ESLint](https://eslint.org/):** A pluggable and configurable linter tool for identifying and reporting on patterns
-  in JavaScript and TypeScript.
-- **[giget](https://github.com/unjs/giget)** ✨ Download templates and git repositories with pleasure!
-
-## Prerequisites
-
-Before you begin, ensure you have installed [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/) on your system.
-
-## Getting Started
-
-To start using this CLI TypeScript starter, follow these steps:
-
-### 1. Make a new project
-
-```sh
-npx cli-typescript-starter create my-project
+```bash
+npm install -g @attestprotocol/cli
 ```
-
-or
-
-```sh
-npx giget@latest gh:kucherenko/cli-typescript-starter my-project
-```
-
-or
-
-```sh
-pnpm exec degit kucherenko/cli-typescript-starter my-project
-```
-
-### 2. Install dependencies
-
-Navigate to your project directory and install the necessary dependencies:
-
-```sh
-cd my-project && pnpm install
-```
-
-### 3. Configure the package
-
-Update the `package.json` to reflect your project's details:
-
-- Rename the package:
-  ```json
-  "name": "my-project",
-  ```
-- Set the command name:
-  ```json
-  "bin": {
-    "my-project": "./bin/run"
-  }
-  ```
-
-### 4. Set up environment variables
-
-Create a `.env` file in the root directory and configure your environment variables as needed.
 
 ## Usage
 
-This starter comes equipped with several predefined scripts to facilitate development, alongside sample commands to
-demonstrate the capabilities of the CLI application.
+The CLI provides a unified interface for interacting with the Attest Protocol across different blockchains. All commands require a `--chain` parameter to specify which blockchain to use.
 
-### Running Commands
+### Basic Syntax
 
-- In development mode, use `pnpm start [command name]` to run any command. This utilizes `ts-node` for a seamless
-  development experience.
-- In production, execute the CLI application directly with `my-project [command name]` to run the desired
-  command from the built project (the name of command should be provided in `package.json` in `bin`).
+```bash
+attest <command> --chain=<stellar|solana|starknet> [options]
+```
 
-### Sample Commands
+### Commands
 
-- **`info`**: Prints information about the current system and Node.js configuration. This command is useful for
-  verifying the environment in which the CLI is running.
-- **`greeting`**: Demonstrates interactive prompts within the CLI. It's a great way to see how user inputs can be
-  handled in a friendly manner.
-- **`create`**: Create new project based on `cli-typescript-starter`.
+#### Schema Management
 
-All commands are located in the `src/commands/` folder. This organization makes it easy to find and modify commands or
-add new ones as needed.
+Create a schema:
+```bash
+attest schema --chain=stellar --action=create --json-file=schema.json --key-file=stellar-key.json
+```
 
-### Script Commands
+Fetch a schema:
+```bash
+attest schema --chain=stellar --action=fetch --uid=<schema-uid> --key-file=stellar-key.json
+```
 
-This starter comes with several predefined scripts to help with development:
+#### Authority Management
 
-- `pnpm build` - Build the project using `tsup`.
-- `pnpm build:watch` - Automatically rebuild the project on file changes.
-- `pnpm commit` - run `commitizen` tool for helping with commit messages.
-- `pnpm commitlint` - lint commit messages.
-- `pnpm compile` - Compile TypeScript files using `tsc`.
-- `pnpm clean` - Remove compiled code from the `dist/` directory.
-- `pnpm format` - Check files for code style issues using Prettier.
-- `pnpm format:fix` - Automatically fix code formatting issues with Prettier.
-- `pnpm lint` - Check code for style issues with ESLint.
-- `pnpm lint:fix` - Automatically fix code style issues with ESLint.
-- `pnpm start [command]` - Run the CLI application using `ts-node`.
-- `pnpm start:node [command]` - Run the CLI application from the `dist/` directory.
-- `pnpm test` - Run unit tests.
-- `pnpm test:watch` - Run tests and watch for file changes.
+Register as an authority:
+```bash
+attest authority --chain=stellar --action=register --key-file=stellar-key.json
+```
 
-## CI/CD and Automation
+Fetch authority information:
+```bash
+attest authority --chain=stellar --action=fetch --uid=<authority-id> --key-file=stellar-key.json
+```
 
-### Automated Version Management and NPM Publishing with Semantic-Release
+#### Attestation Management
 
-This project utilizes `semantic-release` to automate version management and the NPM publishing
-process. `Semantic-release` automates the workflow of releasing new versions, including the generation of detailed
-release notes based on commit messages that follow the conventional commit format.
+Create an attestation:
+```bash
+attest attestation --chain=stellar --action=create --json-file=attestation.json --key-file=stellar-key.json
+```
 
-The publishing process is triggered automatically when changes are merged into the main branch. Here's how it works:
+Fetch an attestation:
+```bash
+attest attestation --chain=stellar --action=fetch --uid=<attestation-uid> --key-file=stellar-key.json
+```
 
-1. **Automated Versioning:** Based on the commit messages, `semantic-release` determines the type of version change (
-   major, minor, or patch) and updates the version accordingly.
-2. **Release Notes:** It then generates comprehensive release notes detailing new features, bug fixes, and any breaking
-   changes, enhancing clarity and communication with users.
-3. **NPM Publishing:** Finally, `semantic-release` publishes the new version to the NPM registry and creates a GitHub
-   release with the generated notes.
+Revoke an attestation:
+```bash
+attest attestation --chain=stellar --action=revoke --uid=<attestation-uid> --key-file=stellar-key.json
+```
 
-To ensure a smooth `semantic-release` process:
+### Chain-Specific Key Formats
 
-- Merge feature or fix branches into the main branch following thorough review and testing.
-- Use conventional commit messages to help `semantic-release` accurately determine version changes and generate
-  meaningful release notes.
-- Configure an NPM access token as a GitHub secret under the name `NPM_TOKEN` for authentication during the publication
-  process.
+#### Stellar
+Key file should contain the secret key:
+```json
+{
+  "secret": "SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+}
+```
 
-By integrating `semantic-release`, this project streamlines its release process, ensuring that versions are managed
-efficiently and that users are well-informed of each update through automatically generated release notes.
+#### Solana  
+Key file should contain the keypair as an array:
+```json
+[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64]
+```
+
+#### Starknet
+Key file should contain account address and private key:
+```json
+{
+  "accountAddress": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+  "privateKey": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+}
+```
+
+### Sample Files
+
+The CLI package includes sample files to help you get started:
+
+- `sample-schema.json` - Example schema definition
+- `sample-attestation.json` - Example attestation data
+- `sample-stellar-key.json` - Example Stellar key format
+- `sample-solana-key.json` - Example Solana keypair format  
+- `sample-starknet-key.json` - Example Starknet key format
+
+### Custom RPC URLs
+
+You can specify a custom RPC URL using the `--url` parameter:
+
+```bash
+attest schema --chain=stellar --action=create --json-file=schema.json --key-file=stellar-key.json --url=https://custom-rpc-url.com
+```
+
+### Environment Variables
+
+You can set the following environment variables:
+
+- `SOLANA_PROGRAM_ID` - Custom Solana program ID
+- `STARKNET_CONTRACT_ADDRESS` - Custom Starknet contract address
+
+## Examples
+
+### Complete Workflow
+
+1. Register as an authority:
+```bash
+attest authority --chain=stellar --action=register --key-file=my-stellar-key.json
+```
+
+2. Create a schema:
+```bash
+attest schema --chain=stellar --action=create --json-file=identity-schema.json --key-file=my-stellar-key.json
+```
+
+3. Create an attestation:
+```bash
+attest attestation --chain=stellar --action=create --json-file=identity-attestation.json --key-file=my-stellar-key.json
+```
+
+### Cross-Chain Usage
+
+The same commands work across all supported chains by changing the `--chain` parameter:
+
+```bash
+# Stellar
+attest-protocol schema --chain=stellar --action=create --json-file=schema.json --key-file=stellar-key.json
+
+# Solana  
+attest-protocol schema --chain=solana --action=create --json-file=schema.json --key-file=solana-key.json
+
+# Starknet
+attest-protocol schema --chain=starknet --action=create --json-file=schema.json --key-file=starknet-key.json
+```
 
 ## Development
 
-To contribute to this project or customize it for your needs, consider the following guidelines:
+```bash
+# Install dependencies
+npm install
 
-1. **Code Styling:** Follow the predefined code style, using Prettier for formatting and ESLint for linting, to ensure
-   consistency.
-2. **Commit Messages:** We use `commitizen` and `commitlint` to ensure our commit messages are consistent and follow the
-   conventional commit format, recommended by `@commitlint/config-conventional`. To make a commit, you can
-   run `pnpm commit`, which will guide you through creating a conventional commit message.
-3. **Testing:** Write unit tests for new features or bug fixes using Jest. Make sure to run tests before pushing any
-   changes.
-4. **Environment Variables:** Use the `.env` file for local development. For production, ensure you configure the
-   environment variables in your deployment environment.
-5. **Husky Git Hooks:** This project utilizes Husky to automate linting, formatting, and commit message verification via
-   git hooks. This ensures that code commits meet our quality and style standards without manual checks. The hooks set
-   up include pre-commit hooks for running ESLint and Prettier, and commit-msg hooks for validating commit messages
-   with `commitlint`.
+# Build the CLI
+npm run build
 
-## Contributing
+# Run in development mode
+npm run start
 
-Contributions are welcome! If you'd like to improve this CLI TypeScript starter, please follow the standard
-fork-and-pull request workflow. Here are a few guidelines to keep in mind:
+# Run tests
+npm test
+```
 
-- Make sure your code adheres to the project's coding standards, including using Prettier for code formatting and ESLint
-  for linting.
-- Follow the conventional commit format for your commit messages. This project uses `commitizen` and `commitlint` with
-  the `@commitlint/config-conventional` configuration, enforced by Husky git hooks.
-- Include tests for new features or bug fixes when applicable.
-- Ensure your changes are properly formatted and linted before submitting a pull request.
+## Support
 
-By adhering to these guidelines, you help maintain the quality and consistency of the project, making it easier for
-others to contribute and for users to understand and utilize the project effectively.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
-## Author
-
-**Andrey Kucherenko**
-
-- GitHub: [@kucherenko](https://github.com/kucherenko)
-
----
-
-Happy Coding!
+- [Documentation](https://docs.attest.so)
+- [GitHub Issues](https://github.com/daccred/attest.so/issues)
+- [Discord Community](https://discord.gg/attestso)

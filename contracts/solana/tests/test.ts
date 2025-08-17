@@ -106,9 +106,7 @@ describe('attest.so', () => {
       .rpc()
     console.log('Authority registered successfully')
 
-    const authorityAccount = await attest.account.authorityRecord.fetch(
-      authorityRecordPDA
-    )
+    const authorityAccount = await attest.account.authorityRecord.fetch(authorityRecordPDA)
     console.log('Fetched authority account:', authorityAccount)
     expect(authorityAccount.authority.toBase58()).to.equal(authorityKeypair.publicKey.toBase58())
     expect(authorityAccount.isVerified).to.be.false
@@ -199,14 +197,14 @@ describe('attest.so', () => {
     )
     console.log('Levy token account balance:', levyTokenAccountBalance.value.amount)
     expect(levyTokenAccountBalance.value.amount).to.equal('10')
-    
+
     // Store schema UID for later tests
     schemaUID = schemaDataPDA
   })
 
   it('attester can revoke attestation', async () => {
     console.log('Revoking attestation...')
-    
+
     const [attestationPDA] = await PublicKey.findProgramAddress(
       [
         Buffer.from('attestation'),

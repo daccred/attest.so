@@ -1,7 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, Address, Env, String as SorobanString, BytesN,
+    contract, contractimpl, Address, Env, String, BytesN,
 };
 
 mod errors;
@@ -36,7 +36,7 @@ impl AttestationContract {
     pub fn register(
         env: Env,
         caller: Address,
-        schema_definition: SorobanString,
+        schema_definition: String,
         resolver: Option<Address>,
         revocable: bool,
     ) -> Result<BytesN<32>, errors::Error> {
@@ -48,8 +48,8 @@ impl AttestationContract {
         caller: Address,
         schema_uid: BytesN<32>,
         subject: Address,
-        value: SorobanString,
-        reference: Option<SorobanString>,
+        value: String,
+        reference: Option<String>,
     ) -> Result<(), errors::Error> {
         attest(&env, caller, schema_uid, subject, value, reference)
     }
@@ -59,7 +59,7 @@ impl AttestationContract {
         caller: Address,
         schema_uid: BytesN<32>,
         subject: Address,
-        reference: Option<SorobanString>,
+        reference: Option<String>,
     ) -> Result<(), errors::Error> {
         revoke_attest(&env, caller, schema_uid, subject, reference)
     }
@@ -68,7 +68,7 @@ impl AttestationContract {
         env: Env,
         schema_uid: BytesN<32>,
         subject: Address,
-        reference: Option<SorobanString>,
+        reference: Option<String>,
     ) -> Result<AttestationRecord, errors::Error> {
         get_attest(&env, schema_uid, subject, reference)
     }
