@@ -10,8 +10,9 @@ mod interfaces;
 mod state;
 mod instructions;
 mod utils;
+mod bls_research;
 
-use state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest};
+use state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest, BlsPublicKey};
 
 use instructions::{
     register_schema,
@@ -22,6 +23,8 @@ use instructions::{
     attest_by_delegation,
     revoke_by_delegation,
     get_next_nonce,
+    register_bls_public_key,
+    get_bls_public_key,
 };
 
 #[contract]
@@ -119,6 +122,31 @@ impl AttestationContract {
         attester: Address,
     ) -> u64 {
         get_next_nonce(&env, &attester)
+    }
+
+    /// Registers a BLS public key for an attester
+    pub fn register_bls_key(
+        env: Env,
+        attester: Address,
+        public_key: BytesN<96>,
+    ) -> Result<(), errors::Error> {
+        register_bls_public_key(&env, attester, public_key)
+    }
+
+    /// Gets the BLS public key for an attester
+    pub fn get_bls_key(
+        env: Env,
+        attester: Address,
+    ) -> Option<BlsPublicKey> {
+        get_bls_public_key(&env, &attester)
+    }
+
+    /// Research function to explore BLS12-381 API capabilities
+    /// This is for development/testing only and should be removed in production
+    #[allow(dead_code)]
+    pub fn test_bls_api(env: Env) -> Result<(), errors::Error> {
+        bls_research::test_bls_signature_pattern(&env)
+            .map_err(|_| errors::Error::InvalidSignature)
     }
 }
 

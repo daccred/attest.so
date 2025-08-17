@@ -26,6 +26,10 @@ pub enum DataKey {
     /// 
     /// Used to prevent replay attacks in delegated attestations
     AttesterNonce(Address),
+    /// Key for storing the BLS public key for an attester
+    /// 
+    /// Used for verifying delegated attestation signatures
+    AttesterPublicKey(Address),
 }
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
@@ -138,8 +142,8 @@ pub struct DelegatedAttestationRequest {
     pub deadline: u64,
     /// Optional expiration time for the attestation itself
     pub expiration_time: Option<u64>,
-    /// Ed25519 signature of the request data
-    pub signature: BytesN<64>,
+    /// BLS12-381 G1 signature of the request data (96 bytes)
+    pub signature: BytesN<96>,
 }
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
@@ -163,8 +167,8 @@ pub struct DelegatedRevocationRequest {
     pub revoker: Address,
     /// Expiration timestamp for this signed request
     pub deadline: u64,
-    /// Ed25519 signature of the request data
-    pub signature: BytesN<64>,
+    /// BLS12-381 G1 signature of the request data (96 bytes)
+    pub signature: BytesN<96>,
 }
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
@@ -204,4 +208,20 @@ pub struct Attestation {
     pub revoked: bool,
     /// Optional timestamp when the attestation was revoked
     pub revocation_time: Option<u64>,
-} 
+}
+
+/// ╔══════════════════════════════════════════════════════════════════════════╗
+/// ║                            BLS Public Key                                 ║
+/// ╚══════════════════════════════════════════════════════════════════════════╝
+/// 
+/// Represents a BLS12-381 public key for an attester.
+/// 
+/// Stored as compressed G2 point bytes (96 bytes) for signature verification.
+#[contracttype]
+#[derive(Clone)]
+pub struct BlsPublicKey {
+    /// The BLS12-381 G2 public key (96 bytes compressed)
+    pub key_bytes: BytesN<96>,
+    /// Timestamp when this key was registered
+    pub registered_at: u64,
+}
