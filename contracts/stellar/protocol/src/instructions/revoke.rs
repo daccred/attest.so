@@ -1,5 +1,5 @@
 use soroban_sdk::{Address, Env, String, BytesN};
-use crate::state::{DataKey, AttestationRecord};
+use crate::state::{DataKey, Attestation};
 use crate::errors::Error;
 use crate::utils;
 use crate::events;
@@ -48,7 +48,7 @@ pub fn revoke_attest(
 
     // Get attestation - Clone the values to avoid moving them
     let attest_key = DataKey::Attestation(schema_uid.clone(), subject.clone(), reference.clone());
-    let mut attest = env.storage().instance().get::<DataKey, AttestationRecord>(&attest_key)
+    let mut attest = env.storage().instance().get::<DataKey, Attestation>(&attest_key)
         .ok_or(Error::AttestationNotFound)?;
 
     // Verify attestation is revocable

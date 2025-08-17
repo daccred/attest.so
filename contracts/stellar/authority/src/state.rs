@@ -7,7 +7,7 @@ use soroban_sdk::{
 // ══════════════════════════════════════════════════════════════════════════════
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[contracttype]
-pub struct AttestationRecord {
+pub struct Attestation {
     pub uid: BytesN<32>,
     pub schema_uid: BytesN<32>,
     pub recipient: Address,

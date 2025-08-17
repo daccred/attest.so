@@ -11,7 +11,7 @@ mod instructions;
 
 // Re-export types for external use
 pub use errors::Error;
-pub use state::{AttestationRecord, RegisteredAuthorityData, SchemaRules, DataKey};
+pub use state::{Attestation, RegisteredAuthorityData, SchemaRules, DataKey};
 pub use events::{ADMIN_REG_AUTH, AUTHORITY_REGISTERED, SCHEMA_REGISTERED, LEVY_COLLECTED, LEVY_WITHDRAWN};
 
 #[contract]
@@ -97,11 +97,11 @@ impl AuthorityResolverContract {
         Ok(state::is_authority(&env, &authority))
     }
 
-    pub fn attest(env: Env, attestation: AttestationRecord) -> Result<bool, Error> {
+    pub fn attest(env: Env, attestation: Attestation) -> Result<bool, Error> {
         instructions::resolver::attest(&env, &attestation)
     }
 
-    pub fn revoke(env: Env, attestation: AttestationRecord) -> Result<bool, Error> {
+    pub fn revoke(env: Env, attestation: Attestation) -> Result<bool, Error> {
         instructions::resolver::revoke(&env, &attestation)
     }
 

@@ -1,7 +1,7 @@
 use soroban_sdk::{token, Address, Env, String, log};
 use crate::errors::Error;
 use crate::state::{
-    AttestationRecord, RegisteredAuthorityData, is_authority, get_schema_rules, 
+    Attestation, RegisteredAuthorityData, is_authority, get_schema_rules, 
     get_collected_levy, set_collected_levy, remove_collected_levy,
     update_collected_levy, set_authority_data
 };
@@ -51,7 +51,7 @@ pub fn register_authority(
 // ══════════════════════════════════════════════════════════════════════════════
 
 /// Attestation hook for verifying authority and collecting levies
-pub fn attest(env: &Env, attestation: &AttestationRecord) -> Result<bool, Error> {
+pub fn attest(env: &Env, attestation: &Attestation) -> Result<bool, Error> {
     require_init(env)?;
     if !is_authority(env, &attestation.attester) {
         log!(env, "Attest hook: {} is NOT an authority.", attestation.attester);
@@ -101,7 +101,7 @@ pub fn attest(env: &Env, attestation: &AttestationRecord) -> Result<bool, Error>
 }
 
 /// Revocation hook for verifying authority
-pub fn revoke(env: &Env, attestation: &AttestationRecord) -> Result<bool, Error> {
+pub fn revoke(env: &Env, attestation: &Attestation) -> Result<bool, Error> {
     require_init(env)?;
     if is_authority(env, &attestation.attester) {
         log!(env, "Revoke hook: Authority {} authorized for schema {:?}", 

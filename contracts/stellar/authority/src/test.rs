@@ -115,15 +115,15 @@ fn setup_env<'a>(mock_auths: bool) -> TestSetup<'a> {
 
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ► Helper function to create a basic AttestationRecord with dummy data for testing hooks.
+// ► Helper function to create a basic Attestation with dummy data for testing hooks.
 // ══════════════════════════════════════════════════════════════════════════════
 fn create_dummy_attestation(
     env: &Env,
     issuer: &Address,        // Renamed from authority for clarity
     schema_uid: &BytesN<32>,
     recipient: Option<Address> // Added recipient field
-) -> AttestationRecord {
-    AttestationRecord {
+) -> Attestation {
+    Attestation {
         uid: BytesN::random(env),
         schema_uid: schema_uid.clone(),
         recipient: recipient.unwrap_or_else(|| Address::generate(env)),
