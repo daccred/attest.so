@@ -33,7 +33,7 @@
     "clean": "rimraf dist",
     "dev": "tsup --watch",
     "format": "prettier --write \"src/**/*.ts\"",
-    "lint": "eslint src --ext .ts",
+    "lint:ts": "tsc --noEmit --pretty",
     "test": "vitest",
     "test:coverage": "vitest --coverage"
   },

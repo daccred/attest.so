@@ -2,8 +2,35 @@
  * Test data generation utilities
  */
 
+// Secure random number generation functions using Web Crypto API
+const getSecureRandomInt = (min: number, max: number): number => {
+  const range = max - min
+  const bytes = new Uint32Array(1)
+  
+  // Use global crypto (available in both Node.js and browsers)
+  const crypto = globalThis.crypto
+  if (!crypto) {
+    throw new Error('Crypto API not available')
+  }
+  
+  crypto.getRandomValues(bytes)
+  return min + (bytes[0] % range)
+}
+
+const getSecureRandomBytes = (length: number): string => {
+  const bytes = new Uint8Array(length)
+  
+  // Use global crypto (available in both Node.js and browsers)
+  const crypto = globalThis.crypto
+  if (!crypto) {
+    throw new Error('Crypto API not available')
+  }
+  
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
+}
 import { SchemaDefinition, AttestationDefinition } from '@attestprotocol/core'
-import { createTestKeypairs } from './stellar-utils'
+import { createTestKeypairs } from './keypairs'
 
 /**
  * Create a test schema definition for development and testing.
@@ -398,13 +425,15 @@ export function generateRealisticTestData(type: 'degree' | 'identity' | 'certifi
     'Frank Miller', 'Grace Chen', 'Henry Garcia', 'Iris Kumar', 'Jack Rodriguez'
   ]
 
-  const getRandomElement = <T>(array: T[]): T => array[Math.floor(Math.random() * array.length)]
+  const getRandomElement = <T>(array: T[]): T => array[getSecureRandomInt(0, array.length)]
   const getRandomDate = (yearsAgo: number, yearsFuture: number = 0) => {
     const start = new Date()
     start.setFullYear(start.getFullYear() - yearsAgo)
     const end = new Date()
     end.setFullYear(end.getFullYear() + yearsFuture)
-    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()))
+    const timeRange = end.getTime() - start.getTime()
+    const randomOffset = getSecureRandomInt(0, timeRange + 1)
+    return new Date(start.getTime() + randomOffset)
   }
 
   switch (type) {
@@ -415,7 +444,7 @@ export function generateRealisticTestData(type: 'degree' | 'identity' | 'certifi
         degree: getRandomElement(['Bachelor of Science', 'Master of Science', 'Bachelor of Arts', 'Master of Arts', 'PhD']),
         fieldOfStudy: getRandomElement(['Computer Science', 'Engineering', 'Business Administration', 'Psychology', 'Biology']),
         graduationDate: getRandomDate(5, 0).toISOString().split('T')[0],
-        gpa: Math.round((Math.random() * 1.5 + 2.5) * 100) / 100, // 2.5-4.0 range
+        gpa: Math.round((getSecureRandomInt(0, 151) / 100 + 2.5) * 100) / 100, // 2.5-4.0 range
         honors: getRandomElement(['summa_cum_laude', 'magna_cum_laude', 'cum_laude', 'none'])
       }
 
@@ -425,7 +454,7 @@ export function generateRealisticTestData(type: 'degree' | 'identity' | 'certifi
         dateOfBirth: getRandomDate(50, -18).toISOString().split('T')[0], // 18-50 years old
         nationality: getRandomElement(['United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Japan']),
         documentType: getRandomElement(['passport', 'drivers_license', 'national_id']),
-        documentNumber: `sha256:${Math.random().toString(36).substring(2, 15)}...`,
+        documentNumber: `sha256:${getSecureRandomBytes(8)}...`,
         verificationLevel: getRandomElement(['basic', 'enhanced', 'premium']),
         verificationDate: new Date().toISOString(),
         verifiedBy: getRandomElement(['TrustedVerify Inc.', 'GlobalID Services', 'SecureAuth Solutions'])
@@ -441,7 +470,7 @@ export function generateRealisticTestData(type: 'degree' | 'identity' | 'certifi
         holderName: getRandomElement(names),
         certificationName: cert.name,
         issuingOrganization: cert.org,
-        certificationNumber: `${cert.org.replace(/\s+/g, '').toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        certificationNumber: `${cert.org.replace(/\s+/g, '').toUpperCase()}-${getSecureRandomBytes(3).toUpperCase()}`,
         issueDate: issueDate.toISOString().split('T')[0],
         expirationDate: expirationDate.toISOString().split('T')[0],
         skillsValidated: getRandomElement([
@@ -460,9 +489,9 @@ export function generateRealisticTestData(type: 'degree' | 'identity' | 'certifi
         department: getRandomElement(['Engineering', 'Product', 'Design', 'Marketing', 'Operations']),
         employmentType: getRandomElement(['full_time', 'part_time', 'contract']),
         startDate: getRandomDate(3, 0).toISOString().split('T')[0],
-        currentlyEmployed: Math.random() > 0.3, // 70% currently employed
+        currentlyEmployed: getSecureRandomInt(0, 10) > 2, // 70% currently employed
         salary: {
-          amount: Math.floor(Math.random() * 100000) + 80000, // $80k-$180k range
+          amount: getSecureRandomInt(80000, 180001), // $80k-$180k range
           currency: 'USD',
           frequency: 'annually'
         },

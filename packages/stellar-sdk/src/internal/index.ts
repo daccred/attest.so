@@ -13,17 +13,5 @@
 // Schema utilities
 export * from './schema-utils'
 
-// Test data utilities
-export * from './test-data'
-
-// Stellar utilities
-export * from './stellar-utils'
-
-// Standardized schema utilities
-export * from './standardized-schemas'
-
-// Validation utilities
-export * from './validators'
-
 // Schema encoder core (main encoder classes and types)
 export * from './schema-encoder'
