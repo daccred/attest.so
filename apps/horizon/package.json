@@ -1,6 +1,6 @@
 {
   "name": "@attestprotocol/horizon",
-  "version": "1.3.0",
+  "version": "1.7.0",
   "description": "Stellar Horizon Indexer for monitoring and processing blockchain events",
   "main": "src/index.ts",
   "scripts": {

@@ -1,6 +1,6 @@
 {
   "name": "@attestprotocol/sdk",
-  "version": "2.1.0",
+  "version": "1.7.0",
   "exports": "./src/index.ts",
   "exclude": ["dist", "*.config.ts", "*.config.js", "node_modules"]
 }
