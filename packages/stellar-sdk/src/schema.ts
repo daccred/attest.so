@@ -17,6 +17,7 @@ import {
 import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/bindings/src/protocol'
 import { Address, xdr, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
+import { StellarSchemaEncoder, StellarSchemaDefinition } from './common/schema-encoder'
 
 export class StellarSchemaService {
   private protocolClient: ProtocolClient
@@ -28,7 +29,54 @@ export class StellarSchemaService {
   }
 
   /**
-   * Create a new schema on the Stellar network
+   * Create a new schema using structured schema definition with validation
+   */
+  async createStructuredSchema(
+    schemaDefinition: StellarSchemaDefinition,
+    options?: {
+      resolver?: string;
+      revocable?: boolean;
+      levy?: any;
+      format?: 'xdr' | 'json';
+    }
+  ): Promise<AttestProtocolResponse<Schema>> {
+    try {
+      // Validate and encode the structured schema
+      const encoder = new StellarSchemaEncoder(schemaDefinition);
+      
+      // Choose encoding format
+      let schemaString: string;
+      switch (options?.format || 'xdr') {
+        case 'xdr':
+          schemaString = encoder.toXDR();
+          break;
+        case 'json':
+          schemaString = JSON.stringify(schemaDefinition);
+          break;
+        default:
+          schemaString = encoder.toXDR();
+      }
+      
+      // Use the standard createSchema method with encoded string
+      return await this.createSchema({
+        name: schemaDefinition.name,
+        content: schemaString,
+        resolver: options?.resolver,
+        revocable: options?.revocable ?? true,
+        levy: options?.levy
+      });
+    } catch (error: any) {
+      return createErrorResponse(
+        createAttestProtocolError(
+          AttestProtocolErrorType.VALIDATION_ERROR,
+          `Schema validation failed: ${error.message}`
+        )
+      );
+    }
+  }
+
+  /**
+   * Create a new schema on the Stellar network (accepts raw string or structured definition)
    */
   async createSchema(config: SchemaDefinition): Promise<AttestProtocolResponse<Schema>> {
     try {
@@ -100,6 +148,64 @@ export class StellarSchemaService {
           error.message || 'Failed to fetch schema'
         )
       )
+    }
+  }
+
+  /**
+   * Parse a schema definition string into structured format if possible
+   */
+  parseSchemaDefinition(schemaString: string): { 
+    encoder: StellarSchemaEncoder | null; 
+    format: 'xdr' | 'json' | 'unknown' 
+  } {
+    // Try XDR format first
+    if (schemaString.startsWith('XDR:')) {
+      try {
+        const encoder = StellarSchemaEncoder.fromXDR(schemaString);
+        return { encoder, format: 'xdr' };
+      } catch {
+        return { encoder: null, format: 'unknown' };
+      }
+    }
+
+    // Try JSON format
+    try {
+      const parsed = JSON.parse(schemaString);
+      
+      // Check if it looks like our structured format
+      if (parsed.name && parsed.version && parsed.fields && Array.isArray(parsed.fields)) {
+        const encoder = new StellarSchemaEncoder(parsed as StellarSchemaDefinition);
+        return { encoder, format: 'json' };
+      }
+    } catch {
+      // Not JSON
+    }
+
+    return { encoder: null, format: 'unknown' };
+  }
+
+  /**
+   * Create a schema encoder from a schema UID (fetch from contract and parse)
+   */
+  async createEncoderFromSchema(schemaUID: string): Promise<AttestProtocolResponse<{
+    encoder: StellarSchemaEncoder | null;
+    format: 'xdr' | 'json' | 'unknown';
+  }>> {
+    try {
+      const schemaResponse = await this.fetchSchemaById(schemaUID);
+      if (schemaResponse.error || !schemaResponse.data) {
+        return createSuccessResponse({ encoder: null, format: 'unknown' });
+      }
+
+      const parsed = this.parseSchemaDefinition(schemaResponse.data.definition);
+      return createSuccessResponse(parsed);
+    } catch (error: any) {
+      return createErrorResponse(
+        createAttestProtocolError(
+          AttestProtocolErrorType.VALIDATION_ERROR,
+          `Failed to create encoder: ${error.message}`
+        )
+      );
     }
   }
 
