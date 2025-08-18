@@ -1,6 +1,4 @@
-use soroban_sdk::{
-    contracttype, Bytes, BytesN, Address, Env, String
-};
+use soroban_sdk::{contracttype, Address, Bytes, BytesN, Env, String};
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ► Contract Data Structures
@@ -143,7 +141,9 @@ pub fn remove_collected_levy(env: &Env, recipient: &Address) {
 /// Updates (increments) the collected levy balance for a recipient.
 pub fn update_collected_levy(env: &Env, recipient: &Address, additional_amount: &i128) {
     let current = get_collected_levy(env, recipient);
-    let new_amount = current.checked_add(*additional_amount).expect("Levy balance overflow");
+    let new_amount = current
+        .checked_add(*additional_amount)
+        .expect("Levy balance overflow");
     set_collected_levy(env, recipient, &new_amount);
 }
 
@@ -159,4 +159,4 @@ pub fn is_initialized(env: &Env) -> bool {
 pub fn is_authority(env: &Env, authority: &Address) -> bool {
     let key = (DataKey::RegAuthPrefix, authority.clone());
     env.storage().persistent().has(&key)
-} 
+}

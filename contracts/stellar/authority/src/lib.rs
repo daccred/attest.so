@@ -1,18 +1,21 @@
 #![no_std]
-use soroban_sdk::{
-    contract, contractimpl, Address, BytesN, Env, String
-};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String};
 
 // Import modules
+mod access_control;
 mod errors;
 mod events;
-mod state;
 mod instructions;
+mod macros;
+mod state;
 
 // Re-export types for external use
 pub use errors::Error;
-pub use state::{Attestation, RegisteredAuthorityData, SchemaRules, DataKey};
-pub use events::{ADMIN_REG_AUTH, AUTHORITY_REGISTERED, SCHEMA_REGISTERED, LEVY_COLLECTED, LEVY_WITHDRAWN};
+pub use events::{
+    ADMIN_REG_AUTH, AUTHORITY_REGISTERED, LEVY_COLLECTED, LEVY_WITHDRAWN, OWNERSHIP_RENOUNCED,
+    OWNERSHIP_TRANSFERRED, SCHEMA_REGISTERED,
+};
+pub use state::{Attestation, DataKey, RegisteredAuthorityData, SchemaRules};
 
 #[contract]
 pub struct AuthorityResolverContract;
@@ -33,10 +36,9 @@ impl AuthorityResolverContract {
         state::set_admin(&env, &admin);
         state::set_token_id(&env, &token_contract_id);
         state::set_initialized(&env);
-        env.storage().instance().extend_ttl(
-            env.storage().max_ttl() - 100,
-            env.storage().max_ttl(),
-        );
+        env.storage()
+            .instance()
+            .extend_ttl(env.storage().max_ttl() - 100, env.storage().max_ttl());
         Ok(())
     }
 
@@ -68,7 +70,13 @@ impl AuthorityResolverContract {
         levy_amount: i128,
         levy_recipient: Address,
     ) -> Result<(), Error> {
-        instructions::admin::admin_set_schema_levy(&env, &admin, &schema_uid, levy_amount, &levy_recipient)
+        instructions::admin::admin_set_schema_levy(
+            &env,
+            &admin,
+            &schema_uid,
+            levy_amount,
+            &levy_recipient,
+        )
     }
 
     pub fn admin_set_registration_fee(
@@ -112,7 +120,10 @@ impl AuthorityResolverContract {
     // ──────────────────────────────────────────────────────────────────────────
     //                             Getter Functions
     // ──────────────────────────────────────────────────────────────────────────
-    pub fn get_schema_rules(env: Env, schema_uid: BytesN<32>) -> Result<Option<SchemaRules>, Error> {
+    pub fn get_schema_rules(
+        env: Env,
+        schema_uid: BytesN<32>,
+    ) -> Result<Option<SchemaRules>, Error> {
         instructions::admin::require_init(&env)?;
         Ok(state::get_schema_rules(&env, &schema_uid))
     }
@@ -128,6 +139,68 @@ impl AuthorityResolverContract {
 
     pub fn get_admin_address(env: Env) -> Result<Address, Error> {
         instructions::admin::get_admin(&env)
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    //                        Ownership Management Functions
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /// Transfer ownership of the contract to a new address
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment
+    /// * `current_owner` - The current owner address (must be authenticated)
+    /// * `new_owner` - The address to transfer ownership to
+    ///
+    /// # Returns
+    /// * `Ok(())` - If ownership transfer is successful
+    /// * `Err(Error)` - If not authorized or validation fails
+    pub fn transfer_ownership(
+        env: Env,
+        current_owner: Address,
+        new_owner: Address,
+    ) -> Result<(), Error> {
+        access_control::transfer_ownership(&env, &current_owner, &new_owner)
+    }
+
+    /// Renounce ownership of the contract (permanent action)
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment  
+    /// * `current_owner` - The current owner address (must be authenticated)
+    ///
+    /// # Returns
+    /// * `Ok(())` - If ownership renunciation is successful
+    /// * `Err(Error)` - If not authorized
+    ///
+    /// # Warning
+    /// This is irreversible! After renouncing ownership, all admin functions become inaccessible.
+    pub fn renounce_ownership(env: Env, current_owner: Address) -> Result<(), Error> {
+        access_control::renounce_ownership(&env, &current_owner)
+    }
+
+    /// Get the current owner of the contract
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment
+    ///
+    /// # Returns
+    /// * `Ok(Address)` - The current owner address
+    /// * `Err(Error)` - If no owner is set (contract not initialized)
+    pub fn get_owner(env: Env) -> Result<Address, Error> {
+        access_control::get_owner(&env)
+    }
+
+    /// Check if an address is the current owner
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment
+    /// * `address` - The address to check
+    ///
+    /// # Returns
+    /// * `bool` - True if the address is the owner, false otherwise
+    pub fn is_owner(env: Env, address: Address) -> bool {
+        access_control::is_owner(&env, &address)
     }
 }
 
