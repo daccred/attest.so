@@ -15,7 +15,7 @@ pub enum DataKey {
     Admin,
     /// Key for storing authority information, indexed by the authority's address
     Authority(Address),
-    /// Key for storing schema information, indexed by the schema's unique identifier
+    /// Key for storing structured schema information, indexed by the schema's unique identifier
     Schema(BytesN<32>),
     /// Key for storing attestation data
     /// 
@@ -96,16 +96,18 @@ pub struct Authority {
 /// 
 /// Represents a schema definition that attestations can follow.
 /// 
-/// Schemas define the structure, validation rules, and behavior for attestations
-/// that reference them.
+/// Schemas define the structure and validation rules for attestations.
+/// The definition field supports multiple formats:
+/// - XDR-encoded: Stellar-native binary format for structured data
+/// - JSON: Human-readable structured format
 #[contracttype]
 #[derive(Clone)]
 pub struct Schema {
     /// The address of the authority that created this schema
     pub authority: Address,
-    /// The schema definition
+    /// The schema definition in any supported format
     /// 
-    /// Typically in JSON format, describing the structure and rules for attestations.
+    /// Supports XDR-encoded structured data or JSON
     pub definition: String,
     /// Optional address of a resolver contract for this schema
     /// 
@@ -114,6 +116,7 @@ pub struct Schema {
     /// Whether attestations using this schema can be revoked
     pub revocable: bool,
 }
+
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                      DelegatedAttestationRequest                          ║
