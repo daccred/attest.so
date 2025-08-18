@@ -11,22 +11,13 @@ use crate::events;
 ///
 /// # Arguments
 /// * `env` - The Soroban environment providing access to cryptographic functions.
-/// * `schema_definition` - The string representation of the schema definition.
+/// * `schema_definition` - The schema definition string (supports multiple formats).
 /// * `authority` - The address of the authority registering the schema.
 /// * `resolver` - An optional address of a resolver contract associated with the schema.
 ///
 /// # Returns
 /// * `BytesN<32>` - The unique 32-byte identifier (UID) for the schema.
 ///
-/// # Example
-/// ```ignore
-/// let schema_uid = generate_uid(
-///     &env,
-///     &schema_definition,
-///     &authority_address,
-///     &Some(resolver_address)
-/// );
-/// ```
 pub fn generate_uid(
     env: &Env,
     schema_definition: &String,
