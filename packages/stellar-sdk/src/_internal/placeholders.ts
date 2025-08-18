@@ -288,7 +288,6 @@ export function createTestSchema(
     ...schemas[schemaType],
     revocable: true,
     resolver: null,
-    levy: null,
   }
 }
 

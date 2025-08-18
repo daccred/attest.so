@@ -36,7 +36,6 @@ export class StellarSchemaService {
     options?: {
       resolver?: string;
       revocable?: boolean;
-      levy?: any;
       format?: 'xdr' | 'json';
     }
   ): Promise<AttestProtocolResponse<Schema>> {
@@ -62,8 +61,7 @@ export class StellarSchemaService {
         name: schemaDefinition.name,
         content: schemaString,
         resolver: options?.resolver,
-        revocable: options?.revocable ?? true,
-        levy: options?.levy
+        revocable: options?.revocable ?? true
       });
     } catch (error: any) {
       return createErrorResponse(
@@ -112,7 +110,6 @@ export class StellarSchemaService {
         authority: caller,
         revocable: config.revocable ?? true,
         resolver: config.resolver || null,
-        levy: config.levy || null,
       })
     } catch (error: any) {
       return createErrorResponse(

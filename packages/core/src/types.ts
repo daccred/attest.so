@@ -45,7 +45,6 @@ export interface Schema {
   authority: string
   revocable: boolean
   resolver?: string | null
-  levy?: LevyInfo | null
   [key: string]: any
 }
 
@@ -66,14 +65,6 @@ export interface Attestation {
   [key: string]: any
 }
 
-/**
- * Generic levy information
- */
-export interface LevyInfo {
-  amount: string | number
-  asset?: string
-  recipient?: string
-}
 
 /**
  * Generic schema creation configuration
@@ -83,7 +74,6 @@ export interface SchemaDefinition {
   content: string
   revocable?: boolean
   resolver?: string | null
-  levy?: LevyInfo | null
 }
 
 /**
