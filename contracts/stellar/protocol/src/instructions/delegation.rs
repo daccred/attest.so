@@ -1,5 +1,5 @@
 use soroban_sdk::{Address, Env, BytesN, Bytes, Vec};
-use crate::state::{DataKey, Attestation, DelegatedAttestationRequest, DelegatedRevocationRequest, BlsPublicKeyInfo};
+use crate::state::{DataKey, Attestation, DelegatedAttestationRequest, DelegatedRevocationRequest, BlsPublicKey};
 use crate::errors::Error;
 use crate::utils;
 use crate::events;
@@ -53,8 +53,8 @@ pub fn attest_by_delegation(
     // Create message for signature verification
     let message = create_attestation_message(env, &request);
     
-    // Verify BLS12-381 signature (now includes public key)
-    verify_bls_signature(env, &message, &request.public_key, &request.signature, &request.attester)?;
+    // Verify BLS12-381 signature
+    verify_bls_signature(env, &message, &request.signature, &request.attester)?;
     
     // Create attestation record
     let attestation = Attestation {
@@ -135,8 +135,8 @@ pub fn revoke_by_delegation(
     // Create message for signature verification
     let message = create_revocation_message(env, &request);
     
-    // Verify BLS12-381 signature (now includes public key)
-    verify_bls_signature(env, &message, &request.public_key, &request.signature, &request.revoker)?;
+    // Verify BLS12-381 signature
+    verify_bls_signature(env, &message, &request.signature, &request.revoker)?;
     
     // Update attestation
     attestation.revoked = true;
@@ -262,15 +262,12 @@ fn create_revocation_message(
 
 /// Verifies a BLS12-381 signature for delegated attestation.
 ///
-/// The request must include the public key that created the signature.
-/// This function verifies:
-/// 1. The public key is registered and belongs to the attester
-/// 2. The signature is valid for the message with that public key
+/// Looks up the attester's registered BLS public key and verifies the signature.
+/// Each wallet address can have exactly one BLS key - immutable once registered.
 ///
 /// # Arguments
 /// * `env` - The Soroban environment
 /// * `message` - The message hash that was signed
-/// * `public_key` - The BLS12-381 public key used to create the signature
 /// * `signature` - The BLS12-381 signature (96 bytes)
 /// * `attester` - The address of the signer
 ///
@@ -279,22 +276,16 @@ fn create_revocation_message(
 fn verify_bls_signature(
     env: &Env,
     message: &BytesN<32>,
-    public_key: &BytesN<96>,
     signature: &BytesN<96>,
     attester: &Address,
 ) -> Result<(), Error> {
-    // First, verify this public key belongs to the attester
-    let pk_info_key = DataKey::BlsPublicKey(public_key.clone());
-    let key_info = env.storage().persistent()
-        .get::<DataKey, BlsPublicKeyInfo>(&pk_info_key)
-        .ok_or(Error::InvalidSignature)?; // Key not registered
+    // Look up the attester's BLS public key
+    let pk_key = DataKey::AttesterPublicKey(attester.clone());
+    let bls_key = env.storage().persistent()
+        .get::<DataKey, BlsPublicKey>(&pk_key)
+        .ok_or(Error::InvalidSignature)?; // No key registered for this address
     
-    // Verify the key belongs to the claimed attester and is active
-    if key_info.owner != *attester || !key_info.is_active {
-        return Err(Error::InvalidSignature);
-    }
-    
-    // Now perform BLS signature verification
+    // Perform BLS signature verification
     let bls = env.crypto().bls12_381();
     
     // Convert message to Bytes for hashing
@@ -311,7 +302,7 @@ fn verify_bls_signature(
     let sig_point = bls.hash_to_g1(&sig_as_bytes, &dst); // Placeholder for parsing
     
     // Parse public key from bytes to G2 point  
-    let pk_as_bytes = Bytes::from_array(env, &public_key.to_array());
+    let pk_as_bytes = Bytes::from_array(env, &bls_key.key.to_array());
     let dst_g2 = Bytes::from_slice(env, b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_");
     let pk_point = bls.hash_to_g2(&pk_as_bytes, &dst_g2); // Placeholder for parsing
     
@@ -346,11 +337,11 @@ pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
         .unwrap_or(0)
 }
 
-/// Registers or rotates a BLS public key for an attester.
+/// Registers a BLS public key for an attester.
 ///
-/// This function allows an attester to register their BLS12-381 public key
-/// which will be used to verify delegated attestation signatures.
-/// If a key already exists, it will be rotated (old key saved for history).
+/// Each wallet address can register exactly one BLS public key.
+/// Once registered, the key is immutable - cannot be updated or revoked.
+/// To use a different key, use a different wallet address.
 ///
 /// # Arguments
 /// * `env` - The Soroban environment
@@ -358,7 +349,7 @@ pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
 /// * `public_key` - The BLS12-381 G2 public key (96 bytes)
 ///
 /// # Returns
-/// * `Result<(), Error>` - Success or error
+/// * `Result<(), Error>` - Success or error (fails if key already exists)
 pub fn register_bls_public_key(
     env: &Env,
     attester: Address,
@@ -367,53 +358,30 @@ pub fn register_bls_public_key(
     attester.require_auth();
     
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
+    
+    // Check if this address already has a key registered
+    if env.storage().persistent().has(&pk_key) {
+        // Key already registered - immutable, cannot update
+        return Err(Error::AlreadyInitialized);
+    }
+    
     let timestamp = env.ledger().timestamp();
-    
-    // Check if key exists (rotation case)
-    let existing = env.storage().persistent()
-        .get::<DataKey, BlsPublicKey>(&pk_key);
-    
-    let bls_pk = if let Some(old_key) = existing {
-        // Store old key in history before rotation
-        let history_key = DataKey::AttesterPublicKeyHistory(
-            attester.clone(),
-            old_key.rotation_count
-        );
-        env.storage().persistent().set(&history_key, &old_key);
-        
-        // Key rotation - emit rotation event
-        crate::events::publish_bls_key_rotated(
-            env,
-            &attester,
-            &old_key.key_bytes,
-            &public_key,
-            timestamp,
-        );
-        
-        BlsPublicKey {
-            key_bytes: public_key.clone(),
-            registered_at: timestamp,
-            previous_key: Some(old_key.key_bytes),
-            rotation_count: old_key.rotation_count + 1,
-        }
-    } else {
-        // New registration - emit registration event
-        crate::events::publish_bls_key_registered(
-            env,
-            &attester,
-            &public_key,
-            timestamp,
-        );
-        
-        BlsPublicKey {
-            key_bytes: public_key.clone(),
-            registered_at: timestamp,
-            previous_key: None,
-            rotation_count: 0,
-        }
+    let bls_key = BlsPublicKey {
+        key: public_key.clone(),
+        registered_at: timestamp,
     };
     
-    env.storage().persistent().set(&pk_key, &bls_pk);
+    // Store the key (one per address, immutable)
+    env.storage().persistent().set(&pk_key, &bls_key);
+    
+    // Emit registration event
+    crate::events::publish_bls_key_registered(
+        env,
+        &attester,
+        &public_key,
+        timestamp,
+    );
+    
     Ok(())
 }
 
