@@ -53,20 +53,3 @@ pub fn publish_bls_key_registered(
     );
     env.events().publish(topics, data);
 }
-
-pub fn publish_bls_key_rotated(
-    env: &Env,
-    attester: &Address,
-    old_key: &BytesN<96>,
-    new_key: &BytesN<96>,
-    timestamp: u64,
-) {
-    let topics = (symbol_short!("BLS_KEY"), symbol_short!("ROTATE"));
-    let data = (
-        attester.clone(),
-        old_key.clone(),
-        new_key.clone(),
-        timestamp,
-    );
-    env.events().publish(topics, data);
-}
