@@ -27,12 +27,33 @@ pub struct RegisteredAuthorityData {
     pub registration_time: u64,
 }
 
-/// Data stored for schema levy information.
+/// Data stored for schema fee and reward information.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[contracttype]
 pub struct SchemaRules {
+    // Legacy levy system (backwards compatibility)
     pub levy_amount: Option<i128>,
     pub levy_recipient: Option<Address>,
+
+    // New token incentive system
+    /// XLM fee charged by authority for each attestation (in stroops)
+    pub attestation_fee: Option<i128>,
+    /// Custom token contract address for rewarding attesters (auto-deployed if needed)
+    pub reward_token: Option<Address>,
+    /// Amount of reward tokens to mint/distribute per attestation
+    pub reward_amount: Option<i128>,
+    /// Authority that receives the XLM fees
+    pub fee_recipient: Option<Address>,
+    
+    // Token factory configuration
+    /// Token name for auto-deployed schema tokens
+    pub reward_token_name: Option<String>,
+    /// Token symbol for auto-deployed schema tokens  
+    pub reward_token_symbol: Option<String>,
+    /// Maximum supply for schema token (None = unlimited)
+    pub reward_token_max_supply: Option<i128>,
+    /// Decimals for schema token
+    pub reward_token_decimals: Option<u32>,
 }
 
 #[contracttype]
@@ -40,6 +61,7 @@ pub struct SchemaRules {
 pub enum DataKey {
     Admin,
     TokenId,
+    TokenWasmHash,
     RegistrationFee,
     Initialized,
     RegAuthPrefix,
@@ -69,6 +91,16 @@ pub fn get_token_id(env: &Env) -> Option<Address> {
 /// Writes the token contract ID to storage.
 pub fn set_token_id(env: &Env, token_id: &Address) {
     env.storage().instance().set(&DataKey::TokenId, token_id);
+}
+
+/// Reads the token WASM hash from storage.
+pub fn get_token_wasm_hash(env: &Env) -> Option<BytesN<32>> {
+    env.storage().instance().get(&DataKey::TokenWasmHash)
+}
+
+/// Writes the token WASM hash to storage.
+pub fn set_token_wasm_hash(env: &Env, wasm_hash: &BytesN<32>) {
+    env.storage().instance().set(&DataKey::TokenWasmHash, wasm_hash);
 }
 
 /// Reads the registration fee from storage.
@@ -159,4 +191,23 @@ pub fn is_initialized(env: &Env) -> bool {
 pub fn is_authority(env: &Env, authority: &Address) -> bool {
     let key = (DataKey::RegAuthPrefix, authority.clone());
     env.storage().persistent().has(&key)
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ► XLM Fee Collection Helper Functions
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Gets the collected XLM fee balance for an authority using a composite key.
+pub fn get_collected_fees(env: &Env, authority: &Address) -> i128 {
+    let key = (DataKey::CollLevyPrefix, authority.clone()); // Reuse levy storage for fees
+    env.storage().persistent().get(&key).unwrap_or(0)
+}
+
+/// Updates (increments) the collected XLM fee balance for an authority.
+pub fn update_collected_fees(env: &Env, authority: &Address, additional_amount: &i128) {
+    let current = get_collected_fees(env, authority);
+    let new_amount = current
+        .checked_add(*additional_amount)
+        .expect("Fee balance overflow");
+    set_collected_levy(env, authority, &new_amount); // Reuse levy functions for fees
 }

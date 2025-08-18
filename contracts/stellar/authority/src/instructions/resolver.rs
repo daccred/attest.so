@@ -3,7 +3,8 @@ use crate::events;
 use crate::instructions::admin::{get_token_id, require_init};
 use crate::state::{
     get_collected_levy, get_schema_rules, is_authority, remove_collected_levy, set_authority_data,
-    set_collected_levy, update_collected_levy, Attestation, RegisteredAuthorityData,
+    set_collected_levy, update_collected_fees, update_collected_levy, Attestation,
+    RegisteredAuthorityData,
 };
 use soroban_sdk::{log, token, Address, Env, String};
 
@@ -67,12 +68,12 @@ pub fn attest(env: &Env, attestation: &Attestation) -> Result<bool, Error> {
         Error::SchemaNotRegistered
     })?;
 
-    // Check if levy should be collected
+    // Handle legacy levy system (backwards compatibility)
     if let (Some(amount), Some(recipient)) = (rules.levy_amount, rules.levy_recipient) {
         if amount > 0 {
             log!(
                 env,
-                "Attest hook: Levy of {} applies for schema {:?} to recipient {}",
+                "Attest hook: Legacy levy of {} applies for schema {:?} to recipient {}",
                 amount,
                 attestation.schema_uid,
                 recipient
@@ -102,9 +103,73 @@ pub fn attest(env: &Env, attestation: &Attestation) -> Result<bool, Error> {
 
             log!(
                 env,
-                "Attest hook: Levy collected. New balance for {}: {}",
+                "Attest hook: Legacy levy collected. New balance for {}: {}",
                 recipient,
                 get_collected_levy(env, &recipient)
+            );
+        }
+    }
+
+    // Handle new XLM fee collection
+    if let (Some(fee_amount), Some(fee_recipient)) = (rules.attestation_fee, rules.fee_recipient) {
+        if fee_amount > 0 {
+            log!(
+                env,
+                "Attest hook: XLM fee of {} stroops applies for schema {:?} to authority {}",
+                fee_amount,
+                attestation.schema_uid,
+                fee_recipient
+            );
+
+            // Transfer XLM fee from attester to contract (using native XLM)
+            // Note: This requires the contract to have XLM allowance from the attester
+            // For now, we'll use the token system but in production this should be native XLM
+            let token_id = get_token_id(env)?;
+            let token_client = token::Client::new(env, &token_id);
+
+            token_client.transfer(
+                &attestation.attester,
+                &env.current_contract_address(),
+                &fee_amount,
+            );
+
+            // Update fee balance for the authority
+            update_collected_fees(env, &fee_recipient, &fee_amount);
+
+            log!(
+                env,
+                "Attest hook: XLM fee collected for authority {}",
+                fee_recipient
+            );
+        }
+    }
+
+    // Handle reward token distribution
+    if let (Some(reward_token), Some(reward_amount)) = (rules.reward_token, rules.reward_amount) {
+        if reward_amount > 0 {
+            log!(
+                env,
+                "Attest hook: Distributing {} reward tokens to attester {}",
+                reward_amount,
+                attestation.attester
+            );
+
+            // Mint/transfer reward tokens to the attester
+            let reward_token_client = token::Client::new(env, &reward_token);
+
+            // Try to transfer from contract to attester
+            // Note: This assumes the contract has sufficient reward tokens
+            // In production, this might need to mint new tokens
+            reward_token_client.transfer(
+                &env.current_contract_address(),
+                &attestation.attester,
+                &reward_amount,
+            );
+
+            log!(
+                env,
+                "Attest hook: Reward tokens distributed to attester {}",
+                attestation.attester
             );
         }
     }
@@ -187,6 +252,56 @@ pub fn withdraw_levies(env: &Env, caller: &Address) -> Result<(), Error> {
     log!(
         env,
         "Withdrawal successful for {}: amount {}",
+        caller,
+        balance
+    );
+    Ok(())
+}
+
+/// Withdraw collected XLM fees for an authority
+pub fn withdraw_fees(env: &Env, caller: &Address) -> Result<(), Error> {
+    require_init(env)?;
+    caller.require_auth();
+    if !is_authority(env, caller) {
+        log!(env, "Fee withdrawal attempt by non-authority: {}", caller);
+        return Err(Error::NotAuthorized);
+    }
+
+    let balance = crate::state::get_collected_fees(env, caller);
+
+    if balance <= 0 {
+        log!(
+            env,
+            "Fee withdrawal attempt by {}: No balance to withdraw.",
+            caller
+        );
+        return Err(Error::NothingToWithdraw);
+    }
+
+    log!(
+        env,
+        "Attempting fee withdrawal for authority {}: amount {}",
+        caller,
+        balance
+    );
+
+    let token_id = get_token_id(env)?;
+    let token_client = token::Client::new(env, &token_id);
+
+    // Reset balance before transfer to prevent reentrancy issues
+    set_collected_levy(env, caller, &0i128);
+
+    token_client.transfer(&env.current_contract_address(), caller, &balance);
+
+    // Remove the storage entry completely to save space
+    remove_collected_levy(env, caller);
+
+    // Publish withdrawal event (reuse levy_withdrawn event for now)
+    events::levy_withdrawn(env, caller, balance);
+
+    log!(
+        env,
+        "Fee withdrawal successful for authority {}: amount {}",
         caller,
         balance
     );

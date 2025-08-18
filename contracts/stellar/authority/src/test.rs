@@ -18,6 +18,33 @@ use crate::*; // Import everything including Error, structs, and event constants
 // Constants for fees and amounts (using stroops)
 const REGISTRATION_FEE: i128 = 100_0000000; // 100 XLM
 const DEFAULT_LEVY: i128 = 5_0000000; // 5 XLM
+
+// Helper function to create SchemaRules with default token incentive fields
+fn create_legacy_schema_rules(
+    levy_amount: Option<i128>,
+    levy_recipient: Option<Address>,
+) -> SchemaRules {
+    SchemaRules {
+        levy_amount,
+        levy_recipient,
+        attestation_fee: None,
+        reward_token: None,
+        reward_amount: None,
+        fee_recipient: None,
+    }
+}
+
+// Helper function for empty SchemaRules
+fn create_empty_schema_rules() -> SchemaRules {
+    SchemaRules {
+        levy_amount: None,
+        levy_recipient: None,
+        attestation_fee: None,
+        reward_token: None,
+        reward_amount: None,
+        fee_recipient: None,
+    }
+}
 const MINT_AMOUNT: i128 = 1_000_0000000; // 1000 XLM for testing
 
 // Helper function to create and register a token contract
@@ -390,10 +417,7 @@ fn test_admin_register_schema() {
     );
     // assert!(setup.resolver_client.is_authority(&levy_recipient)); // Already checked if needed
 
-    let rules = SchemaRules {
-        levy_amount: Some(DEFAULT_LEVY),
-        levy_recipient: Some(levy_recipient.clone()),
-    };
+    let rules = create_legacy_schema_rules(Some(DEFAULT_LEVY), Some(levy_recipient.clone()));
 
     // Admin registers the schema (mock_all_auths handles admin auth)
     setup
@@ -431,10 +455,7 @@ fn test_admin_register_schema_invalid_rules() {
     );
 
     // Case 1: Levy amount but no recipient
-    let rules1 = SchemaRules {
-        levy_amount: Some(DEFAULT_LEVY),
-        levy_recipient: None,
-    };
+    let rules1 = create_legacy_schema_rules(Some(DEFAULT_LEVY), None);
     let result1 =
         setup
             .resolver_client
@@ -445,10 +466,7 @@ fn test_admin_register_schema_invalid_rules() {
     );
 
     // Case 2: Recipient but no levy amount (or zero)
-    let rules2 = SchemaRules {
-        levy_amount: None,
-        levy_recipient: Some(some_authority.clone()),
-    };
+    let rules2 = create_legacy_schema_rules(None, Some(some_authority.clone()));
     let result2 =
         setup
             .resolver_client
@@ -459,10 +477,7 @@ fn test_admin_register_schema_invalid_rules() {
     );
 
     // Case 3: Recipient is not a registered authority
-    let rules3 = SchemaRules {
-        levy_amount: Some(DEFAULT_LEVY),
-        levy_recipient: Some(non_authority.clone()),
-    };
+    let rules3 = create_legacy_schema_rules(Some(DEFAULT_LEVY), Some(non_authority.clone()));
     let result3 =
         setup
             .resolver_client
@@ -490,10 +505,7 @@ fn test_attest_hook_no_levy() {
     );
 
     // Register schema with NO levy
-    let rules = SchemaRules {
-        levy_amount: None,
-        levy_recipient: None,
-    };
+    let rules = create_legacy_schema_rules(None, None);
     setup
         .resolver_client
         .admin_register_schema(&setup.admin, &schema_uid, &rules);
@@ -564,10 +576,7 @@ fn test_attest_hook_with_levy() {
             .into_val(&env),
         sub_invokes: &[],
     };
-    let rules = SchemaRules {
-        levy_amount: Some(LEVY_AMOUNT),
-        levy_recipient: Some(levy_recipient.clone()),
-    };
+    let rules = create_legacy_schema_rules(Some(LEVY_AMOUNT), Some(levy_recipient.clone()));
     let reg_schema_invoke = soroban_sdk::testutils::MockAuthInvoke {
         contract: &resolver_address,
         fn_name: "admin_register_schema",
@@ -701,10 +710,7 @@ fn test_attest_hook_not_authority() {
 
     // DO NOT register non_authority
     // Register schema (doesn't matter if levy or not)
-    let rules = SchemaRules {
-        levy_amount: None,
-        levy_recipient: None,
-    };
+    let rules = create_legacy_schema_rules(None, None);
     setup
         .resolver_client
         .admin_register_schema(&setup.admin, &schema_uid, &rules);
@@ -789,10 +795,7 @@ fn test_attest_hook_with_levy_no_allowance() {
                 args: (
                     setup.admin.clone(),
                     schema_uid.clone(),
-                    SchemaRules {
-                        levy_amount: Some(DEFAULT_LEVY),
-                        levy_recipient: Some(recipient_auth.clone()),
-                    },
+                    create_legacy_schema_rules(Some(DEFAULT_LEVY), Some(recipient_auth.clone())),
                 )
                     .into_val(&setup.env),
                 sub_invokes: &[],
@@ -831,10 +834,7 @@ fn test_attest_hook_with_levy_no_allowance() {
         &recipient_auth,
         &SorobanString::from_str(&setup.env, "Recipient"),
     );
-    let rules = SchemaRules {
-        levy_amount: Some(DEFAULT_LEVY),
-        levy_recipient: Some(recipient_auth.clone()),
-    };
+    let rules = create_legacy_schema_rules(Some(DEFAULT_LEVY), Some(recipient_auth.clone()));
     setup
         .resolver_client
         .admin_register_schema(&setup.admin, &schema_uid, &rules);
@@ -1022,10 +1022,7 @@ fn test_unauthorized_operations() {
     let non_admin = Address::generate(&setup.env);
     let some_authority = Address::generate(&setup.env);
     let schema_uid = BytesN::random(&setup.env);
-    let rules = SchemaRules {
-        levy_amount: None,
-        levy_recipient: None,
-    };
+    let rules = create_legacy_schema_rules(None, None);
 
     let result1 = setup.resolver_client.try_admin_register_authority(
         &non_admin,
@@ -1057,10 +1054,7 @@ fn test_unauthorized_operations() {
         &levy_recipient,
         &SorobanString::from_str(&setup.env, "Real Recipient"),
     );
-    let rules_for_levy = SchemaRules {
-        levy_amount: Some(100),
-        levy_recipient: Some(levy_recipient.clone()),
-    };
+    let rules_for_levy = create_legacy_schema_rules(Some(100), Some(levy_recipient.clone()));
     setup
         .resolver_client
         .admin_register_schema(&setup.admin, &schema_uid, &rules_for_levy);
@@ -1171,10 +1165,7 @@ fn test_collect_levies() {
                 args: (
                     admin.clone(),
                     schema_uid1.clone(),
-                    SchemaRules {
-                        levy_amount: Some(LEVY_AMOUNT1),
-                        levy_recipient: Some(levy_recipient.clone()),
-                    },
+                    create_legacy_schema_rules(Some(LEVY_AMOUNT1), Some(levy_recipient.clone())),
                 )
                     .into_val(&env),
                 sub_invokes: &[],
@@ -1188,10 +1179,7 @@ fn test_collect_levies() {
                 args: (
                     admin.clone(),
                     schema_uid2.clone(),
-                    SchemaRules {
-                        levy_amount: Some(LEVY_AMOUNT2),
-                        levy_recipient: Some(levy_recipient.clone()),
-                    },
+                    create_legacy_schema_rules(Some(LEVY_AMOUNT2), Some(levy_recipient.clone())),
                 )
                     .into_val(&env),
                 sub_invokes: &[],
@@ -1201,18 +1189,12 @@ fn test_collect_levies() {
     resolver_client.admin_register_schema(
         &admin,
         &schema_uid1,
-        &SchemaRules {
-            levy_amount: Some(LEVY_AMOUNT1),
-            levy_recipient: Some(levy_recipient.clone()),
-        },
+        &create_legacy_schema_rules(Some(LEVY_AMOUNT1), Some(levy_recipient.clone())),
     );
     resolver_client.admin_register_schema(
         &admin,
         &schema_uid2,
-        &SchemaRules {
-            levy_amount: Some(LEVY_AMOUNT2),
-            levy_recipient: Some(levy_recipient.clone()),
-        },
+        &create_legacy_schema_rules(Some(LEVY_AMOUNT2), Some(levy_recipient.clone())),
     );
 
     // Mint tokens to authority (this was missing before)
