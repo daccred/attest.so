@@ -8,6 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 soroban-sdk = { workspace = true }
+soroban-contracts-sdk = { version = "0.4.0", features = ["token"] }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
