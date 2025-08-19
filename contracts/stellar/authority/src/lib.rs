@@ -1,15 +1,20 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String};
+use resolvers::{Attestation as ResolverAttestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 
 // Import modules
 mod access_control;
 mod errors;
 mod events;
-mod instructions;
 mod macros;
 mod state;
-mod token_factory;
 mod trusted_verifiers;
+
+// Simplified instruction modules
+mod instructions {
+    pub mod admin_simple;
+    pub mod resolver_simple;
+}
 
 // Re-export types for external use
 pub use errors::Error;
@@ -17,7 +22,7 @@ pub use events::{
     ADMIN_REG_AUTH, AUTHORITY_REGISTERED, LEVY_COLLECTED, LEVY_WITHDRAWN, OWNERSHIP_RENOUNCED,
     OWNERSHIP_TRANSFERRED, SCHEMA_REGISTERED,
 };
-pub use state::{Attestation, DataKey, RegisteredAuthorityData, SchemaRules};
+pub use state::{Attestation, DataKey, RegisteredAuthorityData};
 
 #[contract]
 pub struct AuthorityResolverContract;
@@ -32,17 +37,18 @@ impl AuthorityResolverContract {
     // ──────────────────────────────────────────────────────────────────────────
     pub fn initialize(
         env: Env, 
-        admin: Address, 
-        token_contract_id: Address,
-        token_wasm_hash: BytesN<32>
+        admin: Address,
     ) -> Result<(), Error> {
         if state::is_initialized(&env) {
             return Err(Error::AlreadyInitialized);
         }
         admin.require_auth();
         state::set_admin(&env, &admin);
-        state::set_token_id(&env, &token_contract_id);
-        state::set_token_wasm_hash(&env, &token_wasm_hash);
+        
+        // Set default registration fee (100 XLM in stroops)
+        let registration_fee: i128 = 100_0000000; // 100 XLM
+        state::set_registration_fee(&env, &registration_fee);
+        
         state::set_initialized(&env);
         env.storage()
             .instance()
@@ -127,102 +133,25 @@ impl AuthorityResolverContract {
         auth_to_reg: Address,
         metadata: String,
     ) -> Result<(), Error> {
-        instructions::admin::admin_register_authority(&env, &admin, &auth_to_reg, &metadata)
+        instructions::admin_simple::admin_register_authority(&env, &admin, &auth_to_reg, &metadata)
     }
 
-    pub fn admin_register_schema(
+    /// Update the registration fee (admin only)
+    pub fn set_registration_fee(
         env: Env,
         admin: Address,
-        schema_uid: BytesN<32>,
-        rules: SchemaRules,
+        new_fee: i128,
     ) -> Result<(), Error> {
-        instructions::admin::admin_register_schema(&env, &admin, &schema_uid, &rules)
-    }
-
-    pub fn admin_set_schema_levy(
-        env: Env,
-        admin: Address,
-        schema_uid: BytesN<32>,
-        levy_amount: i128,
-        levy_recipient: Address,
-    ) -> Result<(), Error> {
-        instructions::admin::admin_set_schema_levy(
-            &env,
-            &admin,
-            &schema_uid,
-            levy_amount,
-            &levy_recipient,
-        )
-    }
-
-    pub fn admin_set_registration_fee(
-        env: Env,
-        admin: Address,
-        fee_amount: i128,
-        token_id: Address,
-    ) -> Result<(), Error> {
-        instructions::admin::admin_set_registration_fee(&env, &admin, &fee_amount, &token_id)
-    }
-
-    /// Set XLM attestation fee and fee recipient for a schema
-    pub fn admin_set_schema_fee(
-        env: Env,
-        admin: Address,
-        schema_uid: BytesN<32>,
-        attestation_fee: i128,
-        fee_recipient: Address,
-    ) -> Result<(), Error> {
-        instructions::admin::admin_set_schema_fee(
-            &env,
-            &admin,
-            &schema_uid,
-            attestation_fee,
-            &fee_recipient,
-        )
-    }
-
-    /// Set reward token and amount for a schema
-    pub fn admin_set_schema_rewards(
-        env: Env,
-        admin: Address,
-        schema_uid: BytesN<32>,
-        reward_token: Address,
-        reward_amount: i128,
-    ) -> Result<(), Error> {
-        instructions::admin::admin_set_schema_rewards(
-            &env,
-            &admin,
-            &schema_uid,
-            &reward_token,
-            reward_amount,
-        )
-    }
-
-    /// Create schema with automatic token deployment and rewards
-    pub fn admin_create_schema_with_token(
-        env: Env,
-        admin: Address,
-        schema_uid: BytesN<32>,
-        attestation_fee: Option<i128>,
-        fee_recipient: Option<Address>,
-        reward_amount: i128,
-        token_name: Option<String>,
-        token_symbol: Option<String>,
-        max_supply: Option<i128>,
-        decimals: Option<u32>,
-    ) -> Result<Address, Error> {
-        instructions::admin::admin_create_schema_with_token(
-            &env,
-            &admin,
-            &schema_uid,
-            attestation_fee,
-            fee_recipient.as_ref(),
-            reward_amount,
-            token_name.as_ref(),
-            token_symbol.as_ref(),
-            max_supply,
-            decimals,
-        )
+        access_control::only_owner(&env, &admin)?;
+        state::set_registration_fee(&env, &new_fee);
+        
+        // Emit event
+        env.events().publish(
+            (String::from_str(&env, "REGISTRATION_FEE_UPDATED"), ),
+            new_fee,
+        );
+        
+        Ok(())
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -234,59 +163,24 @@ impl AuthorityResolverContract {
         authority_to_reg: Address,
         metadata: String,
     ) -> Result<(), Error> {
-        instructions::resolver::register_authority(&env, &caller, &authority_to_reg, &metadata)
+        instructions::resolver_simple::register_authority(&env, &caller, &authority_to_reg, &metadata)
     }
 
     pub fn is_authority(env: Env, authority: Address) -> Result<bool, Error> {
-        instructions::admin::require_init(&env)?;
+        instructions::admin_simple::require_init(&env)?;
         Ok(state::is_authority(&env, &authority))
-    }
-
-    pub fn attest(env: Env, attestation: Attestation) -> Result<bool, Error> {
-        instructions::resolver::attest(&env, &attestation)
-    }
-
-    pub fn revoke(env: Env, attestation: Attestation) -> Result<bool, Error> {
-        instructions::resolver::revoke(&env, &attestation)
-    }
-
-    pub fn withdraw_levies(env: Env, caller: Address) -> Result<(), Error> {
-        instructions::resolver::withdraw_levies(&env, &caller)
-    }
-
-    /// Withdraw collected XLM fees for an authority
-    pub fn withdraw_fees(env: Env, caller: Address) -> Result<(), Error> {
-        instructions::resolver::withdraw_fees(&env, &caller)
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     //                             Getter Functions
     // ──────────────────────────────────────────────────────────────────────────
-    pub fn get_schema_rules(
-        env: Env,
-        schema_uid: BytesN<32>,
-    ) -> Result<Option<SchemaRules>, Error> {
-        instructions::admin::require_init(&env)?;
-        Ok(state::get_schema_rules(&env, &schema_uid))
-    }
-
-    pub fn get_collected_levies(env: Env, authority: Address) -> Result<i128, Error> {
-        instructions::admin::require_init(&env)?;
-        Ok(state::get_collected_levy(&env, &authority))
-    }
-
-    /// Get collected XLM fees for an authority
-    pub fn get_collected_fees(env: Env, authority: Address) -> Result<i128, Error> {
-        instructions::admin::require_init(&env)?;
-        Ok(state::get_collected_fees(&env, &authority))
-    }
-
-    pub fn get_token_id(env: Env) -> Result<Address, Error> {
-        instructions::admin::get_token_id(&env)
-    }
-
-    pub fn get_admin_address(env: Env) -> Result<Address, Error> {
-        instructions::admin::get_admin(&env)
+    
+    /// Get the registration fee amount
+    pub fn get_registration_fee(env: Env) -> Result<i128, Error> {
+        if !state::is_initialized(&env) {
+            return Err(Error::NotInitialized);
+        }
+        Ok(state::get_registration_fee(&env).unwrap_or(100_0000000))
     }
 
     // ──────────────────────────────────────────────────────────────────────────
