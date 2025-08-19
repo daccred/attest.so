@@ -93,30 +93,14 @@ pub fn set_token_id(env: &Env, token_id: &Address) {
     env.storage().instance().set(&DataKey::TokenId, token_id);
 }
 
-/// Reads the token WASM hash from storage.
-pub fn get_token_wasm_hash(env: &Env) -> Option<BytesN<32>> {
-    env.storage().instance().get(&DataKey::TokenWasmHash)
-}
-
 /// Writes the token WASM hash to storage.
 pub fn set_token_wasm_hash(env: &Env, wasm_hash: &BytesN<32>) {
     env.storage().instance().set(&DataKey::TokenWasmHash, wasm_hash);
 }
 
-/// Reads the registration fee from storage.
-pub fn get_registration_fee(env: &Env) -> Option<i128> {
-    env.storage().instance().get(&DataKey::RegistrationFee)
-}
-
 /// Writes the registration fee to storage.
 pub fn set_registration_fee(env: &Env, fee: &i128) {
     env.storage().instance().set(&DataKey::RegistrationFee, fee);
-}
-
-/// Reads authority data from storage using a composite key.
-pub fn get_authority_data(env: &Env, authority: &Address) -> Option<RegisteredAuthorityData> {
-    let key = (DataKey::RegAuthPrefix, authority.clone());
-    env.storage().persistent().get(&key)
 }
 
 /// Writes authority data to storage with appropriate TTL using a composite key.

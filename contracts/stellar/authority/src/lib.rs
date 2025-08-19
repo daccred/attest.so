@@ -8,7 +8,6 @@ mod events;
 mod instructions;
 mod macros;
 mod state;
-mod token_factory;
 
 // Re-export types for external use
 pub use errors::Error;
@@ -129,32 +128,6 @@ impl AuthorityResolverContract {
         )
     }
 
-    /// Create schema with automatic token deployment and rewards
-    pub fn admin_create_schema_with_token(
-        env: Env,
-        admin: Address,
-        schema_uid: BytesN<32>,
-        attestation_fee: Option<i128>,
-        fee_recipient: Option<Address>,
-        reward_amount: i128,
-        token_name: Option<String>,
-        token_symbol: Option<String>,
-        max_supply: Option<i128>,
-        decimals: Option<u32>,
-    ) -> Result<Address, Error> {
-        instructions::admin::admin_create_schema_with_token(
-            &env,
-            &admin,
-            &schema_uid,
-            attestation_fee,
-            fee_recipient.as_ref(),
-            reward_amount,
-            token_name.as_ref(),
-            token_symbol.as_ref(),
-            max_supply,
-            decimals,
-        )
-    }
 
     // ──────────────────────────────────────────────────────────────────────────
     //                         Public/Hook Functions

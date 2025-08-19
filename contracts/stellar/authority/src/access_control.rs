@@ -170,17 +170,6 @@ pub fn get_owner(env: &Env) -> Result<Address, Error> {
     owner(env).ok_or(Error::NotInitialized)
 }
 
-/// Checks if the contract has an owner
-///
-/// # Arguments
-/// * `env` - The Soroban environment
-///
-/// # Returns
-/// * `true` - If the contract has an owner
-/// * `false` - If no owner is set
-pub fn has_owner(env: &Env) -> bool {
-    owner(env).is_some()
-}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ► Testing Utilities (cfg(test) only)
