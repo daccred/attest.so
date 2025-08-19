@@ -4,10 +4,7 @@ resolver = "2"
 members = [
     "protocol",
     "authority",
-    "resolver_interface",
-    "resolvers/default",
-    "resolvers/token_reward",
-    "resolvers/fee_collection",
+    "resolvers",
 ]
 
 [workspace.package]

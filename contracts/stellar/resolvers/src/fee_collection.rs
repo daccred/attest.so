@@ -1,13 +1,12 @@
-#![no_std]
-
 use soroban_sdk::{contract, contractimpl, contracttype, token, Address, BytesN, Env, String};
-use resolver_interface::{Attestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
+use crate::interface::{Attestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataKey {
     Admin,
     Initialized,
+    FeeToken,
     AttestationFee,
     FeeRecipient,
     TotalCollected,
@@ -24,16 +23,18 @@ impl FeeCollectionResolver {
     pub fn initialize(
         env: Env,
         admin: Address,
+        fee_token: Address,
         attestation_fee: i128,
         fee_recipient: Address,
     ) -> Result<(), ResolverError> {
         if env.storage().instance().has(&DataKey::Initialized) {
-            return Err(ResolverError::CustomError(1)); // Already initialized
+            return Err(ResolverError::CustomError); // Already initialized
         }
         
         admin.require_auth();
         
         env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().set(&DataKey::FeeToken, &fee_token);
         env.storage().instance().set(&DataKey::AttestationFee, &attestation_fee);
         env.storage().instance().set(&DataKey::FeeRecipient, &fee_recipient);
         env.storage().instance().set(&DataKey::TotalCollected, &0i128);
@@ -95,7 +96,7 @@ impl FeeCollectionResolver {
         let fee_recipient: Address = env.storage()
             .instance()
             .get(&DataKey::FeeRecipient)
-            .ok_or(ResolverError::CustomError(2))?; // Not initialized
+            .ok_or(ResolverError::CustomError)?;
         
         if recipient != fee_recipient {
             return Err(ResolverError::NotAuthorized);
@@ -113,7 +114,8 @@ impl FeeCollectionResolver {
         }
         
         // Transfer XLM
-        let xlm_client = token::Client::new(&env, &token::StellarAssetClient::native(&env));
+        let native_asset = token::StellarAssetClient::new(&env, &env.current_contract_address());
+        let xlm_client = token::Client::new(&env, &native_asset.address());
         xlm_client.transfer(&env.current_contract_address(), &recipient, &collected);
         
         // Reset collected amount
@@ -151,7 +153,7 @@ impl FeeCollectionResolver {
         let admin: Address = env.storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or(ResolverError::CustomError(2))?; // Not initialized
+            .ok_or(ResolverError::CustomError)?;
         
         if caller != &admin {
             return Err(ResolverError::NotAuthorized);
@@ -181,10 +183,11 @@ impl ResolverInterface for FeeCollectionResolver {
         let fee_recipient: Address = env.storage()
             .instance()
             .get(&DataKey::FeeRecipient)
-            .ok_or(ResolverError::CustomError(2))?; // Not initialized
+            .ok_or(ResolverError::CustomError)?;
         
-        // Collect XLM fee from attester
-        let xlm_client = token::Client::new(&env, &token::StellarAssetClient::native(&env));
+        // Collect XLM fee from attester  
+        let native_asset = token::StellarAssetClient::new(&env, &env.current_contract_address());
+        let xlm_client = token::Client::new(&env, &native_asset.address());
         xlm_client.transfer(&attestation.attester, &env.current_contract_address(), &attestation_fee);
         
         // Track collected fees for recipient

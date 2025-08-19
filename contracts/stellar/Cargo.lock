@@ -381,14 +381,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "575f75dfd25738df5b91b8e43e14d44bda14637a58fae779fd2b064f8bf3e010"
 
 [[package]]
-name = "default-resolver"
-version = "0.1.0"
-dependencies = [
- "resolver-interface",
- "soroban-sdk",
-]
-
-[[package]]
 name = "der"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -527,14 +519,6 @@ name = "ethnum"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b90ca2580b73ab6a1f724b76ca11ab632df820fd6040c336200d2c1df7b3c82c"
-
-[[package]]
-name = "fee-collection-resolver"
-version = "0.1.0"
-dependencies = [
- "resolver-interface",
- "soroban-sdk",
-]
 
 [[package]]
 name = "ff"
@@ -935,7 +919,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "resolver-interface"
+name = "resolvers"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
@@ -1417,14 +1401,6 @@ checksum = "3526739392ec93fd8b359c8e98514cb3e8e021beb4e5f597b00a0221f8ed8a49"
 dependencies = [
  "num-conv",
  "time-core",
-]
-
-[[package]]
-name = "token-reward-resolver"
-version = "0.1.0"
-dependencies = [
- "resolver-interface",
- "soroban-sdk",
 ]
 
 [[package]]

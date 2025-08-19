@@ -1,7 +1,5 @@
-#![no_std]
-
 use soroban_sdk::{contract, contractimpl, contracttype, token, Address, BytesN, Env, String};
-use resolver_interface::{Attestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
+use crate::interface::{Attestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -14,7 +12,7 @@ pub enum DataKey {
     UserRewards,
 }
 
-/// TokenRewardResolver - Mints/distributes tokens as rewards for attestations
+/// TokenRewardResolver - Distributes token rewards for attestations
 #[contract]
 pub struct TokenRewardResolver;
 
@@ -28,7 +26,7 @@ impl TokenRewardResolver {
         reward_amount: i128,
     ) -> Result<(), ResolverError> {
         if env.storage().instance().has(&DataKey::Initialized) {
-            return Err(ResolverError::CustomError(1)); // Already initialized
+            return Err(ResolverError::CustomError); // Already initialized
         }
         
         admin.require_auth();
@@ -66,31 +64,6 @@ impl TokenRewardResolver {
         Ok(())
     }
     
-    /// Deposit tokens for rewards (anyone can fund)
-    pub fn deposit_rewards(
-        env: Env,
-        depositor: Address,
-        amount: i128,
-    ) -> Result<(), ResolverError> {
-        depositor.require_auth();
-        
-        let reward_token: Address = env.storage()
-            .instance()
-            .get(&DataKey::RewardToken)
-            .ok_or(ResolverError::CustomError(2))?; // Not initialized
-        
-        let token_client = token::Client::new(&env, &reward_token);
-        token_client.transfer(&depositor, &env.current_contract_address(), &amount);
-        
-        // Emit event
-        env.events().publish(
-            (String::from_str(&env, "REWARDS_DEPOSITED"), &depositor),
-            amount,
-        );
-        
-        Ok(())
-    }
-    
     /// Get total rewards distributed
     pub fn get_total_rewarded(env: Env) -> i128 {
         env.storage()
@@ -114,7 +87,7 @@ impl TokenRewardResolver {
         let admin: Address = env.storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or(ResolverError::CustomError(2))?; // Not initialized
+            .ok_or(ResolverError::CustomError)?;
         
         if caller != &admin {
             return Err(ResolverError::NotAuthorized);
@@ -143,7 +116,7 @@ impl ResolverInterface for TokenRewardResolver {
         let reward_token: Address = env.storage()
             .instance()
             .get(&DataKey::RewardToken)
-            .ok_or(ResolverError::CustomError(2))?; // Not initialized
+            .ok_or(ResolverError::CustomError)?;
         
         let reward_amount: i128 = env.storage()
             .instance()

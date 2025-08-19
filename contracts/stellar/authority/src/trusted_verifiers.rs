@@ -1,5 +1,3 @@
-#![no_std]
-
 use soroban_sdk::{contracttype, Address, Env, String};
 use crate::errors::Error;
 use crate::state::DataKey;
@@ -9,7 +7,7 @@ use crate::state::DataKey;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TrustedVerifier {
     pub address: Address,
-    pub max_verification_level: u8,
+    pub max_verification_level: u32,
     pub verifier_type: String,  // "KYC_Provider", "Business_Registry", "Domain_Verifier"
     pub active: bool,
     pub added_by: Address,
@@ -68,7 +66,7 @@ pub fn increment_verifier_count(env: &Env, verifier: &Address) -> Result<(), Err
 pub fn add_verifier(
     env: &Env,
     verifier: &Address,
-    max_level: u8,
+    max_level: u32,
     verifier_type: &String,
     added_by: &Address,
 ) -> Result<(), Error> {
@@ -102,7 +100,7 @@ pub fn deactivate_verifier(env: &Env, verifier: &Address) -> Result<(), Error> {
 pub fn update_verifier_level(
     env: &Env,
     verifier: &Address,
-    new_max_level: u8,
+    new_max_level: u32,
 ) -> Result<(), Error> {
     if new_max_level < 1 || new_max_level > 3 {
         return Err(Error::InvalidVerificationLevel);
@@ -119,7 +117,7 @@ pub fn update_verifier_level(
 pub fn validate_verifier_authority(
     env: &Env,
     verifier: &Address,
-    requested_level: u8,
+    requested_level: u32,
 ) -> Result<(), Error> {
     let verifier_data = get_trusted_verifier(env, verifier)
         .ok_or(Error::UnauthorizedVerifier)?;

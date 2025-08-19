@@ -59,7 +59,7 @@ impl AuthorityResolverContract {
         env: Env,
         admin: Address,
         verifier: Address,
-        max_level: u8,
+        max_level: u32,
         verifier_type: String,
     ) -> Result<(), Error> {
         access_control::only_owner(&env, &admin)?;
@@ -68,7 +68,7 @@ impl AuthorityResolverContract {
         // Emit event
         env.events().publish(
             (String::from_str(&env, "VERIFIER_ADDED"), &verifier),
-            (max_level, &verifier_type),
+            (max_level, verifier_type.clone()),
         );
         Ok(())
     }
@@ -95,7 +95,7 @@ impl AuthorityResolverContract {
         env: Env,
         admin: Address,
         verifier: Address,
-        new_max_level: u8,
+        new_max_level: u32,
     ) -> Result<(), Error> {
         access_control::only_owner(&env, &admin)?;
         trusted_verifiers::update_verifier_level(&env, &verifier, new_max_level)?;

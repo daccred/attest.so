@@ -1,7 +1,5 @@
-#![no_std]
-
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String};
-use resolver_interface::{Attestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
+use crate::interface::{Attestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 
 /// DefaultResolver - Basic attestation validation without any economic model
 /// Simply validates that attestations meet basic requirements
