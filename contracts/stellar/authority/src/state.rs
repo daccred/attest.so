@@ -25,6 +25,9 @@ pub struct RegisteredAuthorityData {
     pub address: Address,
     pub metadata: String,
     pub registration_time: u64,
+    pub verification_level: u32,  // 1=Basic, 2=Enhanced, 3=Premium
+    pub verified_by: Address,     // Who verified this authority
+    pub verification_data: Option<Bytes>, // Additional verification proofs
 }
 
 /// Data stored for schema fee and reward information.
@@ -67,6 +70,9 @@ pub enum DataKey {
     RegAuthPrefix,
     SchemaRulePrefix,
     CollLevyPrefix,
+    TrustedVerifier,  // New: for trusted verifier management
+    AuthoritySchema,  // New: UID of the authority schema itself
+    CollectedFees,    // New: XLM fees collected by authorities
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

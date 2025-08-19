@@ -9,6 +9,7 @@ mod instructions;
 mod macros;
 mod state;
 mod token_factory;
+mod trusted_verifiers;
 
 // Re-export types for external use
 pub use errors::Error;
@@ -47,6 +48,74 @@ impl AuthorityResolverContract {
             .instance()
             .extend_ttl(env.storage().max_ttl() - 100, env.storage().max_ttl());
         Ok(())
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    //                      Trusted Verifier Management
+    // ──────────────────────────────────────────────────────────────────────────
+    
+    /// Add a trusted verifier (SAS-style credential issuer pattern)
+    pub fn admin_add_verifier(
+        env: Env,
+        admin: Address,
+        verifier: Address,
+        max_level: u8,
+        verifier_type: String,
+    ) -> Result<(), Error> {
+        access_control::only_owner(&env, &admin)?;
+        trusted_verifiers::add_verifier(&env, &verifier, max_level, &verifier_type, &admin)?;
+        
+        // Emit event
+        env.events().publish(
+            (String::from_str(&env, "VERIFIER_ADDED"), &verifier),
+            (max_level, &verifier_type),
+        );
+        Ok(())
+    }
+    
+    /// Remove a trusted verifier
+    pub fn admin_remove_verifier(
+        env: Env,
+        admin: Address,
+        verifier: Address,
+    ) -> Result<(), Error> {
+        access_control::only_owner(&env, &admin)?;
+        trusted_verifiers::deactivate_verifier(&env, &verifier)?;
+        
+        // Emit event
+        env.events().publish(
+            (String::from_str(&env, "VERIFIER_REMOVED"), ),
+            &verifier,
+        );
+        Ok(())
+    }
+    
+    /// Update verifier's maximum verification level
+    pub fn admin_update_verifier_level(
+        env: Env,
+        admin: Address,
+        verifier: Address,
+        new_max_level: u8,
+    ) -> Result<(), Error> {
+        access_control::only_owner(&env, &admin)?;
+        trusted_verifiers::update_verifier_level(&env, &verifier, new_max_level)?;
+        
+        // Emit event
+        env.events().publish(
+            (String::from_str(&env, "VERIFIER_UPDATED"), &verifier),
+            new_max_level,
+        );
+        Ok(())
+    }
+    
+    /// Check if an address is a trusted verifier
+    pub fn is_trusted_verifier(env: Env, verifier: Address) -> bool {
+        trusted_verifiers::is_trusted_verifier(&env, &verifier)
+    }
+    
+    /// Get verifier details
+    pub fn get_verifier(env: Env, verifier: Address) -> Option<trusted_verifiers::TrustedVerifier> {
+        trusted_verifiers::get_trusted_verifier(&env, &verifier)
     }
 
     // ──────────────────────────────────────────────────────────────────────────
