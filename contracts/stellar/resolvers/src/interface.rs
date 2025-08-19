@@ -2,6 +2,26 @@ use soroban_sdk::{contracterror, contracttype, Address, BytesN, Env, String};
 
 /// Standard Resolver Interface that all resolvers must implement
 /// This provides a consistent interface for the protocol to interact with resolvers
+///
+/// # Design Considerations (Future Migration)
+/// 
+/// The current before_/after_ hook pattern may be overly complex. Consider migrating to:
+/// 
+/// ```rust
+/// trait ResolverInterface {
+///     fn on_attest(env: Env, attestation: Attestation) -> Result<(), ResolverError>;
+///     fn on_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError>;
+/// }
+/// ```
+/// 
+/// Benefits of single combined hooks:
+/// - Eliminates side effects separation complexity
+/// - Cleaner resolver implementation (single point of control)
+/// - Simpler protocol integration
+/// - Resolvers handle complete workflow in one call
+/// 
+/// Current pattern kept for now to maintain flexibility during development.
+///
 pub trait ResolverInterface {
     /// Called before an attestation is created
     /// Returns true if the attestation should be allowed

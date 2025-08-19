@@ -224,8 +224,11 @@ impl AuthorityResolverContract {
 // ► Authority Resolver Interface Implementation
 // ► 
 // ► The Authority contract IS a resolver - specifically the first resolver that
-// ► demonstrates the pattern. It validates authority attestations using the
-// ► trusted verifier system.
+// ► demonstrates the pattern. It validates authority attestations using a 
+// ► payment-based access control system.
+// ►
+// ► TODO: Consider migrating to single on_attest()/on_revoke() hooks in future
+// ► to eliminate before/after separation and side effects complexity.
 // ══════════════════════════════════════════════════════════════════════════════
 
 #[contractimpl]
