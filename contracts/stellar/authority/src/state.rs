@@ -18,16 +18,25 @@ pub struct Attestation {
     pub value: Option<i128>,
 }
 
-/// Data stored for an authority registered by the admin.
+/// Payment record for organizations that paid the verification fee
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[contracttype]
+pub struct PaymentRecord {
+    pub who_paid: Address,        // wallet address that paid
+    pub when_paid: u64,          // timestamp of payment
+    pub ref_id: String,          // their org data_uid on our platform
+    pub amount_paid: i128,       // amount paid in stroops
+    pub payment_confirmed: bool, // whether payment was confirmed
+}
+
+/// Data stored for an authority that paid for verification
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[contracttype]
 pub struct RegisteredAuthorityData {
     pub address: Address,
     pub metadata: String,
     pub registration_time: u64,
-    pub verification_level: u32,  // 1=Basic, 2=Enhanced, 3=Premium
-    pub verified_by: Address,     // Who verified this authority
-    pub verification_data: Option<Bytes>, // Additional verification proofs
+    pub ref_id: String,          // reference to their org data on platform
 }
 
 
@@ -37,9 +46,8 @@ pub enum DataKey {
     Admin,
     Initialized,
     RegistrationFee,
-    TrustedVerifier,
-    Authority,
-    VerifierList,
+    PaymentRecord,  // Payment ledger entries
+    Authority,      // Registered authorities (post-payment)
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -65,6 +73,48 @@ pub fn get_registration_fee(env: &Env) -> Option<i128> {
 /// Writes the registration fee to storage.
 pub fn set_registration_fee(env: &Env, fee: &i128) {
     env.storage().instance().set(&DataKey::RegistrationFee, fee);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ► Payment Ledger Functions
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Records a payment in the ledger
+pub fn record_payment(env: &Env, payment: &PaymentRecord) {
+    let key = (DataKey::PaymentRecord, payment.who_paid.clone());
+    env.storage().persistent().set(&key, payment);
+    env.storage().persistent().extend_ttl(
+        &key,
+        env.storage().max_ttl() - 100,
+        env.storage().max_ttl(),
+    );
+}
+
+/// Gets a payment record for an address
+pub fn get_payment_record(env: &Env, payer: &Address) -> Option<PaymentRecord> {
+    let key = (DataKey::PaymentRecord, payer.clone());
+    env.storage().persistent().get(&key)
+}
+
+/// Checks if an address has a confirmed payment
+pub fn has_confirmed_payment(env: &Env, payer: &Address) -> bool {
+    if let Some(payment) = get_payment_record(env, payer) {
+        payment.payment_confirmed
+    } else {
+        false
+    }
+}
+
+/// Confirms a payment (marks it as verified)
+pub fn confirm_payment(env: &Env, payer: &Address) -> bool {
+    let key = (DataKey::PaymentRecord, payer.clone());
+    if let Some(mut payment) = env.storage().persistent().get::<(DataKey, Address), PaymentRecord>(&key) {
+        payment.payment_confirmed = true;
+        env.storage().persistent().set(&key, &payment);
+        true
+    } else {
+        false
+    }
 }
 
 /// Reads authority data from storage using a composite key.

@@ -2,7 +2,7 @@ use crate::errors::Error;
 use crate::events;
 use crate::instructions::admin_simple::require_init;
 use crate::state::{
-    set_authority_data, Attestation, RegisteredAuthorityData,
+    set_authority_data, RegisteredAuthorityData,
     get_registration_fee,
 };
 use soroban_sdk::{Address, Env, String};
@@ -21,7 +21,7 @@ pub fn register_authority(
     require_init(env)?;
     caller.require_auth();
 
-    let registration_fee = get_registration_fee(env).unwrap_or(100_0000000);
+    let _registration_fee = get_registration_fee(env).unwrap_or(100_0000000);
 
     // Note: In a real implementation, you'd collect the registration fee here
     // For now, this is just a placeholder since the fee collection logic

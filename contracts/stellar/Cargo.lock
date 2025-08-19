@@ -160,6 +160,7 @@ dependencies = [
 name = "authority"
 version = "1.3.2"
 dependencies = [
+ "resolvers",
  "soroban-sdk",
 ]
 
