@@ -113,10 +113,14 @@ impl FeeCollectionResolver {
             return Ok(()); // Nothing to withdraw
         }
         
-        // Transfer XLM
-        let native_asset = token::StellarAssetClient::new(&env, &env.current_contract_address());
-        let xlm_client = token::Client::new(&env, &native_asset.address());
-        xlm_client.transfer(&env.current_contract_address(), &recipient, &collected);
+        // Transfer tokens
+        let fee_token: Address = env.storage()
+            .instance()
+            .get(&DataKey::FeeToken)
+            .ok_or(ResolverError::CustomError)?;
+        
+        let token_client = token::Client::new(&env, &fee_token);
+        token_client.transfer(&env.current_contract_address(), &recipient, &collected);
         
         // Reset collected amount
         env.storage().persistent().set(&key, &0i128);
@@ -185,10 +189,14 @@ impl ResolverInterface for FeeCollectionResolver {
             .get(&DataKey::FeeRecipient)
             .ok_or(ResolverError::CustomError)?;
         
-        // Collect XLM fee from attester  
-        let native_asset = token::StellarAssetClient::new(&env, &env.current_contract_address());
-        let xlm_client = token::Client::new(&env, &native_asset.address());
-        xlm_client.transfer(&attestation.attester, &env.current_contract_address(), &attestation_fee);
+        // Collect fee from attester
+        let fee_token: Address = env.storage()
+            .instance()
+            .get(&DataKey::FeeToken)
+            .ok_or(ResolverError::CustomError)?;
+        
+        let token_client = token::Client::new(&env, &fee_token);
+        token_client.transfer(&attestation.attester, &env.current_contract_address(), &attestation_fee);
         
         // Track collected fees for recipient
         let key = (DataKey::CollectedFees, fee_recipient.clone());
