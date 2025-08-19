@@ -151,4 +151,7 @@ impl AttestationContract {
 }
 
 #[cfg(test)]
-mod bls_tests; 
+mod bls_tests;
+
+#[cfg(test)]
+mod protocol_tests;
