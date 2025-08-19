@@ -1,5 +1,54 @@
+// ══════════════════════════════════════════════════════════════════════════════
+// ► Token Reward Resolver - Dual Interface Implementation
+// ► 
+// ► This contract implements BOTH the ResolverInterface for attestation processing
+// ► AND the OpenZeppelin Fungible interface for token standard compliance.
+// ► 
+// ► ARCHITECTURE OVERVIEW:
+// ► ┌─────────────────────────────────────────────────────────────────────────┐
+// ► │  TokenRewardResolver (Dual Interface Contract)                         │
+// ► │                                                                         │
+// ► │  ┌─────────────────────┐    ┌──────────────────────────────────────┐   │
+// ► │  │  ResolverInterface  │    │    OpenZeppelin Fungible             │   │
+// ► │  │                     │    │                                      │   │
+// ► │  │  before_attest()    │    │  name(), symbol(), decimals()       │   │
+// ► │  │  after_attest()     │    │  balance(), total_supply()           │   │
+// ► │  │  before_revoke()    │    │  transfer(), approve(), allowance()  │   │
+// ► │  │  after_revoke()     │    │                                      │   │
+// ► │  │  get_metadata()     │    │                                      │   │
+// ► │  └─────────────────────┘    └──────────────────────────────────────┘   │
+// ► │                                                                         │
+// ► │  Shared State:                                                          │
+// ► │  - Token metadata (name, symbol, decimals)                             │
+// ► │  - Reward tracking (user balances, total distributed)                  │
+// ► │  - Pool management (reward token, amount, admin controls)              │
+// ► │                                                                         │
+// ► └─────────────────────────────────────────────────────────────────────────┘
+// ► 
+// ► BUSINESS MODEL:
+// ► This contract implements a token-incentivized attestation system where:
+// ► 1. Organizations create attestations (permissionless model)
+// ► 2. Each attestation automatically triggers reward distribution
+// ► 3. Rewards are distributed from a managed token pool
+// ► 4. Users can query their earned rewards via standard token interface
+// ► 5. Pool is managed by admin using OpenZeppelin-compliant functions
+// ► 
+// ► SECURITY MODEL:
+// ► - **ResolverInterface**: Permissionless (economic spam resistance via gas costs)
+// ► - **Fungible Interface**: Limited (balance queries public, transfers admin-only)
+// ► - **Pool Management**: Admin-controlled (funding, configuration)
+// ► - **Reward Distribution**: Automatic (triggered by successful attestations)
+// ► 
+// ► INTEGRATION PATTERN:
+// ► - **Protocol Integration**: Contract acts as resolver for specific schemas
+// ► - **Token Integration**: Standard fungible token for wallet/dapp compatibility  
+// ► - **Pool Management**: Admin funds pool, users earn through attestations
+// ► - **Economic Balance**: Gas costs vs reward amounts provide natural rate limiting
+// ══════════════════════════════════════════════════════════════════════════════
+
 use soroban_sdk::{contract, contractimpl, contracttype, token, Address, BytesN, Env, String};
-use soroban_contracts_sdk::token::{Fungible, TokenMetadata};
+use stellar_tokens::fungible::{Base, FungibleToken};
+use stellar_macros::default_impl;
 use crate::interface::{Attestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 
 #[contracttype]
@@ -11,6 +60,13 @@ pub enum DataKey {
     RewardAmount,
     TotalRewarded,
     UserRewards,
+    // OpenZeppelin Fungible Token fields
+    TokenName,
+    TokenSymbol,
+    TokenDecimals,
+    TotalSupply,
+    Balance,
+    Allowance,
 }
 
 /// TokenRewardResolver - Distributes token rewards for attestations
@@ -20,6 +76,7 @@ pub struct TokenRewardResolver;
 #[contractimpl]
 impl TokenRewardResolver {
     /// Initialize the resolver with reward token and amount
+    /// This also sets up the token metadata for OpenZeppelin compatibility
     pub fn initialize(
         env: Env,
         admin: Address,
@@ -31,6 +88,14 @@ impl TokenRewardResolver {
         }
         
         admin.require_auth();
+        
+        // Set token metadata using OpenZeppelin Base
+        Base::set_metadata(
+            &env,
+            7, // 7 decimals (Stellar standard)
+            String::from_str(&env, "Attestation Reward Token"),
+            String::from_str(&env, "AREWARD"),
+        );
         
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::RewardToken, &reward_token);
@@ -82,6 +147,51 @@ impl TokenRewardResolver {
             .unwrap_or(0)
     }
     
+    /// Fund the reward pool with tokens (admin only)
+    /// 
+    /// This function allows the admin to add tokens to the reward pool,
+    /// enabling continued reward distribution. This follows OpenZeppelin
+    /// patterns for token pool management.
+    pub fn fund_reward_pool(
+        env: Env,
+        admin: Address,
+        amount: i128,
+    ) -> Result<(), ResolverError> {
+        Self::require_admin(&env, &admin)?;
+        
+        // Get reward token address
+        let reward_token: Address = env.storage()
+            .instance()
+            .get(&DataKey::RewardToken)
+            .ok_or(ResolverError::CustomError)?;
+        
+        // Transfer tokens from admin to contract
+        let token_client = token::Client::new(&env, &reward_token);
+        token_client.transfer(
+            &admin,
+            &env.current_contract_address(),
+            &amount,
+        );
+        
+        // Emit funding event
+        env.events().publish(
+            (String::from_str(&env, "POOL_FUNDED"), &admin),
+            amount,
+        );
+        
+        Ok(())
+    }
+    
+    /// Get current reward pool balance
+    pub fn get_pool_balance(env: Env) -> i128 {
+        if let Some(reward_token) = env.storage().instance().get::<DataKey, Address>(&DataKey::RewardToken) {
+            let token_client = token::Client::new(&env, &reward_token);
+            token_client.balance(&env.current_contract_address())
+        } else {
+            0
+        }
+    }
+
     fn require_admin(env: &Env, caller: &Address) -> Result<(), ResolverError> {
         caller.require_auth();
         
@@ -296,205 +406,11 @@ impl ResolverInterface for TokenRewardResolver {
 // ► 
 // ► This implementation makes TokenRewardResolver a dual-interface contract that
 // ► functions as both a resolver for attestation rewards AND a standard fungible
-// ► token compliant with OpenZeppelin patterns.
+// ► token compliant with OpenZeppelin patterns using the default_impl macro.
 // ══════════════════════════════════════════════════════════════════════════════
 
+#[default_impl]
 #[contractimpl]
-impl Fungible for TokenRewardResolver {
-    /// **TOKEN METADATA**: Returns the human-readable name of the reward token
-    ///
-    /// This function provides the display name for the reward token that users
-    /// will see in wallets and applications. The name identifies this as a
-    /// reward token specifically for attestation activities.
-    ///
-    /// # Returns
-    /// * `String` - "Attestation Reward Token" (static name)
-    fn name(env: Env) -> String {
-        String::from_str(&env, "Attestation Reward Token")
-    }
-    
-    /// **TOKEN METADATA**: Returns the trading symbol for the reward token
-    ///
-    /// This provides a short, unique identifier for the token that will be
-    /// used in trading interfaces and token listings.
-    ///
-    /// # Returns
-    /// * `String` - "AREWARD" (static symbol)
-    fn symbol(env: Env) -> String {
-        String::from_str(&env, "AREWARD")
-    }
-    
-    /// **TOKEN METADATA**: Returns the number of decimal places for the token
-    ///
-    /// Following Stellar's standard pattern, this token uses 7 decimal places
-    /// which aligns with XLM and most Stellar tokens for compatibility.
-    ///
-    /// # Returns
-    /// * `u32` - 7 (standard Stellar decimal places)
-    fn decimals(env: Env) -> u32 {
-        7
-    }
-    
-    /// **BALANCE QUERY**: Returns accumulated reward balance for an address
-    ///
-    /// This function returns the total amount of reward tokens that an address
-    /// has earned through attestation activities. Unlike typical token balances,
-    /// this represents earned rewards that were distributed via the resolver.
-    ///
-    /// # Business Model Integration
-    /// - **Reward Tracking**: Shows cumulative rewards earned per user
-    /// - **Incentive Visibility**: Users can see their attestation earnings
-    /// - **Token Standard Compliance**: Enables wallet/dapp integration
-    /// - **History Preservation**: Permanent record of reward accumulation
-    ///
-    /// # Parameters
-    /// * `env` - Soroban environment for storage access
-    /// * `id` - Address to query reward balance for
-    ///
-    /// # Returns
-    /// * `i128` - Total reward tokens earned by the address
-    ///
-    /// # Implementation Note
-    /// This returns the reward balance tracked by the resolver, NOT the actual
-    /// token balance in the user's wallet. The resolver tracks rewards distributed
-    /// but doesn't control the tokens after distribution.
-    fn balance(env: Env, id: Address) -> i128 {
-        // Return accumulated reward balance from resolver tracking
-        // This shows total rewards earned through attestation activities
-        TokenRewardResolver::get_user_rewards(env, id)
-    }
-    
-    /// **SUPPLY TRACKING**: Returns total rewards distributed by this resolver
-    ///
-    /// This function returns the cumulative amount of reward tokens that have
-    /// been distributed through the attestation reward system. This represents
-    /// the "total supply" from the perspective of rewards earned.
-    ///
-    /// # Economic Metrics
-    /// - **Reward Volume**: Total tokens distributed as attestation incentives
-    /// - **System Activity**: Indicator of overall attestation ecosystem activity
-    /// - **Pool Depletion**: Shows how much of reward pool has been distributed
-    /// - **Economic Impact**: Measures total value distributed to participants
-    ///
-    /// # Returns
-    /// * `i128` - Total reward tokens distributed by this resolver
-    ///
-    /// # Implementation Note
-    /// This tracks rewards distributed BY this resolver contract, not the total
-    /// supply of the underlying reward token. The actual token has its own supply.
-    fn total_supply(env: Env) -> i128 {
-        // Return total rewards distributed through attestation activities
-        // This represents the cumulative economic incentives provided
-        TokenRewardResolver::get_total_rewarded(env)
-    }
-    
-    /// **TRANSFER FUNCTION**: Standard token transfer (limited implementation)
-    ///
-    /// This function provides basic transfer capability but with restrictions
-    /// since this contract primarily manages reward distribution rather than
-    /// general token operations.
-    ///
-    /// # Restrictions
-    /// - **Admin Only**: Only admin can initiate transfers (for reward pool management)
-    /// - **Pool Management**: Primarily for funding/managing the reward pool
-    /// - **No User Transfers**: Regular users cannot transfer through this interface
-    /// - **Reward Distribution**: Main transfers happen via after_attest hook
-    ///
-    /// # Parameters
-    /// * `env` - Soroban environment
-    /// * `from` - Source address (must be admin or contract)
-    /// * `to` - Destination address
-    /// * `amount` - Amount to transfer
-    ///
-    /// # Returns
-    /// * `Result<(), TokenError>` - Success or failure of transfer
-    ///
-    /// # Security Model
-    /// This is a restricted transfer implementation that prevents general use
-    /// as a normal token while allowing admin pool management operations.
-    fn transfer(
-        env: Env,
-        from: Address,
-        to: Address,
-        amount: i128,
-    ) -> Result<(), soroban_contracts_sdk::token::TokenError> {
-        from.require_auth();
-        
-        // Get admin address for authorization
-        let admin: Address = env.storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(soroban_contracts_sdk::token::TokenError::InternalError)?;
-        
-        // Only allow admin or contract to initiate transfers
-        if from != admin && from != env.current_contract_address() {
-            return Err(soroban_contracts_sdk::token::TokenError::InternalError);
-        }
-        
-        // Get reward token and execute transfer
-        let reward_token: Address = env.storage()
-            .instance()
-            .get(&DataKey::RewardToken)
-            .ok_or(soroban_contracts_sdk::token::TokenError::InternalError)?;
-        
-        let token_client = token::Client::new(&env, &reward_token);
-        token_client.transfer(&from, &to, &amount);
-        
-        // Emit transfer event for OpenZeppelin compliance
-        env.events().publish(
-            (String::from_str(&env, "TRANSFER"), &from, &to),
-            amount,
-        );
-        
-        Ok(())
-    }
-    
-    /// **TRANSFER FROM**: Delegated transfer with allowance (not implemented)
-    ///
-    /// This function is required by the Fungible interface but not implemented
-    /// for this reward resolver since it doesn't support general token operations
-    /// with allowances and approvals.
-    ///
-    /// # Design Decision
-    /// The reward resolver focuses on automatic reward distribution rather than
-    /// general token operations. Users receive rewards automatically and can
-    /// interact with the actual reward token for further operations.
-    fn transfer_from(
-        _env: Env,
-        _spender: Address,
-        _from: Address,
-        _to: Address,
-        _amount: i128,
-    ) -> Result<(), soroban_contracts_sdk::token::TokenError> {
-        // Not implemented for reward resolver - use direct reward token for allowances
-        Err(soroban_contracts_sdk::token::TokenError::InternalError)
-    }
-    
-    /// **APPROVE**: Approve spending allowance (not implemented)
-    ///
-    /// This function is required by the Fungible interface but not implemented
-    /// since the reward resolver doesn't support general allowance operations.
-    fn approve(
-        _env: Env,
-        _owner: Address,
-        _spender: Address,
-        _amount: i128,
-        _expiration_ledger: u32,
-    ) -> Result<(), soroban_contracts_sdk::token::TokenError> {
-        // Not implemented for reward resolver - use direct reward token for approvals
-        Err(soroban_contracts_sdk::token::TokenError::InternalError)
-    }
-    
-    /// **ALLOWANCE QUERY**: Get approved spending amount (not implemented)
-    ///
-    /// This function is required by the Fungible interface but returns 0
-    /// since the reward resolver doesn't track allowances.
-    fn allowance(
-        _env: Env,
-        _owner: Address,
-        _spender: Address,
-    ) -> i128 {
-        // No allowances in reward resolver - return 0
-        0
-    }
+impl FungibleToken for TokenRewardResolver {
+    type ContractType = Base;
 }
