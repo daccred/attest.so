@@ -150,5 +150,4 @@ macro_rules! admin_guard {
 }
 
 // Re-export macros for easier use
-pub use admin_guard;
 pub use require_owner;

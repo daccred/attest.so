@@ -27,4 +27,5 @@ pub enum Error {
     InvalidSignature = 21,
     AttestationExpired = 22,
     InvalidDeadline = 23,
+    ResolverCallFailed = 24,
 } 

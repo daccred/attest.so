@@ -32,10 +32,10 @@ use crate::state::SchemaRules;
 pub fn deploy_schema_token(
     env: &Env,
     schema_uid: &BytesN<32>,
-    token_name: &String,
-    token_symbol: &String,
+    _token_name: &String,
+    _token_symbol: &String,
     decimals: u32,
-    max_supply: Option<i128>,
+    _max_supply: Option<i128>,
 ) -> Result<Address, Error> {
     log!(
         env,
@@ -45,7 +45,7 @@ pub fn deploy_schema_token(
     );
 
     // Create a deterministic salt based on schema UID for consistent deployment addresses
-    let salt = schema_uid.clone();
+    let _salt = schema_uid.clone();
 
     // For now, return a placeholder implementation
     // In production, this would deploy an OpenZeppelin token contract

@@ -1,9 +1,125 @@
-use soroban_sdk::{Address, Env, String, BytesN, Vec};
+use soroban_sdk::{Address, Env, String, BytesN, Vec, Bytes};
 use crate::state::{DataKey, Attestation};
 use crate::errors::Error;
 use crate::utils;
 use crate::events;
 use crate::instructions::delegation;
+use crate::interfaces::resolver::{ResolverAttestation, ResolverClient};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ► Resolver Cross-Contract Call Helpers
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Calls before_attest on a resolver contract
+/// Returns true if the attestation should be allowed, false otherwise
+fn call_resolver_before_attest(
+    env: &Env,
+    resolver_address: &Address,
+    attestation: &ResolverAttestation,
+) -> Result<bool, Error> {
+    let resolver_client = ResolverClient::new(env, resolver_address);
+    
+    match resolver_client.try_bef_att(attestation) {
+        Ok(result) => match result {
+            Ok(allowed) => Ok(allowed),
+            Err(_) => Err(Error::ResolverCallFailed),
+        },
+        Err(_) => Err(Error::ResolverCallFailed),
+    }
+}
+
+/// Calls after_attest on a resolver contract
+/// Failures are logged but don't revert the attestation
+fn call_resolver_after_attest(
+    env: &Env,
+    resolver_address: &Address,
+    attestation: &ResolverAttestation,
+) {
+    let resolver_client = ResolverClient::new(env, resolver_address);
+    
+    // Ignore failures in after_attest - they're non-critical side effects
+    let _ = resolver_client.try_aft_att(attestation);
+}
+
+/// Calls before_revoke on a resolver contract
+/// Returns true if the revocation should be allowed, false otherwise
+fn call_resolver_before_revoke(
+    env: &Env,
+    resolver_address: &Address,
+    attestation: &ResolverAttestation,
+) -> Result<bool, Error> {
+    let resolver_client = ResolverClient::new(env, resolver_address);
+    
+    match resolver_client.try_bef_rev(attestation) {
+        Ok(result) => match result {
+            Ok(allowed) => Ok(allowed),
+            Err(_) => Err(Error::ResolverCallFailed),
+        },
+        Err(_) => Err(Error::ResolverCallFailed),
+    }
+}
+
+/// Calls after_revoke on a resolver contract
+/// Failures are logged but don't revert the revocation
+fn call_resolver_after_revoke(
+    env: &Env,
+    resolver_address: &Address,
+    attestation: &ResolverAttestation,
+) {
+    let resolver_client = ResolverClient::new(env, resolver_address);
+    
+    // Ignore failures in after_revoke - they're non-critical side effects
+    let _ = resolver_client.try_aft_rev(attestation);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ► Helper Functions for Resolver Integration
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Creates a ResolverAttestation from protocol Attestation data
+/// This converts between the protocol's internal format and the resolver interface format
+fn create_resolver_attestation(
+    env: &Env,
+    attestation: &Attestation,
+    schema_uid: &BytesN<32>,
+    _value: &String,
+) -> ResolverAttestation {
+    // Generate a UID for this attestation (protocol doesn't store UIDs currently)
+    let uid = generate_attestation_uid(env, schema_uid, &attestation.subject, attestation.nonce);
+    
+    ResolverAttestation {
+        uid,
+        schema_uid: schema_uid.clone(),
+        recipient: attestation.subject.clone(),
+        attester: attestation.attester.clone(),
+        time: attestation.timestamp,
+        expiration_time: attestation.expiration_time.unwrap_or(0), // Flattened: 0 = not set
+        revocation_time: attestation.revocation_time.unwrap_or(0), // Flattened: 0 = not set
+        revocable: true, // Will be set based on schema
+        ref_uid: Bytes::new(env), // Flattened: empty bytes = not set
+        data: Bytes::from_slice(env, b"placeholder"), // TODO: Convert string to bytes properly
+        value: 0, // Flattened: 0 = not set (protocol doesn't support value field yet)
+    }
+}
+
+/// Generates a unique UID for an attestation based on its key components
+/// This creates a deterministic UID that can be used for resolver calls
+fn generate_attestation_uid(
+    env: &Env,
+    schema_uid: &BytesN<32>,
+    _subject: &Address,
+    nonce: u64,
+) -> BytesN<32> {
+    // Simple hash generation - combine schema_uid and nonce only for now
+    let mut hash_input = Bytes::new(env);
+    hash_input.extend_from_array(&schema_uid.to_array());
+    
+    // Add nonce bytes directly
+    let nonce_bytes = nonce.to_be_bytes();
+    hash_input.extend_from_array(&nonce_bytes);
+    
+    env.crypto().keccak256(&hash_input).into()
+}
 
 /// Creates a new attestation using nonce-based system for unique identification.
 ///
@@ -34,8 +150,8 @@ pub fn attest(
 ) -> Result<u64, Error> {
     attester.require_auth();
     
-    // Verify schema exists
-    let _schema = utils::get_schema(env, &schema_uid)
+    // Verify schema exists and get resolver info
+    let schema = utils::get_schema(env, &schema_uid)
         .ok_or(Error::SchemaNotFound)?;
     
     // Get next nonce for this attester
@@ -63,6 +179,27 @@ pub fn attest(
         revocation_time: None,
     };
     
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ► RESOLVER INTEGRATION: Before Attest Hook
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // Call resolver before_attest hook if schema has a resolver
+    if let Some(resolver_address) = &schema.resolver {
+        // Create resolver attestation format
+        let resolver_attestation = create_resolver_attestation(env, &attestation, &schema_uid, &value);
+        
+        // Call before_attest hook - this is CRITICAL for access control
+        let allowed = call_resolver_before_attest(env, resolver_address, &resolver_attestation)?;
+        
+        if !allowed {
+            return Err(Error::ResolverError); // Resolver rejected the attestation
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ► CORE PROTOCOL: Store Attestation
+    // ═══════════════════════════════════════════════════════════════════════════
+    
     // Store attestation with nonce-based key
     let attest_key = DataKey::Attestation(
         schema_uid.clone(),
@@ -75,6 +212,20 @@ pub fn attest(
     let nonce_key = DataKey::AttesterNonce(attester.clone());
     let new_nonce = nonce + 1;
     env.storage().persistent().set(&nonce_key, &new_nonce);
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ► RESOLVER INTEGRATION: After Attest Hook
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // Call resolver after_attest hook if schema has a resolver
+    if let Some(resolver_address) = &schema.resolver {
+        // Create resolver attestation format
+        let resolver_attestation = create_resolver_attestation(env, &attestation, &schema_uid, &value);
+        
+        // Call after_attest hook for side effects (rewards, registration, etc.)
+        // Note: Failures here don't revert the attestation
+        call_resolver_after_attest(env, resolver_address, &resolver_attestation);
+    }
     
     // Emit event
     events::publish_attestation_event(env, &attestation);
@@ -161,12 +312,47 @@ pub fn revoke_attestation(
         return Err(Error::AttestationNotRevocable);
     }
     
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ► RESOLVER INTEGRATION: Before Revoke Hook
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // Call resolver before_revoke hook if schema has a resolver
+    if let Some(resolver_address) = &schema.resolver {
+        // Create resolver attestation format
+        let resolver_attestation = create_resolver_attestation(env, &attestation, &schema_uid, &attestation.value);
+        
+        // Call before_revoke hook - this is CRITICAL for access control
+        let allowed = call_resolver_before_revoke(env, resolver_address, &resolver_attestation)?;
+        
+        if !allowed {
+            return Err(Error::ResolverError); // Resolver rejected the revocation
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ► CORE PROTOCOL: Update Attestation
+    // ═══════════════════════════════════════════════════════════════════════════
+    
     // Update attestation
     attestation.revoked = true;
     attestation.revocation_time = Some(env.ledger().timestamp());
     
     // Store updated attestation
     env.storage().persistent().set(&attest_key, &attestation);
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ► RESOLVER INTEGRATION: After Revoke Hook
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // Call resolver after_revoke hook if schema has a resolver
+    if let Some(resolver_address) = &schema.resolver {
+        // Create resolver attestation format with updated revocation status
+        let resolver_attestation = create_resolver_attestation(env, &attestation, &schema_uid, &attestation.value);
+        
+        // Call after_revoke hook for side effects (cleanup, notifications, etc.)
+        // Note: Failures here don't revert the revocation
+        call_resolver_after_revoke(env, resolver_address, &resolver_attestation);
+    }
     
     // Emit revocation event
     events::publish_revocation_event(env, &attestation);

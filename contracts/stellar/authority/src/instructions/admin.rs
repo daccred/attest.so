@@ -7,7 +7,7 @@ use crate::state::{
 };
 use soroban_sdk::{Address, BytesN, Env, String};
 // Import macros we actually use
-use crate::{admin_guard, require_owner};
+use crate::require_owner;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ► Admin utility functions
