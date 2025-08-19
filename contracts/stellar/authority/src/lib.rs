@@ -15,7 +15,7 @@ pub use events::{
     ADMIN_REG_AUTH, AUTHORITY_REGISTERED, LEVY_COLLECTED, LEVY_WITHDRAWN, OWNERSHIP_RENOUNCED,
     OWNERSHIP_TRANSFERRED, SCHEMA_REGISTERED,
 };
-pub use state::{Attestation, DataKey, RegisteredAuthorityData, SchemaRules};
+pub use state::{Attestation, DataKey, RegisteredAuthorityData};
 
 #[contract]
 pub struct AuthorityResolverContract;
@@ -60,74 +60,6 @@ impl AuthorityResolverContract {
         instructions::admin::admin_register_authority(&env, &admin, &auth_to_reg, &metadata)
     }
 
-    pub fn admin_register_schema(
-        env: Env,
-        admin: Address,
-        schema_uid: BytesN<32>,
-        rules: SchemaRules,
-    ) -> Result<(), Error> {
-        instructions::admin::admin_register_schema(&env, &admin, &schema_uid, &rules)
-    }
-
-    pub fn admin_set_schema_levy(
-        env: Env,
-        admin: Address,
-        schema_uid: BytesN<32>,
-        levy_amount: i128,
-        levy_recipient: Address,
-    ) -> Result<(), Error> {
-        instructions::admin::admin_set_schema_levy(
-            &env,
-            &admin,
-            &schema_uid,
-            levy_amount,
-            &levy_recipient,
-        )
-    }
-
-    pub fn admin_set_registration_fee(
-        env: Env,
-        admin: Address,
-        fee_amount: i128,
-        token_id: Address,
-    ) -> Result<(), Error> {
-        instructions::admin::admin_set_registration_fee(&env, &admin, &fee_amount, &token_id)
-    }
-
-    /// Set XLM attestation fee and fee recipient for a schema
-    pub fn admin_set_schema_fee(
-        env: Env,
-        admin: Address,
-        schema_uid: BytesN<32>,
-        attestation_fee: i128,
-        fee_recipient: Address,
-    ) -> Result<(), Error> {
-        instructions::admin::admin_set_schema_fee(
-            &env,
-            &admin,
-            &schema_uid,
-            attestation_fee,
-            &fee_recipient,
-        )
-    }
-
-    /// Set reward token and amount for a schema
-    pub fn admin_set_schema_rewards(
-        env: Env,
-        admin: Address,
-        schema_uid: BytesN<32>,
-        reward_token: Address,
-        reward_amount: i128,
-    ) -> Result<(), Error> {
-        instructions::admin::admin_set_schema_rewards(
-            &env,
-            &admin,
-            &schema_uid,
-            &reward_token,
-            reward_amount,
-        )
-    }
-
 
     // ──────────────────────────────────────────────────────────────────────────
     //                         Public/Hook Functions
@@ -166,13 +98,6 @@ impl AuthorityResolverContract {
     // ──────────────────────────────────────────────────────────────────────────
     //                             Getter Functions
     // ──────────────────────────────────────────────────────────────────────────
-    pub fn get_schema_rules(
-        env: Env,
-        schema_uid: BytesN<32>,
-    ) -> Result<Option<SchemaRules>, Error> {
-        instructions::admin::require_init(&env)?;
-        Ok(state::get_schema_rules(&env, &schema_uid))
-    }
 
     pub fn get_collected_levies(env: Env, authority: Address) -> Result<i128, Error> {
         instructions::admin::require_init(&env)?;

@@ -31,6 +31,10 @@ fn create_legacy_schema_rules(
         reward_token: None,
         reward_amount: None,
         fee_recipient: None,
+        reward_token_name: None,
+        reward_token_symbol: None,
+        reward_token_max_supply: None,
+        reward_token_decimals: None,
     }
 }
 
@@ -43,9 +47,18 @@ fn create_empty_schema_rules() -> SchemaRules {
         reward_token: None,
         reward_amount: None,
         fee_recipient: None,
+        reward_token_name: None,
+        reward_token_symbol: None,
+        reward_token_max_supply: None,
+        reward_token_decimals: None,
     }
 }
 const MINT_AMOUNT: i128 = 1_000_0000000; // 1000 XLM for testing
+
+// Helper function to create a dummy token wasm hash for tests
+fn create_dummy_token_wasm_hash(env: &Env) -> BytesN<32> {
+    BytesN::from_array(env, &[0u8; 32])
+}
 
 // Helper function to create and register a token contract
 fn create_token_contract<'a>(
@@ -131,7 +144,7 @@ fn setup_env<'a>(mock_auths: bool) -> TestSetup<'a> {
             },
         }]);
     }
-    resolver_client.initialize(&admin, &token_address);
+    resolver_client.initialize(&admin, &token_address, &create_dummy_token_wasm_hash(&env));
 
     TestSetup {
         env,
@@ -183,7 +196,7 @@ fn test_initialize() {
     );
     let reinit_result = setup
         .resolver_client
-        .try_initialize(&setup.admin, &setup.token_address);
+        .try_initialize(&setup.admin, &setup.token_address, &create_dummy_token_wasm_hash(&setup.env));
     // Check inner Result is Err(Ok(ContractError))
     assert!(matches!(
         reinit_result.err().unwrap(),
@@ -618,7 +631,7 @@ fn test_attest_hook_with_levy() {
         address: &admin,
         invoke: &initialize_invoke,
     }]);
-    resolver_client.initialize(&admin, &token_address);
+    resolver_client.initialize(&admin, &token_address, &create_dummy_token_wasm_hash(&env));
 
     // Stage 2: Register authorities and schema
     env.mock_auths(&[
@@ -927,7 +940,7 @@ fn test_withdraw_levies() {
             sub_invokes: &[],
         },
     }]);
-    resolver_client.initialize(&admin, &token_address);
+    resolver_client.initialize(&admin, &token_address, &create_dummy_token_wasm_hash(&env));
 
     // --- Register recipient as authority ---
     // (Need this so withdraw_levies doesn't fail the is_authority check)
@@ -1111,7 +1124,7 @@ fn test_collect_levies() {
             sub_invokes: &[],
         },
     }]);
-    resolver_client.initialize(&admin, &token_address);
+    resolver_client.initialize(&admin, &token_address, &create_dummy_token_wasm_hash(&env));
 
     // Register authorities
     env.mock_auths(&[

@@ -1,8 +1,8 @@
 use crate::errors::Error;
 use crate::events;
 use crate::state::{
-    is_authority, set_authority_data, set_registration_fee, set_schema_rules,
-    RegisteredAuthorityData, SchemaRules,
+    is_authority, set_authority_data, set_registration_fee,
+    RegisteredAuthorityData,
 };
 use soroban_sdk::{Address, BytesN, Env, String};
 // Import macros we actually use
@@ -36,101 +36,13 @@ pub fn admin_register_authority(
         address: auth_to_reg.clone(),
         metadata: metadata.clone(),
         registration_time: env.ledger().timestamp(),
+        ref_id: String::from_str(env, "admin_registered"), // Default ref_id for admin registrations
     };
 
     set_authority_data(env, &data);
 
     // Publish event
     events::admin_register_authority(env, auth_to_reg, metadata);
-
-    Ok(())
-}
-
-/// Register a schema and its rules by the admin
-pub fn admin_register_schema(
-    env: &Env,
-    admin: &Address,
-    schema_uid: &BytesN<32>,
-    rules: &SchemaRules,
-) -> Result<(), Error> {
-    // Use macro with custom validation
-    crate::admin_guard!(env, admin, {
-        // Validate legacy levy rules (backwards compatibility)
-        if let Some(recipient) = &rules.levy_recipient {
-            if rules.levy_amount.is_none() || rules.levy_amount.unwrap_or(0) <= 0 {
-                return Err(Error::InvalidSchemaRules);
-            }
-            if !is_authority(env, recipient) {
-                return Err(Error::RecipientNotAuthority);
-            }
-        } else if rules.levy_amount.is_some() && rules.levy_amount.unwrap() > 0 {
-            return Err(Error::InvalidSchemaRules);
-        }
-
-        // Validate new token incentive rules
-        if let Some(fee_recipient) = &rules.fee_recipient {
-            if rules.attestation_fee.is_none() || rules.attestation_fee.unwrap_or(0) <= 0 {
-                return Err(Error::InvalidSchemaRules);
-            }
-            if !is_authority(env, fee_recipient) {
-                return Err(Error::RecipientNotAuthority);
-            }
-        } else if rules.attestation_fee.is_some() && rules.attestation_fee.unwrap() > 0 {
-            return Err(Error::InvalidSchemaRules);
-        }
-
-        // Validate reward token configuration
-        if let Some(_reward_token) = &rules.reward_token {
-            if rules.reward_amount.is_none() || rules.reward_amount.unwrap_or(0) <= 0 {
-                return Err(Error::InvalidSchemaRules);
-            }
-        } else if rules.reward_amount.is_some() && rules.reward_amount.unwrap() > 0 {
-            return Err(Error::InvalidSchemaRules);
-        }
-    });
-
-    set_schema_rules(env, schema_uid, rules);
-
-    // Publish event
-    events::schema_registered(env, schema_uid, rules);
-
-    Ok(())
-}
-
-/// Simplified helper method for setting schema levy
-pub fn admin_set_schema_levy(
-    env: &Env,
-    admin: &Address,
-    schema_uid: &BytesN<32>,
-    levy_amount: i128,
-    levy_recipient: &Address,
-) -> Result<(), Error> {
-    // Use macro for cleaner access control
-    crate::admin_guard!(env, admin);
-
-    // Check if recipient is a valid authority
-    if !is_authority(env, levy_recipient) {
-        return Err(Error::RecipientNotAuthority);
-    }
-
-    // Create rules with the provided levy amount and recipient
-    let rules = SchemaRules {
-        levy_amount: Some(levy_amount),
-        levy_recipient: Some(levy_recipient.clone()),
-        attestation_fee: None,
-        reward_token: None,
-        reward_amount: None,
-        fee_recipient: None,
-        reward_token_name: None,
-        reward_token_symbol: None,
-        reward_token_max_supply: None,
-        reward_token_decimals: None,
-    };
-
-    set_schema_rules(env, schema_uid, &rules);
-
-    // Publish event
-    events::schema_registered(env, schema_uid, &rules);
 
     Ok(())
 }
@@ -172,92 +84,5 @@ pub fn require_init(env: &Env) -> Result<(), Error> {
 /// Gets the token contract ID
 pub fn get_token_id(env: &Env) -> Result<Address, Error> {
     crate::state::get_token_id(env).ok_or(Error::NotInitialized)
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// ► Token Incentive Admin Functions
-// ══════════════════════════════════════════════════════════════════════════════
-
-/// Set XLM attestation fee and fee recipient for a schema
-pub fn admin_set_schema_fee(
-    env: &Env,
-    admin: &Address,
-    schema_uid: &BytesN<32>,
-    attestation_fee: i128,
-    fee_recipient: &Address,
-) -> Result<(), Error> {
-    crate::admin_guard!(env, admin, {
-        if attestation_fee <= 0 {
-            return Err(Error::InvalidSchemaRules);
-        }
-        if !is_authority(env, fee_recipient) {
-            return Err(Error::RecipientNotAuthority);
-        }
-    });
-
-    // Get existing rules or create new ones
-    let mut rules = crate::state::get_schema_rules(env, schema_uid).unwrap_or(SchemaRules {
-        levy_amount: None,
-        levy_recipient: None,
-        attestation_fee: None,
-        reward_token: None,
-        reward_amount: None,
-        fee_recipient: None,
-        reward_token_name: None,
-        reward_token_symbol: None,
-        reward_token_max_supply: None,
-        reward_token_decimals: None,
-    });
-
-    // Update fee configuration
-    rules.attestation_fee = Some(attestation_fee);
-    rules.fee_recipient = Some(fee_recipient.clone());
-
-    crate::state::set_schema_rules(env, schema_uid, &rules);
-
-    // Publish event
-    events::schema_registered(env, schema_uid, &rules);
-
-    Ok(())
-}
-
-/// Set reward token and amount for a schema
-pub fn admin_set_schema_rewards(
-    env: &Env,
-    admin: &Address,
-    schema_uid: &BytesN<32>,
-    reward_token: &Address,
-    reward_amount: i128,
-) -> Result<(), Error> {
-    crate::admin_guard!(env, admin, {
-        if reward_amount <= 0 {
-            return Err(Error::InvalidSchemaRules);
-        }
-    });
-
-    // Get existing rules or create new ones
-    let mut rules = crate::state::get_schema_rules(env, schema_uid).unwrap_or(SchemaRules {
-        levy_amount: None,
-        levy_recipient: None,
-        attestation_fee: None,
-        reward_token: None,
-        reward_amount: None,
-        fee_recipient: None,
-        reward_token_name: None,
-        reward_token_symbol: None,
-        reward_token_max_supply: None,
-        reward_token_decimals: None,
-    });
-
-    // Update reward configuration
-    rules.reward_token = Some(reward_token.clone());
-    rules.reward_amount = Some(reward_amount);
-
-    crate::state::set_schema_rules(env, schema_uid, &rules);
-
-    // Publish event
-    events::schema_registered(env, schema_uid, &rules);
-
-    Ok(())
 }
 

@@ -35,16 +35,6 @@ pub fn authority_registered(
     );
 }
 
-pub fn schema_registered(
-    e: &Env,
-    schema_uid: &soroban_sdk::BytesN<32>,
-    rules: &crate::state::SchemaRules,
-) {
-    e.events().publish(
-        (SCHEMA_REGISTERED, symbol_short!("register")),
-        (schema_uid.clone(), rules.clone()),
-    );
-}
 
 pub fn levy_collected(
     e: &Env,
