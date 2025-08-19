@@ -24,9 +24,7 @@ pub fn admin_register_authority(
         address: auth_to_reg.clone(),
         metadata: metadata.clone(),
         registration_time: env.ledger().timestamp(),
-        verification_level: 3, // Admin registration gets premium level
-        verified_by: admin.clone(), // Admin is the verifier
-        verification_data: None, // No additional data needed for admin registration
+        ref_id: String::from_str(env, "admin-direct"), // Admin direct registration
     };
 
     set_authority_data(env, &data);

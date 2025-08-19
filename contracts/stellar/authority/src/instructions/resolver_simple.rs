@@ -31,9 +31,7 @@ pub fn register_authority(
         address: authority_to_reg.clone(),
         metadata: metadata.clone(),
         registration_time: env.ledger().timestamp(),
-        verification_level: 1, // Public registration gets basic level
-        verified_by: caller.clone(), // Self-verified through payment
-        verification_data: None, // No additional data for public registration
+        ref_id: String::from_str(env, "self-registration"), // Self-registration via payment
     };
 
     set_authority_data(env, &data);

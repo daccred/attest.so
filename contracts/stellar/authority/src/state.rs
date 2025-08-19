@@ -22,11 +22,10 @@ pub struct Attestation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[contracttype]
 pub struct PaymentRecord {
-    pub who_paid: Address,        // wallet address that paid
-    pub when_paid: u64,          // timestamp of payment
+    pub recipient: Address,      // wallet address that paid
+    pub timestamp: u64,          // timestamp of payment
     pub ref_id: String,          // their org data_uid on our platform
     pub amount_paid: i128,       // amount paid in stroops
-    pub payment_confirmed: bool, // whether payment was confirmed
 }
 
 /// Data stored for an authority that paid for verification
@@ -81,7 +80,7 @@ pub fn set_registration_fee(env: &Env, fee: &i128) {
 
 /// Records a payment in the ledger
 pub fn record_payment(env: &Env, payment: &PaymentRecord) {
-    let key = (DataKey::PaymentRecord, payment.who_paid.clone());
+    let key = (DataKey::PaymentRecord, payment.recipient.clone());
     env.storage().persistent().set(&key, payment);
     env.storage().persistent().extend_ttl(
         &key,
@@ -96,25 +95,9 @@ pub fn get_payment_record(env: &Env, payer: &Address) -> Option<PaymentRecord> {
     env.storage().persistent().get(&key)
 }
 
-/// Checks if an address has a confirmed payment
+/// Checks if an address has a payment record (simplified)
 pub fn has_confirmed_payment(env: &Env, payer: &Address) -> bool {
-    if let Some(payment) = get_payment_record(env, payer) {
-        payment.payment_confirmed
-    } else {
-        false
-    }
-}
-
-/// Confirms a payment (marks it as verified)
-pub fn confirm_payment(env: &Env, payer: &Address) -> bool {
-    let key = (DataKey::PaymentRecord, payer.clone());
-    if let Some(mut payment) = env.storage().persistent().get::<(DataKey, Address), PaymentRecord>(&key) {
-        payment.payment_confirmed = true;
-        env.storage().persistent().set(&key, &payment);
-        true
-    } else {
-        false
-    }
+    get_payment_record(env, payer).is_some()
 }
 
 /// Reads authority data from storage using a composite key.

@@ -7,8 +7,8 @@ mod access_control;
 mod errors;
 mod events;
 mod macros;
+mod payment;
 mod state;
-mod trusted_verifiers;
 
 // Simplified instruction modules
 mod instructions {
@@ -57,71 +57,45 @@ impl AuthorityResolverContract {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    //                      Trusted Verifier Management
+    //                      Payment and Fee Management
     // ──────────────────────────────────────────────────────────────────────────
     
-    /// Add a trusted verifier (SAS-style credential issuer pattern)
-    pub fn admin_add_verifier(
+    /// Pay verification fee to become an authorized authority
+    pub fn pay_verification_fee(
+        env: Env,
+        payer: Address,
+        ref_id: String,
+        token_address: Address,
+    ) -> Result<(), Error> {
+        payment::pay_verification_fee(&env, &payer, &ref_id, &token_address)
+    }
+    
+    /// Get payment status for an address
+    pub fn get_payment_status(
+        env: Env,
+        address: Address,
+    ) -> Option<state::PaymentRecord> {
+        payment::get_payment_status(&env, &address)
+    }
+    
+    /// Admin withdraws collected fees
+    pub fn admin_withdraw_fees(
         env: Env,
         admin: Address,
-        verifier: Address,
-        max_level: u32,
-        verifier_type: String,
+        token_address: Address,
+        amount: i128,
     ) -> Result<(), Error> {
-        access_control::only_owner(&env, &admin)?;
-        trusted_verifiers::add_verifier(&env, &verifier, max_level, &verifier_type, &admin)?;
-        
-        // Emit event
-        env.events().publish(
-            (String::from_str(&env, "VERIFIER_ADDED"), &verifier),
-            (max_level, verifier_type.clone()),
-        );
-        Ok(())
+        payment::admin_withdraw_fees(&env, &admin, &token_address, amount)
     }
     
-    /// Remove a trusted verifier
-    pub fn admin_remove_verifier(
-        env: Env,
-        admin: Address,
-        verifier: Address,
-    ) -> Result<(), Error> {
-        access_control::only_owner(&env, &admin)?;
-        trusted_verifiers::deactivate_verifier(&env, &verifier)?;
-        
-        // Emit event
-        env.events().publish(
-            (String::from_str(&env, "VERIFIER_REMOVED"), ),
-            &verifier,
-        );
-        Ok(())
+    /// Check if an address has confirmed payment
+    pub fn has_confirmed_payment(env: Env, address: Address) -> bool {
+        state::has_confirmed_payment(&env, &address)
     }
     
-    /// Update verifier's maximum verification level
-    pub fn admin_update_verifier_level(
-        env: Env,
-        admin: Address,
-        verifier: Address,
-        new_max_level: u32,
-    ) -> Result<(), Error> {
-        access_control::only_owner(&env, &admin)?;
-        trusted_verifiers::update_verifier_level(&env, &verifier, new_max_level)?;
-        
-        // Emit event
-        env.events().publish(
-            (String::from_str(&env, "VERIFIER_UPDATED"), &verifier),
-            new_max_level,
-        );
-        Ok(())
-    }
-    
-    /// Check if an address is a trusted verifier
-    pub fn is_trusted_verifier(env: Env, verifier: Address) -> bool {
-        trusted_verifiers::is_trusted_verifier(&env, &verifier)
-    }
-    
-    /// Get verifier details
-    pub fn get_verifier(env: Env, verifier: Address) -> Option<trusted_verifiers::TrustedVerifier> {
-        trusted_verifiers::get_trusted_verifier(&env, &verifier)
+    /// Get payment record for an address
+    pub fn get_payment_record(env: Env, address: Address) -> Option<state::PaymentRecord> {
+        state::get_payment_record(&env, &address)
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -258,40 +232,29 @@ impl AuthorityResolverContract {
 impl ResolverInterface for AuthorityResolverContract {
     /// Validates authority attestations before they are created
     /// 
-    /// This is the core authority validation logic:
-    /// 1. Checks if the attester is a trusted verifier
-    /// 2. Validates the verification level is within verifier's authority
-    /// 3. Validates the authority data structure
+    /// This is the core workflow step 7-8:
+    /// 1. Check if the attestation subject has a confirmed payment in our ledger
+    /// 2. If confirmed, return TRUE to allow attestation
+    /// 3. If not confirmed, return FALSE to block attestation
     fn before_attest(
         env: Env,
         attestation: ResolverAttestation,
     ) -> Result<bool, ResolverError> {
-        // Convert our internal Attestation to resolver Attestation if needed
-        // For now, assume they're compatible structures
+        // Step 7: Check the ledger to match attestation subject to confirmed payment entry
+        let has_paid = state::has_confirmed_payment(&env, &attestation.recipient);
         
-        // Check if attester is a trusted verifier
-        let verifier_data = trusted_verifiers::get_trusted_verifier(&env, &attestation.attester)
-            .ok_or(ResolverError::NotAuthorized)?;
-        
-        if !verifier_data.active {
+        if !has_paid {
+            // Step 8: Return FALSE - they haven't paid the 100 XLM access fee
             return Err(ResolverError::NotAuthorized);
         }
         
-        // Decode authority data from attestation to validate verification level
-        // In production, this would properly decode the attestation.data
-        // For now, we'll do basic validation
-        
-        // Basic validation: ensure attester is not self-attesting to be an authority
-        if attestation.attester == attestation.recipient {
-            return Err(ResolverError::ValidationFailed);
-        }
-        
-        // Ensure attestation has not expired
+        // Basic validation: ensure attestation has not expired
         if attestation.expiration_time > 0 && 
            attestation.expiration_time < env.ledger().timestamp() {
             return Err(ResolverError::InvalidAttestation);
         }
         
+        // Step 8: Return TRUE - payment confirmed, allow attestation
         Ok(true)
     }
     
@@ -300,55 +263,41 @@ impl ResolverInterface for AuthorityResolverContract {
         env: Env,
         attestation: ResolverAttestation,
     ) -> Result<(), ResolverError> {
-        // Get verifier data for verification level and metadata
-        let verifier_data = trusted_verifiers::get_trusted_verifier(&env, &attestation.attester)
+        // Get payment record to extract ref_id for authority registration
+        let payment_record = state::get_payment_record(&env, &attestation.recipient)
             .ok_or(ResolverError::NotAuthorized)?;
         
-        // In production, decode the authority data from attestation.data
-        // For now, create basic authority data
+        // Create authority data using payment information
         let authority_data = state::RegisteredAuthorityData {
             address: attestation.recipient.clone(),
-            metadata: String::from_str(&env, "Verified Authority"), // Would come from attestation.data
+            metadata: String::from_str(&env, "Verified Authority"), // Could decode from attestation.data
             registration_time: env.ledger().timestamp(),
-            verification_level: verifier_data.max_verification_level, // Use verifier's max level
-            verified_by: attestation.attester.clone(),
-            verification_data: Some(attestation.data.clone()),
+            ref_id: payment_record.ref_id.clone(), // Reference to their org data on platform
         };
         
         // Register authority in phone book
         state::set_authority_data(&env, &authority_data);
         
-        // Update verifier's count
-        let _ = trusted_verifiers::increment_verifier_count(&env, &attestation.attester);
-        
         // Emit authority registration event
         env.events().publish(
             (String::from_str(&env, "AUTHORITY_REGISTERED"), &attestation.recipient),
-            (authority_data.verification_level, &authority_data.verified_by),
+            payment_record.ref_id.clone(),
         );
         
         Ok(())
     }
     
-    /// Validates authority revocations - only original verifier can revoke
+    /// Validates authority revocations - only admin can revoke
     fn before_revoke(
         env: Env,
         _attestation_uid: BytesN<32>,
         attester: Address,
     ) -> Result<bool, ResolverError> {
-        // Check if attester is a trusted verifier
-        let verifier_data = trusted_verifiers::get_trusted_verifier(&env, &attester)
-            .ok_or(ResolverError::NotAuthorized)?;
-        
-        if !verifier_data.active {
-            return Err(ResolverError::NotAuthorized);
+        // Only admin can revoke authority attestations
+        match access_control::is_owner(&env, &attester) {
+            true => Ok(true),
+            false => Err(ResolverError::NotAuthorized),
         }
-        
-        // In production, you'd look up the original attestation to verify
-        // that this attester was the original verifier
-        // For now, just check if they're a trusted verifier
-        
-        Ok(true)
     }
     
     /// Removes authority from phone book after revocation
@@ -374,7 +323,7 @@ impl ResolverInterface for AuthorityResolverContract {
         ResolverMetadata {
             name: String::from_str(&env, "Authority Resolver"),
             version: String::from_str(&env, "2.0.0"),
-            description: String::from_str(&env, "Phone book of verified enterprises using trusted verifier system"),
+            description: String::from_str(&env, "Paid registry resolver - validates 100 XLM payment before allowing attestations"),
             resolver_type: ResolverType::Authority,
         }
     }
