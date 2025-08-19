@@ -11,3 +11,6 @@ logs.txt
 
 # stellar
 .env.sh
+
+# Research files
+*_research.rs

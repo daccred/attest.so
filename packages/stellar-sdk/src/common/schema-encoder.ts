@@ -5,7 +5,7 @@
  * Provides type-safe schema definitions and encoding/decoding utilities.
  */
 
-import { Address, xdr } from '@stellar/stellar-sdk'
+import { Address, xdr, Keypair } from '@stellar/stellar-sdk'
 
 /**
  * Supported Stellar attestation data types
@@ -115,6 +115,279 @@ export class StellarSchemaEncoder {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
   }
+
+  /**
+   * Encode schema to XDR format for efficient storage and privacy
+   */
+  toXDR(): string {
+    try {
+      // Convert schema to XDR-encodable values
+      const fieldsXdr = this.schema.fields.map(field => {
+        // Convert field to XDR Value
+        const fieldObj = xdr.ScVal.scvMap([
+          new xdr.ScMapEntry({
+            key: xdr.ScVal.scvSymbol('name'),
+            val: xdr.ScVal.scvString(field.name)
+          }),
+          new xdr.ScMapEntry({
+            key: xdr.ScVal.scvSymbol('type'),
+            val: xdr.ScVal.scvString(field.type)
+          }),
+          new xdr.ScMapEntry({
+            key: xdr.ScVal.scvSymbol('optional'),
+            val: xdr.ScVal.scvBool(field.optional || false)
+          }),
+          ...(field.description ? [new xdr.ScMapEntry({
+            key: xdr.ScVal.scvSymbol('description'),
+            val: xdr.ScVal.scvString(field.description)
+          })] : []),
+          ...(field.validation ? [new xdr.ScMapEntry({
+            key: xdr.ScVal.scvSymbol('validation'),
+            val: this.validationToXdr(field.validation)
+          })] : [])
+        ])
+        return fieldObj
+      })
+
+      // Create main schema XDR structure
+      const schemaXdr = xdr.ScVal.scvMap([
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol('name'),
+          val: xdr.ScVal.scvString(this.schema.name)
+        }),
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol('version'),
+          val: xdr.ScVal.scvString(this.schema.version)
+        }),
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol('description'),
+          val: xdr.ScVal.scvString(this.schema.description)
+        }),
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol('fields'),
+          val: xdr.ScVal.scvVec(fieldsXdr)
+        })
+      ])
+
+      // Convert to XDR string
+      const xdrString = schemaXdr.toXDR('base64')
+      return `XDR:${xdrString}`
+    } catch (error) {
+      throw new SchemaValidationError(`Failed to encode schema to XDR: ${error}`)
+    }
+  }
+
+  /**
+   * Helper to convert validation rules to XDR
+   */
+  private validationToXdr(validation: any): xdr.ScVal {
+    const entries: xdr.ScMapEntry[] = []
+    
+    if (validation.min !== undefined) {
+      entries.push(new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol('min'),
+        val: xdr.ScVal.scvI128(new xdr.Int128Parts({
+          hi: xdr.Uint64.fromString('0'),
+          lo: xdr.Uint64.fromString(validation.min.toString())
+        }))
+      }))
+    }
+    
+    if (validation.max !== undefined) {
+      entries.push(new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol('max'),
+        val: xdr.ScVal.scvI128(new xdr.Int128Parts({
+          hi: xdr.Uint64.fromString('0'),
+          lo: xdr.Uint64.fromString(validation.max.toString())
+        }))
+      }))
+    }
+    
+    if (validation.pattern) {
+      entries.push(new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol('pattern'),
+        val: xdr.ScVal.scvString(validation.pattern)
+      }))
+    }
+    
+    if (validation.enum && validation.enum.length > 0) {
+      const enumValues = validation.enum.map((val: string) => xdr.ScVal.scvString(val))
+      entries.push(new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol('enum'),
+        val: xdr.ScVal.scvVec(enumValues)
+      }))
+    }
+    
+    return xdr.ScVal.scvMap(entries)
+  }
+
+  /**
+   * Create schema encoder from XDR format
+   */
+  static fromXDR(xdrString: string): StellarSchemaEncoder {
+    try {
+      if (!xdrString.startsWith('XDR:')) {
+        throw new Error('Invalid XDR format - missing XDR: prefix')
+      }
+
+      const xdrData = xdrString.substring(4)
+      
+      // Parse XDR back to ScVal
+      const schemaScVal = xdr.ScVal.fromXDR(xdrData, 'base64')
+      
+      if (schemaScVal.switch() !== xdr.ScValType.scvMap()) {
+        throw new Error('XDR data is not a map')
+      }
+
+      const schemaMap = schemaScVal.map()
+      if (!schemaMap) {
+        throw new Error('Invalid XDR schema map')
+      }
+
+      const schema: Partial<StellarSchemaDefinition> = {}
+
+      // Extract schema properties from XDR map
+      for (const entry of schemaMap) {
+        const key = entry.key().sym().toString()
+        const val = entry.val()
+
+        switch (key) {
+          case 'name':
+            if (val.switch() === xdr.ScValType.scvString()) {
+              schema.name = val.str().toString()
+            }
+            break
+          case 'version':
+            if (val.switch() === xdr.ScValType.scvString()) {
+              schema.version = val.str().toString()
+            }
+            break
+          case 'description':
+            if (val.switch() === xdr.ScValType.scvString()) {
+              schema.description = val.str().toString()
+            }
+            break
+          case 'fields':
+            if (val.switch() === xdr.ScValType.scvVec()) {
+              schema.fields = this.parseFieldsFromXdr(val.vec() || [])
+            }
+            break
+        }
+      }
+
+      // Validate required fields
+      if (!schema.name || !schema.version || !schema.fields) {
+        throw new Error('Missing required schema fields')
+      }
+
+      return new StellarSchemaEncoder(schema as StellarSchemaDefinition)
+    } catch (error) {
+      throw new SchemaValidationError(`Failed to decode XDR schema: ${error}`)
+    }
+  }
+
+  /**
+   * Helper to parse fields array from XDR
+   */
+  private static parseFieldsFromXdr(fieldsXdr: xdr.ScVal[]): SchemaField[] {
+    return fieldsXdr.map(fieldXdr => {
+      if (fieldXdr.switch() !== xdr.ScValType.scvMap()) {
+        throw new Error('Field is not a map')
+      }
+
+      const fieldMap = fieldXdr.map()
+      if (!fieldMap) {
+        throw new Error('Invalid field map')
+      }
+
+      const field: Partial<SchemaField> = {}
+
+      for (const entry of fieldMap) {
+        const key = entry.key().sym().toString()
+        const val = entry.val()
+
+        switch (key) {
+          case 'name':
+            if (val.switch() === xdr.ScValType.scvString()) {
+              field.name = val.str().toString()
+            }
+            break
+          case 'type':
+            if (val.switch() === xdr.ScValType.scvString()) {
+              field.type = val.str().toString()
+            }
+            break
+          case 'optional':
+            if (val.switch() === xdr.ScValType.scvBool()) {
+              field.optional = val.b()
+            }
+            break
+          case 'description':
+            if (val.switch() === xdr.ScValType.scvString()) {
+              field.description = val.str().toString()
+            }
+            break
+          case 'validation':
+            if (val.switch() === xdr.ScValType.scvMap()) {
+              const validationMap = val.map()
+              if (validationMap) {
+                field.validation = this.parseValidationFromXdr(validationMap)
+              }
+            }
+            break
+        }
+      }
+
+      if (!field.name || !field.type) {
+        throw new Error('Missing required field properties')
+      }
+
+      return field as SchemaField
+    })
+  }
+
+  /**
+   * Helper to parse validation rules from XDR
+   */
+  private static parseValidationFromXdr(validationMap: xdr.ScMapEntry[]): any {
+    const validation: any = {}
+
+    for (const entry of validationMap) {
+      const key = entry.key().sym().toString()
+      const val = entry.val()
+
+      switch (key) {
+        case 'min':
+          if (val.switch() === xdr.ScValType.scvI128()) {
+            validation.min = parseInt(val.i128().toString())
+          }
+          break
+        case 'max':
+          if (val.switch() === xdr.ScValType.scvI128()) {
+            validation.max = parseInt(val.i128().toString())
+          }
+          break
+        case 'pattern':
+          if (val.switch() === xdr.ScValType.scvString()) {
+            validation.pattern = val.str().toString()
+          }
+          break
+        case 'enum':
+          if (val.switch() === xdr.ScValType.scvVec()) {
+            validation.enum = (val.vec() || []).map(enumVal => {
+              if (enumVal.switch() === xdr.ScValType.scvString()) {
+                return enumVal.str().toString()
+              }
+              return ''
+            }).filter(v => v)
+          }
+          break
+      }
+    }
+
+    return validation
+  }
+
 
   /**
    * Encode attestation data according to the schema

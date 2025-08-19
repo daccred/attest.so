@@ -156,34 +156,6 @@ export class StellarAuthorityService {
     }
   }
 
-  /**
-   * Set schema levy (admin function)
-   */
-  async adminSetSchemaLevy(
-    schemaUid: Buffer,
-    levyAmount: bigint,
-    levyRecipient: string
-  ): Promise<AttestProtocolResponse<void>> {
-    try {
-      const tx = await this.authorityClient.admin_set_schema_levy({
-        admin: this.publicKey,
-        schema_uid: schemaUid,
-        levy_amount: levyAmount,
-        levy_recipient: levyRecipient
-      })
-
-      await tx.signAndSend()
-
-      return createSuccessResponse(undefined)
-    } catch (error: any) {
-      return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to set schema levy'
-        )
-      )
-    }
-  }
 
   /**
    * Set registration fee (admin function)

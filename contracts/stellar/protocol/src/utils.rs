@@ -1,7 +1,7 @@
 use soroban_sdk::{Address, BytesN, Env, String};
 use crate::state::{DataKey, StoredAttestation, Schema, Authority};
 use crate::errors::Error;
-use crate::interfaces::resolver::ResolverAttestationRecord;
+use crate::interfaces::resolver::ResolverAttestation;
 
 pub fn _get_authority(env: &Env, address: &Address) -> Option<Authority> {
     let key = DataKey::Authority(address.clone());
@@ -42,7 +42,7 @@ pub fn _to_attestation_record(
     _env: &Env,
     _uid: &BytesN<32>,
     _att: &StoredAttestation,
-) -> ResolverAttestationRecord {
+) -> ResolverAttestation {
     unimplemented!("to_attestation_record needs update/removal");
 }
 

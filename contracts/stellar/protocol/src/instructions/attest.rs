@@ -1,129 +1,224 @@
-use soroban_sdk::{Address, Env, String, BytesN};
-use crate::state::{DataKey, AttestationRecord};
+use soroban_sdk::{Address, Env, String, BytesN, Vec};
+use crate::state::{DataKey, Attestation};
 use crate::errors::Error;
 use crate::utils;
 use crate::events;
+use crate::instructions::delegation;
 
-/// Creates a new attestation or updates an existing one for a given schema and subject.
+/// Creates a new attestation using nonce-based system for unique identification.
 ///
-/// This function allows a registered authority to create an attestation that conforms to a specific schema
-/// for a particular subject. If an attestation with the same identifiers already exists, it will be overwritten.
+/// This function follows the Solana/EAS pattern of using nonces to allow multiple
+/// attestations for the same schema/subject pair. Each attestation is uniquely
+/// identified by (schema_uid, subject, nonce).
 ///
 /// # Authorization
-/// Requires authorization from the caller, who must be the authority registered for the specified schema.
+/// Requires authorization from the caller (attester).
 ///
 /// # Arguments
-/// * `env` - The Soroban environment providing access to blockchain services.
-/// * `caller` - The address creating the attestation (must be the schema authority).
-/// * `schema_uid` - The unique identifier (UID) of the schema this attestation conforms to.
-/// * `subject` - The address that is the subject of the attestation.
-/// * `value` - The string value containing the attestation data, typically in JSON format.
-/// * `reference` - An optional reference string to uniquely identify the attestation when
-///                 multiple attestations for the same schema and subject can exist.
+/// * `env` - The Soroban environment
+/// * `attester` - The address creating the attestation
+/// * `schema_uid` - The unique identifier of the schema
+/// * `subject` - The address that is the subject of the attestation
+/// * `value` - The attestation data
+/// * `expiration_time` - Optional expiration timestamp
 ///
 /// # Returns
-/// * `Result<(), Error>` - An empty success value or an error.
-///
-/// # Errors
-/// * `Error::SchemaNotFound` - If no schema with the specified `schema_uid` exists.
-/// * `Error::NotAuthorized` - If the `caller` is not the authority associated with the schema.
-///
-/// # Example
-/// ```ignore
-/// let result = attest(
-///     &env,
-///     authority_address,
-///     schema_uid,
-///     subject_address,
-///     String::from_str(&env, "{\"field\": \"value\"}"),
-///     Some(String::from_str(&env, "reference-id"))
-/// );
-/// ```
+/// * `Result<u64, Error>` - The nonce of the created attestation or error
 pub fn attest(
     env: &Env,
-    caller: Address,
+    attester: Address,
     schema_uid: BytesN<32>,
     subject: Address,
     value: String,
-    reference: Option<String>,
-) -> Result<(), Error> {
-    caller.require_auth();
-
-    // Verify caller is a registered authority for the given schema
-    let schema = utils::get_schema(env, &schema_uid)
+    expiration_time: Option<u64>,
+) -> Result<u64, Error> {
+    attester.require_auth();
+    
+    // Verify schema exists
+    let _schema = utils::get_schema(env, &schema_uid)
         .ok_or(Error::SchemaNotFound)?;
-    // if schema.authority != caller {
-    //     return Err(Error::NotAuthorized); // Caller is not the authority for this schema
-    // }
-
-    // Check if attestation already exists (optional, depends on desired behavior)
-    let attest_key = DataKey::Attestation(schema_uid.clone(), subject.clone(), reference.clone());
-    if env.storage().instance().has(&attest_key) {
-        // Decide whether to error or overwrite. Current impl overwrites.
-        return Err(Error::AttestationExists);
+    
+    // Get next nonce for this attester
+    let nonce = delegation::get_next_nonce(env, &attester);
+    
+    // Create attestation record
+    let current_time = env.ledger().timestamp();
+    
+    // Check if expiration time is valid (if provided)
+    if let Some(exp_time) = expiration_time {
+        if exp_time <= current_time {
+            return Err(Error::InvalidDeadline);
+        }
     }
-
-    let attestation = AttestationRecord {
-        schema_uid: schema_uid.clone(), // Use cloned schema_uid
-        subject: subject.clone(),       // Use cloned subject
+    
+    let attestation = Attestation {
+        schema_uid: schema_uid.clone(),
+        subject: subject.clone(),
+        attester: attester.clone(),
         value: value.clone(),
-        reference: reference.clone(),   // Use cloned reference
+        nonce,
+        timestamp: current_time,
+        expiration_time,
         revoked: false,
+        revocation_time: None,
     };
-
-    env.storage().instance().set(&attest_key, &attestation);
-
-    // Publish attestation event
+    
+    // Store attestation with nonce-based key
+    let attest_key = DataKey::Attestation(
+        schema_uid.clone(),
+        subject.clone(),
+        nonce
+    );
+    env.storage().persistent().set(&attest_key, &attestation);
+    
+    // Increment nonce for next attestation
+    let nonce_key = DataKey::AttesterNonce(attester.clone());
+    let new_nonce = nonce + 1;
+    env.storage().persistent().set(&nonce_key, &new_nonce);
+    
+    // Emit event
     events::publish_attestation_event(env, &attestation);
-
-    Ok(())
+    
+    Ok(nonce)
 }
 
-/// Retrieves an attestation record from storage based on its unique identifiers.
-///
-/// This function looks up and returns an attestation record by matching its schema UID,
-/// subject address, and optional reference string. The attestation must have been previously
-/// created using the `attest()` function.
+/// Retrieves an attestation using the nonce-based system.
 ///
 /// # Arguments
-/// * `env` - The Soroban environment object providing access to contract storage and other utilities
-/// * `schema_uid` - A 32-byte unique identifier for the schema this attestation belongs to
-/// * `subject` - The Stellar address of the entity that is the subject of this attestation
-/// * `reference` - An optional string identifier used to distinguish between multiple attestations
-///                for the same schema and subject
+/// * `env` - The Soroban environment
+/// * `schema_uid` - The unique identifier of the schema
+/// * `subject` - The address that is the subject of the attestation
+/// * `nonce` - The nonce of the attestation
 ///
 /// # Returns
-/// * `Result<AttestationRecord, Error>` - Returns the attestation record if found, wrapped in Ok().
-///                                       Otherwise returns an error variant.
-///
-/// # Errors
-/// * `Error::SchemaNotFound` - Returned if no schema exists with the provided `schema_uid`
-/// * `Error::AttestationNotFound` - Returned if no attestation exists matching all the provided
-///                                  lookup criteria (schema_uid, subject, and reference)
-///
-/// # Example
-/// ```ignore
-/// let attestation = get_attest(
-///     &env,
-///     schema_uid,
-///     subject_address,
-///     Some("2023-degree".into())
-/// )?;
-/// ```
-pub fn get_attest(
+/// * `Result<Attestation, Error>` - The attestation record or error
+pub fn get_attestation(
     env: &Env,
     schema_uid: BytesN<32>,
     subject: Address,
-    reference: Option<String>,
-) -> Result<AttestationRecord, Error> {
-    // Get schema
+    nonce: u64,
+) -> Result<Attestation, Error> {
+    // Verify schema exists
     let _schema = utils::get_schema(env, &schema_uid)
         .ok_or(Error::SchemaNotFound)?;
-
+    
     // Get attestation
-    let attest_key = DataKey::Attestation(schema_uid, subject, reference);
-    let attest = env.storage().instance().get::<DataKey, AttestationRecord>(&attest_key)
+    let attest_key = DataKey::Attestation(schema_uid, subject, nonce);
+    let attestation = env.storage().persistent()
+        .get::<DataKey, Attestation>(&attest_key)
         .ok_or(Error::AttestationNotFound)?;
+    
+    // Check if attestation is expired
+    if let Some(exp_time) = attestation.expiration_time {
+        if env.ledger().timestamp() > exp_time {
+            return Err(Error::AttestationExpired);
+        }
+    }
+    
+    Ok(attestation)
+}
 
-    Ok(attest)
-} 
+/// Revokes an attestation using the nonce-based system.
+///
+/// # Arguments
+/// * `env` - The Soroban environment
+/// * `revoker` - The address revoking the attestation (must be the original attester)
+/// * `schema_uid` - The unique identifier of the schema
+/// * `subject` - The address that is the subject of the attestation
+/// * `nonce` - The nonce of the attestation to revoke
+///
+/// # Returns
+/// * `Result<(), Error>` - Success or error
+pub fn revoke_attestation(
+    env: &Env,
+    revoker: Address,
+    schema_uid: BytesN<32>,
+    subject: Address,
+    nonce: u64,
+) -> Result<(), Error> {
+    revoker.require_auth();
+    
+    // Get the attestation
+    let attest_key = DataKey::Attestation(schema_uid.clone(), subject.clone(), nonce);
+    let mut attestation = env.storage().persistent()
+        .get::<DataKey, Attestation>(&attest_key)
+        .ok_or(Error::AttestationNotFound)?;
+    
+    // Verify the revoker is the original attester
+    if attestation.attester != revoker {
+        return Err(Error::NotAuthorized);
+    }
+    
+    // Verify the attestation isn't already revoked
+    if attestation.revoked {
+        return Err(Error::AttestationNotFound);
+    }
+    
+    // Verify schema is revocable
+    let schema = utils::get_schema(env, &schema_uid)
+        .ok_or(Error::SchemaNotFound)?;
+    if !schema.revocable {
+        return Err(Error::AttestationNotRevocable);
+    }
+    
+    // Update attestation
+    attestation.revoked = true;
+    attestation.revocation_time = Some(env.ledger().timestamp());
+    
+    // Store updated attestation
+    env.storage().persistent().set(&attest_key, &attestation);
+    
+    // Emit revocation event
+    events::publish_revocation_event(env, &attestation);
+    
+    Ok(())
+}
+
+/// Lists all attestations for a given schema and subject.
+///
+/// # Arguments
+/// * `env` - The Soroban environment
+/// * `schema_uid` - The unique identifier of the schema
+/// * `subject` - The address that is the subject of the attestations
+/// * `limit` - Maximum number of attestations to return
+///
+/// # Returns
+/// * `Vec<AttestationRecord>` - List of attestation records
+pub fn list_attestations(
+    env: &Env,
+    schema_uid: BytesN<32>,
+    subject: Address,
+    limit: u32,
+) -> Vec<Attestation> {
+    let mut attestations = Vec::new(env);
+    let mut found = 0u32;
+    
+    // Try to get attestations with increasing nonces
+    // This is a simple implementation - in production, you might want
+    // to store an index or use a more efficient lookup method
+    for nonce in 0u64..1000u64 {
+        if found >= limit {
+            break;
+        }
+        
+        let attest_key = DataKey::Attestation(
+            schema_uid.clone(),
+            subject.clone(),
+            nonce
+        );
+        
+        if let Some(attestation) = env.storage().persistent()
+            .get::<DataKey, Attestation>(&attest_key) {
+            // Skip expired attestations
+            if let Some(exp_time) = attestation.expiration_time {
+                if env.ledger().timestamp() > exp_time {
+                    continue;
+                }
+            }
+            attestations.push_back(attestation);
+            found += 1;
+        }
+    }
+    
+    attestations
+}
