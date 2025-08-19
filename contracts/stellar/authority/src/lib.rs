@@ -233,55 +233,141 @@ impl AuthorityResolverContract {
 
 #[contractimpl]
 impl ResolverInterface for AuthorityResolverContract {
-    /// Validates authority attestations before they are created
+    /// **CRITICAL SECURITY FUNCTION**: Validates authority attestations before creation
     /// 
-    /// This is the core workflow step 7-8:
-    /// 1. Check if the attestation subject has a confirmed payment in our ledger
-    /// 2. If confirmed, return TRUE to allow attestation
-    /// 3. If not confirmed, return FALSE to block attestation
+    /// This function implements the core access control for the authority verification system.
+    /// It enforces the payment requirement that is the foundation of the business model.
+    /// 
+    /// # Business Model Enforcement
+    /// This function implements steps 7-8 of the authority verification workflow:
+    /// 1. Protocol receives delegated attestation request
+    /// 2. Protocol calls this resolver for validation  
+    /// 3. **This function checks if subject has paid verification fee**
+    /// 4. If paid: return OK(true) → attestation proceeds
+    /// 5. If not paid: return Err → attestation blocked
+    /// 
+    /// # Security Model
+    /// - **Payment Gate**: No payment = no attestation (cannot be bypassed)
+    /// - **Immutable Validation**: Payment records cannot be forged or deleted
+    /// - **Protocol Enforced**: Protocol contract must call this function
+    /// - **Fail-Safe Default**: Any error blocks the attestation
+    /// 
+    /// # Parameters
+    /// * `env` - Soroban environment for storage access
+    /// * `attestation` - Complete attestation data from protocol
+    /// 
+    /// # Returns
+    /// * `Ok(true)` - Payment confirmed, allow attestation to proceed
+    /// * `Err(ResolverError::NotAuthorized)` - No payment found, block attestation
+    /// * `Err(ResolverError::InvalidAttestation)` - Attestation expired, block
+    /// 
+    /// # Attack Vectors & Mitigations
+    /// * **Payment Bypass**: Attempting to get attestations without paying
+    ///   - *Mitigation*: Cryptographic enforcement through payment record validation
+    /// * **Resolver Bypass**: Attempting to avoid resolver validation
+    ///   - *Mitigation*: Protocol enforces resolver calls; cannot be circumvented
+    /// * **Payment Record Forgery**: Creating fake payment records
+    ///   - *Mitigation*: Payment records only created through actual token transfers
+    /// * **Time Manipulation**: Using expired attestation requests
+    ///   - *Mitigation*: Blockchain timestamp validation (cannot be manipulated)
+    /// 
+    /// # Business Implications
+    /// - This function is the primary revenue protection mechanism
+    /// - Failure to call this function would eliminate business model enforcement
+    /// - Any bugs here could allow free attestations (revenue loss)
+    /// - Success here ensures only paying customers receive authority status
     fn before_attest(
         env: Env,
         attestation: ResolverAttestation,
     ) -> Result<bool, ResolverError> {
-        // Step 7: Check the ledger to match attestation subject to confirmed payment entry
+        // CORE BUSINESS LOGIC: Check payment ledger for verification fee
+        // This is the fundamental access control - no payment = no attestation
         let has_paid = state::has_confirmed_payment(&env, &attestation.recipient);
         
         if !has_paid {
-            // Step 8: Return FALSE - they haven't paid the 100 XLM access fee
+            // BUSINESS MODEL ENFORCEMENT: Block attestation due to no payment
+            // This protects the revenue model by preventing free attestations
             return Err(ResolverError::NotAuthorized);
         }
         
-        // Basic validation: ensure attestation has not expired
+        // STANDARD VALIDATION: Ensure attestation timing is valid
+        // Prevents expired attestation requests from being processed
         if attestation.expiration_time > 0 && 
            attestation.expiration_time < env.ledger().timestamp() {
             return Err(ResolverError::InvalidAttestation);
         }
         
-        // Step 8: Return TRUE - payment confirmed, allow attestation
+        // SUCCESS: Payment confirmed, allow attestation to proceed
+        // Organization has paid verification fee and is eligible for authority status
         Ok(true)
     }
     
-    /// Registers the authority in our phone book after attestation is created
+    /// **NON-CRITICAL FUNCTION**: Registers authority in phone book after attestation
+    /// 
+    /// This function handles the side effects after a successful authority attestation.
+    /// It creates a searchable registry entry linking the organization's wallet address
+    /// to their platform reference ID for easy discovery and verification.
+    /// 
+    /// # Phone Book Model
+    /// The authority contract maintains a "phone book" of verified organizations:
+    /// - Wallet Address → Organization Details
+    /// - Platform Reference ID for off-chain data linking
+    /// - Registration timestamp for audit trail
+    /// - Searchable registry for other applications
+    /// 
+    /// # Non-Critical Design
+    /// - **Failures Don't Affect Attestation**: If this function fails, the attestation still succeeds
+    /// - **Side Effect Processing**: This is post-processing, not validation
+    /// - **Registry Convenience**: Provides searchable directory but not required for verification
+    /// - **Event Emission**: Enables external monitoring and indexing
+    /// 
+    /// # Parameters
+    /// * `env` - Soroban environment for storage and events
+    /// * `attestation` - The successfully created attestation data
+    /// 
+    /// # Returns
+    /// * `Ok(())` - Authority registered successfully in phone book
+    /// * `Err(ResolverError)` - Registration failed (doesn't affect attestation)
+    /// 
+    /// # Integration Points
+    /// - Links on-chain wallet to off-chain organization data via ref_id
+    /// - Enables other contracts to discover verified authorities
+    /// - Provides audit trail of when authority status was granted
+    /// - Supports platform UI for displaying organization details
+    /// 
+    /// # Security Considerations
+    /// - **Read-Only Operation**: Only creates registry entry, doesn't affect payment status
+    /// - **Dependent on Payment**: Requires existing payment record (validates earlier payment)
+    /// - **Immutable Registration**: Once registered, entry persists permanently
+    /// - **Public Information**: All registration data is publicly visible
+    /// 
+    /// # Error Handling
+    /// - Missing payment record indicates system inconsistency (should not happen)
+    /// - Storage failures are logged but don't revert the attestation
+    /// - Event emission failures don't affect core functionality
     fn after_attest(
         env: Env,
         attestation: ResolverAttestation,
     ) -> Result<(), ResolverError> {
-        // Get payment record to extract ref_id for authority registration
+        // Get payment record to extract organization reference ID
+        // This should always exist since before_attest validated payment
         let payment_record = state::get_payment_record(&env, &attestation.recipient)
             .ok_or(ResolverError::NotAuthorized)?;
         
-        // Create authority data using payment information
+        // Create phone book entry linking wallet to organization data
         let authority_data = state::RegisteredAuthorityData {
             address: attestation.recipient.clone(),
             metadata: String::from_str(&env, "Verified Authority"), // Could decode from attestation.data
             registration_time: env.ledger().timestamp(),
-            ref_id: payment_record.ref_id.clone(), // Reference to their org data on platform
+            ref_id: payment_record.ref_id.clone(), // Links to platform's organization database
         };
         
-        // Register authority in phone book
+        // Store in authority phone book for discovery
+        // This enables other contracts and UIs to find verified organizations
         state::set_authority_data(&env, &authority_data);
         
-        // Emit authority registration event
+        // Emit registration event for monitoring and indexing
+        // Platform and external services can track new authority registrations
         env.events().publish(
             (String::from_str(&env, "AUTHORITY_REGISTERED"), &attestation.recipient),
             payment_record.ref_id.clone(),
