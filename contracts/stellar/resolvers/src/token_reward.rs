@@ -49,7 +49,7 @@
 use soroban_sdk::{contract, contractimpl, contracttype, token, Address, BytesN, Env, String};
 use stellar_tokens::fungible::{Base, FungibleToken};
 use stellar_macros::default_impl;
-use crate::interface::{Attestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
+use crate::interface::{ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -69,11 +69,11 @@ pub enum DataKey {
     Allowance,
 }
 
-#[cfg(any(test, feature = "export-contracts"))]
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-token-reward-resolver"))]
 #[contract]
 pub struct TokenRewardResolver;
 
-#[cfg(any(test, feature = "export-contracts"))]
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-token-reward-resolver"))]
 #[contractimpl]
 impl TokenRewardResolver {
     /// Initialize the resolver with reward token and amount
@@ -209,7 +209,7 @@ impl TokenRewardResolver {
     }
 }
 
-#[cfg(any(test, feature = "export-contracts"))]
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-token-reward-resolver"))]
 #[contractimpl]
 impl ResolverInterface for TokenRewardResolver {
     /// **PERMISSIONLESS VALIDATION**: Allows all attestations for token reward incentives
@@ -245,7 +245,7 @@ impl ResolverInterface for TokenRewardResolver {
     /// * `Ok(true)` - Always allows attestations (permissionless access)
     fn before_attest(
         _env: Env,
-        _attestation: Attestation,
+        _attestation: ResolverAttestationData,
     ) -> Result<bool, ResolverError> {
         // PERMISSIONLESS MODEL: Allow all attestations
         // Economic incentives through token rewards drive participation
@@ -309,7 +309,7 @@ impl ResolverInterface for TokenRewardResolver {
     /// - **Pool Sustainability**: Requires periodic refunding for continued operation
     fn after_attest(
         env: Env,
-        attestation: Attestation,
+        attestation: ResolverAttestationData,
     ) -> Result<(), ResolverError> {
         // STEP 1: Load reward configuration from contract storage
         let reward_token: Address = env.storage()
@@ -403,15 +403,7 @@ impl ResolverInterface for TokenRewardResolver {
     }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ► OpenZeppelin Fungible Token Interface Implementation
-// ► 
-// ► This implementation makes TokenRewardResolver a dual-interface contract that
-// ► functions as both a resolver for attestation rewards AND a standard fungible
-// ► token compliant with OpenZeppelin patterns using the default_impl macro.
-// ══════════════════════════════════════════════════════════════════════════════
-
-#[cfg(any(test, feature = "export-contracts"))]
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-token-reward-resolver"))]
 #[default_impl]
 #[contractimpl]
 impl FungibleToken for TokenRewardResolver {

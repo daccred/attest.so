@@ -1,6 +1,6 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, token};
-use resolvers::{Attestation as ResolverAttestation, ResolverError};
+use resolvers::{ResolverAttestationData, ResolverError};
 
 // Import modules
 mod access_control;
@@ -250,7 +250,7 @@ impl AuthorityResolverContract {
     // ──────────────────────────────────────────────────────────────────────────
 
     /// Called before an attestation is created (resolver interface)
-    pub fn before_attest(env: Env, attestation: ResolverAttestation) -> Result<bool, ResolverError> {
+    pub fn before_attest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         // Check if the attester has confirmed payment
         if !state::has_confirmed_payment(&env, &attestation.attester) {
             return Err(ResolverError::NotAuthorized);
@@ -259,7 +259,7 @@ impl AuthorityResolverContract {
     }
 
     /// Called after an attestation is created (resolver interface)
-    pub fn after_attest(env: Env, attestation: ResolverAttestation) -> Result<(), ResolverError> {
+    pub fn after_attest(env: Env, attestation: ResolverAttestationData) -> Result<(), ResolverError> {
         // Register the attester as an authority after successful attestation
         if state::has_confirmed_payment(&env, &attestation.attester) {
             let payment_record = state::get_payment_record(&env, &attestation.attester);

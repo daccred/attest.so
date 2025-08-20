@@ -7,7 +7,7 @@ use soroban_sdk::{
 };
 
 use resolvers::fee_collection::FeeCollectionResolverClient;
-use resolvers::{Attestation, FeeCollectionResolver, ResolverError, ResolverType};
+use resolvers::{ResolverAttestationData, FeeCollectionResolver, ResolverError, ResolverType};
 
 const FEE_AMOUNT: i128 = 50;
 
@@ -63,8 +63,8 @@ fn setup<'a>() -> (
     )
 }
 
-fn build_attestation(env: &Env, attester: &Address) -> Attestation {
-    Attestation {
+fn build_attestation(env: &Env, attester: &Address) -> ResolverAttestationData {
+    ResolverAttestationData {
         uid: BytesN::random(env),
         schema_uid: BytesN::random(env),
         attester: attester.clone(),

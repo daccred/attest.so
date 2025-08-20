@@ -17,6 +17,7 @@ pub struct Attestation {
     pub data: Bytes,
     pub value: Option<i128>,
 }
+ 
 
 /// Payment record for organizations that paid the verification fee
 #[derive(Debug, Clone, PartialEq, Eq)]

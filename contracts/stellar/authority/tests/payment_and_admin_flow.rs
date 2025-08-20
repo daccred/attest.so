@@ -6,7 +6,7 @@ use soroban_sdk::{
     Address, Bytes, BytesN, Env, String as SorobanString, TryFromVal,
 };
 
-use resolvers::Attestation as ResolverAttestation;
+use resolvers::ResolverAttestationData as ResolverAttestation;
 use authority::{AuthorityResolverContract, AuthorityResolverContractClient};
 
 const REGISTRATION_FEE: i128 = 100_0000000; // 100 XLM

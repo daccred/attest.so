@@ -2,7 +2,7 @@ use soroban_sdk::{contracterror, contracttype, Address, BytesN, Env, String};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Attestation {
+pub struct ResolverAttestationData {
     pub uid: BytesN<32>,
     pub schema_uid: BytesN<32>,
     pub attester: Address,
@@ -77,14 +77,14 @@ pub trait ResolverInterface {
     /// Returns true if the attestation should be allowed
     fn before_attest(
         env: Env,
-        attestation: Attestation,
+        attestation: ResolverAttestationData,
     ) -> Result<bool, ResolverError>;
 
     /// Called after an attestation is created
     /// Can be used for post-processing like token rewards
     fn after_attest(
         env: Env,
-        attestation: Attestation,
+        attestation: ResolverAttestationData,
     ) -> Result<(), ResolverError>;
 
     /// Called before a revocation

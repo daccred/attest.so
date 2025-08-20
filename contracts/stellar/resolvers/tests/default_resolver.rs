@@ -6,8 +6,8 @@ use soroban_sdk::{
     Address, Bytes, BytesN, Env, String as SorobanString,
 };
 
+use resolvers::{ResolverAttestationData, DefaultResolver, ResolverError, ResolverType};
 use resolvers::default::DefaultResolverClient;
-use resolvers::{Attestation, DefaultResolver, ResolverError, ResolverType};
 
 fn setup<'a>() -> (Env, DefaultResolverClient<'a>) {
     let env = Env::default();
@@ -33,8 +33,8 @@ fn build_attestation(
     attester: &Address,
     recipient: &Address,
     expiration_time: u64,
-) -> Attestation {
-    Attestation {
+) -> ResolverAttestationData {
+    ResolverAttestationData {
         uid: BytesN::random(env),
         schema_uid: BytesN::random(env),
         attester: attester.clone(),

@@ -1,5 +1,5 @@
 use soroban_sdk::{contract, contractimpl, contracttype, token, Address, BytesN, Env, String};
-use crate::interface::{Attestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
+use crate::interface::{ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -14,11 +14,16 @@ pub enum DataKey {
 }
 
 /// FeeCollectionResolver - Collects XLM fees for attestations
-#[cfg(any(test, feature = "export-contracts"))]
+// Feature gating: expose the contract on native (non-wasm) test builds and when
+// the `export-fee-collection-resolver` feature is enabled for Wasm builds.
+// This prevents duplicate exported symbols (e.g., `after_attest`) when the
+// resolvers library is linked into other Wasm contracts like `protocol`.
 #[contract]
 pub struct FeeCollectionResolver;
 
-#[cfg(any(test, feature = "export-contracts"))]
+// Same gating rationale as above. Methods are exported only in host tests or
+// when explicitly exporting this resolver contract to Wasm.
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-fee-collection-resolver"))]
 #[contractimpl]
 impl FeeCollectionResolver {
     /// Initialize the resolver with fee configuration
@@ -169,13 +174,15 @@ impl FeeCollectionResolver {
     }
 }
 
-#[cfg(any(test, feature = "export-contracts"))]
+// Same gating rationale as above. This ensures the trait method exports are
+// not duplicated in Wasm unless explicitly requested via the feature flag.
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-fee-collection-resolver"))]
 #[contractimpl]
 impl ResolverInterface for FeeCollectionResolver {
     /// Collect fee before attestation
     fn before_attest(
         env: Env,
-        attestation: Attestation,
+        attestation: ResolverAttestationData,
     ) -> Result<bool, ResolverError> {
         // Get fee configuration
         let attestation_fee: i128 = env.storage()
@@ -238,7 +245,7 @@ impl ResolverInterface for FeeCollectionResolver {
     /// No post-processing needed
     fn after_attest(
         _env: Env,
-        _attestation: Attestation,
+        _attestation: ResolverAttestationData,
     ) -> Result<(), ResolverError> {
         Ok(())
     }

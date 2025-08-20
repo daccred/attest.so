@@ -7,7 +7,7 @@ use soroban_sdk::{
     Address, Bytes, BytesN, Env, String as SorobanString,
 };
 
-use resolvers::{Attestation, ResolverError, TokenRewardResolver};
+use resolvers::{ResolverAttestationData, ResolverError, TokenRewardResolver};
 use resolvers::token_reward::TokenRewardResolverClient;
 
 const REWARD_AMOUNT: i128 = 100;
@@ -65,8 +65,8 @@ fn setup<'a>() -> (
     )
 }
 
-fn build_attestation(env: &Env, attester: &Address) -> Attestation {
-    Attestation {
+fn build_attestation(env: &Env, attester: &Address) -> ResolverAttestationData {
+    ResolverAttestationData {
         uid: BytesN::random(env),
         schema_uid: BytesN::random(env),
         attester: attester.clone(),

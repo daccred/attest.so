@@ -1,18 +1,19 @@
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String};
-use crate::interface::{Attestation, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
+use crate::interface::{ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 
 /// DefaultResolver - Basic attestation validation without any economic model
 /// Simply validates that attestations meet basic requirements
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-default-resolver"))]
 #[contract]
 pub struct DefaultResolver;
 
-#[cfg(any(test, feature = "export-contracts"))]
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-default-resolver"))]
 #[contractimpl]
 impl ResolverInterface for DefaultResolver {
     /// Basic validation - always allows valid attestations
     fn before_attest(
         env: Env,
-        attestation: Attestation,
+        attestation: ResolverAttestationData,
     ) -> Result<bool, ResolverError> {
         // Basic validation: ensure attester is not self-attesting
         if attestation.attester == attestation.recipient {
@@ -31,7 +32,7 @@ impl ResolverInterface for DefaultResolver {
     /// No post-processing needed for default resolver
     fn after_attest(
         _env: Env,
-        _attestation: Attestation,
+        _attestation: ResolverAttestationData,
     ) -> Result<(), ResolverError> {
         Ok(())
     }
