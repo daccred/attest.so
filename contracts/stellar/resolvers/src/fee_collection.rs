@@ -23,7 +23,6 @@ pub struct FeeCollectionResolver;
 
 // Same gating rationale as above. Methods are exported only in host tests or
 // when explicitly exporting this resolver contract to Wasm.
-#[cfg(any(not(target_arch = "wasm32"), feature = "export-fee-collection-resolver"))]
 #[contractimpl]
 impl FeeCollectionResolver {
     /// Initialize the resolver with fee configuration

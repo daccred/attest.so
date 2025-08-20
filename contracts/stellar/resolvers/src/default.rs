@@ -3,11 +3,9 @@ use crate::interface::{ResolverAttestationData, ResolverError, ResolverInterface
 
 /// DefaultResolver - Basic attestation validation without any economic model
 /// Simply validates that attestations meet basic requirements
-#[cfg(any(not(target_arch = "wasm32"), feature = "export-default-resolver"))]
 #[contract]
 pub struct DefaultResolver;
 
-#[cfg(any(not(target_arch = "wasm32"), feature = "export-default-resolver"))]
 #[contractimpl]
 impl ResolverInterface for DefaultResolver {
     /// Basic validation - always allows valid attestations

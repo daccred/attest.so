@@ -69,11 +69,9 @@ pub enum DataKey {
     Allowance,
 }
 
-#[cfg(any(not(target_arch = "wasm32"), feature = "export-token-reward-resolver"))]
 #[contract]
 pub struct TokenRewardResolver;
 
-#[cfg(any(not(target_arch = "wasm32"), feature = "export-token-reward-resolver"))]
 #[contractimpl]
 impl TokenRewardResolver {
     /// Initialize the resolver with reward token and amount
@@ -209,7 +207,6 @@ impl TokenRewardResolver {
     }
 }
 
-#[cfg(any(not(target_arch = "wasm32"), feature = "export-token-reward-resolver"))]
 #[contractimpl]
 impl ResolverInterface for TokenRewardResolver {
     /// **PERMISSIONLESS VALIDATION**: Allows all attestations for token reward incentives
@@ -239,7 +236,7 @@ impl ResolverInterface for TokenRewardResolver {
     ///
     /// # Parameters
     /// * `_env` - Soroban environment (unused in permissionless model)
-    /// * `_attestation` - Attestation data (no validation performed)
+    /// * `_attestation` - ResolverAttestationData (no validation performed)
     ///
     /// # Returns
     /// * `Ok(true)` - Always allows attestations (permissionless access)
@@ -403,7 +400,14 @@ impl ResolverInterface for TokenRewardResolver {
     }
 }
 
-#[cfg(any(not(target_arch = "wasm32"), feature = "export-token-reward-resolver"))]
+// ══════════════════════════════════════════════════════════════════════════════
+// ► OpenZeppelin Fungible Token Interface Implementation
+// ► 
+// ► This implementation makes TokenRewardResolver a dual-interface contract that
+// ► functions as both a resolver for attestation rewards AND a standard fungible
+// ► token compliant with OpenZeppelin patterns using the default_impl macro.
+// ══════════════════════════════════════════════════════════════════════════════
+
 #[default_impl]
 #[contractimpl]
 impl FungibleToken for TokenRewardResolver {
