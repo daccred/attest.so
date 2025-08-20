@@ -15,6 +15,7 @@ testutils = []
 
 [dependencies]
 soroban-sdk = { workspace = true }
+stellar-xdr = { workspace = true, features = ["base64"] }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] } 
