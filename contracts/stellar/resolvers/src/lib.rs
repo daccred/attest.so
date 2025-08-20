@@ -14,7 +14,10 @@ pub use interface::{
     ResolverType,
 };
 
-// Re-export resolver implementations
+// Re-export resolver implementations only when exporting contracts or in tests
+#[cfg(any(test, feature = "export-contracts"))]
 pub use default::DefaultResolver;
+#[cfg(any(test, feature = "export-contracts"))]
 pub use token_reward::TokenRewardResolver;
+#[cfg(any(test, feature = "export-contracts"))]
 pub use fee_collection::FeeCollectionResolver;

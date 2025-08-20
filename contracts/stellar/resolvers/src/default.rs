@@ -6,6 +6,7 @@ use crate::interface::{Attestation, ResolverError, ResolverInterface, ResolverMe
 #[contract]
 pub struct DefaultResolver;
 
+#[cfg(any(test, feature = "export-contracts"))]
 #[contractimpl]
 impl ResolverInterface for DefaultResolver {
     /// Basic validation - always allows valid attestations

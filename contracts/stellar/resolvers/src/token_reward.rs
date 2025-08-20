@@ -69,10 +69,11 @@ pub enum DataKey {
     Allowance,
 }
 
-/// TokenRewardResolver - Distributes token rewards for attestations
+#[cfg(any(test, feature = "export-contracts"))]
 #[contract]
 pub struct TokenRewardResolver;
 
+#[cfg(any(test, feature = "export-contracts"))]
 #[contractimpl]
 impl TokenRewardResolver {
     /// Initialize the resolver with reward token and amount
@@ -208,6 +209,7 @@ impl TokenRewardResolver {
     }
 }
 
+#[cfg(any(test, feature = "export-contracts"))]
 #[contractimpl]
 impl ResolverInterface for TokenRewardResolver {
     /// **PERMISSIONLESS VALIDATION**: Allows all attestations for token reward incentives
@@ -409,6 +411,7 @@ impl ResolverInterface for TokenRewardResolver {
 // ► token compliant with OpenZeppelin patterns using the default_impl macro.
 // ══════════════════════════════════════════════════════════════════════════════
 
+#[cfg(any(test, feature = "export-contracts"))]
 #[default_impl]
 #[contractimpl]
 impl FungibleToken for TokenRewardResolver {

@@ -13,7 +13,7 @@ doctest = false
 
 [dependencies]
 soroban-sdk = { workspace = true }
-resolvers = { path = "../resolvers" }
+resolvers = { path = "../resolvers", default-features = false }
 
 [dev-dependencies]
 soroban-sdk = { version = "22.0.7", features = ["testutils"] }

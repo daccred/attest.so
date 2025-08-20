@@ -6,6 +6,12 @@ edition = "2021"
 [lib]
 crate-type = ["rlib"]
 
+authors = []
+
+[features]
+export-contracts = []
+default = ["export-contracts"]
+
 [dependencies]
 soroban-sdk = { workspace = true }
 stellar-macros = "0.4.1"

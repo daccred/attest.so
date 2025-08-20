@@ -14,9 +14,11 @@ pub enum DataKey {
 }
 
 /// FeeCollectionResolver - Collects XLM fees for attestations
+#[cfg(any(test, feature = "export-contracts"))]
 #[contract]
 pub struct FeeCollectionResolver;
 
+#[cfg(any(test, feature = "export-contracts"))]
 #[contractimpl]
 impl FeeCollectionResolver {
     /// Initialize the resolver with fee configuration
@@ -167,6 +169,7 @@ impl FeeCollectionResolver {
     }
 }
 
+#[cfg(any(test, feature = "export-contracts"))]
 #[contractimpl]
 impl ResolverInterface for FeeCollectionResolver {
     /// Collect fee before attestation
