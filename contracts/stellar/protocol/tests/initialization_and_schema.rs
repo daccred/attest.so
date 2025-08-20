@@ -1,4 +1,4 @@
-use protocol::{AttestationContract, AttestationContractClient};
+use protocol::{AttestationContract, utils, AttestationContractClient};
 use soroban_sdk::{testutils::{Address as _, MockAuth, MockAuthInvoke, Events}, Address, Env, String as SorobanString, symbol_short, IntoVal, BytesN, TryIntoVal};
 
 #[test]
@@ -11,7 +11,15 @@ fn initialize_and_register_schema() {
 
 	// initialize
 	let admin_clone_for_init_args = admin.clone();
-	env.mock_auths(&[MockAuth { address: &admin, invoke: &MockAuthInvoke { contract: &contract_id, fn_name: "initialize", args: (admin_clone_for_init_args,).into_val(&env), sub_invokes: &[] } }]);
+	env.mock_auths(&[MockAuth { 
+		address: &admin, 
+		invoke: &MockAuthInvoke { 
+			contract: &contract_id, 
+			fn_name: "initialize", 
+			args: (admin_clone_for_init_args,).into_val(&env), 
+			sub_invokes: &[] 
+		} 
+	}]);
 	client.initialize(&admin);
 
 	// register schema
