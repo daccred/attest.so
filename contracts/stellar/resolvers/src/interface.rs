@@ -1,5 +1,53 @@
 use soroban_sdk::{contracterror, contracttype, Address, BytesN, Env, String};
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Attestation {
+    pub uid: BytesN<32>,
+    pub schema_uid: BytesN<32>,
+    pub attester: Address,
+    pub recipient: Address,
+    pub data: soroban_sdk::Bytes,
+    pub timestamp: u64,
+    pub expiration_time: u64,
+    pub revocable: bool,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolverMetadata {
+    pub name: String,
+    pub version: String,
+    pub description: String,
+    pub resolver_type: ResolverType,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ResolverType {
+    Default,
+    Authority,
+    TokenReward,
+    FeeCollection,
+    Hybrid,
+    Staking,
+    Custom,
+}
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum ResolverError {
+    NotAuthorized = 1,
+    InvalidAttestation = 2,
+    InvalidSchema = 3,
+    InsufficientFunds = 4,
+    TokenTransferFailed = 5,
+    StakeRequired = 6,
+    ValidationFailed = 7,
+    CustomError = 8,
+}
+
 /// Standard Resolver Interface that all resolvers must implement
 /// This provides a consistent interface for the protocol to interact with resolvers
 ///
@@ -55,52 +103,4 @@ pub trait ResolverInterface {
 
     /// Get resolver metadata
     fn get_metadata(env: Env) -> ResolverMetadata;
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Attestation {
-    pub uid: BytesN<32>,
-    pub schema_uid: BytesN<32>,
-    pub attester: Address,
-    pub recipient: Address,
-    pub data: soroban_sdk::Bytes,
-    pub timestamp: u64,
-    pub expiration_time: u64,
-    pub revocable: bool,
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ResolverMetadata {
-    pub name: String,
-    pub version: String,
-    pub description: String,
-    pub resolver_type: ResolverType,
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ResolverType {
-    Default,
-    Authority,
-    TokenReward,
-    FeeCollection,
-    Hybrid,
-    Staking,
-    Custom,
-}
-
-#[contracterror]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-#[repr(u32)]
-pub enum ResolverError {
-    NotAuthorized = 1,
-    InvalidAttestation = 2,
-    InvalidSchema = 3,
-    InsufficientFunds = 4,
-    TokenTransferFailed = 5,
-    StakeRequired = 6,
-    ValidationFailed = 7,
-    CustomError = 8,
 }

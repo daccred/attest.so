@@ -1,10 +1,10 @@
 use crate::errors::Error;
 use crate::events;
 use crate::state::{
-    is_authority, set_authority_data, set_registration_fee,
+    set_authority_data, set_registration_fee,
     RegisteredAuthorityData,
 };
-use soroban_sdk::{Address, BytesN, Env, String};
+use soroban_sdk::{Address, Env, String};
 // Import macros we actually use
 use crate::require_owner;
 
