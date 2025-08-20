@@ -53,6 +53,7 @@ pub enum DataKey {
     CollectedLevies,   // Collected levies per authority
     CollectedFees,     // Collected fees per authority
     RegAuthPrefix,     // Legacy prefix for registered authorities
+    CollLevyPrefix,    // Prefix for collected levies
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

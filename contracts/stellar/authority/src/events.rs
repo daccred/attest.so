@@ -10,6 +10,7 @@ pub const LEVY_COLLECTED: Symbol = symbol_short!("levy_coll");
 pub const LEVY_WITHDRAWN: Symbol = symbol_short!("levy_wdrw");
 pub const OWNERSHIP_TRANSFERRED: Symbol = symbol_short!("own_trans");
 pub const OWNERSHIP_RENOUNCED: Symbol = symbol_short!("own_rncd");
+pub const PAYMENT_RECEIVED: Symbol = symbol_short!("pay_rcvd");
 
 // Helper functions to publish events with appropriate topics and data
 pub fn admin_register_authority(
@@ -76,5 +77,17 @@ pub fn ownership_renounced(e: &Env, previous_owner: &soroban_sdk::Address) {
     e.events().publish(
         (OWNERSHIP_RENOUNCED, symbol_short!("renounce")),
         previous_owner.clone(),
+    );
+}
+
+pub fn payment_received(
+    e: &Env,
+    payer: &soroban_sdk::Address,
+    ref_id: &soroban_sdk::String,
+    amount: i128,
+) {
+    e.events().publish(
+        (PAYMENT_RECEIVED, symbol_short!("payment")),
+        (payer.clone(), ref_id.clone(), amount),
     );
 }
