@@ -14,12 +14,12 @@ import {
   createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/bindings/src/protocol'
-import { Address, xdr, scValToNative } from '@stellar/stellar-sdk'
+import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/protocol'
+import { Address, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 import { StellarSchemaEncoder, StellarSchemaDefinition } from './common/schema-encoder'
 
-export class StellarSchemaService {
+export class StellarSchemaRegistry {
   private protocolClient: ProtocolClient
   private publicKey: string
 
