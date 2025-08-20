@@ -1,8 +1,61 @@
-use soroban_sdk::{Address, BytesN, Env, String};
+use soroban_sdk::xdr::{ToXdr};
+use soroban_sdk::{Address, Bytes, BytesN, Env, String};
 use crate::state::{DataKey, StoredAttestation, Schema, Authority};
 use crate::errors::Error;
 use crate::interfaces::resolver::ResolverAttestation;
 
+
+// pub fn create_xdr_string(env: &Env, value: &String) -> Result<String, Error> {
+//     let val = ScVal::Symbol(ScSymbol::try_from(value.clone()).map_err(|_| Error::InvalidInput)?);
+//     let xdr_bytes = val.to_xdr_base64(Limits::none()).map_err(|_| Error::InvalidInput)?;
+//     let b64 = encode(&xdr_bytes);
+//     String::from_str(env, &b64)
+// }
+
+
+////////////////////////////////////////////////////////////////////////////////////
+/// DEPRECATED FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////////
+
+pub fn _to_attestation_record(
+   _env: &Env,
+   _uid: &BytesN<32>,
+   _att: &StoredAttestation,
+) -> ResolverAttestation {
+   unimplemented!("to_attestation_record needs update/removal");
+}
+
+pub fn _generate_attestation_uid(
+   _env: &Env,
+   _schema_uid: &BytesN<32>,
+   _subject: &Address,
+   _reference: &Option<String>,
+) -> Result<BytesN<32>, Error> {
+   unimplemented!("generate_attestation_uid needs update/removal");
+} 
+
+/// Retrieves an authority record by address.
+///
+/// **DEPRECATED**: This function is being deprecated in favor of the authority resolver
+/// which is implemented as a separate contract outside of this protocol contract.
+/// New implementations should use the authority resolver contract for authority
+/// management and validation.
+///
+/// # Arguments
+/// * `env` - The Soroban environment providing access to storage operations
+/// * `address` - The address of the authority to retrieve
+///
+/// # Returns
+/// * `Option<Authority>` - The `Authority` record if found, otherwise `None`
+///
+/// # Example
+/// ```ignore
+/// if let Some(authority) = _get_authority(&env, &authority_address) {
+///     // Authority exists, can proceed with operations
+/// } else {
+///     // Authority not found, handle accordingly
+/// }
+/// ```
 pub fn _get_authority(env: &Env, address: &Address) -> Option<Authority> {
     let key = DataKey::Authority(address.clone());
     env.storage().instance().get(&key)
@@ -47,20 +100,25 @@ pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
         .unwrap_or(0)
 }
 
- 
-pub fn _to_attestation_record(
-    _env: &Env,
-    _uid: &BytesN<32>,
-    _att: &StoredAttestation,
-) -> ResolverAttestation {
-    unimplemented!("to_attestation_record needs update/removal");
-}
 
-pub fn _generate_attestation_uid(
-    _env: &Env,
-    _schema_uid: &BytesN<32>,
-    _subject: &Address,
-    _reference: &Option<String>,
-) -> Result<BytesN<32>, Error> {
-    unimplemented!("generate_attestation_uid needs update/removal");
-} 
+/// Creates XDR bytes from a string.
+///
+/// This utility function converts a string value into raw XDR bytes. 
+/// This is the standard format for working with XDR data in Soroban contracts.
+///
+/// # Arguments
+/// * `env` - The Soroban environment
+/// * `value` - A string value to convert to XDR
+///
+/// # Returns   
+/// * `Bytes` - Raw XDR bytes representation of the string
+///
+/// # Example
+/// ```ignore
+/// let some_string = String::from_str(&env, "hello world");
+/// let xdr_bytes = create_xdr_bytes(&env, &some_string);
+/// // Returns raw XDR bytes that can be used for hashing or storage
+/// ```
+pub fn create_xdr_bytes(env: &Env, value: &String) -> Bytes {
+  value.clone().to_xdr(env)
+}
