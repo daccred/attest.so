@@ -229,6 +229,8 @@ impl ResolverInterface for FeeCollectionResolver {
         
         Ok(true)
     }
+
+    
     
     /// No post-processing needed
     fn after_attest(
