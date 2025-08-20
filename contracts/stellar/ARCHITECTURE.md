@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The attest.so system provides a modular, secure foundation for blockchain-based attestation infrastructure. The architecture separates core attestation logic from business rules through a resolver pattern, enabling flexible economic models while maintaining security and immutability.
+We designed the attest.so system to provide a modular, secure foundation for blockchain-based attestation infrastructure. Our architecture separates core attestation logic from business rules through a resolver pattern, enabling flexible economic models while maintaining security and immutability.
 
 ## System Components
 
@@ -272,7 +272,7 @@ let schema = Schema {
 ```rust
 // Protocol → Resolver communication
 impl ProtocolContract {
-    fn attest_internal(attestation: Attestation) -> Result<(), Error> {
+    fn _attest(attestation: Attestation) -> Result<(), Error> {
         // Validation phase (critical path)
         if let Some(resolver) = schema.resolver {
             let validation_result = resolver.before_attest(env, attestation);
@@ -302,32 +302,7 @@ impl ProtocolContract {
 - Gas limits protect against resolver DoS
 - Error isolation prevents cascade failures
 
-### Event-Driven Integration
-
-```javascript
-// Platform integration through events
-const protocolContract = new Contract(PROTOCOL_ADDRESS);
-const authorityContract = new Contract(AUTHORITY_ADDRESS);
-
-// Monitor payment events
-authorityContract.events.filter("PAYMENT_RECEIVED")
-  .on('data', async (event) => {
-    await platform.processDueDiligence(event.payer, event.ref_id);
-  });
-
-// Monitor attestation events  
-protocolContract.events.filter("ATTESTATION_CREATED")
-  .on('data', async (event) => {
-    await platform.updateOrganizationStatus(event.recipient, "verified");
-  });
-```
-
-**Integration Benefits**:
-- Real-time processing without polling
-- Decoupled architecture for scalability
-- Audit trail through immutable events
-- Multi-service coordination capability
-
+ 
 ## Attack Vectors & Mitigations
 
 ### Economic Attacks
@@ -467,7 +442,7 @@ protocolContract.events.filter("ATTESTATION_CREATED")
 - Authority registrations not transferable
 - Historical data preservation requirements
 
-### Future Architecture Evolution
+### Our Future Architecture Evolution
 
 #### Proxy Pattern Integration
 
@@ -515,45 +490,45 @@ contract GovernanceContract {
 - Contract upgrade approvals
 - Emergency response coordination
 
-### Migration Strategy
+### Our Migration Strategy
 
 **Phase 1: Current Architecture**
-- Deploy immutable contracts
-- Establish operational procedures
-- Build community trust
+- We deploy immutable contracts
+- We establish operational procedures
+- We build community trust
 
 **Phase 2: Governance Integration**
-- Add community governance for key parameters
-- Implement multi-signature admin controls
-- Establish transparent decision-making processes
+- We add community governance for key parameters
+- We implement multi-signature admin controls
+- We establish transparent decision-making processes
 
 **Phase 3: Upgradeable Architecture**
-- Deploy proxy contracts for new features
-- Migrate to upgradeable patterns
-- Maintain backward compatibility
+- We deploy proxy contracts for new features
+- We migrate to upgradeable patterns
+- We maintain backward compatibility
 
 **Phase 4: Full Decentralization**
-- Transfer admin controls to governance
-- Implement community-driven upgrades
-- Establish sustainable development funding
+- We transfer admin controls to governance
+- We implement community-driven upgrades
+- We establish sustainable development funding
 
 ## Conclusion
 
-The attest.so architecture provides a robust, secure foundation for attestation systems with clear separation of concerns, strong security boundaries, and flexible business logic integration. The resolver pattern enables diverse economic models while maintaining core protocol security and immutability.
+Our attest.so architecture provides a robust, secure foundation for attestation systems with clear separation of concerns, strong security boundaries, and flexible business logic integration. We designed the resolver pattern to enable diverse economic models while maintaining core protocol security and immutability.
 
-**Architecture Strengths**:
-- **Security**: Multiple layers of validation and access control
-- **Modularity**: Clear separation between core logic and business rules
-- **Flexibility**: Resolver pattern enables diverse use cases
-- **Transparency**: Complete audit trail through immutable events
-- **Scalability**: Gas-efficient design with bounded operations
+**Our Architecture Strengths**:
+- **Security**: We implemented multiple layers of validation and access control
+- **Modularity**: We established clear separation between core logic and business rules
+- **Flexibility**: Our resolver pattern enables diverse use cases
+- **Transparency**: We provide complete audit trail through immutable events
+- **Scalability**: We designed gas-efficient operations with bounded execution
 
-**Key Security Properties**:
-- Cryptographic enforcement of access controls
-- Immutable core logic with upgradeable business rules
-- Economic barriers to abuse and spam
-- Comprehensive monitoring and alerting
-- Fail-safe error handling throughout
+**Our Key Security Properties**:
+- We enforce access controls cryptographically
+- We built immutable core logic with upgradeable business rules
+- We established economic barriers to prevent abuse and spam
+- We implemented comprehensive monitoring and alerting
+- We designed fail-safe error handling throughout the system
 
 **For Q/A Review Priorities**:
 1. **Cross-contract security boundaries** and interaction safety

@@ -4,13 +4,12 @@ use soroban_sdk::{
     contract, contractimpl, Address, Env, String, BytesN, Vec,
 };
 
-mod errors;
-mod events;
-mod interfaces;
-mod state;
-mod instructions;
-mod utils;
-mod bls_research;
+pub mod errors;
+pub mod events;
+pub mod interfaces;
+pub mod state;
+pub mod instructions;
+pub mod utils;
 
 use state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest, BlsPublicKey};
 
@@ -141,14 +140,6 @@ impl AttestationContract {
         get_bls_public_key(&env, &attester)
     }
 
-    /// Research function to explore BLS12-381 API capabilities
-    /// This is for development/testing only and should be removed in production
-    #[allow(dead_code)]
-    pub fn test_bls_api(env: Env) -> Result<(), errors::Error> {
-        bls_research::test_bls_signature_pattern(&env)
-            .map_err(|_| errors::Error::InvalidSignature)
-    }
 }
 
-#[cfg(test)]
-mod bls_tests; 
+ 

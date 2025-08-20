@@ -2,8 +2,8 @@ use crate::errors::Error;
 use crate::events;
 use crate::instructions::admin::{get_token_id, require_init};
 use crate::state::{
-    get_collected_levy, get_schema_rules, is_authority, remove_collected_levy, set_authority_data,
-    set_collected_levy, update_collected_fees, update_collected_levy, Attestation,
+    get_collected_levy, is_authority, remove_collected_levy, set_authority_data,
+    set_collected_levy, Attestation,
     RegisteredAuthorityData,
 };
 use soroban_sdk::{log, token, Address, Env, String};
@@ -33,9 +33,7 @@ pub fn register_authority(
         address: authority_to_reg.clone(),
         metadata: metadata.clone(),
         registration_time: env.ledger().timestamp(),
-        verification_level: 1, // Public registration gets basic level
-        verified_by: caller.clone(), // Self-verified through payment
-        verification_data: None, // No additional data for public registration
+        ref_id: String::from_str(env, "public_registration"), // Default ref_id for public registrations
     };
 
     set_authority_data(env, &data);
@@ -49,7 +47,7 @@ pub fn register_authority(
 // ► Attestation & Revocation Hook Functions
 // ══════════════════════════════════════════════════════════════════════════════
 
-/// Attestation hook for verifying authority and collecting levies
+/// Attestation hook for verifying authority
 pub fn attest(env: &Env, attestation: &Attestation) -> Result<bool, Error> {
     require_init(env)?;
     if !is_authority(env, &attestation.attester) {
@@ -59,122 +57,6 @@ pub fn attest(env: &Env, attestation: &Attestation) -> Result<bool, Error> {
             attestation.attester
         );
         return Err(Error::AttesterNotAuthority);
-    }
-
-    // Get schema rules
-    let rules = get_schema_rules(env, &attestation.schema_uid).ok_or_else(|| {
-        log!(
-            env,
-            "Attest hook: Schema {:?} not registered.",
-            attestation.schema_uid
-        );
-        Error::SchemaNotRegistered
-    })?;
-
-    // Handle legacy levy system (backwards compatibility)
-    if let (Some(amount), Some(recipient)) = (rules.levy_amount, rules.levy_recipient) {
-        if amount > 0 {
-            log!(
-                env,
-                "Attest hook: Legacy levy of {} applies for schema {:?} to recipient {}",
-                amount,
-                attestation.schema_uid,
-                recipient
-            );
-
-            // Transfer levy from attester to contract
-            let token_id = get_token_id(env)?;
-            let token_client = token::Client::new(env, &token_id);
-
-            token_client.transfer(
-                &attestation.attester,
-                &env.current_contract_address(),
-                &amount,
-            );
-
-            // Update levy balance for recipient
-            update_collected_levy(env, &recipient, &amount);
-
-            // Publish levy collected event
-            events::levy_collected(
-                env,
-                &attestation.attester,
-                &recipient,
-                &attestation.schema_uid,
-                amount,
-            );
-
-            log!(
-                env,
-                "Attest hook: Legacy levy collected. New balance for {}: {}",
-                recipient,
-                get_collected_levy(env, &recipient)
-            );
-        }
-    }
-
-    // Handle new XLM fee collection
-    if let (Some(fee_amount), Some(fee_recipient)) = (rules.attestation_fee, rules.fee_recipient) {
-        if fee_amount > 0 {
-            log!(
-                env,
-                "Attest hook: XLM fee of {} stroops applies for schema {:?} to authority {}",
-                fee_amount,
-                attestation.schema_uid,
-                fee_recipient
-            );
-
-            // Transfer XLM fee from attester to contract (using native XLM)
-            // Note: This requires the contract to have XLM allowance from the attester
-            // For now, we'll use the token system but in production this should be native XLM
-            let token_id = get_token_id(env)?;
-            let token_client = token::Client::new(env, &token_id);
-
-            token_client.transfer(
-                &attestation.attester,
-                &env.current_contract_address(),
-                &fee_amount,
-            );
-
-            // Update fee balance for the authority
-            update_collected_fees(env, &fee_recipient, &fee_amount);
-
-            log!(
-                env,
-                "Attest hook: XLM fee collected for authority {}",
-                fee_recipient
-            );
-        }
-    }
-
-    // Handle reward token distribution
-    if let (Some(reward_token), Some(reward_amount)) = (rules.reward_token, rules.reward_amount) {
-        if reward_amount > 0 {
-            log!(
-                env,
-                "Attest hook: Distributing {} reward tokens to attester {}",
-                reward_amount,
-                attestation.attester
-            );
-
-            // Mint/transfer reward tokens to the attester
-            let reward_token_client = token::Client::new(env, &reward_token);
-
-            // Try to transfer from contract to attester
-            // Note: This assumes the contract has sufficient reward tokens
-            // In production, this might need to mint new tokens
-            reward_token_client.transfer(
-                &env.current_contract_address(),
-                &attestation.attester,
-                &reward_amount,
-            );
-
-            log!(
-                env,
-                "Attest hook: Reward tokens distributed to attester {}",
-                attestation.attester
-            );
-        }
     }
 
     log!(
