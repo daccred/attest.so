@@ -189,6 +189,9 @@ impl ResolverInterface for FeeCollectionResolver {
             .get(&DataKey::FeeRecipient)
             .ok_or(ResolverError::CustomError)?;
         
+        // Ensure attester authorization is tied to the root invocation
+        attestation.attester.require_auth();
+        
         // Collect fee from attester
         let fee_token: Address = env.storage()
             .instance()
