@@ -26,11 +26,11 @@
     "node_modules",
     "authority",
     "protocol",
+    "__test__/**/*",
     "dist"
   ],
-  // Include bindings and test files
+  // Include only bindings
   "include": [
-    "bindings/src/*",
-    "__test__/**/*"
+    "bindings/src/*"
   ]
 }

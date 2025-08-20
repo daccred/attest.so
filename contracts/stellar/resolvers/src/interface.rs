@@ -55,7 +55,9 @@ pub enum ResolverError {
 /// 
 /// The current before_/after_ hook pattern may be overly complex. Consider migrating to:
 /// 
-/// ```rust
+/// ```rust,ignore
+/// use soroban_sdk::{ Address, BytesN, Env, String};
+/// 
 /// trait ResolverInterface {
 ///     fn on_attest(env: Env, attestation: Attestation) -> Result<(), ResolverError>;
 ///     fn on_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError>;

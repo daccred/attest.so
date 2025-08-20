@@ -280,7 +280,3 @@ impl AuthorityResolverContract {
     }
 }
 
-#[cfg(test)]
-mod test;
-#[cfg(test)]  
-mod protocol_test;

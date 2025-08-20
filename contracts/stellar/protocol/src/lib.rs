@@ -4,12 +4,12 @@ use soroban_sdk::{
     contract, contractimpl, Address, Env, String, BytesN, Vec,
 };
 
-mod errors;
-mod events;
-mod interfaces;
-mod state;
-mod instructions;
-mod utils;
+pub mod errors;
+pub mod events;
+pub mod interfaces;
+pub mod state;
+pub mod instructions;
+pub mod utils;
 
 use state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest, BlsPublicKey};
 

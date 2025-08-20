@@ -13,20 +13,15 @@
     "vitest": "^3.2.4"
   },
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+    "./authority": {
+      "types": "./dist/authority.d.ts",
+      "import": "./dist/authority.js",
+      "require": "./dist/authority.js"
     },
-    "./dist/bindings/src/*": {
-      "types": "./dist/bindings/src/*.d.ts",
-      "import": "./dist/bindings/src/*.js",
-      "require": "./dist/bindings/src/*.js"
-    },
-    "./bindings/*": {
-      "types": "./dist/bindings/src/*.d.ts",
-      "import": "./dist/bindings/src/*.js",
-      "require": "./dist/bindings/src/*.js"
+    "./protocol": {
+      "types": "./dist/protocol.d.ts",
+      "import": "./dist/protocol.js",
+      "require": "./dist/protocol.js"
     }
   },
   "files": [
@@ -41,7 +36,6 @@
     "stellar"
   ],
   "license": "MIT",
-  "main": "dist/index.js",
   "publishConfig": {
     "access": "public"
   },
@@ -50,6 +44,5 @@
     "clean": "echo 'Use make clean in individual contract directories'",
     "test": "vitest"
   },
-  "type": "module",
-  "types": "dist/index.d.ts"
+  "type": "module"
 }
