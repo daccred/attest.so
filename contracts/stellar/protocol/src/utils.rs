@@ -30,14 +30,24 @@ pub fn get_schema(env: &Env, schema_uid: &BytesN<32>) -> Option<Schema> {
     env.storage().instance().get(&key)
 }
 
-pub fn _get_admin(env: &Env) -> Option<Address> {
-    env.storage().instance().get(&DataKey::Admin)
+
+
+/// Gets the next nonce for an attester.
+///
+/// # Arguments
+/// * `env` - The Soroban environment
+/// * `attester` - The address of the attester
+///
+/// # Returns
+/// * `u64` - The next nonce to be used
+pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
+    let nonce_key = DataKey::AttesterNonce(attester.clone());
+    env.storage().persistent()
+        .get::<DataKey, u64>(&nonce_key)
+        .unwrap_or(0)
 }
 
-pub fn _store_attestation(_env: &Env, _uid: &BytesN<32>, _attestation: &StoredAttestation) -> Result<(), Error> {
-    unimplemented!("store_attestation needs update/removal");
-}
-
+ 
 pub fn _to_attestation_record(
     _env: &Env,
     _uid: &BytesN<32>,

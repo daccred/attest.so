@@ -1,9 +1,9 @@
 use soroban_sdk::{Address, Env, String, BytesN, Vec, Bytes};
 use crate::state::{DataKey, Attestation};
 use crate::errors::Error;
+
 use crate::utils;
 use crate::events;
-use crate::instructions::delegation;
 use crate::interfaces::resolver::{ResolverAttestation, ResolverClient};
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -155,7 +155,7 @@ pub fn attest(
         .ok_or(Error::SchemaNotFound)?;
     
     // Get next nonce for this attester
-    let nonce = delegation::get_next_nonce(env, &attester);
+    let nonce = utils::get_next_nonce(env, &attester);
     
     // Create attestation record
     let current_time = env.ledger().timestamp();

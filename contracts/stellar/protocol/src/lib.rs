@@ -21,7 +21,6 @@ use instructions::{
     list_attestations,
     attest_by_delegation,
     revoke_by_delegation,
-    get_next_nonce,
     register_bls_public_key,
     get_bls_public_key,
 };
@@ -120,7 +119,7 @@ impl AttestationContract {
         env: Env,
         attester: Address,
     ) -> u64 {
-        get_next_nonce(&env, &attester)
+        utils::get_next_nonce(&env, &attester)
     }
 
     /// Registers a BLS public key for an attester
