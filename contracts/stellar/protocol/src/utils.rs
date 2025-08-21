@@ -1,22 +1,85 @@
-use crate::errors::Error;
 use crate::state::{Authority, DataKey, Schema};
 use soroban_sdk::xdr::{Limits, ScBytes, ScVal, ToXdr, WriteXdr};
-use soroban_sdk::{Address, BytesN, Env, String};
+use soroban_sdk::{Address, Bytes, BytesN, Env, String};
 
+ 
 
 ////////////////////////////////////////////////////////////////////////////////////
-/// DEPRECATED FUNCTIONS
+/// Generates a unique identifier (SHA256 hash) for a schema.
 ////////////////////////////////////////////////////////////////////////////////////
-
-
-pub fn _generate_attestation_uid(
-    _env: &Env,
-    _schema_uid: &BytesN<32>,
-    _subject: &Address,
-    _reference: &Option<String>,
-) -> Result<BytesN<32>, Error> {
-    unimplemented!("generate_attestation_uid needs update/removal");
+/// The UID is derived from the schema definition, the registering authority,
+/// and the optional resolver address.
+///
+/// # Arguments
+/// * `env` - The Soroban environment providing access to cryptographic functions.
+/// * `schema_definition` - The schema definition string (supports multiple formats).
+/// * `authority` - The address of the authority registering the schema.
+/// * `resolver` - An optional address of a resolver contract associated with the schema.
+///
+/// # Returns
+/// * `BytesN<32>` - The unique 32-byte identifier (UID) for the schema.
+///
+pub fn generate_schema_uid(
+    env: &Env,
+    schema_definition: &String,
+    authority: &Address,
+    resolver: &Option<Address>,
+) -> BytesN<32> {
+    let mut schema_data_to_hash = Bytes::new(env);
+    schema_data_to_hash.append(&schema_definition.clone().to_xdr(env));
+    schema_data_to_hash.append(&authority.clone().to_xdr(env));
+    if let Some(resolver_addr) = resolver {
+        schema_data_to_hash.append(&resolver_addr.clone().to_xdr(env));
+    }
+    env.crypto().sha256(&schema_data_to_hash).into()
 }
+////////////////////////////////////////////////////////////////////////////////////
+/// Generates a unique identifier (Keccak256 hash) for an attestation.
+////////////////////////////////////////////////////////////////////////////////////
+/// The UID is derived from the schema UID, subject address, and nonce to create
+/// a deterministic identifier that can be used for resolver calls and external
+/// references to the attestation.
+///
+/// This function implements a nonce-based system that allows multiple attestations
+/// for the same schema/subject pair while maintaining unique identification.
+///
+/// # Arguments
+/// * `env` - The Soroban environment providing access to cryptographic functions.
+/// * `schema_uid` - The 32-byte unique identifier of the schema this attestation uses.
+/// * `subject` - The address that is the subject of the attestation.
+/// * `nonce` - The sequential nonce ensuring uniqueness for multiple attestations.
+///
+/// # Returns
+/// * `BytesN<32>` - The unique 32-byte identifier (UID) for the attestation.
+///
+/// # Example
+/// ```ignore
+/// let attestation_uid = generate_attestation_uid(
+///     &env,
+///     &schema_uid,
+///     &subject_address,
+///     nonce
+/// );
+/// ```
+pub fn generate_attestation_uid(
+    env: &Env,
+    schema_uid: &BytesN<32>,
+    subject: &Address,
+    nonce: u64,
+) -> BytesN<32> {
+    // Simple hash generation - combine schema_uid and nonce only for now
+    let mut hash_input = Bytes::new(env);
+    hash_input.append(&schema_uid.to_xdr(env));
+    hash_input.append(&subject.clone().to_xdr(env));
+    
+
+    // Add nonce bytes directly
+    let nonce_bytes = nonce.to_be_bytes();
+    hash_input.extend_from_array(&nonce_bytes);
+
+    env.crypto().keccak256(&hash_input).into()
+}
+
 
 /// Retrieves an authority record by address.
 ///

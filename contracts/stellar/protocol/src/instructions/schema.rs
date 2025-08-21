@@ -1,37 +1,8 @@
 use crate::errors::Error;
 use crate::events;
 use crate::state::{DataKey, Schema};
-use soroban_sdk::{xdr::ToXdr, Address, Bytes, BytesN, Env, String};
-
-////////////////////////////////////////////////////////////////////////////////////
-/// Generates a unique identifier (SHA256 hash) for a schema.
-////////////////////////////////////////////////////////////////////////////////////
-/// The UID is derived from the schema definition, the registering authority,
-/// and the optional resolver address.
-///
-/// # Arguments
-/// * `env` - The Soroban environment providing access to cryptographic functions.
-/// * `schema_definition` - The schema definition string (supports multiple formats).
-/// * `authority` - The address of the authority registering the schema.
-/// * `resolver` - An optional address of a resolver contract associated with the schema.
-///
-/// # Returns
-/// * `BytesN<32>` - The unique 32-byte identifier (UID) for the schema.
-///
-pub fn generate_uid(
-    env: &Env,
-    schema_definition: &String,
-    authority: &Address,
-    resolver: &Option<Address>,
-) -> BytesN<32> {
-    let mut schema_data_to_hash = Bytes::new(env);
-    schema_data_to_hash.append(&schema_definition.clone().to_xdr(env));
-    schema_data_to_hash.append(&authority.clone().to_xdr(env));
-    if let Some(resolver_addr) = resolver {
-        schema_data_to_hash.append(&resolver_addr.clone().to_xdr(env));
-    }
-    env.crypto().sha256(&schema_data_to_hash).into()
-}
+use crate::utils;
+use soroban_sdk::{Address, BytesN, Env, String};
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// Retrieves a schema record by its unique identifier (UID).
@@ -45,7 +16,7 @@ pub fn generate_uid(
 ///
 /// # Errors
 /// * `Error::SchemaNotFound` - If no schema with the given UID exists in storage.
-pub fn _get_schema_or_fail(env: &Env, schema_uid: &BytesN<32>) -> Result<Schema, Error> {
+fn _get_schema_or_fail(env: &Env, schema_uid: &BytesN<32>) -> Result<Schema, Error> {
     let schema_key = DataKey::Schema(schema_uid.clone());
     env.storage()
         .instance()
@@ -113,7 +84,7 @@ pub fn register_schema(
     caller.require_auth();
 
     // Generate schema UID
-    let schema_uid = generate_uid(env, &schema_definition, &caller, &resolver);
+    let schema_uid = utils::generate_schema_uid(env, &schema_definition, &caller, &resolver);
 
     // Store schema
     let schema = Schema {
