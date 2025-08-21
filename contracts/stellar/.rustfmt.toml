@@ -1,32 +1,12 @@
-# Line length and wrapping
 max_width = 120
-wrap_comments = true
-comment_width = 100
 
-# Imports
-imports_granularity = "Crate"
-group_imports = "StdExternalCrate"
 reorder_imports = true
-
-# Function formatting
-fn_args_layout = "Tall"
-brace_style = "SameLineWhere"
-
-# Control flow
-control_brace_style = "AlwaysSameLine"
 match_block_trailing_comma = true
 
 # Spacing and alignment
 use_small_heuristics = "Default"
-indent = "Spaces"
 tab_spaces = 4
 
-# Trailing elements
-trailing_comma = "Vertical"
-trailing_semicolon = true
-
-# String formatting
-format_strings = true
 
 # Other formatting
 edition = "2021"
