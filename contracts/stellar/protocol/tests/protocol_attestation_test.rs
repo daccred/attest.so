@@ -446,7 +446,7 @@ fn test_handling_expired_attestations() {
 	let value = SorobanString::from_str(&env, "{\"origin\":\"saudi\"}");
 	let expiration_time = Some(current_time + 100);
 	let nonce = client
-		.attest(&attester, &schema_uid, &subject, &value, &expiration_time)
+		.try_attest(&attester, &schema_uid, &subject, &value, &expiration_time)
 		.unwrap();
 	assert_eq!(nonce, 0);
 
@@ -461,5 +461,5 @@ fn test_handling_expired_attestations() {
 	let result = client.try_get_attestation(&schema_uid, &subject, &nonce);
 	dbg!(&result);
 	// dbg!(&ProtocolError::AttestationExpired);
-	assert_eq!(result, Ok(Err(ProtocolError::AttestationExpired.into())));
+	assert_eq!(result, Ok(Err(ProtocolError::AttestationExpired)));
 }
