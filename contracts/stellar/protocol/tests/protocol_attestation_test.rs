@@ -734,10 +734,7 @@ fn test_attest_with_past_expiration_fails() {
     );
 
     println!("=============================================================");
-    println!(
-        "   Finished test case: {}",
-        "test_attest_with_past_expiration_fails"
-    );
+    println!("Finished {}", "test_attest_with_past_expiration_fails");
     println!("=============================================================");
 }
 
