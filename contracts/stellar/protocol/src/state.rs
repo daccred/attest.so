@@ -19,9 +19,8 @@ pub enum DataKey {
     Schema(BytesN<32>),
     /// Key for storing attestation data
     ///
-    /// Indexed by schema UID, subject address, and nonce
-    /// to allow for multiple unique attestations per schema/subject pair.
-    Attestation(BytesN<32>, Address, u64),
+    /// Indexed by attestation UID for direct lookup
+    AttestationUID(BytesN<32>),
     /// Key for storing the current nonce for an attester
     ///
     /// Used to prevent replay attacks in delegated attestations
@@ -30,6 +29,10 @@ pub enum DataKey {
     ///
     /// One-to-one mapping: wallet address -> BLS public key
     AttesterPublicKey(Address),
+    /// Key for storing attestations 
+    /// 
+    /// indexed by subject address and schema uid
+    SubjectAttestations(Address),
 }
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
@@ -120,6 +123,8 @@ pub struct DelegatedAttestationRequest {
 #[contracttype]
 #[derive(Clone)]
 pub struct DelegatedRevocationRequest {
+    /// The unique identifier of the attestation to revoke
+    pub attestation_uid: BytesN<32>,
     /// The unique identifier of the schema
     pub schema_uid: BytesN<32>,
     /// The address of the entity that is the subject of the attestation to revoke
@@ -145,6 +150,8 @@ pub struct DelegatedRevocationRequest {
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Attestation {
+    /// The unique identifier of the attestation
+    pub uid: BytesN<32>,
     /// The unique identifier of the schema this attestation follows
     pub schema_uid: BytesN<32>,
     /// The address of the entity that is the subject of this attestation

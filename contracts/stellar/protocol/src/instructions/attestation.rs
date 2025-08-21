@@ -4,7 +4,7 @@ use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, String, Vec};
 
 use crate::events;
 use crate::interfaces::resolver::{ResolverAttestation, ResolverClient};
-use crate::utils;
+use crate::utils::{self, generate_attestation_uid};
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ► Resolver Cross-Contract Call Helpers
@@ -102,24 +102,6 @@ fn create_resolver_attestation(
     }
 }
 
-/// Generates a unique UID for an attestation based on its key components
-/// This creates a deterministic UID that can be used for resolver calls
-fn generate_attestation_uid(
-    env: &Env,
-    schema_uid: &BytesN<32>,
-    _subject: &Address,
-    nonce: u64,
-) -> BytesN<32> {
-    // Simple hash generation - combine schema_uid and nonce only for now
-    let mut hash_input = Bytes::new(env);
-    hash_input.extend_from_array(&schema_uid.to_array());
-
-    // Add nonce bytes directly
-    let nonce_bytes = nonce.to_be_bytes();
-    hash_input.extend_from_array(&nonce_bytes);
-
-    env.crypto().keccak256(&hash_input).into()
-}
 
 /// Creates a new attestation using nonce-based system for unique identification.
 ///
@@ -147,7 +129,7 @@ pub fn attest(
     subject: Address,
     value: String,
     expiration_time: Option<u64>,
-) -> Result<u64, Error> {
+) -> Result<BytesN<32>, Error> {
     attester.require_auth();
 
     // Verify schema exists and get resolver info
@@ -165,8 +147,10 @@ pub fn attest(
             return Err(Error::InvalidDeadline);
         }
     }
+    let attestation_uid = generate_attestation_uid(env, &schema_uid, &subject, nonce);
 
     let attestation = Attestation {
+        uid: attestation_uid.clone(),
         schema_uid: schema_uid.clone(),
         subject: subject.clone(),
         attester: attester.clone(),
@@ -200,9 +184,21 @@ pub fn attest(
     // ► CORE PROTOCOL: Store Attestation
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Store attestation with nonce-based key
-    let attest_key = DataKey::Attestation(schema_uid.clone(), subject.clone(), nonce);
-    env.storage().persistent().set(&attest_key, &attestation);
+    // Store the attestation by its UID
+    let attest_uid_key = DataKey::AttestationUID(attestation_uid.clone());
+    env.storage().persistent().set(&attest_uid_key, &attestation);
+
+    // Add the attestation UID to the subject's list of attestations for indexing
+    let subject_attestations_key = DataKey::SubjectAttestations(subject.clone());
+    let mut subject_attestations = env
+        .storage()
+        .persistent()
+        .get::<_, Vec<BytesN<32>>>(&subject_attestations_key)
+        .unwrap_or_else(|| Vec::new(env));
+    subject_attestations.push_back(attestation_uid.clone());
+    env.storage()
+        .persistent()
+        .set(&subject_attestations_key, &subject_attestations);
 
     // Increment nonce for next attestation
     let nonce_key = DataKey::AttesterNonce(attester.clone());
@@ -227,7 +223,7 @@ pub fn attest(
     // Emit event
     events::publish_attestation_event(env, &attestation);
 
-    Ok(nonce)
+    Ok(attestation_uid)
 }
 
 /// Retrieves an attestation using the nonce-based system.
@@ -242,25 +238,24 @@ pub fn attest(
 /// * `Attestation` - The attestation record
 ///
 /// # Panics
-/// * If the schema or attestation is not found
+/// * If the attestation is not found
 /// * If the attestation is expired
+///
+/// # Note
+/// We are using `panic_with_error!` for error handling, considerably acceptable for read operations
+/// as it allows for clear error propagation without requiring Result<> wrapping. The panics provide
+/// specific error information about what went wrong during the retrieval process.
 pub fn get_attestation_record(
     env: &Env,
-    schema_uid: BytesN<32>,
-    subject: Address,
-    nonce: u64,
+    attestation_uid: BytesN<32>,
 ) -> Attestation {
-    // Verify schema exists
-    let _schema = utils::get_schema(env, &schema_uid).unwrap_or_else(|| {
-        panic_with_error!(env, Error::SchemaNotFound);
-    });
+
 
     // Get attestation
-    let attest_key = DataKey::Attestation(schema_uid, subject, nonce);
     let attestation = env
         .storage()
         .persistent()
-        .get::<DataKey, Attestation>(&attest_key)
+        .get::<DataKey, Attestation>(&&DataKey::AttestationUID(attestation_uid))
         .unwrap_or_else(|| {
             panic_with_error!(env, Error::AttestationNotFound);
         });
@@ -289,14 +284,12 @@ pub fn get_attestation_record(
 pub fn revoke_attestation(
     env: &Env,
     revoker: Address,
-    schema_uid: BytesN<32>,
-    subject: Address,
-    nonce: u64,
+    attestation_uid: BytesN<32>,
 ) -> Result<(), Error> {
     revoker.require_auth();
 
     // Get the attestation
-    let attest_key = DataKey::Attestation(schema_uid.clone(), subject.clone(), nonce);
+    let attest_key = DataKey::AttestationUID(attestation_uid);
     let mut attestation = env
         .storage()
         .persistent()
@@ -314,7 +307,7 @@ pub fn revoke_attestation(
     }
 
     // Verify schema is revocable
-    let schema = utils::get_schema(env, &schema_uid).ok_or(Error::SchemaNotFound)?;
+    let schema = utils::get_schema(env, &attestation.schema_uid).ok_or(Error::SchemaNotFound)?;
     if !schema.revocable {
         return Err(Error::AttestationNotRevocable);
     }
@@ -327,7 +320,7 @@ pub fn revoke_attestation(
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format
         let resolver_attestation =
-            create_resolver_attestation(env, &attestation, &schema_uid, &attestation.value);
+            create_resolver_attestation(env, &attestation, &attestation.schema_uid, &attestation.value);
 
         // Call before_revoke hook - this is CRITICAL for access control
         let allowed = call_resolver_before_revoke(env, resolver_address, &resolver_attestation)?;
@@ -356,7 +349,7 @@ pub fn revoke_attestation(
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format with updated revocation status
         let resolver_attestation =
-            create_resolver_attestation(env, &attestation, &schema_uid, &attestation.value);
+            create_resolver_attestation(env, &attestation, &attestation.schema_uid, &attestation.value);
 
         // Call after_revoke hook for side effects (cleanup, notifications, etc.)
         // Note: Failures here don't revert the revocation
@@ -369,50 +362,55 @@ pub fn revoke_attestation(
     Ok(())
 }
 
-/// Lists all attestations for a given schema and subject.
+/// Lists all attestations for a given subject.
+///
+/// This function retrieves attestations by first looking up the list of attestation UIDs
+/// associated with the subject, and then fetching each attestation.
 ///
 /// # Arguments
 /// * `env` - The Soroban environment
-/// * `schema_uid` - The unique identifier of the schema
 /// * `subject` - The address that is the subject of the attestations
 /// * `limit` - Maximum number of attestations to return
 ///
 /// # Returns
-/// * `Vec<AttestationRecord>` - List of attestation records
+/// * `Vec<Attestation>` - List of attestation records
 pub fn list_attestations(
-    env: &Env,
-    schema_uid: BytesN<32>,
-    subject: Address,
-    limit: u32,
+	env: &Env,
+	subject: Address,
+	limit: u32,
 ) -> Vec<Attestation> {
-    let mut attestations = Vec::new(env);
-    let mut found = 0u32;
+	let mut attestations = Vec::new(env);
+	let subject_attestations_key = DataKey::SubjectAttestations(subject);
 
-    // Try to get attestations with increasing nonces
-    // This is a simple implementation - in production, you might want
-    // to store an index or use a more efficient lookup method
-    for nonce in 0u64..1000u64 {
-        if found >= limit {
-            break;
-        }
+	// Get the list of attestation UIDs for the subject.
+	// If the list doesn't exist, return an empty vector.
+	let attest_uids = env
+		.storage()
+		.persistent()
+		.get::<_, Vec<BytesN<32>>>(&subject_attestations_key)
+		.unwrap_or_else(|| Vec::new(env));
 
-        let attest_key = DataKey::Attestation(schema_uid.clone(), subject.clone(), nonce);
+	// Iterate through the UIDs and fetch each attestation.
+	for uid in attest_uids.iter() {
+		if attestations.len() >= limit {
+			break;
+		}
 
-        if let Some(attestation) = env
-            .storage()
-            .persistent()
-            .get::<DataKey, Attestation>(&attest_key)
-        {
-            // Skip expired attestations
-            if let Some(exp_time) = attestation.expiration_time {
-                if env.ledger().timestamp() > exp_time {
-                    continue;
-                }
-            }
-            attestations.push_back(attestation);
-            found += 1;
-        }
-    }
+		let attest_uid_key = DataKey::AttestationUID(uid);
+		if let Some(attestation) = env
+			.storage()
+			.persistent()
+			.get::<_, Attestation>(&attest_uid_key)
+		{
+			// Skip expired attestations
+			if let Some(exp_time) = attestation.expiration_time {
+				if env.ledger().timestamp() > exp_time {
+					continue;
+				}
+			}
+			attestations.push_back(attestation);
+		}
+	}
 
-    attestations
+	attestations
 }

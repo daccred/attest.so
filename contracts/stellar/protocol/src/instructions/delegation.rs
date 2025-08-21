@@ -2,7 +2,7 @@ use crate::errors::Error;
 use crate::events;
 use crate::instructions::verify_bls_signature;
 use crate::state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest};
-use crate::utils;
+use crate::utils::{self, generate_attestation_uid};
 use soroban_sdk::{Address, Bytes, BytesN, Env};
 
 /// Creates an attestation through delegated signature.
@@ -56,8 +56,11 @@ pub fn attest_by_delegation(
     // Verify BLS12-381 signature
     verify_bls_signature(env, &message, &request.signature, &request.attester)?;
 
+    let attestation_uid = generate_attestation_uid(env, &request.schema_uid, &request.subject, request.nonce);
+
     // Create attestation record
     let attestation = Attestation {
+        uid: attestation_uid.clone(),
         schema_uid: request.schema_uid.clone(),
         subject: request.subject.clone(),
         attester: request.attester.clone(),
@@ -70,11 +73,7 @@ pub fn attest_by_delegation(
     };
 
     // Store attestation
-    let attest_key = DataKey::Attestation(
-        request.schema_uid.clone(),
-        request.subject.clone(),
-        request.nonce,
-    );
+    let attest_key = DataKey::AttestationUID(attestation_uid);
     env.storage().persistent().set(&attest_key, &attestation);
 
     // Emit event
@@ -110,11 +109,7 @@ pub fn revoke_by_delegation(
     }
 
     // Get the attestation
-    let attest_key = DataKey::Attestation(
-        request.schema_uid.clone(),
-        request.subject.clone(),
-        request.nonce,
-    );
+    let attest_key = DataKey::AttestationUID(request.attestation_uid.clone());
 
     let mut attestation = env
         .storage()
