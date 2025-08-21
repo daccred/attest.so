@@ -50,7 +50,7 @@ impl AttestationContract {
         subject: Address,
         value: String,
         expiration_time: Option<u64>,
-    ) -> Result<u64, errors::Error> {
+    ) -> Result<BytesN<32>, errors::Error> {
         attest(&env, attester, schema_uid, subject, value, expiration_time)
     }
 
@@ -58,31 +58,26 @@ impl AttestationContract {
     pub fn revoke_attestation(
         env: Env,
         revoker: Address,
-        schema_uid: BytesN<32>,
-        subject: Address,
-        nonce: u64,
+        attestation_uid: BytesN<32>,
     ) -> Result<(), errors::Error> {
-        revoke_attestation(&env, revoker, schema_uid, subject, nonce)
+        revoke_attestation(&env, revoker, attestation_uid)
     }
 
     /// Gets an attestation by its nonce
     pub fn get_attestation(
         env: Env,
-        schema_uid: BytesN<32>,
-        subject: Address,
-        nonce: u64,
+        attestation_uid: BytesN<32>,
     ) -> Result<Attestation, errors::Error> {
-        Ok(get_attestation_record(&env, schema_uid, subject, nonce))
+        Ok(get_attestation_record(&env, attestation_uid))
     }
 
     /// Lists attestations for a schema and subject
     pub fn list_attestations_for(
         env: Env,
-        schema_uid: BytesN<32>,
         subject: Address,
         limit: u32,
     ) -> Vec<Attestation> {
-        list_attestations(&env, schema_uid, subject, limit)
+        list_attestations(&env, subject, limit)
     }
 
     // ══════════════════════════════════════════════════════════════════════════════
