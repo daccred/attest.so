@@ -30,11 +30,7 @@ fn call_resolver_before_attest(
 
 /// Calls after_attest on a resolver contract
 /// Failures are logged but don't revert the attestation
-fn call_resolver_after_attest(
-    env: &Env,
-    resolver_address: &Address,
-    attestation: &ResolverAttestation,
-) {
+fn call_resolver_after_attest(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
     let resolver_client = ResolverClient::new(env, resolver_address);
 
     // Ignore failures in after_attest - they're non-critical side effects
@@ -61,11 +57,7 @@ fn call_resolver_before_revoke(
 
 /// Calls after_revoke on a resolver contract
 /// Failures are logged but don't revert the revocation
-fn call_resolver_after_revoke(
-    env: &Env,
-    resolver_address: &Address,
-    attestation: &ResolverAttestation,
-) {
+fn call_resolver_after_revoke(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
     let resolver_client = ResolverClient::new(env, resolver_address);
 
     // Ignore failures in after_revoke - they're non-critical side effects
@@ -96,8 +88,8 @@ fn create_resolver_attestation(
         expiration_time: attestation.expiration_time.unwrap_or(0), // Flattened: 0 = not set
         revocation_time: attestation.revocation_time.unwrap_or(0), // Flattened: 0 = not set
         revocable: true,                                           // Will be set based on schema
-        ref_uid: Bytes::new(env), // Flattened: empty bytes = not set
-        data: Bytes::from_slice(env, b"placeholder"), // TODO: Convert string to bytes properly
+        ref_uid: Bytes::new(env),                                  // Flattened: empty bytes = not set
+        data: Bytes::from_slice(env, b"placeholder"),              // TODO: Convert string to bytes properly
         value: 0, // Flattened: 0 = not set (protocol doesn't support value field yet)
     }
 }
@@ -168,8 +160,7 @@ pub fn attest(
     // Call resolver before_attest hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format
-        let resolver_attestation =
-            create_resolver_attestation(env, &attestation, &schema_uid, &value);
+        let resolver_attestation = create_resolver_attestation(env, &attestation, &schema_uid, &value);
 
         // Call before_attest hook - this is CRITICAL for access control
         let allowed = call_resolver_before_attest(env, resolver_address, &resolver_attestation)?;
@@ -185,9 +176,7 @@ pub fn attest(
 
     // Store the attestation by its UID
     let attest_uid_key = DataKey::AttestationUID(attestation_uid.clone());
-    env.storage()
-        .persistent()
-        .set(&attest_uid_key, &attestation);
+    env.storage().persistent().set(&attest_uid_key, &attestation);
 
     // Increment nonce for next attestation
     let nonce_key = DataKey::AttesterNonce(attester.clone());
@@ -201,8 +190,7 @@ pub fn attest(
     // Call resolver after_attest hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format
-        let resolver_attestation =
-            create_resolver_attestation(env, &attestation, &schema_uid, &value);
+        let resolver_attestation = create_resolver_attestation(env, &attestation, &schema_uid, &value);
 
         // Call after_attest hook for side effects (rewards, registration, etc.)
         // Note: Failures here don't revert the attestation
@@ -234,10 +222,7 @@ pub fn attest(
 /// We are using `panic_with_error!` for error handling, considerably acceptable for read operations
 /// as it allows for clear error propagation without requiring Result<> wrapping. The panics provide
 /// specific error information about what went wrong during the retrieval process.
-pub fn get_attestation_record(
-    env: &Env,
-    attestation_uid: BytesN<32>,
-) -> Result<Attestation, Error> {
+pub fn get_attestation_record(env: &Env, attestation_uid: BytesN<32>) -> Result<Attestation, Error> {
     // Get attestation
     let attest_key = DataKey::AttestationUID(attestation_uid);
     let attestation = env
@@ -271,11 +256,7 @@ pub fn get_attestation_record(
 ///
 /// # Returns
 /// * `Result<(), Error>` - Success or error
-pub fn revoke_attestation(
-    env: &Env,
-    revoker: Address,
-    attestation_uid: BytesN<32>,
-) -> Result<(), Error> {
+pub fn revoke_attestation(env: &Env, revoker: Address, attestation_uid: BytesN<32>) -> Result<(), Error> {
     revoker.require_auth();
 
     // Get the attestation
@@ -309,12 +290,8 @@ pub fn revoke_attestation(
     // Call resolver before_revoke hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format
-        let resolver_attestation = create_resolver_attestation(
-            env,
-            &attestation,
-            &attestation.schema_uid,
-            &attestation.value,
-        );
+        let resolver_attestation =
+            create_resolver_attestation(env, &attestation, &attestation.schema_uid, &attestation.value);
 
         // Call before_revoke hook - this is CRITICAL for access control
         let allowed = call_resolver_before_revoke(env, resolver_address, &resolver_attestation)?;
@@ -342,12 +319,8 @@ pub fn revoke_attestation(
     // Call resolver after_revoke hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format with updated revocation status
-        let resolver_attestation = create_resolver_attestation(
-            env,
-            &attestation,
-            &attestation.schema_uid,
-            &attestation.value,
-        );
+        let resolver_attestation =
+            create_resolver_attestation(env, &attestation, &attestation.schema_uid, &attestation.value);
 
         // Call after_revoke hook for side effects (cleanup, notifications, etc.)
         // Note: Failures here don't revert the revocation

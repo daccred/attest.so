@@ -81,11 +81,9 @@ pub fn set_registration_fee(env: &Env, fee: &i128) {
 pub fn record_payment(env: &Env, payment: &PaymentRecord) {
     let key = (DataKey::PaymentRecord, payment.recipient.clone());
     env.storage().persistent().set(&key, payment);
-    env.storage().persistent().extend_ttl(
-        &key,
-        env.storage().max_ttl() - 100,
-        env.storage().max_ttl(),
-    );
+    env.storage()
+        .persistent()
+        .extend_ttl(&key, env.storage().max_ttl() - 100, env.storage().max_ttl());
 }
 
 /// Gets a payment record for an address
@@ -113,11 +111,9 @@ pub fn get_authority_data(env: &Env, authority: &Address) -> Option<RegisteredAu
 pub fn set_authority_data(env: &Env, data: &RegisteredAuthorityData) {
     let key = (DataKey::Authority, data.address.clone());
     env.storage().persistent().set(&key, data);
-    env.storage().persistent().extend_ttl(
-        &key,
-        env.storage().max_ttl() - 100,
-        env.storage().max_ttl(),
-    );
+    env.storage()
+        .persistent()
+        .extend_ttl(&key, env.storage().max_ttl() - 100, env.storage().max_ttl());
 }
 
 /// Sets the initialized flag.
@@ -185,7 +181,5 @@ pub fn set_token_id(env: &Env, token_id: &Address) {
 
 /// Set token WASM hash in storage
 pub fn set_token_wasm_hash(env: &Env, wasm_hash: &BytesN<32>) {
-    env.storage()
-        .instance()
-        .set(&DataKey::TokenWasmHash, wasm_hash);
+    env.storage().instance().set(&DataKey::TokenWasmHash, wasm_hash);
 }

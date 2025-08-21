@@ -31,11 +31,7 @@ use soroban_sdk::{Address, Bytes, BytesN, Env};
 /// * `Error::InvalidSignature` - If the signature verification fails
 /// * `Error::InvalidNonce` - If the nonce doesn't match expected value
 /// * `Error::SchemaNotFound` - If the schema doesn't exist
-pub fn attest_by_delegation(
-    env: &Env,
-    submitter: Address,
-    request: DelegatedAttestationRequest,
-) -> Result<(), Error> {
+pub fn attest_by_delegation(env: &Env, submitter: Address, request: DelegatedAttestationRequest) -> Result<(), Error> {
     submitter.require_auth();
 
     // Verify deadline hasn't passed
@@ -56,8 +52,7 @@ pub fn attest_by_delegation(
     // Verify BLS12-381 signature
     verify_bls_signature(env, &message, &request.signature, &request.attester)?;
 
-    let attestation_uid =
-        generate_attestation_uid(env, &request.schema_uid, &request.subject, request.nonce);
+    let attestation_uid = generate_attestation_uid(env, &request.schema_uid, &request.subject, request.nonce);
 
     // Create attestation record
     let attestation = Attestation {
@@ -96,11 +91,7 @@ pub fn attest_by_delegation(
 ///
 /// # Returns
 /// * `Result<(), Error>` - Success or error
-pub fn revoke_by_delegation(
-    env: &Env,
-    submitter: Address,
-    request: DelegatedRevocationRequest,
-) -> Result<(), Error> {
+pub fn revoke_by_delegation(env: &Env, submitter: Address, request: DelegatedRevocationRequest) -> Result<(), Error> {
     submitter.require_auth();
 
     // Verify deadline hasn't passed
@@ -205,20 +196,12 @@ pub fn revoke_by_delegation(
 /// - Each successful verification increments nonce by exactly 1
 /// - Failed verifications don't affect nonce state
 /// - Storage operations are atomic (no partial state possible)
-fn verify_and_increment_nonce(
-    env: &Env,
-    attester: &Address,
-    expected_nonce: u64,
-) -> Result<(), Error> {
+fn verify_and_increment_nonce(env: &Env, attester: &Address, expected_nonce: u64) -> Result<(), Error> {
     let nonce_key = DataKey::AttesterNonce(attester.clone());
 
     // Get current nonce (default to 0 for new attesters)
     // This creates the starting point for each attester's nonce sequence
-    let current_nonce = env
-        .storage()
-        .persistent()
-        .get::<DataKey, u64>(&nonce_key)
-        .unwrap_or(0);
+    let current_nonce = env.storage().persistent().get::<DataKey, u64>(&nonce_key).unwrap_or(0);
 
     // CRITICAL SECURITY CHECK: Verify nonce matches expected value exactly
     // This prevents replay attacks and ensures sequential processing

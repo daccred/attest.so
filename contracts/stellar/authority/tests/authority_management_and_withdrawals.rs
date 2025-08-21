@@ -153,24 +153,15 @@ fn create_dummy_attestation(
 #[test]
 fn test_initialize() {
     let setup = setup_env(true);
-    assert_eq!(
-        setup.resolver_client.get_admin_address(),
-        setup.admin.clone()
-    );
-    assert_eq!(
-        setup.resolver_client.get_token_id(),
-        setup.token_address.clone()
-    );
+    assert_eq!(setup.resolver_client.get_admin_address(), setup.admin.clone());
+    assert_eq!(setup.resolver_client.get_token_id(), setup.token_address.clone());
     let reinit_result = setup.resolver_client.try_initialize(
         &setup.admin,
         &setup.token_address,
         &create_dummy_token_wasm_hash(&setup.env),
     );
     // Check inner Result is Err(Ok(ContractError))
-    assert!(matches!(
-        reinit_result.err().unwrap(),
-        Ok(Error::AlreadyInitialized)
-    ));
+    assert!(matches!(reinit_result.err().unwrap(), Ok(Error::AlreadyInitialized)));
 }
 
 #[test]
@@ -302,12 +293,7 @@ fn test_register_authority_no_allowance() {
     let register_invoke_top_level = soroban_sdk::testutils::MockAuthInvoke {
         contract: &setup.resolver_address,
         fn_name: "register_authority",
-        args: (
-            caller.clone(),
-            authority_to_register.clone(),
-            metadata.clone(),
-        )
-            .into_val(&setup.env),
+        args: (caller.clone(), authority_to_register.clone(), metadata.clone()).into_val(&setup.env),
         sub_invokes: &[],
     };
 
@@ -452,10 +438,7 @@ fn test_attest_hook_not_authority() {
 
     // Attest
     let result = setup.resolver_client.try_attest(&attestation);
-    assert!(matches!(
-        result.err().unwrap(),
-        Ok(Error::AttesterNotAuthority)
-    ));
+    assert!(matches!(result.err().unwrap(), Ok(Error::AttesterNotAuthority)));
 }
 
 /*
@@ -500,10 +483,7 @@ fn test_revoke_hook() {
     let attestation2 = create_dummy_attestation(&setup.env, &non_authority, &schema_uid, None);
     let result2 = setup.resolver_client.try_revoke(&attestation2);
     // Check inner Result is Err(Ok(ContractError))
-    assert!(matches!(
-        result2.err().unwrap(),
-        Ok(Error::AttesterNotAuthority)
-    ));
+    assert!(matches!(result2.err().unwrap(), Ok(Error::AttesterNotAuthority)));
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -553,12 +533,7 @@ fn test_withdraw_levies() {
         invoke: &soroban_sdk::testutils::MockAuthInvoke {
             contract: &resolver_address,
             fn_name: "initialize",
-            args: (
-                admin.clone(),
-                token_address.clone(),
-                create_dummy_token_wasm_hash(&env),
-            )
-                .into_val(&env),
+            args: (admin.clone(), token_address.clone(), create_dummy_token_wasm_hash(&env)).into_val(&env),
             sub_invokes: &[],
         },
     }]);
@@ -570,12 +545,7 @@ fn test_withdraw_levies() {
     let reg_recipient_invoke = soroban_sdk::testutils::MockAuthInvoke {
         contract: &resolver_address,
         fn_name: "admin_register_authority",
-        args: (
-            admin.clone(),
-            recipient_auth.clone(),
-            recipient_meta.clone(),
-        )
-            .into_val(&env),
+        args: (admin.clone(), recipient_auth.clone(), recipient_meta.clone()).into_val(&env),
         sub_invokes: &[],
     };
     env.mock_auths(&[soroban_sdk::testutils::MockAuth {
@@ -633,10 +603,7 @@ fn test_withdraw_levies_nothing_to_withdraw() {
         &SorobanString::from_str(&setup.env, "Recipient"),
     );
     let result = setup.resolver_client.try_withdraw_levies(&authority);
-    assert!(matches!(
-        result.err().unwrap(),
-        Ok(Error::NothingToWithdraw)
-    ));
+    assert!(matches!(result.err().unwrap(), Ok(Error::NothingToWithdraw)));
 }
 
 #[test]
@@ -668,14 +635,9 @@ fn test_unauthorized_operations() {
     );
 
     let non_recipient_non_authority = Address::generate(&setup.env);
-    let withdraw_attempt_result = setup
-        .resolver_client
-        .try_withdraw_levies(&non_recipient_non_authority);
+    let withdraw_attempt_result = setup.resolver_client.try_withdraw_levies(&non_recipient_non_authority);
     assert!(
-        matches!(
-            withdraw_attempt_result.err().unwrap(),
-            Ok(Error::NotAuthorized)
-        ),
+        matches!(withdraw_attempt_result.err().unwrap(), Ok(Error::NotAuthorized)),
         "Unauthorized withdraw_levies did not fail correctly"
     );
 }

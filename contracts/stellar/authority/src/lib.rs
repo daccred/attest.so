@@ -13,8 +13,8 @@ mod state;
 // Re-export types for external use
 pub use errors::Error;
 pub use events::{
-    ADMIN_REG_AUTH, AUTHORITY_REGISTERED, LEVY_COLLECTED, LEVY_WITHDRAWN, OWNERSHIP_RENOUNCED,
-    OWNERSHIP_TRANSFERRED, PAYMENT_RECEIVED, SCHEMA_REGISTERED,
+    ADMIN_REG_AUTH, AUTHORITY_REGISTERED, LEVY_COLLECTED, LEVY_WITHDRAWN, OWNERSHIP_RENOUNCED, OWNERSHIP_TRANSFERRED,
+    PAYMENT_RECEIVED, SCHEMA_REGISTERED,
 };
 pub use state::{Attestation, DataKey, PaymentRecord, RegisteredAuthorityData};
 
@@ -132,11 +132,7 @@ impl AuthorityResolverContract {
     /// # Returns
     /// * `Ok(())` - If ownership transfer is successful
     /// * `Err(Error)` - If not authorized or validation fails
-    pub fn transfer_ownership(
-        env: Env,
-        current_owner: Address,
-        new_owner: Address,
-    ) -> Result<(), Error> {
+    pub fn transfer_ownership(env: Env, current_owner: Address, new_owner: Address) -> Result<(), Error> {
         access_control::transfer_ownership(&env, &current_owner, &new_owner)
     }
 
@@ -185,12 +181,7 @@ impl AuthorityResolverContract {
     // ──────────────────────────────────────────────────────────────────────────
 
     /// Pay verification fee to become eligible for authority registration
-    pub fn pay_verification_fee(
-        env: Env,
-        payer: Address,
-        ref_id: String,
-        token_address: Address,
-    ) -> Result<(), Error> {
+    pub fn pay_verification_fee(env: Env, payer: Address, ref_id: String, token_address: Address) -> Result<(), Error> {
         instructions::admin::require_init(&env)?;
         payer.require_auth();
 
@@ -225,12 +216,7 @@ impl AuthorityResolverContract {
     }
 
     /// Admin function to withdraw collected fees
-    pub fn admin_withdraw_fees(
-        env: Env,
-        admin: Address,
-        token_address: Address,
-        amount: i128,
-    ) -> Result<(), Error> {
+    pub fn admin_withdraw_fees(env: Env, admin: Address, token_address: Address, amount: i128) -> Result<(), Error> {
         instructions::admin::require_init(&env)?;
         admin.require_auth();
 
@@ -249,10 +235,7 @@ impl AuthorityResolverContract {
     // ──────────────────────────────────────────────────────────────────────────
 
     /// Called before an attestation is created (resolver interface)
-    pub fn before_attest(
-        env: Env,
-        attestation: ResolverAttestationData,
-    ) -> Result<bool, ResolverError> {
+    pub fn before_attest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         // Check if the attester has confirmed payment
         if !state::has_confirmed_payment(&env, &attestation.attester) {
             return Err(ResolverError::NotAuthorized);
@@ -261,10 +244,7 @@ impl AuthorityResolverContract {
     }
 
     /// Called after an attestation is created (resolver interface)
-    pub fn after_attest(
-        env: Env,
-        attestation: ResolverAttestationData,
-    ) -> Result<(), ResolverError> {
+    pub fn after_attest(env: Env, attestation: ResolverAttestationData) -> Result<(), ResolverError> {
         // Register the attester as an authority after successful attestation
         if state::has_confirmed_payment(&env, &attestation.attester) {
             let payment_record = state::get_payment_record(&env, &attestation.attester);

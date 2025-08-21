@@ -59,12 +59,7 @@ pub fn generate_schema_uid(
 ///     nonce
 /// );
 /// ```
-pub fn generate_attestation_uid(
-    env: &Env,
-    schema_uid: &BytesN<32>,
-    subject: &Address,
-    nonce: u64,
-) -> BytesN<32> {
+pub fn generate_attestation_uid(env: &Env, schema_uid: &BytesN<32>, subject: &Address, nonce: u64) -> BytesN<32> {
     // Simple hash generation - combine schema_uid and nonce only for now
     let mut hash_input = Bytes::new(env);
     hash_input.append(&schema_uid.to_xdr(env));
@@ -136,10 +131,7 @@ pub fn get_schema(env: &Env, schema_uid: &BytesN<32>) -> Option<Schema> {
 /// * `u64` - The next nonce to be used
 pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
     let nonce_key = DataKey::AttesterNonce(attester.clone());
-    env.storage()
-        .persistent()
-        .get::<DataKey, u64>(&nonce_key)
-        .unwrap_or(0)
+    env.storage().persistent().get::<DataKey, u64>(&nonce_key).unwrap_or(0)
 }
 
 /// Creates a base64-encoded XDR string from a Soroban string value.

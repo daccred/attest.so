@@ -1,6 +1,4 @@
-use crate::interface::{
-    ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType,
-};
+use crate::interface::{ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 use soroban_sdk::{contract, contractimpl, contracttype, token, Address, BytesN, Env, String};
 
 #[contracttype]
@@ -43,15 +41,9 @@ impl FeeCollectionResolver {
 
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::FeeToken, &fee_token);
-        env.storage()
-            .instance()
-            .set(&DataKey::AttestationFee, &attestation_fee);
-        env.storage()
-            .instance()
-            .set(&DataKey::FeeRecipient, &fee_recipient);
-        env.storage()
-            .instance()
-            .set(&DataKey::TotalCollected, &0i128);
+        env.storage().instance().set(&DataKey::AttestationFee, &attestation_fee);
+        env.storage().instance().set(&DataKey::FeeRecipient, &fee_recipient);
+        env.storage().instance().set(&DataKey::TotalCollected, &0i128);
         env.storage().instance().set(&DataKey::Initialized, &true);
 
         env.storage()
@@ -62,41 +54,26 @@ impl FeeCollectionResolver {
     }
 
     /// Update attestation fee (admin only)
-    pub fn set_attestation_fee(
-        env: Env,
-        admin: Address,
-        new_fee: i128,
-    ) -> Result<(), ResolverError> {
+    pub fn set_attestation_fee(env: Env, admin: Address, new_fee: i128) -> Result<(), ResolverError> {
         Self::require_admin(&env, &admin)?;
 
-        env.storage()
-            .instance()
-            .set(&DataKey::AttestationFee, &new_fee);
+        env.storage().instance().set(&DataKey::AttestationFee, &new_fee);
 
         // Emit event
-        env.events()
-            .publish((String::from_str(&env, "FEE_UPDATED"),), new_fee);
+        env.events().publish((String::from_str(&env, "FEE_UPDATED"),), new_fee);
 
         Ok(())
     }
 
     /// Update fee recipient (admin only)
-    pub fn set_fee_recipient(
-        env: Env,
-        admin: Address,
-        new_recipient: Address,
-    ) -> Result<(), ResolverError> {
+    pub fn set_fee_recipient(env: Env, admin: Address, new_recipient: Address) -> Result<(), ResolverError> {
         Self::require_admin(&env, &admin)?;
 
-        env.storage()
-            .instance()
-            .set(&DataKey::FeeRecipient, &new_recipient);
+        env.storage().instance().set(&DataKey::FeeRecipient, &new_recipient);
 
         // Emit event
-        env.events().publish(
-            (String::from_str(&env, "RECIPIENT_UPDATED"),),
-            &new_recipient,
-        );
+        env.events()
+            .publish((String::from_str(&env, "RECIPIENT_UPDATED"),), &new_recipient);
 
         Ok(())
     }
@@ -137,20 +114,15 @@ impl FeeCollectionResolver {
         env.storage().persistent().set(&key, &0i128);
 
         // Emit event
-        env.events().publish(
-            (String::from_str(&env, "FEES_WITHDRAWN"), &recipient),
-            collected,
-        );
+        env.events()
+            .publish((String::from_str(&env, "FEES_WITHDRAWN"), &recipient), collected);
 
         Ok(())
     }
 
     /// Get total fees collected
     pub fn get_total_collected(env: Env) -> i128 {
-        env.storage()
-            .instance()
-            .get(&DataKey::TotalCollected)
-            .unwrap_or(0)
+        env.storage().instance().get(&DataKey::TotalCollected).unwrap_or(0)
     }
 
     /// Get collected fees for recipient
@@ -178,23 +150,13 @@ impl FeeCollectionResolver {
 
 // Same gating rationale as above. This ensures the trait method exports are
 // not duplicated in Wasm unless explicitly requested via the feature flag.
-#[cfg(any(
-    not(target_arch = "wasm32"),
-    feature = "export-fee-collection-resolver"
-))]
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-fee-collection-resolver"))]
 #[contractimpl]
 impl ResolverInterface for FeeCollectionResolver {
     /// Collect fee before attestation
-    fn before_attest(
-        env: Env,
-        attestation: ResolverAttestationData,
-    ) -> Result<bool, ResolverError> {
+    fn before_attest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         // Get fee configuration
-        let attestation_fee: i128 = env
-            .storage()
-            .instance()
-            .get(&DataKey::AttestationFee)
-            .unwrap_or(0);
+        let attestation_fee: i128 = env.storage().instance().get(&DataKey::AttestationFee).unwrap_or(0);
 
         if attestation_fee == 0 {
             return Ok(true); // No fee required
@@ -217,40 +179,25 @@ impl ResolverInterface for FeeCollectionResolver {
             .ok_or(ResolverError::CustomError)?;
 
         let token_client = token::Client::new(&env, &fee_token);
-        token_client.transfer(
-            &attestation.attester,
-            &env.current_contract_address(),
-            &attestation_fee,
-        );
+        token_client.transfer(&attestation.attester, &env.current_contract_address(), &attestation_fee);
 
         // Track collected fees for recipient
         let key = (DataKey::CollectedFees, fee_recipient.clone());
         let collected: i128 = env.storage().persistent().get(&key).unwrap_or(0);
+        env.storage().persistent().set(&key, &(collected + attestation_fee));
         env.storage()
             .persistent()
-            .set(&key, &(collected + attestation_fee));
-        env.storage().persistent().extend_ttl(
-            &key,
-            env.storage().max_ttl() - 100,
-            env.storage().max_ttl(),
-        );
+            .extend_ttl(&key, env.storage().max_ttl() - 100, env.storage().max_ttl());
 
         // Update total collected
-        let total: i128 = env
-            .storage()
-            .instance()
-            .get(&DataKey::TotalCollected)
-            .unwrap_or(0);
+        let total: i128 = env.storage().instance().get(&DataKey::TotalCollected).unwrap_or(0);
         env.storage()
             .instance()
             .set(&DataKey::TotalCollected, &(total + attestation_fee));
 
         // Emit event
         env.events().publish(
-            (
-                String::from_str(&env, "FEE_COLLECTED"),
-                &attestation.attester,
-            ),
+            (String::from_str(&env, "FEE_COLLECTED"), &attestation.attester),
             (&attestation.uid, &attestation_fee),
         );
 
@@ -263,20 +210,12 @@ impl ResolverInterface for FeeCollectionResolver {
     }
 
     /// No validation needed for revocations
-    fn before_revoke(
-        _env: Env,
-        _attestation_uid: BytesN<32>,
-        _attester: Address,
-    ) -> Result<bool, ResolverError> {
+    fn before_revoke(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<bool, ResolverError> {
         Ok(true)
     }
 
     /// No cleanup needed for revocations (fees not refunded)
-    fn after_revoke(
-        _env: Env,
-        _attestation_uid: BytesN<32>,
-        _attester: Address,
-    ) -> Result<(), ResolverError> {
+    fn after_revoke(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<(), ResolverError> {
         Ok(())
     }
 

@@ -94,9 +94,7 @@ fn pay_fee_records_payment_and_event() {
 
     let events = env.events().all();
     let _payment_event = events.iter().any(|(_, topics, _)| {
-        topics
-            .get(0)
-            .and_then(|v| SorobanString::try_from_val(env, &v).ok())
+        topics.get(0).and_then(|v| SorobanString::try_from_val(env, &v).ok())
             == Some(SorobanString::from_str(env, "PAYMENT_RECEIVED"))
     });
     // TODO: PAYMENT_RECEIVED event not emitted during fee payment
@@ -122,10 +120,7 @@ fn double_payment_updates_record() {
 
     let record = client.get_payment_record(&payer).unwrap();
     assert_eq!(record.ref_id, ref2); // latest ref_id stored
-    assert_eq!(
-        token_client.balance(&setup.contract_id),
-        REGISTRATION_FEE * 2
-    );
+    assert_eq!(token_client.balance(&setup.contract_id), REGISTRATION_FEE * 2);
 }
 
 #[test]
@@ -176,9 +171,7 @@ fn before_and_after_attest_with_payment() {
 
     let events = env.events().all();
     let _registered_event = events.iter().any(|(_, topics, _)| {
-        topics
-            .get(0)
-            .and_then(|v| SorobanString::try_from_val(env, &v).ok())
+        topics.get(0).and_then(|v| SorobanString::try_from_val(env, &v).ok())
             == Some(SorobanString::from_str(env, "AUTHORITY_REGISTERED"))
     });
     // TODO: AUTHORITY_REGISTERED event not emitted after attestation

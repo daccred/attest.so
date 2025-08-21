@@ -56,10 +56,7 @@ fn test_reject_self_attestation() {
     // ISSUE: self-attestation check missing in before_attest
     // RECOMMENDATION: Ensure attester != recipient validation
     // IMPACT: Users could create meaningless self-attestations
-    assert!(matches!(
-        res.err().unwrap(),
-        Ok(ResolverError::ValidationFailed)
-    ));
+    assert!(matches!(res.err().unwrap(), Ok(ResolverError::ValidationFailed)));
 }
 
 #[test]
@@ -73,10 +70,7 @@ fn test_reject_expired_attestation() {
     // ISSUE: expiration check missing or timestamp miscomputed
     // RECOMMENDATION: verify env.ledger().timestamp usage
     // IMPACT: Expired attestations could be accepted
-    assert!(matches!(
-        res.err().unwrap(),
-        Ok(ResolverError::InvalidAttestation)
-    ));
+    assert!(matches!(res.err().unwrap(), Ok(ResolverError::InvalidAttestation)));
 }
 
 #[test]
@@ -102,10 +96,7 @@ fn test_revocation_hooks() {
 fn test_metadata() {
     let (env, client) = setup();
     let metadata = client.get_metadata();
-    assert_eq!(
-        metadata.name,
-        SorobanString::from_str(&env, "Default Resolver")
-    );
+    assert_eq!(metadata.name, SorobanString::from_str(&env, "Default Resolver"));
     assert_eq!(metadata.version, SorobanString::from_str(&env, "1.0.0"));
     assert_eq!(metadata.resolver_type, ResolverType::Default);
 }

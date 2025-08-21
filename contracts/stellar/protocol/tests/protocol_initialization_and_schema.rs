@@ -1,6 +1,4 @@
-use protocol::{
-    state::Schema, utils::create_xdr_string, AttestationContract, AttestationContractClient,
-};
+use protocol::{state::Schema, utils::create_xdr_string, AttestationContract, AttestationContractClient};
 use soroban_sdk::{
     symbol_short,
     testutils::{Address as _, Events, MockAuth, MockAuthInvoke},
@@ -96,12 +94,7 @@ fn initialize_and_register_schema() {
                 sub_invokes: &[],
             },
         }]);
-        let schema_uid: BytesN<32> = client.register(
-            &authority,
-            &schema_definition,
-            &case.resolver,
-            &case.revocable,
-        );
+        let schema_uid: BytesN<32> = client.register(&authority, &schema_definition, &case.resolver, &case.revocable);
 
         let events = env.events().all();
         dbg!(&events);

@@ -33,12 +33,7 @@ pub fn publish_revocation_event(env: &Env, attestation: &Attestation) {
     env.events().publish(topics, data);
 }
 
-pub fn publish_bls_key_registered(
-    env: &Env,
-    attester: &Address,
-    public_key: &BytesN<96>,
-    timestamp: u64,
-) {
+pub fn publish_bls_key_registered(env: &Env, attester: &Address, public_key: &BytesN<96>, timestamp: u64) {
     let topics = (symbol_short!("BLS_KEY"), symbol_short!("REGISTER"));
     let data = (attester.clone(), public_key.clone(), timestamp);
     env.events().publish(topics, data);

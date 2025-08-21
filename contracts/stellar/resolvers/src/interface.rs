@@ -75,8 +75,7 @@ pub enum ResolverError {
 pub trait ResolverInterface {
     /// Called before an attestation is created
     /// Returns true if the attestation should be allowed
-    fn before_attest(env: Env, attestation: ResolverAttestationData)
-        -> Result<bool, ResolverError>;
+    fn before_attest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError>;
 
     /// Called after an attestation is created
     /// Can be used for post-processing like token rewards
@@ -84,19 +83,11 @@ pub trait ResolverInterface {
 
     /// Called before a revocation
     /// Returns true if the revocation should be allowed
-    fn before_revoke(
-        env: Env,
-        attestation_uid: BytesN<32>,
-        attester: Address,
-    ) -> Result<bool, ResolverError>;
+    fn before_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<bool, ResolverError>;
 
     /// Called after a revocation
     /// Can be used for cleanup or notifications
-    fn after_revoke(
-        env: Env,
-        attestation_uid: BytesN<32>,
-        attester: Address,
-    ) -> Result<(), ResolverError>;
+    fn after_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError>;
 
     /// Get resolver metadata
     fn get_metadata(env: Env) -> ResolverMetadata;

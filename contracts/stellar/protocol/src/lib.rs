@@ -9,13 +9,11 @@ pub mod interfaces;
 pub mod state;
 pub mod utils;
 
-use state::{
-    Attestation, BlsPublicKey, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest,
-};
+use state::{Attestation, BlsPublicKey, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest};
 
 use instructions::{
-    attest, attest_by_delegation, get_attestation_record, get_bls_public_key,
-    register_bls_public_key, register_schema, revoke_attestation, revoke_by_delegation,
+    attest, attest_by_delegation, get_attestation_record, get_bls_public_key, register_bls_public_key, register_schema,
+    revoke_attestation, revoke_by_delegation,
 };
 
 #[contract]
@@ -54,19 +52,12 @@ impl AttestationContract {
     }
 
     /// Revokes an attestation by its nonce
-    pub fn revoke_attestation(
-        env: Env,
-        revoker: Address,
-        attestation_uid: BytesN<32>,
-    ) -> Result<(), errors::Error> {
+    pub fn revoke_attestation(env: Env, revoker: Address, attestation_uid: BytesN<32>) -> Result<(), errors::Error> {
         revoke_attestation(&env, revoker, attestation_uid)
     }
 
     /// Gets an attestation by its nonce
-    pub fn get_attestation(
-        env: Env,
-        attestation_uid: BytesN<32>,
-    ) -> Result<Attestation, errors::Error> {
+    pub fn get_attestation(env: Env, attestation_uid: BytesN<32>) -> Result<Attestation, errors::Error> {
         get_attestation_record(&env, attestation_uid)
     }
 
@@ -99,11 +90,7 @@ impl AttestationContract {
     }
 
     /// Registers a BLS public key for an attester
-    pub fn register_bls_key(
-        env: Env,
-        attester: Address,
-        public_key: BytesN<96>,
-    ) -> Result<(), errors::Error> {
+    pub fn register_bls_key(env: Env, attester: Address, public_key: BytesN<96>) -> Result<(), errors::Error> {
         register_bls_public_key(&env, attester, public_key)
     }
 

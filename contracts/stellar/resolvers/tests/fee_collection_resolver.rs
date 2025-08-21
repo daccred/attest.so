@@ -78,15 +78,7 @@ fn build_attestation(env: &Env, attester: &Address) -> ResolverAttestationData {
 
 #[test]
 fn test_fee_collected_on_attest() {
-    let (
-        env,
-        _admin,
-        fee_recipient,
-        token_client,
-        token_admin_client,
-        resolver_address,
-        resolver_client,
-    ) = setup();
+    let (env, _admin, fee_recipient, token_client, token_admin_client, resolver_address, resolver_client) = setup();
     let attester = Address::generate(&env);
     token_admin_client.mint(&attester, &FEE_AMOUNT);
 
@@ -101,23 +93,12 @@ fn test_fee_collected_on_attest() {
     assert_eq!(token_client.balance(&resolver_address), FEE_AMOUNT);
     // Verify accounting
     assert_eq!(resolver_client.get_total_collected(), FEE_AMOUNT);
-    assert_eq!(
-        resolver_client.get_collected_fees(&fee_recipient),
-        FEE_AMOUNT
-    );
+    assert_eq!(resolver_client.get_collected_fees(&fee_recipient), FEE_AMOUNT);
 }
 
 #[test]
 fn test_withdraw_fees_requires_recipient_auth() {
-    let (
-        env,
-        _admin,
-        fee_recipient,
-        token_client,
-        token_admin_client,
-        resolver_address,
-        resolver_client,
-    ) = setup();
+    let (env, _admin, fee_recipient, token_client, token_admin_client, resolver_address, resolver_client) = setup();
     let attester = Address::generate(&env);
     token_admin_client.mint(&attester, &FEE_AMOUNT);
     let attestation = build_attestation(&env, &attester);
@@ -134,10 +115,7 @@ fn test_withdraw_fees_requires_recipient_auth() {
     // ISSUE: withdraw_fees missing recipient auth check
     // RECOMMENDATION: verify require_auth and recipient equality logic
     // IMPACT: Anyone could withdraw collected fees
-    assert!(matches!(
-        res.err().unwrap(),
-        Ok(ResolverError::NotAuthorized)
-    ));
+    assert!(matches!(res.err().unwrap(), Ok(ResolverError::NotAuthorized)));
 
     // Authorized withdrawal by fee recipient
     resolver_client.withdraw_fees(&fee_recipient);
@@ -148,41 +126,20 @@ fn test_withdraw_fees_requires_recipient_auth() {
 
 #[test]
 fn test_non_admin_cannot_update_fee() {
-    let (
-        env,
-        _admin,
-        _fee_recipient,
-        _token_client,
-        _token_admin_client,
-        _resolver_address,
-        resolver_client,
-    ) = setup();
+    let (env, _admin, _fee_recipient, _token_client, _token_admin_client, _resolver_address, resolver_client) = setup();
     let attacker = Address::generate(&env);
     let res = resolver_client.try_set_attestation_fee(&attacker, &25);
     // If this assertion fails:
     // ISSUE: set_attestation_fee missing admin check
     // RECOMMENDATION: enforce require_admin in set_attestation_fee
     // IMPACT: Unauthorized users could manipulate fees
-    assert!(matches!(
-        res.err().unwrap(),
-        Ok(ResolverError::NotAuthorized)
-    ));
+    assert!(matches!(res.err().unwrap(), Ok(ResolverError::NotAuthorized)));
 }
 
 #[test]
 fn test_initialize_twice_fails() {
-    let (
-        env,
-        admin,
-        fee_recipient,
-        _token_client,
-        _token_admin_client,
-        _resolver_address,
-        resolver_client,
-    ) = setup();
-    let token_address = env
-        .register_stellar_asset_contract_v2(admin.clone())
-        .address();
+    let (env, admin, fee_recipient, _token_client, _token_admin_client, _resolver_address, resolver_client) = setup();
+    let token_address = env.register_stellar_asset_contract_v2(admin.clone()).address();
     let res = resolver_client.try_initialize(&admin, &token_address, &FEE_AMOUNT, &fee_recipient);
     // If this assertion fails:
     // ISSUE: initialize allows re-initialization, risking state corruption
@@ -193,19 +150,8 @@ fn test_initialize_twice_fails() {
 
 #[test]
 fn test_metadata() {
-    let (
-        env,
-        _admin,
-        _fee_recipient,
-        _token_client,
-        _token_admin_client,
-        _resolver_address,
-        resolver_client,
-    ) = setup();
+    let (env, _admin, _fee_recipient, _token_client, _token_admin_client, _resolver_address, resolver_client) = setup();
     let meta = resolver_client.get_metadata();
-    assert_eq!(
-        meta.name,
-        SorobanString::from_str(&env, "Fee Collection Resolver")
-    );
+    assert_eq!(meta.name, SorobanString::from_str(&env, "Fee Collection Resolver"));
     assert_eq!(meta.resolver_type, ResolverType::FeeCollection);
 }

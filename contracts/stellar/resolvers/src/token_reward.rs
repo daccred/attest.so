@@ -46,9 +46,7 @@
 // ► - **Economic Balance**: Gas costs vs reward amounts provide natural rate limiting
 // ══════════════════════════════════════════════════════════════════════════════
 
-use crate::interface::{
-    ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType,
-};
+use crate::interface::{ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 use soroban_sdk::{contract, contractimpl, contracttype, token, Address, BytesN, Env, String};
 use stellar_macros::default_impl;
 use stellar_tokens::fungible::{Base, FungibleToken};
@@ -99,15 +97,9 @@ impl TokenRewardResolver {
         );
 
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage()
-            .instance()
-            .set(&DataKey::RewardToken, &reward_token);
-        env.storage()
-            .instance()
-            .set(&DataKey::RewardAmount, &reward_amount);
-        env.storage()
-            .instance()
-            .set(&DataKey::TotalRewarded, &0i128);
+        env.storage().instance().set(&DataKey::RewardToken, &reward_token);
+        env.storage().instance().set(&DataKey::RewardAmount, &reward_amount);
+        env.storage().instance().set(&DataKey::TotalRewarded, &0i128);
         env.storage().instance().set(&DataKey::Initialized, &true);
 
         env.storage()
@@ -118,32 +110,21 @@ impl TokenRewardResolver {
     }
 
     /// Update reward amount (admin only)
-    pub fn set_reward_amount(
-        env: Env,
-        admin: Address,
-        new_amount: i128,
-    ) -> Result<(), ResolverError> {
+    pub fn set_reward_amount(env: Env, admin: Address, new_amount: i128) -> Result<(), ResolverError> {
         Self::require_admin(&env, &admin)?;
 
-        env.storage()
-            .instance()
-            .set(&DataKey::RewardAmount, &new_amount);
+        env.storage().instance().set(&DataKey::RewardAmount, &new_amount);
 
         // Emit event
-        env.events().publish(
-            (String::from_str(&env, "REWARD_AMOUNT_UPDATED"),),
-            new_amount,
-        );
+        env.events()
+            .publish((String::from_str(&env, "REWARD_AMOUNT_UPDATED"),), new_amount);
 
         Ok(())
     }
 
     /// Get total rewards distributed
     pub fn get_total_rewarded(env: Env) -> i128 {
-        env.storage()
-            .instance()
-            .get(&DataKey::TotalRewarded)
-            .unwrap_or(0)
+        env.storage().instance().get(&DataKey::TotalRewarded).unwrap_or(0)
     }
 
     /// Get user's total rewards earned
@@ -180,11 +161,7 @@ impl TokenRewardResolver {
 
     /// Get current reward pool balance
     pub fn get_pool_balance(env: Env) -> i128 {
-        if let Some(reward_token) = env
-            .storage()
-            .instance()
-            .get::<DataKey, Address>(&DataKey::RewardToken)
-        {
+        if let Some(reward_token) = env.storage().instance().get::<DataKey, Address>(&DataKey::RewardToken) {
             let token_client = token::Client::new(&env, &reward_token);
             token_client.balance(&env.current_contract_address())
         } else {
@@ -242,10 +219,7 @@ impl ResolverInterface for TokenRewardResolver {
     ///
     /// # Returns
     /// * `Ok(true)` - Always allows attestations (permissionless access)
-    fn before_attest(
-        _env: Env,
-        _attestation: ResolverAttestationData,
-    ) -> Result<bool, ResolverError> {
+    fn before_attest(_env: Env, _attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         // PERMISSIONLESS MODEL: Allow all attestations
         // Economic incentives through token rewards drive participation
         // Gas costs provide natural spam resistance
@@ -314,11 +288,7 @@ impl ResolverInterface for TokenRewardResolver {
             .get(&DataKey::RewardToken)
             .ok_or(ResolverError::CustomError)?; // Resolver not properly initialized
 
-        let reward_amount: i128 = env
-            .storage()
-            .instance()
-            .get(&DataKey::RewardAmount)
-            .unwrap_or(0);
+        let reward_amount: i128 = env.storage().instance().get(&DataKey::RewardAmount).unwrap_or(0);
 
         // EARLY EXIT: No rewards configured (admin set amount to 0)
         if reward_amount == 0 {
@@ -343,11 +313,7 @@ impl ResolverInterface for TokenRewardResolver {
         );
 
         // STEP 4: Update total rewards distributed (audit trail)
-        let total: i128 = env
-            .storage()
-            .instance()
-            .get(&DataKey::TotalRewarded)
-            .unwrap_or(0);
+        let total: i128 = env.storage().instance().get(&DataKey::TotalRewarded).unwrap_or(0);
         env.storage()
             .instance()
             .set(&DataKey::TotalRewarded, &(total + reward_amount));
@@ -355,23 +321,16 @@ impl ResolverInterface for TokenRewardResolver {
         // STEP 5: Update individual user reward totals
         let user_key = (DataKey::UserRewards, attestation.attester.clone());
         let user_total: i128 = env.storage().persistent().get(&user_key).unwrap_or(0);
-        env.storage()
-            .persistent()
-            .set(&user_key, &(user_total + reward_amount));
+        env.storage().persistent().set(&user_key, &(user_total + reward_amount));
 
         // Extend TTL to ensure user reward data persists
-        env.storage().persistent().extend_ttl(
-            &user_key,
-            env.storage().max_ttl() - 100,
-            env.storage().max_ttl(),
-        );
+        env.storage()
+            .persistent()
+            .extend_ttl(&user_key, env.storage().max_ttl() - 100, env.storage().max_ttl());
 
         // STEP 6: Emit reward distribution event for monitoring
         env.events().publish(
-            (
-                String::from_str(&env, "REWARD_DISTRIBUTED"),
-                &attestation.attester,
-            ),
+            (String::from_str(&env, "REWARD_DISTRIBUTED"), &attestation.attester),
             (&attestation.uid, &reward_amount),
         );
 
@@ -379,20 +338,12 @@ impl ResolverInterface for TokenRewardResolver {
     }
 
     /// No validation needed for revocations
-    fn before_revoke(
-        _env: Env,
-        _attestation_uid: BytesN<32>,
-        _attester: Address,
-    ) -> Result<bool, ResolverError> {
+    fn before_revoke(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<bool, ResolverError> {
         Ok(true)
     }
 
     /// No cleanup needed for revocations (rewards not clawed back)
-    fn after_revoke(
-        _env: Env,
-        _attestation_uid: BytesN<32>,
-        _attester: Address,
-    ) -> Result<(), ResolverError> {
+    fn after_revoke(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<(), ResolverError> {
         Ok(())
     }
 

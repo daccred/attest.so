@@ -85,10 +85,7 @@ pub mod token_reward;
 /// Fee collection resolver implementation that charges fees for attestation processing.
 /// This resolver can collect fees in various Stellar assets and provides mechanisms for
 /// fee withdrawal, recipient management, and administrative controls over fee structures.
-#[cfg(any(
-    not(target_arch = "wasm32"),
-    feature = "export-fee-collection-resolver"
-))]
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-fee-collection-resolver"))]
 pub mod fee_collection;
 
 // ============================================================================
@@ -98,9 +95,7 @@ pub mod fee_collection;
 /// Re-export core interface types that are used across all resolver implementations.
 /// These types form the foundation of the resolver system and are always available
 /// regardless of which specific resolver implementations are compiled.
-pub use interface::{
-    ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType,
-};
+pub use interface::{ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 
 /// Re-export the DefaultResolver implementation when available.
 /// Only export to Wasm when the `export-default-resolver` feature is enabled;
@@ -117,8 +112,5 @@ pub use token_reward::TokenRewardResolver;
 /// Re-export the FeeCollectionResolver implementation when available.
 /// Only export to Wasm when the `export-fee-collection-resolver` feature is enabled;
 /// always available on native builds for tests and integration.
-#[cfg(any(
-    not(target_arch = "wasm32"),
-    feature = "export-fee-collection-resolver"
-))]
+#[cfg(any(not(target_arch = "wasm32"), feature = "export-fee-collection-resolver"))]
 pub use fee_collection::FeeCollectionResolver;

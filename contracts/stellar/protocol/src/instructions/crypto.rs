@@ -68,11 +68,7 @@ use soroban_sdk::{Address, Bytes, BytesN, Env, Vec};
 ///
 /// # Returns
 /// * `Result<(), Error>` - Success or error (fails if key already exists)
-pub fn register_bls_public_key(
-    env: &Env,
-    attester: Address,
-    public_key: BytesN<96>,
-) -> Result<(), Error> {
+pub fn register_bls_public_key(env: &Env, attester: Address, public_key: BytesN<96>) -> Result<(), Error> {
     attester.require_auth();
 
     let pk_key = DataKey::AttesterPublicKey(attester.clone());

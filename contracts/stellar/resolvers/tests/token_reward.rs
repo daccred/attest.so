@@ -79,15 +79,7 @@ fn build_attestation(env: &Env, attester: &Address) -> ResolverAttestationData {
 
 #[test]
 fn test_reward_distribution_on_attestation() {
-    let (
-        env,
-        admin,
-        _token_address,
-        token_client,
-        token_admin_client,
-        _resolver_address,
-        resolver_client,
-    ) = setup();
+    let (env, admin, _token_address, token_client, token_admin_client, _resolver_address, resolver_client) = setup();
 
     // Fund reward pool
     token_admin_client.mint(&admin, &FUND_AMOUNT);
@@ -112,15 +104,7 @@ fn test_reward_distribution_on_attestation() {
 
 #[test]
 fn test_openzeppelin_token_compliance() {
-    let (
-        env,
-        admin,
-        _token_address,
-        token_client,
-        token_admin_client,
-        resolver_address,
-        resolver_client,
-    ) = setup();
+    let (env, admin, _token_address, token_client, token_admin_client, resolver_address, resolver_client) = setup();
 
     // Query metadata via standard token interface
     let resolver_token_client = token::Client::new(&env, &resolver_address);
@@ -128,10 +112,7 @@ fn test_openzeppelin_token_compliance() {
         resolver_token_client.name(),
         SorobanString::from_str(&env, "Attestation Reward Token")
     );
-    assert_eq!(
-        resolver_token_client.symbol(),
-        SorobanString::from_str(&env, "AREWARD")
-    );
+    assert_eq!(resolver_token_client.symbol(), SorobanString::from_str(&env, "AREWARD"));
     assert_eq!(resolver_token_client.decimals(), 7);
 
     // Create a balance by distributing rewards
@@ -152,15 +133,7 @@ fn test_openzeppelin_token_compliance() {
 
 #[test]
 fn test_insufficient_pool_handling() {
-    let (
-        env,
-        _admin,
-        _token_address,
-        _token_client,
-        _token_admin_client,
-        _resolver_address,
-        resolver_client,
-    ) = setup();
+    let (env, _admin, _token_address, _token_client, _token_admin_client, _resolver_address, resolver_client) = setup();
     let attester = Address::generate(&env);
     let attestation = build_attestation(&env, &attester);
 
@@ -169,31 +142,17 @@ fn test_insufficient_pool_handling() {
     // ISSUE: balance verification in after_attest may allow overdrawing reward pool
     // RECOMMENDATION: Ensure contract checks pool balance before transfer
     // IMPACT: Contract could distribute more tokens than it holds
-    assert!(matches!(
-        result.err().unwrap(),
-        Ok(ResolverError::InsufficientFunds)
-    ));
+    assert!(matches!(result.err().unwrap(), Ok(ResolverError::InsufficientFunds)));
 }
 
 #[test]
 fn test_non_admin_cannot_set_reward_amount() {
-    let (
-        env,
-        _admin,
-        _token_address,
-        _token_client,
-        _token_admin_client,
-        _resolver_address,
-        resolver_client,
-    ) = setup();
+    let (env, _admin, _token_address, _token_client, _token_admin_client, _resolver_address, resolver_client) = setup();
     let attacker = Address::generate(&env);
     let result = resolver_client.try_set_reward_amount(&attacker, &200);
     // If this assertion fails:
     // ISSUE: set_reward_amount missing admin check
     // RECOMMENDATION: Review require_admin logic
     // IMPACT: Unauthorized users could change reward economics
-    assert!(matches!(
-        result.err().unwrap(),
-        Ok(ResolverError::NotAuthorized)
-    ));
+    assert!(matches!(result.err().unwrap(), Ok(ResolverError::NotAuthorized)));
 }
