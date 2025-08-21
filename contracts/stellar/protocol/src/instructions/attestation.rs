@@ -248,7 +248,7 @@ pub fn attest(
 pub fn get_attestation_record(
     env: &Env,
     attestation_uid: BytesN<32>,
-) -> Attestation {
+) -> Result<Attestation, Error> {
 
 
     // Get attestation
@@ -263,11 +263,13 @@ pub fn get_attestation_record(
     // Check if attestation is expired
     if let Some(exp_time) = attestation.expiration_time {
         if env.ledger().timestamp() > exp_time {
-            panic_with_error!(env, Error::AttestationExpired);
+            //clear this attestation from the storage
+            env.storage().persistent().remove(&DataKey::AttestationUID(attestation.uid));
+            return Err(Error::AttestationExpired);
         }
     }
 
-    attestation
+    Ok(attestation)
 }
 
 /// Revokes an attestation using the nonce-based system.
