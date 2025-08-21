@@ -14,9 +14,10 @@ use state::{
 };
 
 use instructions::{
-    attest, attest_by_delegation, get_attestation, get_bls_public_key, list_attestations,
+    attest, attest_by_delegation, get_attestation_record, get_bls_public_key, list_attestations,
     register_bls_public_key, register_schema, revoke_attestation, revoke_by_delegation,
 };
+
 
 #[contract]
 pub struct AttestationContract;
@@ -71,7 +72,7 @@ impl AttestationContract {
         subject: Address,
         nonce: u64,
     ) -> Result<Attestation, errors::Error> {
-        get_attestation(&env, schema_uid, subject, nonce)
+        Ok(get_attestation_record(&env, schema_uid, subject, nonce))
     }
 
     /// Lists attestations for a schema and subject

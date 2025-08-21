@@ -1,5 +1,4 @@
-use protocol::{ state::Attestation, AttestationContract, AttestationContractClient };
-use protocol::errors::Error as ProtocolError;
+use protocol::{AttestationContract, AttestationContractClient};
 use soroban_sdk::{
 	symbol_short,
 	testutils::{Address as _, Events, Ledger, MockAuth, MockAuthInvoke},
@@ -337,9 +336,7 @@ fn test_attesting_with_unregistered_schema() {
 	let expiration_time: Option<u64> = None;
 	let result = client.try_attest(&attester, &schema_uid, &subject, &value, &expiration_time);
 
-	dbg!(&result);
-
-	assert_eq!(result, Ok(Err(ProtocolError::SchemaNotFound.into())));
+	assert_eq!(result, Err(Ok(protocol::errors::Error::SchemaNotFound.into())));
 }
 
 #[test]
@@ -370,9 +367,7 @@ fn test_querying_non_existent_attestation() {
 
 	// Try to get an attestation with a nonce that doesn't exist
 	let result = client.try_get_attestation(&schema_uid, &subject, &0);
-
-	dbg!(&result);
-	assert_eq!(result, Ok(Err(ProtocolError::AttestationNotFound.into())));
+	assert_eq!(result, Err(Ok(protocol::errors::Error::AttestationNotFound.into())));
 }
 
 #[test]
@@ -412,12 +407,12 @@ fn test_attest_with_past_expiration_fails() {
 	let expiration_time = Some(999u64); // In the past
 	let result = client.try_attest(&attester, &schema_uid, &subject, &value, &expiration_time);
 
-	assert_eq!(result, Ok(Err(ProtocolError::InvalidDeadline.into())));
+	assert_eq!(result, Err(Ok(protocol::errors::Error::InvalidDeadline.into())));
 }
 
 #[test]
+/// Test that an expired attestation cannot be retrieved.
 fn test_handling_expired_attestations() {
-	// Test that an expired attestation cannot be retrieved.
 	let env = Env::default();
 	let contract_id = env.register(AttestationContract {}, ());
 	let client = AttestationContractClient::new(&env, &contract_id);
@@ -425,13 +420,9 @@ fn test_handling_expired_attestations() {
 	let attester = Address::generate(&env);
 	let subject = Address::generate(&env);
 
-	// Mock all authorizations
 	env.mock_all_auths();
-
-	// initialize
 	client.initialize(&admin);
 
-	// register schema
 	let schema_definition = SorobanString::from_str(
 		&env,
 		r#"{"name":"Simple","version":"1.0","description":"Simple","fields":[]}"#,
@@ -445,10 +436,7 @@ fn test_handling_expired_attestations() {
 	let current_time = env.ledger().timestamp();
 	let value = SorobanString::from_str(&env, "{\"origin\":\"saudi\"}");
 	let expiration_time = Some(current_time + 100);
-	let nonce = client
-		.try_attest(&attester, &schema_uid, &subject, &value, &expiration_time)
-		.unwrap();
-	assert_eq!(nonce, 0);
+	let nonce = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
 
 	// set the ledger timestamp to be in the "future"
 	// relative to the expiration time
@@ -459,7 +447,5 @@ fn test_handling_expired_attestations() {
 
 	// Now try to get the attestation, it should fail with AttestationExpired
 	let result = client.try_get_attestation(&schema_uid, &subject, &nonce);
-	dbg!(&result);
-	// dbg!(&ProtocolError::AttestationExpired);
-	assert_eq!(result, Ok(Err(ProtocolError::AttestationExpired)));
+	assert_eq!(result, Err(Ok(protocol::errors::Error::AttestationExpired.into())));
 }

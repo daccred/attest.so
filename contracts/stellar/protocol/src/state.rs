@@ -142,8 +142,8 @@ pub struct DelegatedRevocationRequest {
 ///
 /// Used for tracking attestations and supporting multiple attestations per schema/subject
 /// pair through nonces.
-#[derive(Clone, Debug, PartialEq)]
 #[contracttype]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Attestation {
     /// The unique identifier of the schema this attestation follows
     pub schema_uid: BytesN<32>,

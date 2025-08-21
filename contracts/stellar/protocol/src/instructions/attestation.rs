@@ -1,6 +1,6 @@
 use crate::errors::Error;
 use crate::state::{Attestation, DataKey};
-use soroban_sdk::{Address, Bytes, BytesN, Env, String, Vec};
+use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, String, Vec};
 
 use crate::events;
 use crate::interfaces::resolver::{ResolverAttestation, ResolverClient};
@@ -239,15 +239,21 @@ pub fn attest(
 /// * `nonce` - The nonce of the attestation
 ///
 /// # Returns
-/// * `Result<Attestation, Error>` - The attestation record or error
-pub fn get_attestation(
+/// * `Attestation` - The attestation record
+///
+/// # Panics
+/// * If the schema or attestation is not found
+/// * If the attestation is expired
+pub fn get_attestation_record(
     env: &Env,
     schema_uid: BytesN<32>,
     subject: Address,
     nonce: u64,
-) -> Result<Attestation, Error> {
+) -> Attestation {
     // Verify schema exists
-    let _schema = utils::get_schema(env, &schema_uid).ok_or(Error::SchemaNotFound)?;
+    let _schema = utils::get_schema(env, &schema_uid).unwrap_or_else(|| {
+        panic_with_error!(env, Error::SchemaNotFound);
+    });
 
     // Get attestation
     let attest_key = DataKey::Attestation(schema_uid, subject, nonce);
@@ -255,16 +261,18 @@ pub fn get_attestation(
         .storage()
         .persistent()
         .get::<DataKey, Attestation>(&attest_key)
-        .ok_or(Error::AttestationNotFound)?;
+        .unwrap_or_else(|| {
+            panic_with_error!(env, Error::AttestationNotFound);
+        });
 
     // Check if attestation is expired
     if let Some(exp_time) = attestation.expiration_time {
         if env.ledger().timestamp() > exp_time {
-            return Err(Error::AttestationExpired);
+            panic_with_error!(env, Error::AttestationExpired);
         }
     }
 
-    Ok(attestation)
+    attestation
 }
 
 /// Revokes an attestation using the nonce-based system.
