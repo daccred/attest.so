@@ -5,7 +5,7 @@ use crate::state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedR
 use crate::utils;
 use soroban_sdk::{Address, Bytes, BytesN, Env};
 
-/// Creates an attestation through delegated signature following the EAS pattern.
+/// Creates an attestation through delegated signature.
 ///
 /// This function allows anyone to submit a pre-signed attestation request on-chain.
 /// The original attester signs the attestation data off-chain, and any party can
@@ -86,7 +86,7 @@ pub fn attest_by_delegation(
 /// Revokes an attestation through delegated signature.
 ///
 /// This function allows anyone to submit a pre-signed revocation request on-chain.
-/// Similar to EAS, revocation also requires a signature from the original attester
+/// revocation also requires a signature from the original attester
 /// to prevent unauthorized revocations.
 ///
 /// # Arguments

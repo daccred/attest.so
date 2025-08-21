@@ -121,7 +121,7 @@ pub struct Schema {
 /// ║                      DelegatedAttestationRequest                          ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
 ///
-/// Represents a request for delegated attestation following the EAS pattern.
+/// Represents a request for delegated attestations.
 ///
 /// This allows an attester to sign an attestation off-chain, which can then be
 /// submitted on-chain by any party (who will pay the transaction fees).
@@ -152,7 +152,7 @@ pub struct DelegatedAttestationRequest {
 /// ║                      DelegatedRevocationRequest                           ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
 ///
-/// Represents a request for delegated revocation following the EAS pattern.
+/// Represents a request for delegated revocation.
 ///
 /// This allows an attester to sign a revocation off-chain, which can then be
 /// submitted on-chain by any party.
@@ -180,7 +180,7 @@ pub struct DelegatedRevocationRequest {
 /// Represents an attestation with support for both direct and delegated attestations.
 ///
 /// Used for tracking attestations and supporting multiple attestations per schema/subject
-/// pair through nonces, following the EAS pattern.
+/// pair through nonces.
 #[derive(Clone)]
 #[contracttype]
 pub struct Attestation {

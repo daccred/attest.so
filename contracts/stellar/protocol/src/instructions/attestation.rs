@@ -123,7 +123,7 @@ fn generate_attestation_uid(
 
 /// Creates a new attestation using nonce-based system for unique identification.
 ///
-/// This function follows the Solana/EAS pattern of using nonces to allow multiple
+/// This function follows the security pattern of using nonces to allow multiple
 /// attestations for the same schema/subject pair. Each attestation is uniquely
 /// identified by (schema_uid, subject, nonce).
 ///

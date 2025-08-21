@@ -85,10 +85,10 @@ impl AttestationContract {
     }
 
     // ══════════════════════════════════════════════════════════════════════════════
-    // ► Delegated Attestation Functions (EAS-style)
+    // ► Delegated Attestation Functions  
     // ══════════════════════════════════════════════════════════════════════════════
 
-    /// Creates an attestation using a delegated signature (EAS-style)
+    /// Creates an attestation using a delegated signature
     /// Anyone can submit this transaction, paying the fees
     pub fn attest_by_delegation(
         env: Env,
