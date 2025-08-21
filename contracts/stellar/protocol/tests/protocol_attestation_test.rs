@@ -1,9 +1,15 @@
-use protocol::{AttestationContract, AttestationContractClient};
+use protocol::{utils::{create_xdr_string, generate_attestation_uid}, AttestationContract, AttestationContractClient};
 use soroban_sdk::{
 	symbol_short,
 	testutils::{Address as _, Events, Ledger, MockAuth, MockAuthInvoke},
 	Address, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal,
 };
+
+
+fn return_schema_definition(env: &Env) -> String {
+	let schema = create_xdr_string(&env, &SorobanString::from_str(&env, r#"{"name":"Simple","version":"1.0","description":"Simple","fields":[]}"#)).to_string();
+	format!("XDR:{}", schema)
+}
 
 #[test]
 fn create_and_get_attestation() {
@@ -13,6 +19,11 @@ fn create_and_get_attestation() {
     let admin = Address::generate(&env);
     let attester = Address::generate(&env);
     let subject = Address::generate(&env);
+
+		println!("=============================================================");
+		println!("      Running test case: {}", "create_and_get_attestation");
+		println!("=============================================================");
+
 
     // initialize
     let admin_clone_for_init_args = admin.clone();
@@ -30,8 +41,7 @@ fn create_and_get_attestation() {
     // register schema
     let schema_definition = SorobanString::from_str(
         &env,
-        r#"{"name":"Simple","version":"1.0","description":"Simple","fields":[]}"#,
-    );
+        &create_xdr_string(&env, &SorobanString::from_str(&env, r#"{"name":"Simple","version":"1.0","description":"Simple","fields":[]}"#)).to_string());
     let resolver: Option<Address> = None;
     let revocable = true;
     env.mock_auths(&[MockAuth {
@@ -71,7 +81,7 @@ fn create_and_get_attestation() {
             sub_invokes: &[],
         },
     }]);
-    let nonce: u64 = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+    let attestation_uid: BytesN<32> = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
 
     // verify event shape
     let events = env.events().all();
@@ -87,21 +97,29 @@ fn create_and_get_attestation() {
         u64,
         u64,
     ) = last.2.try_into_val(&env).unwrap();
+
+		dbg!(&subject_ev, &attester_ev, &value_ev, &nonce_ev);
     assert_eq!(subject_ev, subject);
     assert_eq!(attester_ev, attester);
     assert_eq!(value_ev, value);
-    assert_eq!(nonce_ev, nonce);
+    assert_eq!(generate_attestation_uid(&env, &schema_uid, &subject, nonce_ev), attestation_uid);
     let _ = timestamp_ev; // timestamp may be zero in test env; no assertion
 
     // get attestation and verify
-    let fetched = client.get_attestation(&schema_uid, &subject, &nonce);
+    let fetched = client.get_attestation(&attestation_uid);
     assert_eq!(fetched.schema_uid, schema_uid);
     assert_eq!(fetched.subject, subject);
     assert_eq!(fetched.attester, attester);
     assert_eq!(fetched.value, value);
-    assert_eq!(fetched.nonce, nonce);
+    assert_eq!(fetched.uid, attestation_uid);
     assert_eq!(fetched.expiration_time, expiration_time);
     assert_eq!(fetched.revoked, false);
+
+		println!("=============================================================");
+		println!("      Finished test case: {}", "create_and_get_attestation");
+		println!("=============================================================");
+
+
 }
 
 // Happy Path Scenarios
@@ -117,7 +135,10 @@ fn test_attestation_without_expiration() {
     let attester = Address::generate(&env);
     let subject = Address::generate(&env);
 
-    // initialize
+		println!("==================================================================");
+		println!("   Running test case: {}", "test_attestation_without_expiration");
+		println!("==================================================================");
+
     let admin_clone_for_init_args = admin.clone();
     env.mock_auths(&[MockAuth {
         address: &admin,
@@ -129,6 +150,44 @@ fn test_attestation_without_expiration() {
         },
     }]);
     client.initialize(&admin);
+	let schema_definition = SorobanString::from_str(&env, &return_schema_definition(&env));
+	let resolver: Option<Address> = None;
+	let revocable = false;
+	env.mock_auths(&[MockAuth {
+		address: &attester,
+		invoke: &MockAuthInvoke {
+			contract: &contract_id,
+			fn_name: "register",
+			args: (attester.clone(), schema_definition.clone(), resolver.clone(), revocable).into_val(&env),
+			sub_invokes: &[],
+		},
+	}]);
+	let schema_uid: BytesN<32> = client.register(&attester, &schema_definition, &resolver, &revocable);
+	
+	// Attest to the Schema
+	let value = SorobanString::from_str(&env, "{\"foo\":\"bar\"}");
+	let expiration_time: Option<u64> = None;
+	env.mock_auths(&[MockAuth {
+		address: &attester,
+		invoke: &MockAuthInvoke {
+			contract: &contract_id,
+			fn_name: "attest",
+			args: (attester.clone(), schema_uid.clone(), subject.clone(), value.clone(), expiration_time.clone()).into_val(&env),
+			sub_invokes: &[],
+		},
+	}]);
+	let attestation_uid: BytesN<32> = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+
+
+
+
+
+		println!("==================================================================");
+		println!("   Finished test case: {}", "test_attestation_without_expiration");
+		println!("==================================================================");
+
+
+		
 }
 
 #[test]
@@ -181,10 +240,7 @@ fn test_multiple_attestations_for_same_subject_and_schema() {
 	client.initialize(&admin);
 
 	// register schema
-	let schema_definition = SorobanString::from_str(
-		&env,
-		r#"{"name":"Simple","version":"1.0","description":"Simple","fields":[]}"#,
-	);
+	let schema_definition = SorobanString::from_str(&env, &return_schema_definition(&env));
 	let resolver: Option<Address> = None;
 	let revocable = true;
 	env.mock_auths(&[MockAuth {
@@ -224,8 +280,7 @@ fn test_multiple_attestations_for_same_subject_and_schema() {
 			sub_invokes: &[],
 		},
 	}]);
-	let nonce1: u64 = client.attest(&attester, &schema_uid, &subject, &value1, &expiration_time1);
-	assert_eq!(nonce1, 0);
+	let uid_0: BytesN<32> = client.attest(&attester, &schema_uid, &subject, &value1, &expiration_time1);
 
 	// attest - 2
 	let value2 = SorobanString::from_str(&env, "{\"foo\":\"bar2\"}");
@@ -246,8 +301,8 @@ fn test_multiple_attestations_for_same_subject_and_schema() {
 			sub_invokes: &[],
 		},
 	}]);
-	let nonce2: u64 = client.attest(&attester, &schema_uid, &subject, &value2, &expiration_time2);
-	assert_eq!(nonce2, 1);
+	let uid_1: BytesN<32> = client.attest(&attester, &schema_uid, &subject, &value2, &expiration_time2);
+	assert_eq!(uid_1, generate_attestation_uid(&env, &schema_uid, &subject, 1));
 
 	// attest - 3
 	let value3 = SorobanString::from_str(&env, "{\"foo\":\"bar3\"}");
@@ -268,24 +323,24 @@ fn test_multiple_attestations_for_same_subject_and_schema() {
 			sub_invokes: &[],
 		},
 	}]);
-	let nonce3: u64 = client.attest(&attester, &schema_uid, &subject, &value3, &expiration_time3);
-	assert_eq!(nonce3, 2);
+	let uid_2: BytesN<32> = client.attest(&attester, &schema_uid, &subject, &value3, &expiration_time3);
+	assert_eq!(uid_2, generate_attestation_uid(&env, &schema_uid, &subject, 2));
 
 	// get attestations and verify
-	let fetched1 = client.get_attestation(&schema_uid, &subject, &nonce1);
-	assert_eq!(fetched1.nonce, nonce1);
-	assert_eq!(fetched1.value, value1);
-	assert_eq!(fetched1.expiration_time, expiration_time1);
+	let fetched0 = client.get_attestation(&uid_0);
+	assert_eq!(fetched0.uid, uid_0);
+	assert_eq!(fetched0.value, value1);
+	assert_eq!(fetched0.expiration_time, expiration_time1);
 
-	let fetched2 = client.get_attestation(&schema_uid, &subject, &nonce2);
-	assert_eq!(fetched2.nonce, nonce2);
-	assert_eq!(fetched2.value, value2);
-	assert_eq!(fetched2.expiration_time, expiration_time2);
+	let fetched1 = client.get_attestation(&uid_1);
+	assert_eq!(fetched1.uid, uid_1);
+	assert_eq!(fetched1.value, value2);
+	assert_eq!(fetched1.expiration_time, expiration_time2);
 
-	let fetched3 = client.get_attestation(&schema_uid, &subject, &nonce3);
-	assert_eq!(fetched3.nonce, nonce3);
-	assert_eq!(fetched3.value, value3);
-	assert_eq!(fetched3.expiration_time, expiration_time3);
+	let fetched2 = client.get_attestation(&uid_2);
+	assert_eq!(fetched2.uid, uid_2);
+	assert_eq!(fetched2.value, value3);
+	assert_eq!(fetched2.expiration_time, expiration_time3);
 }
 
 #[test]
@@ -346,27 +401,10 @@ fn test_querying_non_existent_attestation() {
 	let contract_id = env.register(AttestationContract {}, ());
 	let client = AttestationContractClient::new(&env, &contract_id);
 	let admin = Address::generate(&env);
-	let attester = Address::generate(&env);
-	let subject = Address::generate(&env);
 
-	// Mock all authorizations
 	env.mock_all_auths();
-
-	// initialize
 	client.initialize(&admin);
-
-	// Register a schema so we have a valid UID to query with
-	let schema_definition = SorobanString::from_str(
-		&env,
-		r#"{"name":"Simple","version":"1.0","description":"Simple","fields":[]}"#,
-	);
-	let resolver: Option<Address> = None;
-	let revocable = true;
-	let schema_uid: BytesN<32> =
-		client.register(&attester, &schema_definition, &resolver, &revocable);
-
-	// Try to get an attestation with a nonce that doesn't exist
-	let result = client.try_get_attestation(&schema_uid, &subject, &0);
+	let result = client.try_get_attestation(&BytesN::from_array(&env, &[1; 32]));
 	assert_eq!(result, Err(Ok(protocol::errors::Error::AttestationNotFound.into())));
 }
 
@@ -436,7 +474,7 @@ fn test_handling_expired_attestations() {
 	let current_time = env.ledger().timestamp();
 	let value = SorobanString::from_str(&env, "{\"origin\":\"saudi\"}");
 	let expiration_time = Some(current_time + 100);
-	let nonce = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+	let attestation_uid = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
 
 	// set the ledger timestamp to be in the "future"
 	// relative to the expiration time
@@ -446,6 +484,6 @@ fn test_handling_expired_attestations() {
 	});
 
 	// Now try to get the attestation, it should fail with AttestationExpired
-	let result = client.try_get_attestation(&schema_uid, &subject, &nonce);
+	let result = client.try_get_attestation(&attestation_uid);
 	assert_eq!(result, Err(Ok(protocol::errors::Error::AttestationExpired.into())));
 }

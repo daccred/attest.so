@@ -71,7 +71,7 @@ fn revoke_attestation_by_nonce() {
             sub_invokes: &[],
         },
     }]);
-    let nonce: u64 = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+    let attestation_uid: BytesN<32> = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
 
     // revoke by attester
     env.mock_auths(&[MockAuth {
@@ -79,11 +79,11 @@ fn revoke_attestation_by_nonce() {
         invoke: &MockAuthInvoke {
             contract: &contract_id,
             fn_name: "revoke_attestation",
-            args: (attester.clone(), schema_uid.clone(), subject.clone(), nonce).into_val(&env),
+            args: (attester.clone(), attestation_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    client.revoke_attestation(&attester, &schema_uid, &subject, &nonce);
+    client.revoke_attestation(&attester, &attestation_uid);
 
     // verify revocation event shape
     let events = env.events().all();
@@ -91,20 +91,19 @@ fn revoke_attestation_by_nonce() {
     assert_eq!(last.0, contract_id);
     let expected_topics = (symbol_short!("ATTEST"), symbol_short!("REVOKE")).into_val(&env);
     assert_eq!(last.1, expected_topics);
-    let (_schema_uid_ev, subject_ev, attester_ev, nonce_ev, revocation_time_ev): (
+    let (_schema_uid_ev, subject_ev, attester_ev, attestation_uid_ev, revocation_time_ev): (
         BytesN<32>,
         Address,
-        Address,
-        u64,
+        Address, BytesN<32>,
         Option<u64>,
     ) = last.2.try_into_val(&env).unwrap();
     assert_eq!(subject_ev, subject);
     assert_eq!(attester_ev, attester);
-    assert_eq!(nonce_ev, nonce);
+    assert_eq!(attestation_uid_ev, attestation_uid);
     assert!(revocation_time_ev.is_some());
 
     // verify state reflects revocation
-    let fetched = client.get_attestation(&schema_uid, &subject, &nonce);
+    let fetched = client.get_attestation(&attestation_uid);
     assert!(fetched.revoked);
     assert!(fetched.revocation_time.is_some());
 }
