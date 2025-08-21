@@ -1,6 +1,7 @@
-use protocol::{state::Attestation, utils::{create_xdr_string, generate_attestation_uid}, AttestationContract, AttestationContractClient};
+use protocol::{errors::Error, state::{Attestation, DataKey}, utils::{create_xdr_string, generate_attestation_uid}, AttestationContract, AttestationContractClient};
 use soroban_sdk::{
 	symbol_short,
+	panic_with_error,
 	testutils::{Address as _, Events, Ledger, MockAuth, MockAuthInvoke},
 	Address, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal,
 };
@@ -475,38 +476,54 @@ fn test_attest_with_past_expiration_fails() {
 	let env = Env::default();
 	let contract_id = env.register(AttestationContract {}, ());
 	let client = AttestationContractClient::new(&env, &contract_id);
-	let admin = Address::generate(&env);
+	let admin_for_init_args = Address::generate(&env);
 	let attester = Address::generate(&env);
-	let subject = Address::generate(&env);
 
-	// Mock all authorizations
 	env.mock_all_auths();
+	client.initialize(&admin_for_init_args);
 
-	// initialize
-	client.initialize(&admin);
+	println!("=============================================================");
+	println!("Testing: Attesting with past expiration time should fail");
+	println!("=============================================================");
 
-	// register schema
-	let schema_definition = SorobanString::from_str(
-		&env,
-		r#"{"name":"Simple","version":"1.0","description":"Simple","fields":[]}"#,
-	);
+	let schema_definition = SorobanString::from_str(&env, &return_schema_definition(&env));
 	let resolver: Option<Address> = None;
 	let revocable = true;
+
+	env.mock_auths(&[MockAuth {
+		address: &attester,
+		invoke: &MockAuthInvoke {
+			contract: &contract_id,
+			fn_name: "register",
+			args: (attester.clone(), schema_definition.clone(), resolver.clone(), revocable).into_val(&env),
+			sub_invokes: &[],
+		},
+	}]);
 	let schema_uid: BytesN<32> =
 		client.register(&attester, &schema_definition, &resolver, &revocable);
 
-	// Set the ledger timestamp
-	env.ledger().set(soroban_sdk::testutils::LedgerInfo {
-		timestamp: 1000,
-		..Default::default()
-	});
-
 	// attest with a past expiration time
-	let value = SorobanString::from_str(&env, "{\"foo\":\"bar\"}");
-	let expiration_time = Some(999u64); // In the past
-	let result = client.try_attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+	// Using 0 as expiration which will fail since 0 <= 0 (current_time starts at 0)
+	let value = SorobanString::from_str(&env, "{\"batch\":\"summer\"}");
+	let expiration_time = Some(0); // This will fail validation since 0 <= 0
 
-	assert_eq!(result, Err(Ok(protocol::errors::Error::InvalidDeadline.into())));
+	env.mock_auths(&[MockAuth {
+		address: &attester,
+		invoke: &MockAuthInvoke {
+			contract: &contract_id,
+			fn_name: "attest",
+			args: (attester.clone(), schema_uid.clone(), attester.clone(), value.clone(), expiration_time.clone()).into_val(&env),
+			sub_invokes: &[],
+		},
+	}]);
+	let err_on_result = client.try_attest(&attester, &schema_uid, &attester, &value, &expiration_time);
+
+	dbg!(&err_on_result);
+	assert_eq!(err_on_result, Err(Ok(protocol::errors::Error::InvalidDeadline)));
+
+	println!("=============================================================");
+	println!("   Finished test case: {}", "test_attest_with_past_expiration_fails");
+	println!("=============================================================");
 }
 
 #[test]
@@ -517,7 +534,6 @@ fn test_handling_expired_attestations() {
 	let client = AttestationContractClient::new(&env, &contract_id);
 	let admin = Address::generate(&env);
 	let attester = Address::generate(&env);
-	let subject = Address::generate(&env);
 
 	env.mock_all_auths();
 	client.initialize(&admin);
@@ -535,18 +551,43 @@ fn test_handling_expired_attestations() {
 	let current_time = env.ledger().timestamp();
 	let value = SorobanString::from_str(&env, "{\"origin\":\"saudi\"}");
 	let expiration_time = Some(current_time + 100);
-	let attestation_uid = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+	let attestation_uid = client.attest(&attester, &schema_uid, &attester, &value, &expiration_time);
 
 	// set the ledger timestamp to be in the "future"
 	// relative to the expiration time
 	env.ledger().set(soroban_sdk::testutils::LedgerInfo {
+		protocol_version: 22,
+		sequence_number: 0,
+		network_id: [0; 32],
+		base_reserve: 0,
+		min_temp_entry_ttl: 0,
+		min_persistent_entry_ttl: 0,
+		max_entry_ttl: 0,
 		timestamp: current_time + 101,
-		..Default::default()
 	});
 
 	// Now try to get the attestation, it should fail with AttestationExpired
 	let result = client.try_get_attestation(&attestation_uid);
 	assert_eq!(result, Err(Ok(protocol::errors::Error::AttestationExpired.into())));
+
+let record = env.as_contract(&contract_id, || {
+	env.storage()
+		.persistent()
+		.get::<DataKey, Attestation>(&DataKey::AttestationUID(attestation_uid))
+		.unwrap_or_else(|| {
+			panic_with_error!(env, Error::AttestationNotFound);
+		})
+});
+// 	.unwrap_or_else(Attestation || {
+// 		panic_with_error!(env, Error::AttestationNotFound);
+// });
+
+
+	// Now calling Get Attestation Record should fail with AttestationNotFound
+	// let new_result = client.try_get_attestation(&attestation_uid);
+	dbg!(&record);
+	dbg!(&result);
+	// assert_eq!(new_result, Err(Ok(protocol::errors::Error::AttestationNotFound.into())));
 }
 
 

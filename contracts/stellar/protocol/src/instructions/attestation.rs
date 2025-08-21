@@ -250,7 +250,6 @@ pub fn get_attestation_record(
     attestation_uid: BytesN<32>,
 ) -> Result<Attestation, Error> {
 
-
     // Get attestation
     let attestation = env
         .storage()
@@ -264,7 +263,7 @@ pub fn get_attestation_record(
     if let Some(exp_time) = attestation.expiration_time {
         if env.ledger().timestamp() > exp_time {
             //clear this attestation from the storage
-            env.storage().persistent().remove(&DataKey::AttestationUID(attestation.uid));
+            env.storage().persistent().remove(&DataKey::AttestationUID(attestation.uid.clone()));
             return Err(Error::AttestationExpired);
         }
     }
