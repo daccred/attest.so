@@ -1,5 +1,5 @@
-use soroban_sdk::xdr::{Limits, ReadXdr, ScBytes, ScString, ScVal, ToXdr, WriteXdr};
-use soroban_sdk::{Address, Bytes, BytesN, Env, String, FromVal};
+use soroban_sdk::xdr::{Limits, ScBytes, ScVal, ToXdr, WriteXdr};
+use soroban_sdk::{Address, BytesN, Env, String};
 use crate::state::{DataKey, StoredAttestation, Schema, Authority};
 use crate::errors::Error;
 use crate::interfaces::resolver::ResolverAttestation;
@@ -100,24 +100,26 @@ pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
         .unwrap_or(0)
 }
 
-
-/// Creates XDR bytes from a string.
+/// Creates a base64-encoded XDR string from a Soroban string value.
 ///
-/// This utility function converts a string value into raw XDR bytes. 
-/// This is the standard format for working with XDR data in Soroban contracts.
+/// This utility function takes a Soroban string, converts it to XDR bytes,
+/// hashes those bytes using SHA256, and then encodes the hash as a base64 XDR string.
+/// This is useful for creating deterministic identifiers or for XDR serialization
+/// in Soroban contracts.
 ///
 /// # Arguments
 /// * `env` - The Soroban environment
-/// * `value` - A string value to convert to XDR
+/// * `value` - A Soroban string value to process
 ///
 /// # Returns   
-/// * `String` - String encoded in base64 XDR bytes representation of the string
+/// * `String` - A Soroban string containing the base64-encoded XDR representation 
+///   of the SHA256 hash of the input string's XDR bytes
 ///
 /// # Example
 /// ```ignore
 /// let some_string = String::from_str(&env, "hello world");
-/// let xdr_bytes = create_xdr_string(&env, &some_string);
-/// // Returns raw XDR bytes that can be used for hashing or storage
+/// let xdr_string = create_xdr_string(&env, &some_string);
+/// // Returns a base64-encoded XDR string of the SHA256 hash
 /// ```
 pub fn create_xdr_string(env: &Env, value: &String) -> String {
   let xdr_bytes = value.clone().to_xdr(env);
@@ -125,13 +127,12 @@ pub fn create_xdr_string(env: &Env, value: &String) -> String {
 
   // Wrap the hash in an ScVal
   let hash: BytesN<32> = env.crypto().sha256(&xdr_bytes).into();
-  let bytes = Bytes::from_slice(env, &hash.to_array());
+  let sc_bytes = ScBytes::try_from(hash.to_array().to_vec()).unwrap();
+  let sc_val = ScVal::Bytes(sc_bytes);
   // This returns a std::string::String.
-  let base64_std_string = bytes.to_xdr_base64(Limits::none()).unwrap();
+  let base64_std_string = sc_val.to_xdr_base64(Limits::none()).unwrap();
 
   // Convert the std::string::String to a soroban_sdk::String
   String::from_str(env, &base64_std_string)
 }
 
-
- 

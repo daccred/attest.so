@@ -1,4 +1,4 @@
-use protocol::{utils::{create, create_xdr_string}, AttestationContract, AttestationContractClient};
+use protocol::{utils::create_xdr_string, AttestationContract, AttestationContractClient};
 use soroban_sdk::{symbol_short, testutils::{Address as _, Events, MockAuth, MockAuthInvoke}, Address, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal};
 
 #[test]
@@ -21,9 +21,9 @@ fn initialize_and_register_schema() {
 	}]);
 	client.initialize(&admin);
 
-	struct TestCase<'a> {
-		name: &'a str,
-		schema_definition: &'a str,
+	struct TestCase {
+		name: &'static str,
+		schema_definition: String,
 		resolver: Option<Address>,
 		revocable: bool,
 	}
@@ -31,13 +31,20 @@ fn initialize_and_register_schema() {
 	let test_cases = [
 		TestCase {
 			name: "simple_schema",
-			schema_definition: r#"{"name":"Degree","version":"1.0","description":"University degree","fields":[{"name":"degree","type":"string"}]}"#,
+			schema_definition: r#"{"name":"Degree","version":"1.0","description":"University degree","fields":[{"name":"degree","type":"string"}]}"#.to_string(),
 			resolver: None,
 			revocable: true,
 		},
 		TestCase {
 			name: "schema_with_resolver_and_not_revocable",
-			schema_definition: &format!(create_xdr_string(&env, r#"{"name":"Identity","version":"2.0","description":"Basic identity schema","fields":[{"name":"name","type":"string"}]}"#)),
+			schema_definition: format!(
+				"{}{}",
+				"XDR:",
+				create_xdr_string(
+					&env,
+					&SorobanString::from_str(&env, r#"{"name":"Identity","version":"2.0","description":"Basic_Identity_Schema","fields":[{"name":"name","type":"string"}]}"#),
+				).to_string()
+			),
 			resolver: Some(Address::generate(&env)),
 			revocable: false,
 		},
@@ -47,7 +54,7 @@ fn initialize_and_register_schema() {
 		println!("Running test case: {}", case.name);
 		let authority = Address::generate(&env);
 		// register schema
-		let schema_definition = SorobanString::from_str(&env, case.schema_definition);
+		let schema_definition = SorobanString::from_str(&env, &case.schema_definition);
 		env.mock_auths(&[MockAuth {
 			address: &authority,
 			invoke: &MockAuthInvoke {
