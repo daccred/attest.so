@@ -23,10 +23,11 @@ pub fn publish_attestation_event(env: &Env, attestation: &Attestation) {
 pub fn publish_revocation_event(env: &Env, attestation: &Attestation) {
     let topics = (symbol_short!("ATTEST"), symbol_short!("REVOKE"));
     let data = (
+        attestation.uid.clone(),
         attestation.schema_uid.clone(),
         attestation.subject.clone(),
         attestation.attester.clone(),
-        attestation.nonce,
+        attestation.revoked,
         attestation.revocation_time.clone(),
     );
     env.events().publish(topics, data);
