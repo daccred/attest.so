@@ -107,3 +107,60 @@ fn revoke_attestation_by_nonce() {
     assert!(fetched.revoked);
     assert!(fetched.revocation_time.is_some());
 }
+
+
+// #[test]
+// fn test_attestation_with_non_revocable_schema() {
+// 	// Attestation with a non-revocable schema: The schema in the test is revocable.
+// 	// Test the attestation flow with a schema where revocable is false.
+// 	let env = Env::default();
+// 	let contract_id = env.register(AttestationContract {}, ());
+// 	let client = AttestationContractClient::new(&env, &contract_id);
+// 	let admin = Address::generate(&env);
+// 	let attester = Address::generate(&env);
+// 	let subject = Address::generate(&env);
+
+// 	env.mock_all_auths();
+// 	client.initialize(&admin);
+
+// 	let schema_definition = SorobanString::from_str(
+// 		&env,
+// 		r#"{"name":"Simple","version":"1.0","description":"Simple","fields":[]}"#,
+// 	);
+// 	let resolver: Option<Address> = None;
+// 	let revocable = false;
+// 	let schema_uid: BytesN<32> =
+// 		client.register(&attester, &schema_definition, &resolver, &revocable);
+
+// 	// attest with an expiration time in the near future
+// 	let current_time = env.ledger().timestamp();
+// 	let value = SorobanString::from_str(&env, "{\"origin\":\"saudi\"}");
+// 	let expiration_time = Some(current_time + 100);
+// 	let attestation_uid = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+
+// 	// set the ledger timestamp to be in the "future"
+// 	// relative to the expiration time
+// 	env.ledger().set(soroban_sdk::testutils::LedgerInfo {
+// 		timestamp: current_time + 101,
+// 		..Default::default()
+// 	});
+
+// 	// Now try to revoke the attestation, it should fail with AttestationNotRevocable
+// 	let result = client.try_revoke_attestation(&attestation_uid);
+// 	assert_eq!(result, Err(Ok(protocol::errors::Error::AttestationNotRevocable.into())));
+
+
+
+// }
+
+
+// fn test_only_attester_can_revoke_attestation() {
+// 	let env = Env::default();
+// 	let contract_id = env.register(AttestationContract {}, ());
+// 	let client = AttestationContractClient::new(&env, &contract_id);
+// 	let admin = Address::generate(&env);
+// 	let attester = Address::generate(&env);
+// 	let subject = Address::generate(&env);
+
+// 	env.mock_all_auths();
+// }
