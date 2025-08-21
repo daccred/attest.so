@@ -128,7 +128,7 @@ pub fn register_schema(
     env.storage().instance().set(&schema_key, &schema);
 
     // Publish schema registration event
-    events::schema_registered(env, &schema_uid, &caller);
+    events::schema_registered(env, &schema_uid, &schema, &caller);
 
     Ok(schema_uid)
 }

@@ -1,14 +1,16 @@
 use soroban_sdk::{Env, symbol_short, BytesN, Address};
-use crate::state::Attestation;
+use crate::state::{ Attestation, Schema };
 
 pub fn schema_registered(
     env: &Env,
     schema_uid: &BytesN<32>,
+    schema: &Schema,
     authority: &Address,
 ) {
     let topics = (symbol_short!("SCHEMA"), symbol_short!("REGISTER"));
     let data = (
         schema_uid.clone(),
+        schema.clone(),
         authority.clone(),
     );
     env.events().publish(topics, data);
