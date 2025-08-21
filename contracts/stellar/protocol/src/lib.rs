@@ -68,7 +68,7 @@ impl AttestationContract {
         env: Env,
         attestation_uid: BytesN<32>,
     ) -> Result<Attestation, errors::Error> {
-        Ok(get_attestation_record(&env, attestation_uid))
+        get_attestation_record(&env, attestation_uid)
     }
 
     /// Lists attestations for a schema and subject
