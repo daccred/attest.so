@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Bytes, BytesN, String};
+use soroban_sdk::{contracttype, Address, BytesN, String};
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                                 DataKey                                   ║
@@ -33,45 +33,6 @@ pub enum DataKey {
 }
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗
-/// ║                           StoredAttestation                               ║
-/// ╚══════════════════════════════════════════════════════════════════════════╝
-///
-/// Represents an attestation stored in the contract.
-///
-/// Contains all the metadata and content related to a specific attestation,
-/// including timestamps, participants, and the actual attestation data.
-#[contracttype]
-#[derive(Clone)]
-pub struct StoredAttestation {
-    /// The unique identifier of the schema this attestation follows
-    pub schema_uid: BytesN<32>,
-    /// The address of the entity receiving the attestation
-    pub recipient: Address,
-    /// The address of the entity creating the attestation
-    pub attester: Address,
-    /// Timestamp when the attestation was created
-    pub time: u64,
-    /// Optional timestamp when the attestation expires
-    ///
-    /// If set, the attestation is considered invalid after this time.
-    pub expiration_time: Option<u64>,
-    /// Optional timestamp when the attestation was revoked
-    ///
-    /// If set, indicates this attestation has been explicitly invalidated.
-    pub revocation_time: Option<u64>,
-    /// Whether this attestation can be revoked by the attester
-    pub revocable: bool,
-    /// Optional reference to another attestation this one relates to
-    pub ref_uid: Option<Bytes>,
-    /// The actual attestation data
-    ///
-    /// Typically serialized according to the schema definition.
-    pub data: Bytes,
-    /// Optional numeric value associated with the attestation
-    pub value: Option<i128>,
-}
-
-/// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                               Authority                                   ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
 ///
@@ -101,7 +62,7 @@ pub struct Authority {
 /// - XDR-encoded: Stellar-native binary format for structured data
 /// - JSON: Human-readable structured format
 #[contracttype]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Schema {
     /// The address of the authority that created this schema
     pub authority: Address,
@@ -181,7 +142,7 @@ pub struct DelegatedRevocationRequest {
 ///
 /// Used for tracking attestations and supporting multiple attestations per schema/subject
 /// pair through nonces.
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[contracttype]
 pub struct Attestation {
     /// The unique identifier of the schema this attestation follows

@@ -1,27 +1,13 @@
 use crate::errors::Error;
-use crate::interfaces::resolver::ResolverAttestation;
-use crate::state::{Authority, DataKey, Schema, StoredAttestation};
+use crate::state::{Authority, DataKey, Schema};
 use soroban_sdk::xdr::{Limits, ScBytes, ScVal, ToXdr, WriteXdr};
 use soroban_sdk::{Address, BytesN, Env, String};
 
-// pub fn create_xdr_string(env: &Env, value: &String) -> Result<String, Error> {
-//     let val = ScVal::Symbol(ScSymbol::try_from(value.clone()).map_err(|_| Error::InvalidInput)?);
-//     let xdr_bytes = val.to_xdr_base64(Limits::none()).map_err(|_| Error::InvalidInput)?;
-//     let b64 = encode(&xdr_bytes);
-//     String::from_str(env, &b64)
-// }
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// DEPRECATED FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////////
 
-pub fn _to_attestation_record(
-    _env: &Env,
-    _uid: &BytesN<32>,
-    _att: &StoredAttestation,
-) -> ResolverAttestation {
-    unimplemented!("to_attestation_record needs update/removal");
-}
 
 pub fn _generate_attestation_uid(
     _env: &Env,
