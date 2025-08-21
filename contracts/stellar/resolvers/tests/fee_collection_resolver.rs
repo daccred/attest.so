@@ -7,7 +7,7 @@ use soroban_sdk::{
 };
 
 use resolvers::fee_collection::FeeCollectionResolverClient;
-use resolvers::{ResolverAttestationData, FeeCollectionResolver, ResolverError, ResolverType};
+use resolvers::{FeeCollectionResolver, ResolverAttestationData, ResolverError, ResolverType};
 
 const FEE_AMOUNT: i128 = 50;
 

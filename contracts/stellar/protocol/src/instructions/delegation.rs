@@ -1,9 +1,9 @@
-use soroban_sdk::{Address, Env, BytesN, Bytes};
-use crate::instructions::verify_bls_signature;
-use crate::state::{DataKey, Attestation, DelegatedAttestationRequest, DelegatedRevocationRequest};
 use crate::errors::Error;
-use crate::utils;
 use crate::events;
+use crate::instructions::verify_bls_signature;
+use crate::state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest};
+use crate::utils;
+use soroban_sdk::{Address, Bytes, BytesN, Env};
 
 /// Creates an attestation through delegated signature following the EAS pattern.
 ///
@@ -11,7 +11,7 @@ use crate::events;
 /// The original attester signs the attestation data off-chain, and any party can
 /// submit it on-chain (paying the transaction fees).
 ///
-/// Important: The BLS signature is created by the ATTESTER (the entity making 
+/// Important: The BLS signature is created by the ATTESTER (the entity making
 /// claims about subjects), not by the subject being attested. The subject never
 /// needs to interact with the blockchain in this flow.
 ///
@@ -37,26 +37,25 @@ pub fn attest_by_delegation(
     request: DelegatedAttestationRequest,
 ) -> Result<(), Error> {
     submitter.require_auth();
-    
+
     // Verify deadline hasn't passed
     let current_time = env.ledger().timestamp();
     if current_time > request.deadline {
         return Err(Error::ExpiredSignature);
     }
-    
+
     // Verify schema exists
-    let _schema = utils::get_schema(env, &request.schema_uid)
-        .ok_or(Error::SchemaNotFound)?;
-    
+    let _schema = utils::get_schema(env, &request.schema_uid).ok_or(Error::SchemaNotFound)?;
+
     // Verify and increment nonce
     verify_and_increment_nonce(env, &request.attester, request.nonce)?;
-    
+
     // Create message for signature verification
     let message = create_attestation_message(env, &request);
-    
+
     // Verify BLS12-381 signature
     verify_bls_signature(env, &message, &request.signature, &request.attester)?;
-    
+
     // Create attestation record
     let attestation = Attestation {
         schema_uid: request.schema_uid.clone(),
@@ -69,18 +68,18 @@ pub fn attest_by_delegation(
         revoked: false,
         revocation_time: None,
     };
-    
+
     // Store attestation
     let attest_key = DataKey::Attestation(
         request.schema_uid.clone(),
         request.subject.clone(),
-        request.nonce
+        request.nonce,
     );
     env.storage().persistent().set(&attest_key, &attestation);
-    
+
     // Emit event
     events::publish_attestation_event(env, &attestation);
-    
+
     Ok(())
 }
 
@@ -103,52 +102,53 @@ pub fn revoke_by_delegation(
     request: DelegatedRevocationRequest,
 ) -> Result<(), Error> {
     submitter.require_auth();
-    
+
     // Verify deadline hasn't passed
     let current_time = env.ledger().timestamp();
     if current_time > request.deadline {
         return Err(Error::ExpiredSignature);
     }
-    
+
     // Get the attestation
     let attest_key = DataKey::Attestation(
         request.schema_uid.clone(),
         request.subject.clone(),
-        request.nonce
+        request.nonce,
     );
-    
-    let mut attestation = env.storage().persistent()
+
+    let mut attestation = env
+        .storage()
+        .persistent()
         .get::<DataKey, Attestation>(&attest_key)
         .ok_or(Error::AttestationNotFound)?;
-    
+
     // Verify the revoker is the original attester
     if attestation.attester != request.revoker {
         return Err(Error::NotAuthorized);
     }
-    
+
     // Verify schema is revocable
-    let schema = utils::get_schema(env, &request.schema_uid)
-        .ok_or(Error::SchemaNotFound)?;
+    let schema = utils::get_schema(env, &request.schema_uid).ok_or(Error::SchemaNotFound)?;
     if !schema.revocable {
         return Err(Error::AttestationNotRevocable);
     }
-    
+
     // Create message for signature verification
     let message = create_revocation_message(env, &request);
-    
+
     // Verify BLS12-381 signature
     verify_bls_signature(env, &message, &request.signature, &request.revoker)?;
-    
+
     // Update attestation
     attestation.revoked = true;
     attestation.revocation_time = Some(current_time);
-    
+
     // Store updated attestation
     env.storage().persistent().set(&attest_key, &attestation);
-    
+
     // Emit revocation event
     events::publish_revocation_event(env, &attestation);
-    
+
     Ok(())
 }
 
@@ -215,24 +215,26 @@ fn verify_and_increment_nonce(
     expected_nonce: u64,
 ) -> Result<(), Error> {
     let nonce_key = DataKey::AttesterNonce(attester.clone());
-    
+
     // Get current nonce (default to 0 for new attesters)
     // This creates the starting point for each attester's nonce sequence
-    let current_nonce = env.storage().persistent()
+    let current_nonce = env
+        .storage()
+        .persistent()
         .get::<DataKey, u64>(&nonce_key)
         .unwrap_or(0);
-    
+
     // CRITICAL SECURITY CHECK: Verify nonce matches expected value exactly
     // This prevents replay attacks and ensures sequential processing
     if current_nonce != expected_nonce {
         return Err(Error::InvalidNonce);
     }
-    
+
     // ATOMIC OPERATION: Increment and store new nonce
     // This ensures the nonce can never be used again
     let new_nonce = current_nonce + 1;
     env.storage().persistent().set(&nonce_key, &new_nonce);
-    
+
     Ok(())
 }
 
@@ -301,42 +303,39 @@ fn verify_and_increment_nonce(
 /// 3. **Domain Separation**: Verify different domain separators produce different hashes
 /// 4. **Edge Cases**: Test with optional fields present/absent
 /// 5. **Encoding Validation**: Verify big-endian encoding consistency
-fn create_attestation_message(
-    env: &Env,
-    request: &DelegatedAttestationRequest,
-) -> BytesN<32> {
+fn create_attestation_message(env: &Env, request: &DelegatedAttestationRequest) -> BytesN<32> {
     let mut message = Bytes::new(env);
-    
+
     // DOMAIN SEPARATION: Unique protocol identifier prevents signature reuse
     // This string MUST match exactly with JavaScript implementation
     message.extend_from_slice(b"ATTEST_PROTOCOL_V1_DELEGATED");
-    
+
     // FIELD 1: Schema UID (32 bytes, deterministic order)
     message.extend_from_slice(&request.schema_uid.to_array());
-    
+
     // FIELD 2: Nonce (8 bytes, big-endian for cross-platform consistency)
     // Big-endian ensures JavaScript/Rust produce identical byte sequences
     let nonce_bytes = request.nonce.to_be_bytes();
     message.extend_from_slice(&nonce_bytes);
-    
-    // FIELD 3: Deadline (8 bytes, big-endian)  
+
+    // FIELD 3: Deadline (8 bytes, big-endian)
     // Signature expiration time for temporal security
     let deadline_bytes = request.deadline.to_be_bytes();
     message.extend_from_slice(&deadline_bytes);
-    
+
     // FIELD 4: Expiration Time (optional, 8 bytes if present)
     // Conditional inclusion must match JavaScript logic exactly
     if let Some(exp_time) = request.expiration_time {
         let exp_bytes = exp_time.to_be_bytes();
         message.extend_from_slice(&exp_bytes);
     }
-    
+
     // FIELD 5: Value Length (8 bytes, placeholder for actual value)
     // TODO: In production, include actual value hash for complete security
     // Currently using length as simplified placeholder for proof-of-concept
     let value_len_bytes = (request.value.len() as u64).to_be_bytes();
     message.extend_from_slice(&value_len_bytes);
-    
+
     // CRYPTOGRAPHIC HASH: SHA256 of complete message
     // This hash is what gets signed by BLS private key off-chain
     env.crypto().sha256(&message).into()
@@ -350,26 +349,22 @@ fn create_attestation_message(
 ///
 /// # Returns
 /// * `BytesN<32>` - The hash of the message to be signed
-fn create_revocation_message(
-    env: &Env,
-    request: &DelegatedRevocationRequest,
-) -> BytesN<32> {
+fn create_revocation_message(env: &Env, request: &DelegatedRevocationRequest) -> BytesN<32> {
     let mut message = Bytes::new(env);
-    
+
     // Add fixed domain separator (different from attestation)
     message.extend_from_slice(b"REVOKE_PROTOCOL_V1_DELEGATED");
-    
+
     // Encode request data deterministically
     message.extend_from_slice(&request.schema_uid.to_array());
-    
+
     // Add nonce and deadline as big-endian bytes
     let nonce_bytes = request.nonce.to_be_bytes();
     message.extend_from_slice(&nonce_bytes);
-    
+
     let deadline_bytes = request.deadline.to_be_bytes();
     message.extend_from_slice(&deadline_bytes);
-    
+
     // Return hash of the complete message
     env.crypto().sha256(&message).into()
 }
- 

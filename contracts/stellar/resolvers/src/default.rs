@@ -1,5 +1,7 @@
+use crate::interface::{
+    ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType,
+};
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String};
-use crate::interface::{ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 
 /// DefaultResolver - Basic attestation validation without any economic model
 /// Simply validates that attestations meet basic requirements
@@ -19,8 +21,8 @@ impl ResolverInterface for DefaultResolver {
         }
 
         // Ensure attestation has not expired
-        if attestation.expiration_time > 0 && 
-           attestation.expiration_time < env.ledger().timestamp() {
+        if attestation.expiration_time > 0 && attestation.expiration_time < env.ledger().timestamp()
+        {
             return Err(ResolverError::InvalidAttestation);
         }
 
@@ -28,10 +30,7 @@ impl ResolverInterface for DefaultResolver {
     }
 
     /// No post-processing needed for default resolver
-    fn after_attest(
-        _env: Env,
-        _attestation: ResolverAttestationData,
-    ) -> Result<(), ResolverError> {
+    fn after_attest(_env: Env, _attestation: ResolverAttestationData) -> Result<(), ResolverError> {
         Ok(())
     }
 
@@ -58,7 +57,10 @@ impl ResolverInterface for DefaultResolver {
         ResolverMetadata {
             name: String::from_str(&env, "Default Resolver"),
             version: String::from_str(&env, "1.0.0"),
-            description: String::from_str(&env, "Basic attestation validation without economic model"),
+            description: String::from_str(
+                &env,
+                "Basic attestation validation without economic model",
+            ),
             resolver_type: ResolverType::Default,
         }
     }

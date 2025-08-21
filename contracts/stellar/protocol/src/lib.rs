@@ -1,28 +1,21 @@
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractimpl, Address, Env, String, BytesN, Vec,
-};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, Vec};
 
 pub mod errors;
 pub mod events;
+pub mod instructions;
 pub mod interfaces;
 pub mod state;
-pub mod instructions;
 pub mod utils;
 
-use state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest, BlsPublicKey};
+use state::{
+    Attestation, BlsPublicKey, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest,
+};
 
 use instructions::{
-    register_schema,
-    attest,
-    get_attestation,
-    revoke_attestation,
-    list_attestations,
-    attest_by_delegation,
-    revoke_by_delegation,
-    register_bls_public_key,
-    get_bls_public_key,
+    attest, attest_by_delegation, get_attestation, get_bls_public_key, list_attestations,
+    register_bls_public_key, register_schema, revoke_attestation, revoke_by_delegation,
 };
 
 #[contract]
@@ -115,10 +108,7 @@ impl AttestationContract {
     }
 
     /// Gets the next nonce for an attester
-    pub fn get_attester_nonce(
-        env: Env,
-        attester: Address,
-    ) -> u64 {
+    pub fn get_attester_nonce(env: Env, attester: Address) -> u64 {
         utils::get_next_nonce(&env, &attester)
     }
 
@@ -132,13 +122,7 @@ impl AttestationContract {
     }
 
     /// Gets the BLS public key for an attester
-    pub fn get_bls_key(
-        env: Env,
-        attester: Address,
-    ) -> Option<BlsPublicKey> {
+    pub fn get_bls_key(env: Env, attester: Address) -> Option<BlsPublicKey> {
         get_bls_public_key(&env, &attester)
     }
-
 }
-
- 

@@ -1,18 +1,18 @@
 //! # Resolvers Library
-//! 
+//!
 //! This library provides a collection of resolver implementations for the Stellar attestation system.
 //! Resolvers are responsible for validating and processing attestations according to specific
 //! business logic rules, enabling flexible attestation workflows with custom validation and processing.
 //!
 //! ## Architecture
-//! 
+//!
 //! The library is organized around a common interface (`ResolverInterface`) that all resolvers
 //! must implement. This allows for pluggable resolver logic while maintaining a consistent API.
 //! Each resolver can define custom validation rules, fee structures, and post-attestation actions
 //! while sharing common data structures and error handling.
 //!
 //! ## Available Resolvers
-//! 
+//!
 //! - **DefaultResolver**: Basic resolver with minimal validation logic, suitable for simple
 //!   attestation workflows that don't require complex business rules
 //! - **TokenRewardResolver**: Distributes token rewards to attesters for valid attestations,
@@ -21,7 +21,7 @@
 //!   fee amounts and recipient management, enabling monetization of attestation services
 //!
 //! ## Gating Model (Features + Target)
-//! 
+//!
 //! - When building for Wasm deployment (target_arch = wasm32): no resolvers are exported by default.
 //!   Enable exactly one feature to export a specific resolver contract and avoid duplicate symbols:
 //!   - `export-default-resolver`
@@ -34,7 +34,7 @@
 //! is included by other Wasm contracts.
 //!
 //! ## Build & Deploy Individual Resolvers
-//! 
+//!
 //! Build a single resolver to Wasm by enabling its feature:
 //! - Default Resolver:
 //!   `cargo build --target wasm32v1-none --release --features export-default-resolver`
@@ -85,7 +85,10 @@ pub mod token_reward;
 /// Fee collection resolver implementation that charges fees for attestation processing.
 /// This resolver can collect fees in various Stellar assets and provides mechanisms for
 /// fee withdrawal, recipient management, and administrative controls over fee structures.
-#[cfg(any(not(target_arch = "wasm32"), feature = "export-fee-collection-resolver"))]
+#[cfg(any(
+    not(target_arch = "wasm32"),
+    feature = "export-fee-collection-resolver"
+))]
 pub mod fee_collection;
 
 // ============================================================================
@@ -96,11 +99,7 @@ pub mod fee_collection;
 /// These types form the foundation of the resolver system and are always available
 /// regardless of which specific resolver implementations are compiled.
 pub use interface::{
-    ResolverAttestationData,
-    ResolverError,
-    ResolverInterface,
-    ResolverMetadata,
-    ResolverType,
+    ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType,
 };
 
 /// Re-export the DefaultResolver implementation when available.
@@ -118,5 +117,8 @@ pub use token_reward::TokenRewardResolver;
 /// Re-export the FeeCollectionResolver implementation when available.
 /// Only export to Wasm when the `export-fee-collection-resolver` feature is enabled;
 /// always available on native builds for tests and integration.
-#[cfg(any(not(target_arch = "wasm32"), feature = "export-fee-collection-resolver"))]
+#[cfg(any(
+    not(target_arch = "wasm32"),
+    feature = "export-fee-collection-resolver"
+))]
 pub use fee_collection::FeeCollectionResolver;

@@ -1,6 +1,6 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, token};
 use resolvers::{ResolverAttestationData, ResolverError};
+use soroban_sdk::{contract, contractimpl, token, Address, BytesN, Env, String};
 
 // Import modules
 mod access_control;
@@ -14,9 +14,9 @@ mod state;
 pub use errors::Error;
 pub use events::{
     ADMIN_REG_AUTH, AUTHORITY_REGISTERED, LEVY_COLLECTED, LEVY_WITHDRAWN, OWNERSHIP_RENOUNCED,
-    OWNERSHIP_TRANSFERRED, SCHEMA_REGISTERED, PAYMENT_RECEIVED,
+    OWNERSHIP_TRANSFERRED, PAYMENT_RECEIVED, SCHEMA_REGISTERED,
 };
-pub use state::{Attestation, DataKey, RegisteredAuthorityData, PaymentRecord};
+pub use state::{Attestation, DataKey, PaymentRecord, RegisteredAuthorityData};
 
 #[contract]
 pub struct AuthorityResolverContract;
@@ -30,10 +30,10 @@ impl AuthorityResolverContract {
     //                           Initialization
     // ──────────────────────────────────────────────────────────────────────────
     pub fn initialize(
-        env: Env, 
-        admin: Address, 
+        env: Env,
+        admin: Address,
         token_contract_id: Address,
-        token_wasm_hash: BytesN<32>
+        token_wasm_hash: BytesN<32>,
     ) -> Result<(), Error> {
         if state::is_initialized(&env) {
             return Err(Error::AlreadyInitialized);
@@ -60,7 +60,6 @@ impl AuthorityResolverContract {
     ) -> Result<(), Error> {
         instructions::admin::admin_register_authority(&env, &admin, &auth_to_reg, &metadata)
     }
-
 
     // ──────────────────────────────────────────────────────────────────────────
     //                         Public/Hook Functions
@@ -196,7 +195,7 @@ impl AuthorityResolverContract {
         payer.require_auth();
 
         const REGISTRATION_FEE: i128 = 100_0000000; // 100 XLM
-        
+
         let token_client = token::Client::new(&env, &token_address);
         token_client.transfer(&payer, &env.current_contract_address(), &REGISTRATION_FEE);
 
@@ -208,10 +207,10 @@ impl AuthorityResolverContract {
         };
 
         state::record_payment(&env, &payment);
-        
+
         // Emit payment received event
         events::payment_received(&env, &payer, &ref_id, REGISTRATION_FEE);
-        
+
         Ok(())
     }
 
@@ -234,7 +233,7 @@ impl AuthorityResolverContract {
     ) -> Result<(), Error> {
         instructions::admin::require_init(&env)?;
         admin.require_auth();
-        
+
         let stored_admin = instructions::admin::get_admin(&env)?;
         if admin != stored_admin {
             return Err(Error::NotAuthorized);
@@ -250,7 +249,10 @@ impl AuthorityResolverContract {
     // ──────────────────────────────────────────────────────────────────────────
 
     /// Called before an attestation is created (resolver interface)
-    pub fn before_attest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
+    pub fn before_attest(
+        env: Env,
+        attestation: ResolverAttestationData,
+    ) -> Result<bool, ResolverError> {
         // Check if the attester has confirmed payment
         if !state::has_confirmed_payment(&env, &attestation.attester) {
             return Err(ResolverError::NotAuthorized);
@@ -259,7 +261,10 @@ impl AuthorityResolverContract {
     }
 
     /// Called after an attestation is created (resolver interface)
-    pub fn after_attest(env: Env, attestation: ResolverAttestationData) -> Result<(), ResolverError> {
+    pub fn after_attest(
+        env: Env,
+        attestation: ResolverAttestationData,
+    ) -> Result<(), ResolverError> {
         // Register the attester as an authority after successful attestation
         if state::has_confirmed_payment(&env, &attestation.attester) {
             let payment_record = state::get_payment_record(&env, &attestation.attester);
@@ -271,12 +276,16 @@ impl AuthorityResolverContract {
                     ref_id: record.ref_id,
                 };
                 state::set_authority_data(&env, &authority_data);
-                
+
                 // Emit authority registered event
-                events::authority_registered(&env, &attestation.attester, &attestation.attester, &authority_data.metadata);
+                events::authority_registered(
+                    &env,
+                    &attestation.attester,
+                    &attestation.attester,
+                    &authority_data.metadata,
+                );
             }
         }
         Ok(())
     }
 }
-

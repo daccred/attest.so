@@ -2,12 +2,11 @@ extern crate std;
 
 use soroban_sdk::{
     testutils::{Address as _, BytesN as _, Events as _, Ledger, LedgerInfo},
-    token,
-    Address, Bytes, BytesN, Env, String as SorobanString, TryFromVal,
+    token, Address, Bytes, BytesN, Env, String as SorobanString, TryFromVal,
 };
 
-use resolvers::ResolverAttestationData as ResolverAttestation;
 use authority::{AuthorityResolverContract, AuthorityResolverContractClient};
+use resolvers::ResolverAttestationData as ResolverAttestation;
 
 const REGISTRATION_FEE: i128 = 100_0000000; // 100 XLM
 const REWARD_AMOUNT: i128 = 5_0000000; // 5 tokens for reward tests
@@ -44,12 +43,17 @@ fn setup_env() -> TestEnv {
     // Register resolver contract
     let contract_id = env.register(AuthorityResolverContract, ());
     let client = AuthorityResolverContractClient::new(&env, &contract_id);
-    
+
     // Create dummy wasm hash for initialization
     let token_wasm_hash = BytesN::from_array(&env, &[0u8; 32]);
     client.initialize(&admin, &token_address, &token_wasm_hash);
 
-    TestEnv { env, admin, contract_id, token_address }
+    TestEnv {
+        env,
+        admin,
+        contract_id,
+        token_address,
+    }
 }
 
 // Helper function for building test attestations (resolver interface)
@@ -118,7 +122,10 @@ fn double_payment_updates_record() {
 
     let record = client.get_payment_record(&payer).unwrap();
     assert_eq!(record.ref_id, ref2); // latest ref_id stored
-    assert_eq!(token_client.balance(&setup.contract_id), REGISTRATION_FEE * 2);
+    assert_eq!(
+        token_client.balance(&setup.contract_id),
+        REGISTRATION_FEE * 2
+    );
 }
 
 #[test]
@@ -159,7 +166,7 @@ fn before_and_after_attest_with_payment() {
     client.pay_verification_fee(&payer, &ref_id, &setup.token_address);
 
     let _att = build_resolver_attestation(env, &payer);
-    
+
     // TODO: Implement before_attest and after_attest resolver hooks
     // RECOMMENDATION: Add resolver interface implementation for authority registration flow
     // IMPACT: Cannot validate payment requirements before attestation
@@ -282,4 +289,4 @@ fn token_reward_incentive_flow_distributes_rewards() {
     let balance = token_client.balance(&user);
     assert_eq!(balance, REWARD_AMOUNT);
     */
-} 
+}

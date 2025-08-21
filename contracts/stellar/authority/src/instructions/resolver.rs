@@ -3,8 +3,7 @@ use crate::events;
 use crate::instructions::admin::{get_token_id, require_init};
 use crate::state::{
     get_collected_levy, is_authority, remove_collected_levy, set_authority_data,
-    set_collected_levy, Attestation,
-    RegisteredAuthorityData,
+    set_collected_levy, Attestation, RegisteredAuthorityData,
 };
 use soroban_sdk::{log, token, Address, Env, String};
 

@@ -170,7 +170,6 @@ pub fn get_owner(env: &Env) -> Result<Address, Error> {
     owner(env).ok_or(Error::NotInitialized)
 }
 
-
 // ══════════════════════════════════════════════════════════════════════════════
 // ► Testing Utilities (cfg(test) only)
 // ══════════════════════════════════════════════════════════════════════════════

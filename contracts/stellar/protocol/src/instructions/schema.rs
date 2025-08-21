@@ -1,7 +1,7 @@
-use soroban_sdk::{Address, Env, String, BytesN, Bytes, xdr::ToXdr};
-use crate::state::{DataKey, Schema};
 use crate::errors::Error;
 use crate::events;
+use crate::state::{DataKey, Schema};
+use soroban_sdk::{xdr::ToXdr, Address, Bytes, BytesN, Env, String};
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// Generates a unique identifier (SHA256 hash) for a schema.
@@ -45,20 +45,18 @@ pub fn generate_uid(
 ///
 /// # Errors
 /// * `Error::SchemaNotFound` - If no schema with the given UID exists in storage.
-pub fn _get_schema_or_fail(
-    env: &Env,
-    schema_uid: &BytesN<32>,
-) -> Result<Schema, Error> {
+pub fn _get_schema_or_fail(env: &Env, schema_uid: &BytesN<32>) -> Result<Schema, Error> {
     let schema_key = DataKey::Schema(schema_uid.clone());
-    env.storage().instance().get::<DataKey, Schema>(&schema_key)
+    env.storage()
+        .instance()
+        .get::<DataKey, Schema>(&schema_key)
         .ok_or(Error::SchemaNotFound)
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// Registers a new schema definition in the contract.
 ////////////////////////////////////////////////////////////////////////////////////
-/// 
+///
 ///
 /// This function allows an entity to register a new schema for attestations. The schema defines
 /// the structure and format of data that can be attested to. Each schema is uniquely identified
@@ -84,7 +82,7 @@ pub fn _get_schema_or_fail(
 ///
 /// # Example
 /// ```ignore
-/// let schema_definition = String::from_str(&env, 
+/// let schema_definition = String::from_str(&env,
 ///     r#"{
 ///         "name": "Degree",
 ///         "version": "1.0",
@@ -95,7 +93,7 @@ pub fn _get_schema_or_fail(
 ///             {"name": "graduation_date", "type": "string"}
 ///         ]
 ///     }"#);
-/// 
+///
 /// let schema_uid = register_schema(
 ///     &env,
 ///     university_address,

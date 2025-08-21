@@ -161,9 +161,11 @@ fn test_initialize() {
         setup.resolver_client.get_token_id(),
         setup.token_address.clone()
     );
-    let reinit_result = setup
-        .resolver_client
-        .try_initialize(&setup.admin, &setup.token_address, &create_dummy_token_wasm_hash(&setup.env));
+    let reinit_result = setup.resolver_client.try_initialize(
+        &setup.admin,
+        &setup.token_address,
+        &create_dummy_token_wasm_hash(&setup.env),
+    );
     // Check inner Result is Err(Ok(ContractError))
     assert!(matches!(
         reinit_result.err().unwrap(),
@@ -551,7 +553,12 @@ fn test_withdraw_levies() {
         invoke: &soroban_sdk::testutils::MockAuthInvoke {
             contract: &resolver_address,
             fn_name: "initialize",
-            args: (admin.clone(), token_address.clone(), create_dummy_token_wasm_hash(&env)).into_val(&env),
+            args: (
+                admin.clone(),
+                token_address.clone(),
+                create_dummy_token_wasm_hash(&env),
+            )
+                .into_val(&env),
             sub_invokes: &[],
         },
     }]);
@@ -683,4 +690,4 @@ fn test_collect_levies() {
     // RECOMMENDATION: Use fee collection resolver for multi-schema levy collection
     // IMPACT: Authority resolver focuses on authority management only
 }
-*/ 
+*/

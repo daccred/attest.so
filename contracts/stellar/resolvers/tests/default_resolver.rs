@@ -6,8 +6,8 @@ use soroban_sdk::{
     Address, Bytes, BytesN, Env, String as SorobanString,
 };
 
-use resolvers::{ResolverAttestationData, DefaultResolver, ResolverError, ResolverType};
 use resolvers::default::DefaultResolverClient;
+use resolvers::{DefaultResolver, ResolverAttestationData, ResolverError, ResolverType};
 
 fn setup<'a>() -> (Env, DefaultResolverClient<'a>) {
     let env = Env::default();

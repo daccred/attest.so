@@ -1,9 +1,8 @@
-use soroban_sdk::xdr::{Limits, ScBytes, ScVal, ToXdr, WriteXdr};
-use soroban_sdk::{Address, BytesN, Env, String};
-use crate::state::{DataKey, StoredAttestation, Schema, Authority};
 use crate::errors::Error;
 use crate::interfaces::resolver::ResolverAttestation;
-
+use crate::state::{Authority, DataKey, Schema, StoredAttestation};
+use soroban_sdk::xdr::{Limits, ScBytes, ScVal, ToXdr, WriteXdr};
+use soroban_sdk::{Address, BytesN, Env, String};
 
 // pub fn create_xdr_string(env: &Env, value: &String) -> Result<String, Error> {
 //     let val = ScVal::Symbol(ScSymbol::try_from(value.clone()).map_err(|_| Error::InvalidInput)?);
@@ -12,27 +11,26 @@ use crate::interfaces::resolver::ResolverAttestation;
 //     String::from_str(env, &b64)
 // }
 
-
 ////////////////////////////////////////////////////////////////////////////////////
 /// DEPRECATED FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////////
 
 pub fn _to_attestation_record(
-   _env: &Env,
-   _uid: &BytesN<32>,
-   _att: &StoredAttestation,
+    _env: &Env,
+    _uid: &BytesN<32>,
+    _att: &StoredAttestation,
 ) -> ResolverAttestation {
-   unimplemented!("to_attestation_record needs update/removal");
+    unimplemented!("to_attestation_record needs update/removal");
 }
 
 pub fn _generate_attestation_uid(
-   _env: &Env,
-   _schema_uid: &BytesN<32>,
-   _subject: &Address,
-   _reference: &Option<String>,
+    _env: &Env,
+    _schema_uid: &BytesN<32>,
+    _subject: &Address,
+    _reference: &Option<String>,
 ) -> Result<BytesN<32>, Error> {
-   unimplemented!("generate_attestation_uid needs update/removal");
-} 
+    unimplemented!("generate_attestation_uid needs update/removal");
+}
 
 /// Retrieves an authority record by address.
 ///
@@ -83,8 +81,6 @@ pub fn get_schema(env: &Env, schema_uid: &BytesN<32>) -> Option<Schema> {
     env.storage().instance().get(&key)
 }
 
-
-
 /// Gets the next nonce for an attester.
 ///
 /// # Arguments
@@ -95,7 +91,8 @@ pub fn get_schema(env: &Env, schema_uid: &BytesN<32>) -> Option<Schema> {
 /// * `u64` - The next nonce to be used
 pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
     let nonce_key = DataKey::AttesterNonce(attester.clone());
-    env.storage().persistent()
+    env.storage()
+        .persistent()
         .get::<DataKey, u64>(&nonce_key)
         .unwrap_or(0)
 }
@@ -112,7 +109,7 @@ pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
 /// * `value` - A Soroban string value to process
 ///
 /// # Returns   
-/// * `String` - A Soroban string containing the base64-encoded XDR representation 
+/// * `String` - A Soroban string containing the base64-encoded XDR representation
 ///   of the SHA256 hash of the input string's XDR bytes
 ///
 /// # Example
@@ -122,17 +119,15 @@ pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
 /// // Returns a base64-encoded XDR string of the SHA256 hash
 /// ```
 pub fn create_xdr_string(env: &Env, value: &String) -> String {
-  let xdr_bytes = value.clone().to_xdr(env);
+    let xdr_bytes = value.clone().to_xdr(env);
 
+    // Wrap the hash in an ScVal
+    let hash: BytesN<32> = env.crypto().sha256(&xdr_bytes).into();
+    let sc_bytes = ScBytes::try_from(hash.to_array().to_vec()).unwrap();
+    let sc_val = ScVal::Bytes(sc_bytes);
+    // This returns a std::string::String.
+    let base64_std_string = sc_val.to_xdr_base64(Limits::none()).unwrap();
 
-  // Wrap the hash in an ScVal
-  let hash: BytesN<32> = env.crypto().sha256(&xdr_bytes).into();
-  let sc_bytes = ScBytes::try_from(hash.to_array().to_vec()).unwrap();
-  let sc_val = ScVal::Bytes(sc_bytes);
-  // This returns a std::string::String.
-  let base64_std_string = sc_val.to_xdr_base64(Limits::none()).unwrap();
-
-  // Convert the std::string::String to a soroban_sdk::String
-  String::from_str(env, &base64_std_string)
+    // Convert the std::string::String to a soroban_sdk::String
+    String::from_str(env, &base64_std_string)
 }
-

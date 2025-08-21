@@ -52,40 +52,35 @@ pub enum ResolverError {
 /// This provides a consistent interface for the protocol to interact with resolvers
 ///
 /// # Design Considerations (Future Migration)
-/// 
+///
 /// The current before_/after_ hook pattern may be overly complex. Consider migrating to:
-/// 
+///
 /// ```rust,ignore
 /// use soroban_sdk::{ Address, BytesN, Env, String};
-/// 
+///
 /// trait ResolverInterface {
 ///     fn on_attest(env: Env, attestation: Attestation) -> Result<(), ResolverError>;
 ///     fn on_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError>;
 /// }
 /// ```
-/// 
+///
 /// Benefits of single combined hooks:
 /// - Eliminates side effects separation complexity
 /// - Cleaner resolver implementation (single point of control)
 /// - Simpler protocol integration
 /// - Resolvers handle complete workflow in one call
-/// 
+///
 /// Current pattern kept for now to maintain flexibility during development.
 ///
 pub trait ResolverInterface {
     /// Called before an attestation is created
     /// Returns true if the attestation should be allowed
-    fn before_attest(
-        env: Env,
-        attestation: ResolverAttestationData,
-    ) -> Result<bool, ResolverError>;
+    fn before_attest(env: Env, attestation: ResolverAttestationData)
+        -> Result<bool, ResolverError>;
 
     /// Called after an attestation is created
     /// Can be used for post-processing like token rewards
-    fn after_attest(
-        env: Env,
-        attestation: ResolverAttestationData,
-    ) -> Result<(), ResolverError>;
+    fn after_attest(env: Env, attestation: ResolverAttestationData) -> Result<(), ResolverError>;
 
     /// Called before a revocation
     /// Returns true if the revocation should be allowed

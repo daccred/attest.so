@@ -23,7 +23,7 @@ function createAttestationMessage(request) {
     nonceBytes.setBigUint64(0, BigInt(request.nonce), false); // big-endian
     const deadlineBytes = new DataView(new ArrayBuffer(8));
     deadlineBytes.setBigUint64(0, BigInt(request.deadline), false);
-    
+
     // Concatenate all fields
     const message = new Uint8Array([
         ...domainSeparator,
@@ -32,7 +32,7 @@ function createAttestationMessage(request) {
         ...new Uint8Array(deadlineBytes.buffer),
         // Add other fields as needed
     ]);
-    
+
     return sha256(message);
 }
 
@@ -46,17 +46,14 @@ const signature = bls12_381.sign(message, attesterPrivateKey);
 ```
 
 Domain Separation Tags (DST):
-- Attestation messages: "ATTEST_PROTOCOL_V1_DELEGATED"  
+- Attestation messages: "ATTEST_PROTOCOL_V1_DELEGATED"
 - Revocation messages: "REVOKE_PROTOCOL_V1_DELEGATED"
 - BLS G1 hashing: "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_"
 - BLS G2 hashing: "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_"
 */
-use soroban_sdk::{Address, Env, BytesN, Bytes, Vec};
-use crate::state::{DataKey, BlsPublicKey};
 use crate::errors::Error;
-
-
-
+use crate::state::{BlsPublicKey, DataKey};
+use soroban_sdk::{Address, Bytes, BytesN, Env, Vec};
 
 /// Registers a BLS public key for an attester.
 ///
@@ -77,32 +74,27 @@ pub fn register_bls_public_key(
     public_key: BytesN<96>,
 ) -> Result<(), Error> {
     attester.require_auth();
-    
+
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
-    
+
     // Check if this address already has a key registered
     if env.storage().persistent().has(&pk_key) {
         // Key already registered - immutable, cannot update
         return Err(Error::AlreadyInitialized);
     }
-    
+
     let timestamp = env.ledger().timestamp();
     let bls_key = BlsPublicKey {
         key: public_key.clone(),
         registered_at: timestamp,
     };
-    
+
     // Store the key (one per address, immutable)
     env.storage().persistent().set(&pk_key, &bls_key);
-    
+
     // Emit registration event
-    crate::events::publish_bls_key_registered(
-        env,
-        &attester,
-        &public_key,
-        timestamp,
-    );
-    
+    crate::events::publish_bls_key_registered(env, &attester, &public_key, timestamp);
+
     Ok(())
 }
 
@@ -118,7 +110,6 @@ pub fn get_bls_public_key(env: &Env, attester: &Address) -> Option<BlsPublicKey>
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
     env.storage().persistent().get(&pk_key)
 }
-
 
 /// **CRITICAL CRYPTOGRAPHIC FUNCTION**: Verifies BLS12-381 signature for delegated attestation
 ///
@@ -190,10 +181,10 @@ pub fn get_bls_public_key(env: &Env, attester: &Address) -> Option<BlsPublicKey>
 /// Must be compatible with @noble/curves BLS implementation:
 /// ```javascript
 /// import { bls12_381 } from '@noble/curves/bls12-381';
-/// 
+///
 /// // Off-chain signature creation
 /// const signature = bls12_381.sign(messageHash, privateKey);
-/// 
+///
 /// // This Rust function must verify signatures created by above
 /// ```
 ///
@@ -214,43 +205,45 @@ pub fn verify_bls_signature(
     // STEP 1: Look up the attester's registered BLS public key
     // Each attester must register exactly one immutable BLS key
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
-    let bls_key = env.storage().persistent()
+    let bls_key = env
+        .storage()
+        .persistent()
         .get::<DataKey, BlsPublicKey>(&pk_key)
         .ok_or(Error::InvalidSignature)?; // No key registered = cannot verify
-    
+
     // STEP 2: Initialize BLS12-381 cryptographic operations
     let bls = env.crypto().bls12_381();
-    
+
     // STEP 3: Hash message to G1 point using standard BLS DST
     // This creates the point H(m) that was signed by the private key
     let message_bytes = Bytes::from_array(env, &message.to_array());
     let dst = Bytes::from_slice(env, b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_");
     let h_m = bls.hash_to_g1(&message_bytes, &dst);
-    
+
     // STEP 4: Parse signature from compressed bytes to G1 point
     // NOTE: This is simplified for proof-of-concept
     // Production requires proper point deserialization validation
     let sig_as_bytes = Bytes::from_array(env, &signature.to_array());
     let sig_point = bls.hash_to_g1(&sig_as_bytes, &dst); // TODO: Use proper parsing
-    
+
     // STEP 5: Parse public key from compressed bytes to G2 point
     // The registered public key is used to verify signature authenticity
     let pk_as_bytes = Bytes::from_array(env, &bls_key.key.to_array());
     let dst_g2 = Bytes::from_slice(env, b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_");
     let pk_point = bls.hash_to_g2(&pk_as_bytes, &dst_g2); // TODO: Use proper parsing
-    
+
     // STEP 6: Get G2 generator point for pairing verification
     // NOTE: This is placeholder - production needs actual BLS12-381 G2 generator
     let g2_gen = bls.hash_to_g2(&Bytes::from_slice(env, b"BLS12381G2_GENERATOR"), &dst_g2);
-    
+
     // STEP 7: Perform pairing check to verify signature
     // Verifies: e(H(m), PK) = e(σ, G2)
     // This cryptographically proves signature was created with corresponding private key
     let g1_points = Vec::from_array(env, [h_m, sig_point]);
     let g2_points = Vec::from_array(env, [pk_point, g2_gen]);
-    
+
     let pairing_result = bls.pairing_check(g1_points, g2_points);
-    
+
     if pairing_result {
         Ok(()) // Signature is cryptographically valid
     } else {

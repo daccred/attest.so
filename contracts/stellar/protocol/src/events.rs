@@ -1,18 +1,9 @@
-use soroban_sdk::{Env, symbol_short, BytesN, Address};
-use crate::state::{ Attestation, Schema };
+use crate::state::{Attestation, Schema};
+use soroban_sdk::{symbol_short, Address, BytesN, Env};
 
-pub fn schema_registered(
-    env: &Env,
-    schema_uid: &BytesN<32>,
-    schema: &Schema,
-    authority: &Address,
-) {
+pub fn schema_registered(env: &Env, schema_uid: &BytesN<32>, schema: &Schema, authority: &Address) {
     let topics = (symbol_short!("SCHEMA"), symbol_short!("REGISTER"));
-    let data = (
-        schema_uid.clone(),
-        schema.clone(),
-        authority.clone(),
-    );
+    let data = (schema_uid.clone(), schema.clone(), authority.clone());
     env.events().publish(topics, data);
 }
 
@@ -48,10 +39,6 @@ pub fn publish_bls_key_registered(
     timestamp: u64,
 ) {
     let topics = (symbol_short!("BLS_KEY"), symbol_short!("REGISTER"));
-    let data = (
-        attester.clone(),
-        public_key.clone(),
-        timestamp,
-    );
+    let data = (attester.clone(), public_key.clone(), timestamp);
     env.events().publish(topics, data);
 }

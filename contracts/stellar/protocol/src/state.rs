@@ -3,9 +3,9 @@ use soroban_sdk::{contracttype, Address, Bytes, BytesN, String};
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                                 DataKey                                   ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
-/// 
+///
 /// Represents the keys used for data storage in the contract.
-/// 
+///
 /// Each variant corresponds to a different type of data that can be stored
 /// in the contract's persistent storage.
 #[contracttype]
@@ -18,16 +18,16 @@ pub enum DataKey {
     /// Key for storing structured schema information, indexed by the schema's unique identifier
     Schema(BytesN<32>),
     /// Key for storing attestation data
-    /// 
+    ///
     /// Indexed by schema UID, subject address, and nonce
     /// to allow for multiple unique attestations per schema/subject pair.
     Attestation(BytesN<32>, Address, u64),
     /// Key for storing the current nonce for an attester
-    /// 
+    ///
     /// Used to prevent replay attacks in delegated attestations
     AttesterNonce(Address),
     /// Key for storing the BLS public key for an attester
-    /// 
+    ///
     /// One-to-one mapping: wallet address -> BLS public key
     AttesterPublicKey(Address),
 }
@@ -35,9 +35,9 @@ pub enum DataKey {
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                           StoredAttestation                               ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
-/// 
+///
 /// Represents an attestation stored in the contract.
-/// 
+///
 /// Contains all the metadata and content related to a specific attestation,
 /// including timestamps, participants, and the actual attestation data.
 #[contracttype]
@@ -52,11 +52,11 @@ pub struct StoredAttestation {
     /// Timestamp when the attestation was created
     pub time: u64,
     /// Optional timestamp when the attestation expires
-    /// 
+    ///
     /// If set, the attestation is considered invalid after this time.
     pub expiration_time: Option<u64>,
     /// Optional timestamp when the attestation was revoked
-    /// 
+    ///
     /// If set, indicates this attestation has been explicitly invalidated.
     pub revocation_time: Option<u64>,
     /// Whether this attestation can be revoked by the attester
@@ -64,7 +64,7 @@ pub struct StoredAttestation {
     /// Optional reference to another attestation this one relates to
     pub ref_uid: Option<Bytes>,
     /// The actual attestation data
-    /// 
+    ///
     /// Typically serialized according to the schema definition.
     pub data: Bytes,
     /// Optional numeric value associated with the attestation
@@ -74,9 +74,9 @@ pub struct StoredAttestation {
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                               Authority                                   ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
-/// 
+///
 /// Represents an authority that can create schemas and attestations.
-/// 
+///
 /// Authorities are registered entities with specific permissions in the system
 /// that can create schemas and issue attestations.
 #[derive(Debug, Clone)]
@@ -85,7 +85,7 @@ pub struct Authority {
     /// The Stellar address of the authority
     pub address: Address,
     /// Metadata describing the authority
-    /// 
+    ///
     /// Typically in JSON format, containing information about the authority.
     pub metadata: String,
 }
@@ -93,9 +93,9 @@ pub struct Authority {
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                                 Schema                                    ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
-/// 
+///
 /// Represents a schema definition that attestations can follow.
-/// 
+///
 /// Schemas define the structure and validation rules for attestations.
 /// The definition field supports multiple formats:
 /// - XDR-encoded: Stellar-native binary format for structured data
@@ -106,24 +106,23 @@ pub struct Schema {
     /// The address of the authority that created this schema
     pub authority: Address,
     /// The schema definition in any supported format
-    /// 
+    ///
     /// Supports XDR-encoded structured data or JSON
     pub definition: String,
     /// Optional address of a resolver contract for this schema
-    /// 
+    ///
     /// If present, this contract will be called to handle attestation operations.
     pub resolver: Option<Address>,
     /// Whether attestations using this schema can be revoked
     pub revocable: bool,
 }
 
-
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                      DelegatedAttestationRequest                          ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
-/// 
+///
 /// Represents a request for delegated attestation following the EAS pattern.
-/// 
+///
 /// This allows an attester to sign an attestation off-chain, which can then be
 /// submitted on-chain by any party (who will pay the transaction fees).
 #[contracttype]
@@ -140,7 +139,7 @@ pub struct DelegatedAttestationRequest {
     /// The nonce for this attestation (must be the next expected nonce for the attester)
     pub nonce: u64,
     /// Expiration timestamp for this signed request
-    /// 
+    ///
     /// After this time, the signature is no longer valid and cannot be submitted.
     pub deadline: u64,
     /// Optional expiration time for the attestation itself
@@ -152,9 +151,9 @@ pub struct DelegatedAttestationRequest {
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                      DelegatedRevocationRequest                           ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
-/// 
+///
 /// Represents a request for delegated revocation following the EAS pattern.
-/// 
+///
 /// This allows an attester to sign a revocation off-chain, which can then be
 /// submitted on-chain by any party.
 #[contracttype]
@@ -177,9 +176,9 @@ pub struct DelegatedRevocationRequest {
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                            Attestation                                    ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
-/// 
+///
 /// Represents an attestation with support for both direct and delegated attestations.
-/// 
+///
 /// Used for tracking attestations and supporting multiple attestations per schema/subject
 /// pair through nonces, following the EAS pattern.
 #[derive(Clone)]
@@ -190,21 +189,21 @@ pub struct Attestation {
     /// The address of the entity that is the subject of this attestation
     pub subject: Address,
     /// The address of the entity that created this attestation
-    /// 
+    ///
     /// In direct attestations, this is the caller.
     /// In delegated attestations, this is the original signer.
     pub attester: Address,
     /// The value or content of the attestation
     pub value: String,
     /// Unique nonce for this attestation
-    /// 
+    ///
     /// Allows for multiple attestations of the same schema for the same subject,
     /// and prevents replay attacks in delegated attestations.
     pub nonce: u64,
     /// Timestamp when the attestation was created
     pub timestamp: u64,
     /// Optional expiration timestamp
-    /// 
+    ///
     /// If set, the attestation is considered invalid after this time.
     pub expiration_time: Option<u64>,
     /// Whether this attestation has been revoked
@@ -216,9 +215,9 @@ pub struct Attestation {
 /// ╔══════════════════════════════════════════════════════════════════════════╗
 /// ║                            BLS Public Key                                 ║
 /// ╚══════════════════════════════════════════════════════════════════════════╝
-/// 
+///
 /// Represents a BLS12-381 public key for an attester.
-/// 
+///
 /// Each wallet address can have exactly one BLS public key. No updates or revocations.
 #[contracttype]
 #[derive(Clone)]

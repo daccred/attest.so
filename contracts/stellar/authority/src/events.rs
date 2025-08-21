@@ -36,7 +36,6 @@ pub fn authority_registered(
     );
 }
 
-
 pub fn levy_collected(
     e: &Env,
     attester: &soroban_sdk::Address,
