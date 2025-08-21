@@ -459,5 +459,7 @@ fn test_handling_expired_attestations() {
 
 	// Now try to get the attestation, it should fail with AttestationExpired
 	let result = client.try_get_attestation(&schema_uid, &subject, &nonce);
-	assert_eq!(result.unwrap(), Err(ProtocolError::AttestationExpired));
+	dbg!(&result);
+	// dbg!(&ProtocolError::AttestationExpired);
+	assert_eq!(result, Ok(Err(ProtocolError::AttestationExpired.into())));
 }
