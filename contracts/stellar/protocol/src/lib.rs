@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String};
 
 pub mod errors;
 pub mod events;
@@ -14,10 +14,9 @@ use state::{
 };
 
 use instructions::{
-    attest, attest_by_delegation, get_attestation_record, get_bls_public_key, list_attestations,
+    attest, attest_by_delegation, get_attestation_record, get_bls_public_key,
     register_bls_public_key, register_schema, revoke_attestation, revoke_by_delegation,
 };
-
 
 #[contract]
 pub struct AttestationContract;
@@ -71,17 +70,8 @@ impl AttestationContract {
         get_attestation_record(&env, attestation_uid)
     }
 
-    /// Lists attestations for a schema and subject
-    pub fn list_attestations_for(
-        env: Env,
-        subject: Address,
-        limit: u32,
-    ) -> Vec<Attestation> {
-        list_attestations(&env, subject, limit)
-    }
-
     // ══════════════════════════════════════════════════════════════════════════════
-    // ► Delegated Attestation Functions  
+    // ► Delegated Attestation Functions
     // ══════════════════════════════════════════════════════════════════════════════
 
     /// Creates an attestation using a delegated signature

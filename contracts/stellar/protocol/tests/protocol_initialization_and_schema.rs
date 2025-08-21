@@ -58,8 +58,6 @@ fn initialize_and_register_schema() {
 			resolver: None,
 			revocable: true,
 		},
-
-		
 		SchemaRegistrationParams {
 			name: "schema_xdr_with_revocable",
 			schema_definition: format!(

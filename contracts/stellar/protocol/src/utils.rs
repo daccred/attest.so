@@ -2,8 +2,6 @@ use crate::state::{Authority, DataKey, Schema};
 use soroban_sdk::xdr::{Limits, ScBytes, ScVal, ToXdr, WriteXdr};
 use soroban_sdk::{Address, Bytes, BytesN, Env, String};
 
- 
-
 ////////////////////////////////////////////////////////////////////////////////////
 /// Generates a unique identifier (SHA256 hash) for a schema.
 ////////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +69,6 @@ pub fn generate_attestation_uid(
     let mut hash_input = Bytes::new(env);
     hash_input.append(&schema_uid.to_xdr(env));
     hash_input.append(&subject.clone().to_xdr(env));
-    
 
     // Add nonce bytes directly
     let nonce_bytes = nonce.to_be_bytes();
@@ -79,7 +76,6 @@ pub fn generate_attestation_uid(
 
     env.crypto().keccak256(&hash_input).into()
 }
-
 
 /// Retrieves an authority record by address.
 ///

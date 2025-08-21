@@ -29,10 +29,6 @@ pub enum DataKey {
     ///
     /// One-to-one mapping: wallet address -> BLS public key
     AttesterPublicKey(Address),
-    /// Key for storing attestations 
-    /// 
-    /// indexed by subject address and schema uid
-    SubjectAttestations(Address),
 }
 
 /// ╔══════════════════════════════════════════════════════════════════════════╗

@@ -56,7 +56,8 @@ pub fn attest_by_delegation(
     // Verify BLS12-381 signature
     verify_bls_signature(env, &message, &request.signature, &request.attester)?;
 
-    let attestation_uid = generate_attestation_uid(env, &request.schema_uid, &request.subject, request.nonce);
+    let attestation_uid =
+        generate_attestation_uid(env, &request.schema_uid, &request.subject, request.nonce);
 
     // Create attestation record
     let attestation = Attestation {

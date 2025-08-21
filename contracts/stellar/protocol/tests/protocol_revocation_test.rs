@@ -71,7 +71,8 @@ fn revoke_attestation_by_nonce() {
             sub_invokes: &[],
         },
     }]);
-    let attestation_uid: BytesN<32> = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+    let attestation_uid: BytesN<32> =
+        client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
 
     // revoke by attester
     env.mock_auths(&[MockAuth {
@@ -94,7 +95,8 @@ fn revoke_attestation_by_nonce() {
     let (_schema_uid_ev, subject_ev, attester_ev, attestation_uid_ev, revocation_time_ev): (
         BytesN<32>,
         Address,
-        Address, BytesN<32>,
+        Address,
+        BytesN<32>,
         Option<u64>,
     ) = last.2.try_into_val(&env).unwrap();
     assert_eq!(subject_ev, subject);
@@ -107,7 +109,6 @@ fn revoke_attestation_by_nonce() {
     assert!(fetched.revoked);
     assert!(fetched.revocation_time.is_some());
 }
-
 
 // #[test]
 // fn test_attestation_with_non_revocable_schema() {
@@ -149,10 +150,7 @@ fn revoke_attestation_by_nonce() {
 // 	let result = client.try_revoke_attestation(&attestation_uid);
 // 	assert_eq!(result, Err(Ok(protocol::errors::Error::AttestationNotRevocable.into())));
 
-
-
 // }
-
 
 // fn test_only_attester_can_revoke_attestation() {
 // 	let env = Env::default();
