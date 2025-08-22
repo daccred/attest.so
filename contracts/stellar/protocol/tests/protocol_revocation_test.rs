@@ -200,7 +200,6 @@ fn test_revocation_by_unauthorized_parties() {
     assert_eq!(result_unauthorized, Err(Ok(Error::NotAuthorized.into())));
     assert!(env.events().all().is_empty());
 
-    // 2. Attempt revocation by the subject
     env.mock_auths(&[MockAuth {
         address: &subject,
         invoke: &MockAuthInvoke {
@@ -319,10 +318,8 @@ fn test_cannot_revoke_attestation_from_non_revocable_schema() {
     dbg!(&result);
     assert_eq!(result, Err(Ok(Error::AttestationNotRevocable.into())));
 
-    // verify no new events were emitted
     assert!(env.events().all().is_empty());
 
-    // verify state has not changed
     let fetched = client.get_attestation(&attestation_uid);
     assert!(!fetched.revoked);
 
@@ -410,7 +407,6 @@ fn test_double_revocation_fails() {
     }]);
     client.revoke_attestation(&attester, &attestation_uid);
 
-    // verify it is revoked
     let fetched = client.get_attestation(&attestation_uid);
     assert!(fetched.revoked);
 
