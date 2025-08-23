@@ -184,7 +184,7 @@ pub struct Attestation {
 ///
 /// Each wallet address can have exactly one BLS public key. No updates or revocations.
 #[contracttype]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BlsPublicKey {
     /// The BLS12-381 G2 public key (96 bytes compressed)
     pub key: BytesN<96>,
