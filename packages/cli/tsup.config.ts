@@ -1,13 +1,19 @@
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  entry: ['bin/run.ts', 'src/index.ts'],
+  entry: {
+    'bin/run': 'bin/run.ts'
+  },
   format: ['cjs'],
-  dts: true,
+  dts: false,
   splitting: false,
-  sourcemap: true,
+  sourcemap: false,
   clean: true,
   outDir: 'dist',
   target: 'node20',
-  platform: 'node'
+  platform: 'node',
+  banner: {
+    js: '#!/usr/bin/env node'
+  },
+  minify: true
 })

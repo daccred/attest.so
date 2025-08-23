@@ -1,5 +1,11 @@
 # @attestprotocol/stellar
 
+## 1.7.0
+
+### Minor Changes
+
+- 1989554: sdk bundle tooling and packages
+
 ## 1.6.0
 
 ### Minor Changes

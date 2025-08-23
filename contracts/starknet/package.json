@@ -1,13 +1,13 @@
 {
   "name": "@attestprotocol/starknet",
   "description": "Starknet Attestation Service",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "dependencies": {
     "dotenv": "^16.4.5",
     "fs": "^0.0.1-security",
     "starknet": "^6.6.6"
   },
   "devDependencies": {
-    "@types/node": "22.15.18"
+    "@types/node": "^24.2.1"
   }
 }

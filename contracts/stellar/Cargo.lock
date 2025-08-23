@@ -158,8 +158,9 @@ dependencies = [
 
 [[package]]
 name = "authority"
-version = "1.3.1"
+version = "1.3.2"
 dependencies = [
+ "resolvers",
  "soroban-sdk",
 ]
 
@@ -194,12 +195,37 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89e25b6adfb930f02d1981565a6e5d9c547ac15a96606256d3b59040e5cd4ca3"
 
 [[package]]
+name = "bitvec"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bc2832c24239b0141d5674bb9174f9d68a8b5b3f2753311927c172ca46f7e9c"
+dependencies = [
+ "funty",
+ "radium",
+ "tap",
+ "wyz",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
+]
+
+[[package]]
+name = "bls12_381"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7bc6d6292be3a19e6379786dac800f551e5865a5bb51ebbe3064ab80433f403"
+dependencies = [
+ "ff",
+ "group",
+ "pairing",
+ "rand_core",
+ "subtle",
 ]
 
 [[package]]
@@ -526,6 +552,7 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0b50bfb653653f9ca9095b427bed08ab8d75a137839d9ad64eb11810d5b6393"
 dependencies = [
+ "bitvec",
  "rand_core",
  "subtle",
 ]
@@ -541,6 +568,12 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
+
+[[package]]
+name = "funty"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6d5a32815ae3f33302d95fdcb2ce17862f8c65363dcfd29360480ba1001fc9c"
 
 [[package]]
 name = "generic-array"
@@ -814,6 +847,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pairing"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81fec4625e73cf41ef4bb6846cafa6d44736525f442ba45e407c4a000a13996f"
+dependencies = [
+ "group",
+]
+
+[[package]]
 name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -874,9 +916,12 @@ dependencies = [
 
 [[package]]
 name = "protocol"
-version = "1.3.1"
+version = "1.3.2"
 dependencies = [
+ "bls12_381",
+ "serde_json",
  "soroban-sdk",
+ "stellar-xdr",
 ]
 
 [[package]]
@@ -887,6 +932,12 @@ checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "radium"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
 name = "rand"
@@ -916,6 +967,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
+]
+
+[[package]]
+name = "resolvers"
+version = "1.3.2"
+dependencies = [
+ "soroban-sdk",
+ "stellar-macros",
+ "stellar-tokens",
 ]
 
 [[package]]
@@ -1167,9 +1227,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-ledger-snapshot"
-version = "22.0.7"
+version = "22.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80bbe59497cb50e81861187e6bd2a2c805df253573d44ed56e7d373f79530758"
+checksum = "2826e2c9d364edbb2ea112dc861077c74557bdad0a7a00487969088c7c648169"
 dependencies = [
  "serde",
  "serde_json",
@@ -1181,9 +1241,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-sdk"
-version = "22.0.7"
+version = "22.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c85edd55eb09aa5dd7ba5ab595d2be7ac3f453e90e2f26d704ff26c130f2926f"
+checksum = "c7ac27d7573e62b745513fa1be8dab7a09b9676a7f39db97164f1d458a344749"
 dependencies = [
  "arbitrary",
  "bytes-lit",
@@ -1203,9 +1263,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-sdk-macros"
-version = "22.0.7"
+version = "22.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a141230aa65006d4b3eeee9d0589172d734a2abfbe15b84670e38e76e200b370"
+checksum = "9ef0d7d62b2584696d306b8766728971c7d0731a03a5e047f1fc68722ac8cf0c"
 dependencies = [
  "crate-git-revision",
  "darling",
@@ -1223,9 +1283,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-spec"
-version = "22.0.7"
+version = "22.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b54326e9516b33be99c701b37242b27efb8e66cc1f1eff994b9d9a013a4be136"
+checksum = "a4ad0867aec99770ed614fedbec7ac4591791df162ff9e548ab7ebd07cd23a9c"
 dependencies = [
  "base64 0.13.1",
  "stellar-xdr",
@@ -1235,9 +1295,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-spec-rust"
-version = "22.0.7"
+version = "22.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f009cab4dfd653bc94a06c5022f1ca9d30e198b0e451f84cf307231563d11de2"
+checksum = "aebe31c042adfa2885ec47b67b08fcead8707da80a3fe737eaf2a9ae1a8cfdc3"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -1285,6 +1345,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "stellar-macros"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64fca0c7dec6c2ff634d0bf078bd632fd1616e4ced6be4ab1487bae689c5ebf2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.100",
+]
+
+[[package]]
 name = "stellar-strkey"
 version = "0.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1293,6 +1364,15 @@ dependencies = [
  "crate-git-revision",
  "data-encoding",
  "thiserror",
+]
+
+[[package]]
+name = "stellar-tokens"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68e41ef20c8d4f3c0b21b83a15c8e4c7e99462af020fc0f0dcd1d548a07812ea"
+dependencies = [
+ "soroban-sdk",
 ]
 
 [[package]]
@@ -1344,6 +1424,12 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "tap"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "thiserror"
@@ -1572,6 +1658,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2ba9642430ee452d5a7aa78d72907ebe8cfda358e8cb7918a2050581322f97"
 dependencies = [
  "windows-link",
+]
+
+[[package]]
+name = "wyz"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed"
+dependencies = [
+ "tap",
 ]
 
 [[package]]
