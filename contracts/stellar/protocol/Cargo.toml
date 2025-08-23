@@ -8,14 +8,13 @@ publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-doctest = false
 
 [features]
 testutils = []
 
 [dependencies]
-soroban-sdk = { workspace = true }
+soroban-sdk = { workspace = true, features = ["testutils"] }
 stellar-xdr = { workspace = true, features = ["base64"] }
 
 [dev-dependencies]
-soroban-sdk = { workspace = true, features = ["testutils"] } 
+serde_json = "1.0.111" 

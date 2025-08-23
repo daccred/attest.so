@@ -1,9 +1,15 @@
-//! Tests for nonce management and BLS cryptography for delegated actions.
-use protocol::{errors::Error, AttestationContract, AttestationContractClient};
-use soroban_sdk::{
-    testutils::{Address as _, Events, MockAuth, MockAuthInvoke},
-    Address, BytesN, Env, IntoVal, String as SorobanString,
+use protocol::{
+  errors::Error,
+  state::{Attestation, DataKey},
+  utils::{create_xdr_string, generate_attestation_uid},
+  AttestationContract, AttestationContractClient,
 };
+use soroban_sdk::{
+  panic_with_error, symbol_short,
+  testutils::{Address as _, Events, Ledger, LedgerInfo, MockAuth, MockAuthInvoke},
+  Address, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal,
+};
+
 
 // =======================================================================================
 //
@@ -11,96 +17,155 @@ use soroban_sdk::{
 //
 // =======================================================================================
 
-/// **Test: Nonce Incrementation**
-/// - Verifies that an attester's nonce starts at 0.
-/// - Confirms the nonce increments sequentially after each delegated action.
+/// **Test: Nonce Incrementation via `attest`**
+/// - Verifies that sequential attestations from the same attester succeed,
+///   implying that the internal nonce is being incremented correctly.
 #[test]
 fn test_nonce_incrementation() {
     let env = Env::default();
+    env.mock_all_auths();
     let contract_id = env.register(AttestationContract {}, ());
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let attester = Address::generate(&env);
+    let subject = Address::generate(&env);
 
     println!("=============================================================");
     println!("      Running TC: {}", "test_nonce_incrementation");
     println!("=============================================================");
 
-    // TODO: Implementation
+    client.initialize(&admin);
+    let schema_uid = client.register(
+        &attester,
+        &SorobanString::from_str(&env, "schema"),
+        &None,
+        &true,
+    );
+
+    // 1. Perform first attestation, which should use nonce 0 internally.
+  let result =  client.attest(
+        &attester,
+        &schema_uid,
+        &subject,
+        &SorobanString::from_str(&env, "value1"),
+        &None,
+    );
+
+    let event_one = env.events().all().clone();
+    dbg!(&event_one);
+
+    // 2. Perform second attestation. This will only succeed if the nonce
+    // was incremented after the first call, preventing a UID collision.
+    let result2 = client.attest(
+        &attester,
+        &schema_uid,
+        &subject,
+        &SorobanString::from_str(&env, "value2"),
+        &None,
+    );
+
+    let event_two = env.events().all().clone();
+    dbg!(&event_two);
+
+    let result3 = client.attest(
+        &attester,
+        &schema_uid,
+        &subject,
+        &SorobanString::from_str(&env, "value3"),
+        &None,
+    );
+
+    let event_three = env.events().all().clone();
+    dbg!(&event_three);
+
+    // dbg!(&result, &result2, &result3);
+    
+    let first_event = event_one.last().unwrap();
+    let second_event = event_two.last().unwrap();
+    let third_event = event_three.last().unwrap();
+    let (event_schema_uid, event_attester, event_subject, event_value, event_nonce, event_timestamp): (BytesN<32>, Address, Address, SorobanString, u64, u64) = first_event.2.try_into_val(&env).unwrap();
+    let (event_schema_uid2, event_attester2, event_subject2, event_value2, event_nonce2, event_timestamp2): (BytesN<32>, Address, Address, SorobanString, u64, u64) = second_event.2.try_into_val(&env).unwrap();
+    let (event_schema_uid3, event_attester3, event_subject3, event_value3, event_nonce3, event_timestamp3): (BytesN<32>, Address, Address, SorobanString, u64, u64) = third_event.2.try_into_val(&env).unwrap();
+    // Verify that nonces are incrementing correctly
+    assert_eq!(event_nonce, 0, "First attestation should use nonce 0");
+    assert_eq!(event_nonce2, 1, "Second attestation should use nonce 1");
+    assert_eq!(event_nonce3, 2, "Third attestation should use nonce 2");
+    
+    // Verify that all attestations are from the same attester (this is the key test)
+    assert_eq!(event_attester, event_attester2, "All attestations should be from the same attester");
+    assert_eq!(event_attester2, event_attester3, "All attestations should be from the same attester");
+
+    dbg!(&event_schema_uid, &event_attester, &event_subject, &event_value, &event_nonce, &event_timestamp);
+    dbg!(&event_schema_uid2, &event_attester2, &event_subject2, &event_value2, &event_nonce2, &event_timestamp2);
+    dbg!(&event_schema_uid3, &event_attester3, &event_subject3, &event_value3, &event_nonce3, &event_timestamp3);
+
+
 
     println!("=============================================================");
     println!("      Finished: {}", "test_nonce_incrementation");
     println!("=============================================================");
 }
 
-/// **Test: Nonce Replay Attack Prevention**
-/// - Ensures that a delegated request with a previously used nonce is rejected.
-/// - Should fail with `Error::InvalidNonce`.
-#[test]
-fn test_nonce_replay_attack() {
-    let env = Env::default();
-    let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
-
-    println!("=============================================================");
-    println!("      Running TC: {}", "test_nonce_replay_attack");
-    println!("=============================================================");
-
-    // TODO: Implementation
-
-    println!("=============================================================");
-    println!("      Finished: {}", "test_nonce_replay_attack");
-    println!("=============================================================");
-}
-
-/// **Test: Future Nonce Rejection**
-/// - Ensures that a delegated request with a nonce from the future is rejected.
-/// - e.g., submitting nonce `1` when `0` is expected.
-/// - Should fail with `Error::InvalidNonce`.
-#[test]
-fn test_nonce_future_nonce_rejection() {
-    let env = Env::default();
-    let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
-
-    println!("=============================================================");
-    println!("      Running TC: {}", "test_nonce_future_nonce_rejection");
-    println!("=============================================================");
-
-    // TODO: Implementation
-
-    println!("=============================================================");
-    println!("      Finished: {}", "test_nonce_future_nonce_rejection");
-    println!("=============================================================");
-}
-
-/// **Test: Nonce is Attester-Specific**
-/// - Verifies that nonces for different attesters are managed independently.
-/// - Action by Attester A should not affect the nonce of Attester B.
+/// **Test: Nonce is Attester-Specific via `attest`**
+/// - Verifies that `attest` calls from different attesters do not interfere
+///   with each other's internal nonce sequence.
 #[test]
 fn test_nonce_is_attester_specific() {
     let env = Env::default();
+    env.mock_all_auths();
     let contract_id = env.register(AttestationContract {}, ());
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let attester_a = Address::generate(&env);
+    let attester_b = Address::generate(&env);
+    let subject = Address::generate(&env);
 
     println!("=============================================================");
     println!("      Running TC: {}", "test_nonce_is_attester_specific");
     println!("=============================================================");
 
-    // TODO: Implementation
+    client.initialize(&admin);
+    let schema_uid = client.register(
+        &admin, // Schema owner doesn't matter for this test
+        &SorobanString::from_str(&env, "schema"),
+        &None,
+        &true,
+    );
+
+    // Attester A performs an action (this uses nonce 0 for A).
+    client.attest(
+        &attester_a,
+        &schema_uid,
+        &subject,
+        &SorobanString::from_str(&env, "valueA"),
+        &None,
+    );
+
+    // Attester B performs an action (this should use nonce 0 for B).
+    // If the nonces were not separate, this would fail.
+    client.attest(
+        &attester_b,
+        &schema_uid,
+        &subject,
+        &SorobanString::from_str(&env, "valueB"),
+        &None,
+    );
+
+    // Attester A performs a second action (this should use nonce 1 for A).
+    client.attest(
+        &attester_a,
+        &schema_uid,
+        &subject,
+        &SorobanString::from_str(&env, "valueA2"),
+        &None,
+    );
 
     println!("=============================================================");
     println!("      Finished: {}", "test_nonce_is_attester_specific");
     println!("=============================================================");
 }
 
-// =======================================================================================
-//
-//                              BLS KEY & DELEGATED ACTIONS
-//
-// =======================================================================================
+
 
 /// **Test: BLS Key Registration**
 /// - Verifies successful registration of a BLS public key for an attester.
@@ -108,153 +173,62 @@ fn test_nonce_is_attester_specific() {
 #[test]
 fn test_bls_key_registration_and_event() {
     let env = Env::default();
+    env.mock_all_auths();
     let contract_id = env.register(AttestationContract {}, ());
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let attester = Address::generate(&env);
 
     println!("=============================================================");
     println!("      Running TC: {}", "test_bls_key_registration_and_event");
     println!("=============================================================");
 
-    // TODO: Implementation
+    client.initialize(&admin);
+
+    // Generate a dummy BLS public key
+    let public_key = BytesN::from_array(&env, &[1; 96]);
+
+    // Register the key
+    client.register_bls_key(&attester, &public_key);
+
+    // Verify the event was emitted correctly
+    let events = env.events().all();
+    let last_event = events.last().unwrap();
+
+    let expected_topics = (
+        soroban_sdk::symbol_short!("BLS_KEY"),
+        soroban_sdk::symbol_short!("REGISTER"),
+    )
+        .into_val(&env);
+
+    assert_eq!(last_event.1, expected_topics);
+
+    let (event_attester, event_pk, event_timestamp): (Address, BytesN<96>, u64) =
+        last_event.2.try_into_val(&env).unwrap();
+
+    assert_eq!(event_attester, attester);
+    assert_eq!(event_pk, public_key);
+    assert_eq!(event_timestamp, env.ledger().timestamp());
 
     println!("=============================================================");
     println!("      Finished: {}", "test_bls_key_registration_and_event");
     println!("=============================================================");
 }
 
-/// **Test: Delegated Attestation with Valid Signature**
-/// - End-to-end test for a successful delegated attestation.
-/// - Requires setting up a BLS key, signing a request, and verifying the result.
+// The following tests require delegated attestation and valid BLS signatures,
+// which are part of a more complex setup. They are stubbed out for now.
 #[test]
-fn test_delegated_attestation_with_valid_signature() {
-    let env = Env::default();
-    let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
-
-    println!("=============================================================");
-    println!(
-        "      Running TC: {}",
-        "test_delegated_attestation_with_valid_signature"
-    );
-    println!("=============================================================");
-
-    // TODO: Implementation
-
-    println!("=============================================================");
-    println!(
-        "      Finished: {}",
-        "test_delegated_attestation_with_valid_signature"
-    );
-    println!("=============================================================");
-}
-
-/// **Test: Delegated Attestation with Invalid Signature**
-/// - Ensures a delegated attestation with an incorrect signature is rejected.
-/// - Should fail with `Error::InvalidSignature`.
+fn test_nonce_replay_attack() {}
 #[test]
-fn test_delegated_attestation_with_invalid_signature() {
-    let env = Env::default();
-    let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
-
-    println!("=============================================================");
-    println!(
-        "      Running TC: {}",
-        "test_delegated_attestation_with_invalid_signature"
-    );
-    println!("=============================================================");
-
-    // TODO: Implementation
-
-    println!("=============================================================");
-    println!(
-        "      Finished: {}",
-        "test_delegated_attestation_with_invalid_signature"
-    );
-    println!("=============================================================");
-}
-
-/// **Test: Delegated Action with Unregistered Key**
-/// - Ensures delegated actions fail if the attester has not registered a BLS key.
-/// - Should fail with `Error::InvalidSignature`.
+fn test_nonce_future_nonce_rejection() {}
+ 
 #[test]
-fn test_delegated_action_with_unregistered_key() {
-    let env = Env::default();
-    let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
-
-    println!("=============================================================");
-    println!(
-        "      Running TC: {}",
-        "test_delegated_action_with_unregistered_key"
-    );
-    println!("=============================================================");
-
-    // TODO: Implementation
-
-    println!("=============================================================");
-    println!(
-        "      Finished: {}",
-        "test_delegated_action_with_unregistered_key"
-    );
-    println!("=============================================================");
-}
-
-/// **Test: Delegated Revocation with Valid Signature**
-/// - End-to-end test for a successful delegated revocation.
-/// - Requires creating an attestation, then revoking it via a signed request.
+fn test_delegated_attestation_with_valid_signature() {}
 #[test]
-fn test_delegated_revocation_with_valid_signature() {
-    let env = Env::default();
-    let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
-
-    println!("=============================================================");
-    println!(
-        "      Running TC: {}",
-        "test_delegated_revocation_with_valid_signature"
-    );
-    println!("=============================================================");
-
-    // TODO: Implementation
-
-    println!("=============================================================");
-    println!(
-        "      Finished: {}",
-        "test_delegated_revocation_with_valid_signature"
-    );
-    println!("=============================================================");
-}
-
-/// **Test: Delegated Action with Expired Deadline**
-/// - Ensures a delegated request is rejected if submitted after its deadline.
-/// - Uses ledger time manipulation to simulate the passage of time.
-/// - Should fail with `Error::ExpiredSignature`.
+fn test_delegated_attestation_with_invalid_signature() {}
 #[test]
-fn test_delegated_action_with_expired_deadline() {
-    let env = Env::default();
-    let contract_id = env.register(AttestationContract {}, ());
-    let client = AttestationContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
-
-    println!("=============================================================");
-    println!(
-        "      Running TC: {}",
-        "test_delegated_action_with_expired_deadline"
-    );
-    println!("=============================================================");
-
-    // TODO: Implementation
-
-    println!("=============================================================");
-    println!(
-        "      Finished: {}",
-        "test_delegated_action_with_expired_deadline"
-    );
-    println!("=============================================================");
-}
+fn test_delegated_action_with_unregistered_key() {}
+#[test]
+fn test_delegated_revocation_with_valid_signature() {}
+#[test]
+fn test_delegated_action_with_expired_deadline() {}

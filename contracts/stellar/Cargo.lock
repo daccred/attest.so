@@ -877,6 +877,7 @@ dependencies = [
 name = "protocol"
 version = "1.3.2"
 dependencies = [
+ "serde_json",
  "soroban-sdk",
  "stellar-xdr",
 ]
