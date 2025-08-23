@@ -282,7 +282,7 @@ fn verify_and_increment_nonce(env: &Env, attester: &Address, expected_nonce: u64
 /// 3. **Domain Separation**: Verify different domain separators produce different hashes
 /// 4. **Edge Cases**: Test with optional fields present/absent
 /// 5. **Encoding Validation**: Verify big-endian encoding consistency
-fn create_attestation_message(env: &Env, request: &DelegatedAttestationRequest) -> BytesN<32> {
+pub fn create_attestation_message(env: &Env, request: &DelegatedAttestationRequest) -> BytesN<32> {
     let mut message = Bytes::new(env);
 
     // DOMAIN SEPARATION: Unique protocol identifier prevents signature reuse
