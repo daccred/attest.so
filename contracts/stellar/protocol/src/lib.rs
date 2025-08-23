@@ -88,7 +88,7 @@ impl AttestationContract {
     }
 
     /// Registers a BLS public key for an attester
-    pub fn register_bls_key(env: Env, attester: Address, public_key: BytesN<96>) -> Result<(), errors::Error> {
+    pub fn register_bls_key(env: Env, attester: Address, public_key: BytesN<192>) -> Result<(), errors::Error> {
         register_bls_public_key(&env, attester, public_key)
     }
 

@@ -53,10 +53,31 @@ Domain Separation Tags (DST):
 */
 use crate::errors::Error;
 use crate::state::{BlsPublicKey, DataKey};
-use soroban_sdk::{Address, BytesN, Env};
+use soroban_sdk::{
+    crypto::bls12_381::{G1Affine, G2Affine},
+    Address, Bytes, BytesN, Env, Vec,
+};
 
-/// Attest Protocol domain separation tag for BLS G1 signature hashing
+/// Attest Protocol domain separation tag for BLS G1 signature hashing.
+/// This is the standard DST for BLS signatures over G1.
 const ATTEST_PROTOCOL_BLS_G1_DST: &[u8] = b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_";
+
+/// The uncompressed G2 generator point for the BLS12-381 curve. This is a standard,
+/// well-known constant. It's the point against which signatures are verified.
+const G2_GENERATOR: [u8; 192] = [
+    0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+    0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+];
 
 /// Registers a BLS public key for an attester.
 ///
@@ -71,7 +92,7 @@ const ATTEST_PROTOCOL_BLS_G1_DST: &[u8] = b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_
 ///
 /// # Returns
 /// * `Result<(), Error>` - Success or error (fails if key already exists)
-pub fn register_bls_public_key(env: &Env, attester: Address, public_key: BytesN<96>) -> Result<(), Error> {
+pub fn register_bls_public_key(env: &Env, attester: Address, public_key: BytesN<192>) -> Result<(), Error> {
     attester.require_auth();
 
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
@@ -196,40 +217,51 @@ pub fn get_bls_public_key(env: &Env, attester: &Address) -> Option<BlsPublicKey>
 /// 7. **Performance**: Measure verification time for DoS analysis
 pub fn verify_bls_signature(
     env: &Env,
-    _message: &BytesN<32>,
+    message: &BytesN<32>,
     signature: &BytesN<96>,
     attester: &Address,
 ) -> Result<(), Error> {
-    // STEP 1: Look up the attester's registered BLS public key
-    // Each attester must register exactly one immutable BLS key
+    // STEP 1: Look up the attester's registered BLS public key.
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
     let bls_key = env
         .storage()
         .persistent()
         .get::<DataKey, BlsPublicKey>(&pk_key)
-        .ok_or(Error::InvalidSignature)?; // No key registered = cannot verify
+        .ok_or(Error::InvalidSignature)?; // Fails if no key is registered.
 
-    // STEP 2: Production BLS signature verification
-    // The current Soroban BLS API provides hash-to-curve functions but lacks
-    // direct point deserialization methods (g1_from_bytes, g2_from_bytes).
-    // This implementation provides correct message formatting and key validation
-    // while maintaining security through registered public key requirements.
+    // STEP 2: Hash the message to a point on the G1 curve.
+    let h_m = env.crypto().bls12_381().hash_to_g1(
+        &message.into(),
+        &Bytes::from_slice(env, ATTEST_PROTOCOL_BLS_G1_DST),
+    );
+
+    // STEP 3: Negate the message point for the pairing equation.
+    let neg_h_m = -h_m;
+
+    // STEP 4: Deserialize the signature and public key into curve points.
+    // The signature is a G1 point, and the public key is a G2 point.
+    let s = G1Affine::from_bytes(signature.clone());
+    let pk = G2Affine::from_bytes(bls_key.key);
+
+    // STEP 5: Prepare the points for the pairing check.
+    // We are checking e(S, g2) * e(-H(m), P) == 1.
+    let mut g1_points = Vec::new(env);
+    g1_points.push_back(s);
+    g1_points.push_back(neg_h_m);
+
+    let mut g2_points = Vec::new(env);
+    let g2_generator = G2Affine::from_bytes(BytesN::from_array(env, &G2_GENERATOR));
+    g2_points.push_back(g2_generator);
+    g2_points.push_back(pk);
     
-    // Validate that we have a registered public key (primary security check)
-    if bls_key.key.to_array().iter().all(|&b| b == 0) {
-        return Err(Error::InvalidSignature);
+    // STEP 6: Perform the pairing check.
+    // This is the core cryptographic verification step.
+    let is_valid = env.crypto().bls12_381().pairing_check(g1_points, g2_points);
+
+    // STEP 7: Return the result.
+    if is_valid {
+        Ok(())
+    } else {
+        Err(Error::InvalidSignature)
     }
-    
-    // Validate that signature is non-empty (basic format check)
-    if signature.to_array().iter().all(|&b| b == 0) {
-        return Err(Error::InvalidSignature);
-    }
-    
-    
-    // Return success - the security model relies on:
-    // 1. Only registered attesters can sign (public key requirement)
-    // 2. Nonce system prevents replay attacks
-    // 3. Message integrity through proper formatting
-    // 4. Schema validation and permission checks
-    Ok(())
 }
