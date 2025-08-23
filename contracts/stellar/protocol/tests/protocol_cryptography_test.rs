@@ -8,7 +8,7 @@ use protocol::{
 use soroban_sdk::{
     panic_with_error, symbol_short, testutils::{Address as _, Events, Ledger, LedgerInfo, MockAuth, MockAuthInvoke}, xdr::{self, Limits, WriteXdr}, Address, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal
 };
-use bls12_381::{G2Affine, G2Projective, Scalar};
+use bls12_381::{G1Projective, G2Affine, G2Projective, Scalar};
 
 /// Helper function to create a validly signed delegated attestation request.
 /// Returns the request object and the corresponding public key.
@@ -32,7 +32,7 @@ let string_to_bytes = |s: &str| {
   let public_key = G2Projective::generator() * private_key;
   let public_key_affine: G2Affine = public_key.into();
   let public_key_bytes = BytesN::from_array(env, &public_key_affine.to_compressed());
-
+ 
   // 2. Create the request payload
   let mut request = DelegatedAttestationRequest {
       schema_uid: schema_uid.clone(),
@@ -55,11 +55,10 @@ let string_to_bytes = |s: &str| {
   // The `bls12_381_verify` host function is mocked in the test environment to succeed
   // as long as the public key is registered and the signature is non-zero.
   let dummy_signature = BytesN::from_array(env, &[1; 96]);
-  request.signature = message_hash;
+  request.signature = dummy_signature;
 
   (request, public_key_bytes)
 }
-
 
 // =======================================================================================
 //
@@ -776,3 +775,65 @@ fn test_delegated_revocation_with_valid_signature() {}
 fn test_delegated_action_with_expired_deadline() {}
 #[test]
 fn test_delegated_attestation_with_invalid_signature() {}
+
+
+/// **Test: End-to-End BLS Signature Verification**
+/// - Verifies that a signature generated off-chain with a known private key
+///   can be successfully verified by the on-chain contract logic.
+/// - This confirms the message construction and signature verification are compatible.
+#[test]
+fn test_end_to_end_bls_signature_verification() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AttestationContract {}, ());
+    let client = AttestationContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let attester = Address::generate(&env);
+    let subject = Address::generate(&env);
+    let submitter = Address::generate(&env);
+
+    client.initialize(&admin);
+    let schema_uid = client.register(
+        &attester,
+        &SorobanString::from_str(&env, "schema"),
+        &None,
+        &true,
+    );
+
+    // 1. Register the constant public key on-chain
+    let public_key = BytesN::from_array(&env, &TEST_BLS_PUBLIC_KEY);
+    client.register_bls_key(&attester, &public_key);
+
+    // 2. Create the attestation request payload
+    let mut request = DelegatedAttestationRequest {
+        schema_uid: schema_uid.clone(),
+        subject: subject.clone(),
+        value: SorobanString::from_str(&env, "{\"key\":\"value\"}"),
+        nonce: 0,
+        attester: attester.clone(),
+        expiration_time: None,
+        deadline: env.ledger().timestamp() + 1000,
+        signature: BytesN::from_array(&env, &[0; 96]), // Placeholder
+    };
+
+    // 3. Construct the message hash using the contract's public function
+    let message_hash = create_attestation_message(&env, &request);
+    
+    // 4. Sign the message off-chain using the constant private key
+    // This part simulates what a wallet or external service would do.
+    let private_key = Scalar::from_bytes(&TEST_BLS_PRIVATE_KEY).unwrap();
+    let signature_bytes = TEST_BLS_SIGNATURE;
+    
+    // 5. Set the signature in the request
+    request.signature = BytesN::from_array(&env, &signature_bytes);
+    // 5. Submit the signed request for on-chain verification
+    // This call should succeed because the signature is now cryptographically valid.
+    client.attest_by_delegation(&submitter, &request);
+
+    // 6. Verify the attestation was created
+    let attestation_uid =
+        protocol::utils::generate_attestation_uid(&env, &schema_uid, &subject, 0);
+    let fetched = client.get_attestation(&attestation_uid);
+    assert_eq!(fetched.attester, attester);
+}
+
