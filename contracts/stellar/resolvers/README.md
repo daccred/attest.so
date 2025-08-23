@@ -417,3 +417,53 @@ The resolver system provides a flexible, secure foundation for implementing cust
 4. Gas limit and DoS protection mechanisms
 5. Admin privilege escalation risks
 6. Integration boundary security
+
+## Gating Model (Features + Target)
+
+- When building for Wasm deployment (target_arch = wasm32): no resolvers are exported by default. Enable exactly one feature to export a specific resolver and avoid duplicate symbols:
+  - `export-default-resolver`
+  - `export-token-reward-resolver`
+  - `export-fee-collection-resolver`
+- When building for tests (not(target_arch = "wasm32")): all resolvers are available so integration tests can import and use any resolver without feature juggling.
+
+This approach lets tests use every resolver while preventing conflicts when this crate is a dependency of other Wasm contracts.
+
+## Build & Deploy Individual Resolvers
+
+Build a single resolver to Wasm by enabling its feature:
+
+- Default Resolver:
+  ```bash
+  cargo build --target wasm32v1-none --release --features export-default-resolver
+  ```
+- Token Reward Resolver:
+  ```bash
+  cargo build --target wasm32v1-none --release --features export-token-reward-resolver
+  ```
+- Fee Collection Resolver:
+  ```bash
+  cargo build --target wasm32v1-none --release --features export-fee-collection-resolver
+  ```
+
+Deploy the built Wasm (example for Fee Collection Resolver):
+
+```bash
+stellar contract deploy \
+  --wasm target/wasm32v1-none/release/resolvers.wasm \
+  --source YOUR_IDENTITY \
+  --network testnet
+```
+
+Initialize example:
+
+```bash
+stellar contract invoke \
+  --id YOUR_RESOLVER_CONTRACT_ID \
+  --source YOUR_IDENTITY \
+  --network testnet \
+  -- initialize \
+  --admin YOUR_ADMIN_ADDRESS \
+  --fee_token TOKEN_ADDRESS \
+  --attestation_fee 1000000 \
+  --fee_recipient FEE_RECIPIENT_ADDRESS
+```

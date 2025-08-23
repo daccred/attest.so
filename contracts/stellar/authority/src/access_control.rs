@@ -107,11 +107,7 @@ pub fn only_owner(env: &Env, caller: &Address) -> Result<(), Error> {
 /// * Only the current owner can transfer ownership
 /// * Immediately transfers ownership (no two-step process for simplicity)
 /// * Use with caution - ownership cannot be recovered if transferred to wrong address
-pub fn transfer_ownership(
-    env: &Env,
-    current_owner: &Address,
-    new_owner: &Address,
-) -> Result<(), Error> {
+pub fn transfer_ownership(env: &Env, current_owner: &Address, new_owner: &Address) -> Result<(), Error> {
     only_owner(env, current_owner)?;
 
     set_owner(env, new_owner);
@@ -141,10 +137,7 @@ pub fn renounce_ownership(env: &Env, current_owner: &Address) -> Result<(), Erro
     only_owner(env, current_owner)?;
 
     // Set owner to a zero-like address (using first valid Stellar address format)
-    let zero_address_str = String::from_str(
-        env,
-        "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
-    );
+    let zero_address_str = String::from_str(env, "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF");
     let zero_address = Address::from_string(&zero_address_str);
     set_owner(env, &zero_address);
 
@@ -169,7 +162,6 @@ pub fn renounce_ownership(env: &Env, current_owner: &Address) -> Result<(), Erro
 pub fn get_owner(env: &Env) -> Result<Address, Error> {
     owner(env).ok_or(Error::NotInitialized)
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ► Testing Utilities (cfg(test) only)

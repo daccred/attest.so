@@ -28,4 +28,4 @@ pub enum Error {
     AttestationExpired = 22,
     InvalidDeadline = 23,
     ResolverCallFailed = 24,
-} 
+}

@@ -2,12 +2,11 @@ extern crate std;
 
 use soroban_sdk::{
     testutils::{Address as _, BytesN as _, Events as _, Ledger, LedgerInfo},
-    token,
-    Address, Bytes, BytesN, Env, String as SorobanString, TryFromVal,
+    token, Address, Bytes, BytesN, Env, String as SorobanString, TryFromVal,
 };
 
-use resolvers::Attestation as ResolverAttestation;
 use authority::{AuthorityResolverContract, AuthorityResolverContractClient};
+use resolvers::ResolverAttestationData as ResolverAttestation;
 
 const REGISTRATION_FEE: i128 = 100_0000000; // 100 XLM
 const REWARD_AMOUNT: i128 = 5_0000000; // 5 tokens for reward tests
@@ -44,12 +43,17 @@ fn setup_env() -> TestEnv {
     // Register resolver contract
     let contract_id = env.register(AuthorityResolverContract, ());
     let client = AuthorityResolverContractClient::new(&env, &contract_id);
-    
+
     // Create dummy wasm hash for initialization
     let token_wasm_hash = BytesN::from_array(&env, &[0u8; 32]);
     client.initialize(&admin, &token_address, &token_wasm_hash);
 
-    TestEnv { env, admin, contract_id, token_address }
+    TestEnv {
+        env,
+        admin,
+        contract_id,
+        token_address,
+    }
 }
 
 // Helper function for building test attestations (resolver interface)
@@ -90,9 +94,7 @@ fn pay_fee_records_payment_and_event() {
 
     let events = env.events().all();
     let _payment_event = events.iter().any(|(_, topics, _)| {
-        topics
-            .get(0)
-            .and_then(|v| SorobanString::try_from_val(env, &v).ok())
+        topics.get(0).and_then(|v| SorobanString::try_from_val(env, &v).ok())
             == Some(SorobanString::from_str(env, "PAYMENT_RECEIVED"))
     });
     // TODO: PAYMENT_RECEIVED event not emitted during fee payment
@@ -159,7 +161,7 @@ fn before_and_after_attest_with_payment() {
     client.pay_verification_fee(&payer, &ref_id, &setup.token_address);
 
     let _att = build_resolver_attestation(env, &payer);
-    
+
     // TODO: Implement before_attest and after_attest resolver hooks
     // RECOMMENDATION: Add resolver interface implementation for authority registration flow
     // IMPACT: Cannot validate payment requirements before attestation
@@ -169,9 +171,7 @@ fn before_and_after_attest_with_payment() {
 
     let events = env.events().all();
     let _registered_event = events.iter().any(|(_, topics, _)| {
-        topics
-            .get(0)
-            .and_then(|v| SorobanString::try_from_val(env, &v).ok())
+        topics.get(0).and_then(|v| SorobanString::try_from_val(env, &v).ok())
             == Some(SorobanString::from_str(env, "AUTHORITY_REGISTERED"))
     });
     // TODO: AUTHORITY_REGISTERED event not emitted after attestation
@@ -282,4 +282,4 @@ fn token_reward_incentive_flow_distributes_rewards() {
     let balance = token_client.balance(&user);
     assert_eq!(balance, REWARD_AMOUNT);
     */
-} 
+}

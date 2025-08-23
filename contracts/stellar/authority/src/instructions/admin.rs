@@ -1,9 +1,6 @@
 use crate::errors::Error;
 use crate::events;
-use crate::state::{
-    set_authority_data, set_registration_fee,
-    RegisteredAuthorityData,
-};
+use crate::state::{set_authority_data, set_registration_fee, RegisteredAuthorityData};
 use soroban_sdk::{Address, Env, String};
 // Import macros we actually use
 use crate::require_owner;
@@ -16,7 +13,6 @@ use crate::require_owner;
 pub fn get_admin(env: &Env) -> Result<Address, Error> {
     crate::state::get_admin(env).ok_or(Error::NotInitialized)
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ► Admin Functions
@@ -85,4 +81,3 @@ pub fn require_init(env: &Env) -> Result<(), Error> {
 pub fn get_token_id(env: &Env) -> Result<Address, Error> {
     crate::state::get_token_id(env).ok_or(Error::NotInitialized)
 }
-

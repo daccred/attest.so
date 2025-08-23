@@ -1,10 +1,26 @@
 [package]
 name = "resolvers"
-version = "0.1.0"
+version = { workspace = true }
 edition = "2021"
+authors = ["Immutable Labs (Daccred) <gm@daccred.xyz>"]
+license = "MIT"
+publish = false
 
+# Build both a Rust library (rlib) for linking into other crates and a cdylib for
+# producing a Wasm binary when targeting wasm32. The actual exported contract
+# functions are gated by features and target_arch in src/lib.rs and module files.
+# Avoid doctest failures under no_std and generated macro docs
 [lib]
 crate-type = ["cdylib", "rlib"]
+doctest = false
+
+# Feature flags control which resolver contract is exported when building to Wasm.
+# By default (no features), no resolver contract exports are included in Wasm builds,
+# which avoids duplicate symbol errors when this crate is a dependency of other Wasm contracts.
+[features]
+export-default-resolver = []
+export-fee-collection-resolver = []
+export-token-reward-resolver = []
 
 [dependencies]
 soroban-sdk = { workspace = true }

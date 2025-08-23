@@ -2,8 +2,7 @@ use crate::errors::Error;
 use crate::events;
 use crate::instructions::admin::{get_token_id, require_init};
 use crate::state::{
-    get_collected_levy, is_authority, remove_collected_levy, set_authority_data,
-    set_collected_levy, Attestation,
+    get_collected_levy, is_authority, remove_collected_levy, set_authority_data, set_collected_levy, Attestation,
     RegisteredAuthorityData,
 };
 use soroban_sdk::{log, token, Address, Env, String};
@@ -51,11 +50,7 @@ pub fn register_authority(
 pub fn attest(env: &Env, attestation: &Attestation) -> Result<bool, Error> {
     require_init(env)?;
     if !is_authority(env, &attestation.attester) {
-        log!(
-            env,
-            "Attest hook: {} is NOT an authority.",
-            attestation.attester
-        );
+        log!(env, "Attest hook: {} is NOT an authority.", attestation.attester);
         return Err(Error::AttesterNotAuthority);
     }
 
@@ -80,11 +75,7 @@ pub fn revoke(env: &Env, attestation: &Attestation) -> Result<bool, Error> {
         );
         Ok(true)
     } else {
-        log!(
-            env,
-            "Revoke hook: {} is NOT an authority.",
-            attestation.attester
-        );
+        log!(env, "Revoke hook: {} is NOT an authority.", attestation.attester);
         Err(Error::AttesterNotAuthority)
     }
 }
@@ -105,20 +96,11 @@ pub fn withdraw_levies(env: &Env, caller: &Address) -> Result<(), Error> {
     let balance = get_collected_levy(env, caller);
 
     if balance <= 0 {
-        log!(
-            env,
-            "Withdrawal attempt by {}: No balance to withdraw.",
-            caller
-        );
+        log!(env, "Withdrawal attempt by {}: No balance to withdraw.", caller);
         return Err(Error::NothingToWithdraw);
     }
 
-    log!(
-        env,
-        "Attempting withdrawal for {}: amount {}",
-        caller,
-        balance
-    );
+    log!(env, "Attempting withdrawal for {}: amount {}", caller, balance);
 
     let token_id = get_token_id(env)?;
     let token_client = token::Client::new(env, &token_id);
@@ -134,12 +116,7 @@ pub fn withdraw_levies(env: &Env, caller: &Address) -> Result<(), Error> {
     // Publish withdrawal event
     events::levy_withdrawn(env, caller, balance);
 
-    log!(
-        env,
-        "Withdrawal successful for {}: amount {}",
-        caller,
-        balance
-    );
+    log!(env, "Withdrawal successful for {}: amount {}", caller, balance);
     Ok(())
 }
 
@@ -155,11 +132,7 @@ pub fn withdraw_fees(env: &Env, caller: &Address) -> Result<(), Error> {
     let balance = crate::state::get_collected_fees(env, caller);
 
     if balance <= 0 {
-        log!(
-            env,
-            "Fee withdrawal attempt by {}: No balance to withdraw.",
-            caller
-        );
+        log!(env, "Fee withdrawal attempt by {}: No balance to withdraw.", caller);
         return Err(Error::NothingToWithdraw);
     }
 

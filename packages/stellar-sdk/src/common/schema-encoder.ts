@@ -1,7 +1,6 @@
 /**
  * Stellar Schema Encoder - Standardized schema definition and data encoding for Stellar attestations
  * 
- * Inspired by EAS (Ethereum Attestation Service) but adapted for Stellar/Soroban contracts.
  * Provides type-safe schema definitions and encoding/decoding utilities.
  */
 
@@ -468,6 +467,12 @@ export class StellarSchemaEncoder {
         description: field.description
       }
 
+      // If this is an address, add encoding and media type hints for round-trip fidelity
+      if (field.type === StellarDataType.ADDRESS) {
+        properties[field.name].contentEncoding = 'base32'
+        properties[field.name].contentMediaType = 'application/vnd.daccred.address; chain=stellar'
+      }
+
       if (field.validation) {
         Object.assign(properties[field.name], field.validation)
       }
@@ -497,9 +502,19 @@ export class StellarSchemaEncoder {
 
     for (const [name, prop] of Object.entries(jsonSchema.properties || {})) {
       const property = prop as any
+      const baseType = StellarSchemaEncoder.jsonSchemaTypeToStellarType(property.type)
+
+      // Detect Stellar address strictly by base32 encoding hint or custom media type
+      const isBase32Encoded = property.contentEncoding === 'base32'
+      const mediaType: string | undefined = property.contentMediaType
+      const isWalletAddress = typeof mediaType === 'string' && mediaType.startsWith('application/vnd.daccred.address')
+      const resolvedType = (baseType === StellarDataType.STRING && (isBase32Encoded || isWalletAddress))
+        ? StellarDataType.ADDRESS
+        : baseType
+
       fields.push({
         name,
-        type: StellarSchemaEncoder.jsonSchemaTypeToStellarType(property.type),
+        type: resolvedType,
         optional: !jsonSchema.required?.includes(name),
         description: property.description,
         validation: {
@@ -738,7 +753,19 @@ export class StellarSchemaEncoder {
   }
 
   /**
-   * Convert Stellar type to JSON Schema type
+   * Convert Stellar type to a coarse JSON Schema "type".
+   *
+   * Key considerations:
+   * - Numeric types (u32/u64/i32/i64/i128/amount/timestamp) map to 'number' to maximize
+   *   interoperability with generic JSON Schema tooling, even though several are conceptually
+   *   integers. Callers should treat them as integers where applicable.
+   * - Values that can exceed JavaScript's safe integer range (i128/amount) are encoded as strings
+   *   at runtime (see processDataForEncoding). Downstream validators may want to add a 'pattern'
+   *   or custom 'format' to communicate this constraint.
+   * - 'address' and 'symbol' are represented as 'string'. Schema authors can provide a 'pattern'
+   *   to constrain an address, since JSON Schema does not natively know about Stellar addresses.
+   * - 'array' and 'map' are generic container types; element/key/value types are not preserved by
+   *   this mapping. For stronger typing, model nested fields explicitly or extend with metadata.
    */
   private stellarTypeToJSONSchemaType(stellarType: string): string {
     switch (stellarType) {
@@ -766,7 +793,17 @@ export class StellarSchemaEncoder {
   }
 
   /**
-   * Convert JSON Schema type to Stellar type
+   * Convert a JSON Schema "type" into a Stellar type.
+   *
+   * Key considerations:
+   * - JSON Schema collapses many specialized types into 'string' or 'number'. Without additional
+   *   hints (e.g., 'format', 'pattern', or custom metadata), we default to the broadest sensible
+   *   Stellar types.
+   *   - 'number' and 'integer' default to i64.
+   *   - 'string' remains a generic string (we do not assume 'address' or 'symbol').
+   * - Arrays/objects map to generic 'array'/'map'; element types are not inferred.
+   * - If you need address, amount, i128, or timestamp fidelity, provide explicit Stellar types in
+   *   the schema definition or pre-process JSON Schema using metadata before calling this method.
    */
   private static jsonSchemaTypeToStellarType(jsonType: string): string {
     switch (jsonType) {
@@ -802,7 +839,7 @@ export class StellarSchemaEncoder {
 /**
  * Pre-defined schema encoders for common use cases
  */
-export class StellarSchemaRegistry {
+export class StellarSchemaService {
   private static schemas = new Map<string, StellarSchemaEncoder>()
 
   /**
@@ -880,4 +917,4 @@ export class StellarSchemaRegistry {
 }
 
 // Initialize default schemas
-StellarSchemaRegistry.initializeDefaults()
+StellarSchemaService.initializeDefaults()

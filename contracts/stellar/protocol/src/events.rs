@@ -1,16 +1,9 @@
-use soroban_sdk::{Env, symbol_short, BytesN, Address};
-use crate::state::Attestation;
+use crate::state::{Attestation, Schema};
+use soroban_sdk::{symbol_short, Address, BytesN, Env};
 
-pub fn schema_registered(
-    env: &Env,
-    schema_uid: &BytesN<32>,
-    authority: &Address,
-) {
+pub fn schema_registered(env: &Env, schema_uid: &BytesN<32>, schema: &Schema, authority: &Address) {
     let topics = (symbol_short!("SCHEMA"), symbol_short!("REGISTER"));
-    let data = (
-        schema_uid.clone(),
-        authority.clone(),
-    );
+    let data = (schema_uid.clone(), schema.clone(), authority.clone());
     env.events().publish(topics, data);
 }
 
@@ -30,26 +23,18 @@ pub fn publish_attestation_event(env: &Env, attestation: &Attestation) {
 pub fn publish_revocation_event(env: &Env, attestation: &Attestation) {
     let topics = (symbol_short!("ATTEST"), symbol_short!("REVOKE"));
     let data = (
+        attestation.uid.clone(),
         attestation.schema_uid.clone(),
         attestation.subject.clone(),
         attestation.attester.clone(),
-        attestation.nonce,
+        attestation.revoked,
         attestation.revocation_time.clone(),
     );
     env.events().publish(topics, data);
 }
 
-pub fn publish_bls_key_registered(
-    env: &Env,
-    attester: &Address,
-    public_key: &BytesN<96>,
-    timestamp: u64,
-) {
+pub fn publish_bls_key_registered(env: &Env, attester: &Address, public_key: &BytesN<96>, timestamp: u64) {
     let topics = (symbol_short!("BLS_KEY"), symbol_short!("REGISTER"));
-    let data = (
-        attester.clone(),
-        public_key.clone(),
-        timestamp,
-    );
+    let data = (attester.clone(), public_key.clone(), timestamp);
     env.events().publish(topics, data);
 }

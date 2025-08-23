@@ -22,10 +22,10 @@ pub struct Attestation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[contracttype]
 pub struct PaymentRecord {
-    pub recipient: Address,      // wallet address that paid
-    pub timestamp: u64,          // timestamp of payment
-    pub ref_id: String,          // their org data_uid on our platform
-    pub amount_paid: i128,       // amount paid in stroops
+    pub recipient: Address, // wallet address that paid
+    pub timestamp: u64,     // timestamp of payment
+    pub ref_id: String,     // their org data_uid on our platform
+    pub amount_paid: i128,  // amount paid in stroops
 }
 
 /// Data stored for an authority that paid for verification
@@ -35,10 +35,8 @@ pub struct RegisteredAuthorityData {
     pub address: Address,
     pub metadata: String,
     pub registration_time: u64,
-    pub ref_id: String,          // reference to their org data on platform
+    pub ref_id: String, // reference to their org data on platform
 }
-
-
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -46,14 +44,14 @@ pub enum DataKey {
     Admin,
     Initialized,
     RegistrationFee,
-    PaymentRecord,      // Payment ledger entries
-    Authority,          // Registered authorities (post-payment)
-    TokenId,           // Token contract ID
-    TokenWasmHash,     // Token WASM hash
-    CollectedLevies,   // Collected levies per authority
-    CollectedFees,     // Collected fees per authority
-    RegAuthPrefix,     // Legacy prefix for registered authorities
-    CollLevyPrefix,    // Prefix for collected levies
+    PaymentRecord,   // Payment ledger entries
+    Authority,       // Registered authorities (post-payment)
+    TokenId,         // Token contract ID
+    TokenWasmHash,   // Token WASM hash
+    CollectedLevies, // Collected levies per authority
+    CollectedFees,   // Collected fees per authority
+    RegAuthPrefix,   // Legacy prefix for registered authorities
+    CollLevyPrefix,  // Prefix for collected levies
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -70,7 +68,6 @@ pub fn set_admin(env: &Env, admin: &Address) {
     env.storage().instance().set(&DataKey::Admin, admin);
 }
 
-
 /// Writes the registration fee to storage.
 pub fn set_registration_fee(env: &Env, fee: &i128) {
     env.storage().instance().set(&DataKey::RegistrationFee, fee);
@@ -84,11 +81,9 @@ pub fn set_registration_fee(env: &Env, fee: &i128) {
 pub fn record_payment(env: &Env, payment: &PaymentRecord) {
     let key = (DataKey::PaymentRecord, payment.recipient.clone());
     env.storage().persistent().set(&key, payment);
-    env.storage().persistent().extend_ttl(
-        &key,
-        env.storage().max_ttl() - 100,
-        env.storage().max_ttl(),
-    );
+    env.storage()
+        .persistent()
+        .extend_ttl(&key, env.storage().max_ttl() - 100, env.storage().max_ttl());
 }
 
 /// Gets a payment record for an address
@@ -116,13 +111,10 @@ pub fn get_authority_data(env: &Env, authority: &Address) -> Option<RegisteredAu
 pub fn set_authority_data(env: &Env, data: &RegisteredAuthorityData) {
     let key = (DataKey::Authority, data.address.clone());
     env.storage().persistent().set(&key, data);
-    env.storage().persistent().extend_ttl(
-        &key,
-        env.storage().max_ttl() - 100,
-        env.storage().max_ttl(),
-    );
+    env.storage()
+        .persistent()
+        .extend_ttl(&key, env.storage().max_ttl() - 100, env.storage().max_ttl());
 }
-
 
 /// Sets the initialized flag.
 pub fn set_initialized(env: &Env) {
@@ -137,7 +129,6 @@ pub fn is_authority(env: &Env, authority: &Address) -> bool {
     let key = (DataKey::Authority, authority.clone());
     env.storage().persistent().has(&key)
 }
-
 
 /// Get collected levy amount for an authority
 pub fn get_collected_levy(env: &Env, authority: &Address) -> i128 {
@@ -192,5 +183,3 @@ pub fn set_token_id(env: &Env, token_id: &Address) {
 pub fn set_token_wasm_hash(env: &Env, wasm_hash: &BytesN<32>) {
     env.storage().instance().set(&DataKey::TokenWasmHash, wasm_hash);
 }
-
-

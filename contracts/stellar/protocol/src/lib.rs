@@ -1,29 +1,19 @@
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractimpl, Address, Env, String, BytesN, Vec,
-};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String};
 
 pub mod errors;
 pub mod events;
+pub mod instructions;
 pub mod interfaces;
 pub mod state;
-pub mod instructions;
 pub mod utils;
 
-use state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest, BlsPublicKey};
+use state::{Attestation, BlsPublicKey, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest};
 
 use instructions::{
-    register_schema,
-    attest,
-    get_attestation,
-    revoke_attestation,
-    list_attestations,
-    attest_by_delegation,
-    revoke_by_delegation,
-    get_next_nonce,
-    register_bls_public_key,
-    get_bls_public_key,
+    attest, attest_by_delegation, get_attestation_record, get_bls_public_key, register_bls_public_key, register_schema,
+    revoke_attestation, revoke_by_delegation,
 };
 
 #[contract]
@@ -57,46 +47,23 @@ impl AttestationContract {
         subject: Address,
         value: String,
         expiration_time: Option<u64>,
-    ) -> Result<u64, errors::Error> {
+    ) -> Result<BytesN<32>, errors::Error> {
         attest(&env, attester, schema_uid, subject, value, expiration_time)
     }
 
-    /// Revokes an attestation by its nonce
-    pub fn revoke_attestation(
-        env: Env,
-        revoker: Address,
-        schema_uid: BytesN<32>,
-        subject: Address,
-        nonce: u64,
-    ) -> Result<(), errors::Error> {
-        revoke_attestation(&env, revoker, schema_uid, subject, nonce)
+    pub fn revoke_attestation(env: Env, revoker: Address, attestation_uid: BytesN<32>) -> Result<(), errors::Error> {
+        revoke_attestation(&env, revoker, attestation_uid)
     }
 
-    /// Gets an attestation by its nonce
-    pub fn get_attestation(
-        env: Env,
-        schema_uid: BytesN<32>,
-        subject: Address,
-        nonce: u64,
-    ) -> Result<Attestation, errors::Error> {
-        get_attestation(&env, schema_uid, subject, nonce)
-    }
-
-    /// Lists attestations for a schema and subject
-    pub fn list_attestations_for(
-        env: Env,
-        schema_uid: BytesN<32>,
-        subject: Address,
-        limit: u32,
-    ) -> Vec<Attestation> {
-        list_attestations(&env, schema_uid, subject, limit)
+    pub fn get_attestation(env: Env, attestation_uid: BytesN<32>) -> Result<Attestation, errors::Error> {
+        get_attestation_record(&env, attestation_uid)
     }
 
     // ══════════════════════════════════════════════════════════════════════════════
-    // ► Delegated Attestation Functions (EAS-style)
+    // ► Delegated Attestation Functions
     // ══════════════════════════════════════════════════════════════════════════════
 
-    /// Creates an attestation using a delegated signature (EAS-style)
+    /// Creates an attestation using a delegated signature
     /// Anyone can submit this transaction, paying the fees
     pub fn attest_by_delegation(
         env: Env,
@@ -116,30 +83,17 @@ impl AttestationContract {
     }
 
     /// Gets the next nonce for an attester
-    pub fn get_attester_nonce(
-        env: Env,
-        attester: Address,
-    ) -> u64 {
-        get_next_nonce(&env, &attester)
+    pub fn get_attester_nonce(env: Env, attester: Address) -> u64 {
+        utils::get_next_nonce(&env, &attester)
     }
 
     /// Registers a BLS public key for an attester
-    pub fn register_bls_key(
-        env: Env,
-        attester: Address,
-        public_key: BytesN<96>,
-    ) -> Result<(), errors::Error> {
+    pub fn register_bls_key(env: Env, attester: Address, public_key: BytesN<96>) -> Result<(), errors::Error> {
         register_bls_public_key(&env, attester, public_key)
     }
 
     /// Gets the BLS public key for an attester
-    pub fn get_bls_key(
-        env: Env,
-        attester: Address,
-    ) -> Option<BlsPublicKey> {
+    pub fn get_bls_key(env: Env, attester: Address) -> Option<BlsPublicKey> {
         get_bls_public_key(&env, &attester)
     }
-
 }
-
- 
