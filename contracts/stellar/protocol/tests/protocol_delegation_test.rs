@@ -33,3 +33,12 @@ fn test_nonce_is_scoped_to_attester_not_subject() {
 fn test_nonce_is_scoped_to_attester_not_submitter() {
     // TODO: Implementation
 }
+
+
+
+#[test]
+fn test_delegated_revocation_with_valid_signature() {}
+#[test]
+fn test_delegated_action_with_expired_deadline() {}
+#[test]
+fn test_delegated_attestation_with_invalid_signature() {}

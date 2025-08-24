@@ -701,10 +701,3 @@ fn test_end_to_end_bls_signature_verification() {
     // let fetched = client.get_attestation(&attestation_uid);
     // assert_eq!(fetched.attester, attester);
 }
-
-#[test]
-fn test_delegated_revocation_with_valid_signature() {}
-#[test]
-fn test_delegated_action_with_expired_deadline() {}
-#[test]
-fn test_delegated_attestation_with_invalid_signature() {}
