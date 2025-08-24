@@ -9,13 +9,13 @@ pub struct DefaultResolver;
 #[contractimpl]
 impl ResolverInterface for DefaultResolver {
     /// Basic validation - always allows valid attestations
-    fn before_attest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
+    fn onattest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         // Basic validation: ensure attester is not self-attesting
         if attestation.attester == attestation.recipient {
             return Err(ResolverError::ValidationFailed);
         }
 
-        // Ensure attestation has not expired
+        // Ensure attestation has not expired if expiration_time is set
         if attestation.expiration_time > 0 && attestation.expiration_time < env.ledger().timestamp() {
             return Err(ResolverError::InvalidAttestation);
         }
@@ -24,20 +24,18 @@ impl ResolverInterface for DefaultResolver {
     }
 
     /// No post-processing needed for default resolver
-    fn after_attest(_env: Env, _attestation: ResolverAttestationData) -> Result<(), ResolverError> {
+    fn onresolve(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<(), ResolverError> {
         Ok(())
     }
 
     /// Allow revocations if attestation is revocable
-    fn before_revoke(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<bool, ResolverError> {
+    fn onrevoke(_env: Env, _attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
+        
         // Protocol handles revocability check
         Ok(true)
     }
 
-    /// No cleanup needed for default resolver
-    fn after_revoke(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<(), ResolverError> {
-        Ok(())
-    }
+ 
 
     fn get_metadata(env: Env) -> ResolverMetadata {
         ResolverMetadata {

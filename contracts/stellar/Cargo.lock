@@ -955,6 +955,7 @@ dependencies = [
  "bls12_381",
  "blst",
  "hex",
+ "resolvers",
  "soroban-sdk",
 ]
 

@@ -88,7 +88,7 @@ fn test_reward_distribution_on_attestation() {
     // Attestation triggers reward distribution
     let attester = Address::generate(&env);
     let attestation = build_attestation(&env, &attester);
-    resolver_client.after_attest(&attestation);
+    resolver_client.onresolve(&attestation.uid, &attestation.attester);
 
     // Verify attester received reward tokens
     // If this assertion fails:
@@ -120,7 +120,7 @@ fn test_openzeppelin_token_compliance() {
     resolver_client.fund_reward_pool(&admin, &FUND_AMOUNT);
     let attester = Address::generate(&env);
     let attestation = build_attestation(&env, &attester);
-    resolver_client.after_attest(&attestation);
+    resolver_client.onresolve(&attestation.uid, &attestation.attester);
 
     // Expect token balances to reflect rewards
     // If this assertion fails:
@@ -137,7 +137,7 @@ fn test_insufficient_pool_handling() {
     let attester = Address::generate(&env);
     let attestation = build_attestation(&env, &attester);
 
-    let result = resolver_client.try_after_attest(&attestation);
+    let result = resolver_client.try_onresolve(&attestation.uid, &attestation.attester);
     // If this assertion fails:
     // ISSUE: balance verification in after_attest may allow overdrawing reward pool
     // RECOMMENDATION: Ensure contract checks pool balance before transfer

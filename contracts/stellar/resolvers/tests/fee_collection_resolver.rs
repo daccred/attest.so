@@ -83,7 +83,7 @@ fn test_fee_collected_on_attest() {
     token_admin_client.mint(&attester, &FEE_AMOUNT);
 
     let attestation = build_attestation(&env, &attester);
-    resolver_client.before_attest(&attestation);
+    assert!(resolver_client.onattest(&attestation));
     // If this line panics with `Error(Auth, InvalidAction)`:
     // ISSUE: before_attest lacks attester.require_auth before token transfer
     // RECOMMENDATION: call attester.require_auth() prior to token_client.transfer
@@ -102,7 +102,7 @@ fn test_withdraw_fees_requires_recipient_auth() {
     let attester = Address::generate(&env);
     token_admin_client.mint(&attester, &FEE_AMOUNT);
     let attestation = build_attestation(&env, &attester);
-    resolver_client.before_attest(&attestation);
+    assert!(resolver_client.onattest(&attestation));
     // If this line panics with `Error(Auth, InvalidAction)`:
     // ISSUE: attester authorization is missing for token transfer
     // RECOMMENDATION: require attester auth in before_attest

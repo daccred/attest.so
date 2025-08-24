@@ -51,7 +51,7 @@ fn test_reject_self_attestation() {
     let (env, client) = setup();
     let user = Address::generate(&env);
     let attestation = build_attestation(&env, &user, &user, 0);
-    let res = client.try_before_attest(&attestation);
+    let res = client.try_onattest(&attestation);
     // If this assertion fails:
     // ISSUE: self-attestation check missing in before_attest
     // RECOMMENDATION: Ensure attester != recipient validation
@@ -65,7 +65,7 @@ fn test_reject_expired_attestation() {
     let attester = Address::generate(&env);
     let recipient = Address::generate(&env);
     let attestation = build_attestation(&env, &attester, &recipient, 50); // before current ledger timestamp 100
-    let res = client.try_before_attest(&attestation);
+    let res = client.try_onattest(&attestation);
     // If this assertion fails:
     // ISSUE: expiration check missing or timestamp miscomputed
     // RECOMMENDATION: verify env.ledger().timestamp usage
@@ -79,7 +79,7 @@ fn test_accept_valid_attestation() {
     let attester = Address::generate(&env);
     let recipient = Address::generate(&env);
     let attestation = build_attestation(&env, &attester, &recipient, 0);
-    assert!(client.before_attest(&attestation));
+    assert!(client.onattest(&attestation));
 }
 
 #[test]
@@ -87,9 +87,9 @@ fn test_revocation_hooks() {
     let (env, client) = setup();
     let uid = BytesN::random(&env);
     let attester = Address::generate(&env);
-    assert!(client.before_revoke(&uid, &attester));
+    assert!(client.try_onresolve(&uid, &attester).is_ok());
     // after_revoke should be a no-op
-    client.after_revoke(&uid, &attester);
+    client.onresolve(&uid, &attester);
 }
 
 #[test]

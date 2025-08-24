@@ -154,7 +154,7 @@ impl FeeCollectionResolver {
 #[contractimpl]
 impl ResolverInterface for FeeCollectionResolver {
     /// Collect fee before attestation
-    fn before_attest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
+    fn onattest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         // Get fee configuration
         let attestation_fee: i128 = env.storage().instance().get(&DataKey::AttestationFee).unwrap_or(0);
 
@@ -205,19 +205,16 @@ impl ResolverInterface for FeeCollectionResolver {
     }
 
     /// No post-processing needed
-    fn after_attest(_env: Env, _attestation: ResolverAttestationData) -> Result<(), ResolverError> {
-        Ok(())
-    }
-
-    /// No validation needed for revocations
-    fn before_revoke(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<bool, ResolverError> {
+    fn onrevoke(_env: Env, _attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         Ok(true)
     }
 
-    /// No cleanup needed for revocations (fees not refunded)
-    fn after_revoke(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<(), ResolverError> {
+    /// No validation needed for revocations
+    fn onresolve(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> core::result::Result<(), ResolverError> {
         Ok(())
     }
+
+ 
 
     fn get_metadata(env: Env) -> ResolverMetadata {
         ResolverMetadata {
