@@ -1,8 +1,12 @@
+// =======================================================================================
+//
+//                              BLS CRYPTOGRAPHY TEST HELPERS
+//
+// =======================================================================================
 //! Test utilities for BLS12-381 cryptographic testing
 //!
 //! This module provides valid BLS12-381 curve points for testing signature verification
 //! and other cryptographic operations. All constants are valid points on the curve.
-
 use bls12_381::{G1Affine, G2Affine, Scalar};
 
 #[test]
@@ -112,5 +116,7 @@ mod tests {
 
         // Test keypair generation
         let (_pk, _sk) = generate_valid_test_keypair();
+        println!("Public key: {:?}", _pk);
+        println!("Private key: {:?}", _sk);
     }
 }
