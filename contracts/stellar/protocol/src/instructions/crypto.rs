@@ -14,9 +14,10 @@ on-chain verification logic.
   to generate a signature. The subject of an attestation never interacts with the blockchain.
 - **Delegated Submission**: The attester signs a request off-chain. Anyone can then take
   this signed request and submit it to the contract, paying the gas fees.
-- **Key & Signature Formats**:
-  - **Public Key**: Must be a **192-byte uncompressed** G2 curve point.
-  - **Signature**: Must be a **96-byte compressed** G1 curve point.
+- **Key & Signature Formats (CRITICAL)**:
+  - **Public Key**: Must be a **192-byte UNCOMPRESSED** G2 curve point.
+  - **Signature**: Must be a **96-byte UNCOMPRESSED** G1 curve point. The Soroban
+    host environment requires the uncompressed format for verification.
 
 ------------------------------------------------------------------------------------------
     Example: Signature Generation with @noble/curves (JavaScript/TypeScript)
@@ -29,12 +30,11 @@ import { sha256 } from '@noble/hashes/sha256';
 // 1. Attester generates their keypair (done once).
 const attesterPrivateKey = bls12_381.utils.randomPrivateKey();
 
-// 2. Get the public key in the required 192-BYTE UNCOMPRESSED format for registration.
-// The `false` flag is critical here.
+// 2. Get the public key in the required 192-BYTE UNCOMPRESSED format.
 const attesterPublicKey = bls12_381.PointG2.fromPrivateKey(attesterPrivateKey).toRawBytes(false);
 
 // 3. Construct the exact message hash that the contract expects.
-//    This function MUST perfectly match the crate attest:delegation `create_attestation_message`.
+//    (See `create_attestation_message` in delegation.rs for the full implementation)
 function createMessageHash(request) {
     const domainSeparator = new TextEncoder().encode("ATTEST_PROTOCOL_V1_DELEGATED");
 
@@ -75,9 +75,12 @@ function createMessageHash(request) {
 
 // 4. Attester signs the message hash.
 const messageHash = createMessageHash(attestationRequest);
-const signature = bls12_381.sign(messageHash, attesterPrivateKey); // 96-byte compressed G1 point
+const signaturePoint = bls12_381.sign(messageHash, attesterPrivateKey);
 
-// 5. The resulting `signature` can now be submitted to the contract.
+// 5. CRITICAL: Serialize the signature to its UNCOMPRESSED format for the contract.
+const signature = signaturePoint.toRawBytes(false); // -> 96-byte Uint8Array
+
+// 6. The resulting 96-byte `signature` can now be submitted to the contract.
 ```
 
 ------------------------------------------------------------------------------------------
@@ -242,14 +245,11 @@ pub fn verify_bls_signature(
      * STEP 3: Prepare the points for the pairing check.
      * We are checking e(S, g2) * e(-H(m), P) == 1.
      */
-    let mut g1_points = Vec::new(env);
-    g1_points.push_back(s);
-    g1_points.push_back(neg_hashed_message);
+    let g1_points = Vec::from_array(env, [s, neg_hashed_message]);
+    
 
-    let mut g2_points = Vec::new(env);
     let g2_generator = G2Affine::from_bytes(BytesN::from_array(env, &G2_GENERATOR));
-    g2_points.push_back(g2_generator);
-    g2_points.push_back(pk);
+    let g2_points = Vec::from_array(env, [g2_generator, pk]);
 
     let is_valid = env.crypto().bls12_381().pairing_check(g1_points, g2_points);
 

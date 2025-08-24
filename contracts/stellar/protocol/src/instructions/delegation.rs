@@ -243,24 +243,17 @@ fn verify_and_increment_nonce(env: &Env, attester: &Address, expected_nonce: u64
 /// # Message Structure
 /// ```rust,ignore
 /// Domain Separator: "ATTEST_PROTOCOL_V1_DELEGATED" (26 bytes)
-/// Schema UID:       32 bytes (schema identifier)
-/// Nonce:           8 bytes (big-endian u64, replay protection)
-/// Deadline:        8 bytes (big-endian u64, signature expiration)
+/// Schema UID:       32 bytes
+/// Nonce:            8 bytes (big-endian u64)
+/// Deadline:         8 bytes (big-endian u64)
 /// Expiration Time:  8 bytes (optional, big-endian u64)
-/// Value Length:     8 bytes (big-endian u64, placeholder for value)
+/// Value Length:     8 bytes (big-endian u64)
 /// ```
 ///
 /// # Cross-Platform Compatibility
-/// This function MUST produce identical results to the JavaScript implementation:
-/// ```javascript
-/// function createAttestationMessage(request) {
-///     const domainSeparator = new TextEncoder().encode("ATTEST_PROTOCOL_V1_DELEGATED");
-///     const schemaBytes = new Uint8Array(request.schema_uid);
-///     const nonceBytes = new DataView(new ArrayBuffer(8));
-///     nonceBytes.setBigUint64(0, BigInt(request.nonce), false); // big-endian
-///     // ... additional fields in same order
-/// }
-/// ```
+/// This function's logic must be perfectly replicated by off-chain clients. The
+/// signature submitted to the contract must be for the hash of this exact byte sequence.
+/// The signature itself must be a 96-byte uncompressed G1 point.
 ///
 /// # Parameters
 /// * `env` - Soroban environment for crypto and data operations
