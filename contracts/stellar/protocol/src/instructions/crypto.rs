@@ -246,7 +246,6 @@ pub fn verify_bls_signature(
      * We are checking e(S, g2) * e(-H(m), P) == 1.
      */
     let g1_points = Vec::from_array(env, [s, neg_hashed_message]);
-    
 
     let g2_generator = G2Affine::from_bytes(BytesN::from_array(env, &G2_GENERATOR));
     let g2_points = Vec::from_array(env, [g2_generator, pk]);

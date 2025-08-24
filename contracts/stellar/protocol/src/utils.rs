@@ -158,20 +158,20 @@ pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
 pub fn create_xdr_string(env: &Env, value: &String) -> String {
     // Convert the input string to XDR bytes
     let xdr_bytes = value.clone().to_xdr(env);
-    
+
     // Hash the XDR bytes using SHA256 to create a deterministic identifier
     let hash: BytesN<32> = env.crypto().sha256(&xdr_bytes).into();
-    
+
     // Convert the hash to a string representation
     // Since we're in a no_std environment, we'll create a deterministic string
     // based on the first few bytes of the hash
     let hash_array = hash.to_array();
-    
+
     // Convert prefix to a simple character representation
     // We'll use the first byte of the hash as a simple identifier
     let suffix_char = match hash_array[0] % 16 {
         0 => "0",
-        1 => "1", 
+        1 => "1",
         2 => "2",
         3 => "3",
         4 => "4",
@@ -187,7 +187,7 @@ pub fn create_xdr_string(env: &Env, value: &String) -> String {
         14 => "E",
         _ => "F",
     };
-    
+
     // Build the final string
     let mut result_str = [0u8; 5];
     result_str[0] = b'X';
@@ -195,6 +195,6 @@ pub fn create_xdr_string(env: &Env, value: &String) -> String {
     result_str[2] = b'R';
     result_str[3] = b':';
     result_str[4] = suffix_char.as_bytes()[0];
-    
+
     String::from_bytes(env, &result_str)
 }

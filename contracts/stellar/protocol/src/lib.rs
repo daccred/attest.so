@@ -12,9 +12,8 @@ pub mod utils;
 use state::{Attestation, BlsPublicKey, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest};
 
 use instructions::{
-    attest, attest_by_delegation, get_attest_dst, get_attestation_record, get_bls_public_key,
-    get_revoke_dst, register_bls_public_key, register_schema,
-    revoke_attestation, revoke_by_delegation,
+    attest, attest_by_delegation, get_attest_dst, get_attestation_record, get_bls_public_key, get_revoke_dst,
+    register_bls_public_key, register_schema, revoke_attestation, revoke_by_delegation,
 };
 
 #[contract]

@@ -13,7 +13,6 @@ const ATTEST_DOMAIN_SEPARATOR: &[u8] = b"ATTEST_PROTOCOL_V1_DELEGATED";
 /// This MUST be unique and different from the attestation separator.
 const REVOKE_DOMAIN_SEPARATOR: &[u8] = b"REVOKE_PROTOCOL_V1_DELEGATED";
 
-
 /// Creates an attestation through delegated signature.
 ///
 /// This function allows anyone to submit a pre-signed attestation request on-chain.
