@@ -13,7 +13,8 @@
 // dependencies of this test module.
 
 // Primary BLS library for generating the reference point.
-use bls12_381::G2Affine;
+use bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective, Scalar};
+use soroban_sdk::{Env, Bytes};
 
 // A second, high-performance BLS library used for cross-verification.
 use blst::min_sig::{PublicKey as BlstPublicKey, SecretKey as BlstSecretKey};
@@ -24,6 +25,16 @@ use hex;
 // Rust standard library components for file system operations.
 use std::fs::{create_dir_all, File};
 use std::io::Write;
+
+// --- Add this constant to the top of your test file ---
+
+/// A hard-coded, pre-selected BLS12-381 private key for fully deterministic testing.
+/// This key has no value and is for testing purposes only.
+const TEST_PRIVATE_KEY: [u8; 32] = [
+    0x1a, 0x9e, 0x24, 0x8c, 0x1f, 0x4d, 0x8a, 0x2a, 0x48, 0x9c, 0x3a, 0x4b, 0x5b, 0x1c, 0x8e, 0x2f,
+    0x9d, 0x3b, 0x7e, 0x5f, 0x1a, 0x2a, 0x3c, 0x4d, 0x5e, 0x6f, 0x7a, 0x8b, 0x9c, 0x0d, 0x1e, 0x2f,
+];
+
 
 /// **Test: Dump and Verify `bls12_381` G2 Generator**
 ///
@@ -175,4 +186,84 @@ fn cross_check_g2_generator_between_crates() {
     .unwrap();
 
     println!("Wrote G2 generator cross-check to target/__bls_cross_check__.log");
+}
+
+
+
+/// **Utility Test: Generate and Log Deterministic BLS Test Vectors from a Constant Key**
+///
+/// This function acts as a utility to generate a fixed, deterministic set of
+/// valid BLS12-381 test vectors based on a hardcoded private key.
+///
+/// It performs the full off-chain workflow:
+/// 1. Loads a constant private key.
+/// 2. Derives the corresponding public key.
+/// 3. Creates a sample message hash.
+/// 4. Signs the message hash with the private key.
+/// 5. Dumps all values to a log file for easy use in other tests or client code.
+///
+/// Run this test with `cargo test -- --nocapture` to generate the log file.
+#[test]
+fn generate_and_log_bls_test_vectors() {
+    let env = Env::default(); // We need the env for crypto operations
+
+    // 1. Load the hardcoded private key (a scalar).
+    let private_key = Scalar::from_bytes(&TEST_PRIVATE_KEY).unwrap();
+    let private_key_bytes = private_key.to_bytes();
+
+    // 2. Derive the corresponding public key (a point on the G2 curve).
+    let public_key = G2Affine::generator() * private_key;
+
+
+    // 3. Create a sample message and hash it using the Soroban environment.
+    let message = b"This is a test message for signing";
+    let message_bytes = soroban_sdk::Bytes::from_slice(&env, message);
+    let message_hash = env.crypto().sha256(&message_bytes); // Returns a BytesN<32>
+
+    // 4. Sign the message hash using the private key and G1Projective::generator.
+    let signature_point = G1Affine::generator() * private_key;
+    let s = G1Affine::generator();
+    let s_bytes = s.to_string();
+    let s_bytes_array = s_bytes.as_bytes();
+    let s_bytes_array_bytes = Bytes::from_slice(&env, s_bytes_array);
+    let s_bytes_array_bytes_hash = env.crypto().sha256(&s_bytes_array_bytes);
+    let s_bytes_array_bytes_hash_bytes = s_bytes_array_bytes_hash.to_array();
+    let s_bytes_array_bytes_hash_bytes_scalar = Scalar::from_bytes(&s_bytes_array_bytes_hash_bytes);
+    // let signature_point = G1Projective::hash_to_curve(
+    //     &message_hash.to_array(), // Convert BytesN<32> to &[u8; 32]
+    //     b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_", // Standard DST
+    //     &[],
+    // ) * private_key;
+    let signed_message = env.crypto().bls12_381().hash_to_g1(&message_bytes, &Bytes::from_slice(&env, b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_"));
+    let signature = signature_point * Scalar::from_bytes(&message_hash.to_array()).unwrap();
+    // let signature_bytes = signature.to_string() .to_affine().to_compressed();
+    let signature_bytes = signature.to_string();
+
+    // 5. Write all generated vectors to a log file for auditing and reuse.
+    let _ = create_dir_all("target");
+    let mut log_file = File::create("target/__bls_vectors__.log").expect("Failed to create log file");
+
+    writeln!(log_file, "--- Static BLS12-381 Test Vectors ---").unwrap();
+    writeln!(log_file, "Generated from hardcoded private key.").unwrap();
+    
+    writeln!(log_file, "\n--- Private Key (Scalar, 32 bytes) ---").unwrap();
+    writeln!(log_file, "Hex: {}", hex::encode(private_key_bytes)).unwrap();
+    writeln!(log_file, "Bytes: {:?}", private_key_bytes).unwrap();
+
+    writeln!(log_file, "\n--- Public Key (G2 Point) ---").unwrap();
+    writeln!(log_file, "Hex: {}", hex::encode(public_key.to_string())).unwrap();
+    writeln!(log_file, "Bytes: {:?}", public_key).unwrap();
+
+    writeln!(log_file, "\n--- Message ---").unwrap();
+    writeln!(log_file, "Original Message: \"{}\"", String::from_utf8_lossy(message)).unwrap();
+    writeln!(log_file, "Message Hash (SHA256, 32B) Hex: {}", hex::encode(message_hash.to_array())).unwrap();
+    writeln!(log_file, "Message Hash (SHA256, 32B) Bytes: {:?}", message_hash.to_array()).unwrap();
+
+    writeln!(log_file, "\n--- Signature (G1 Point, 96 bytes compressed) ---").unwrap();
+    writeln!(log_file, "Hex: {}", hex::encode(&signature_bytes)).unwrap();
+    writeln!(log_file, "Bytes: {:?}", &signature_bytes).unwrap();
+    writeln!(log_file, "Signed Message: {:?}", signed_message.as_bytes()).unwrap();
+    writeln!(log_file, "Signed Message: {:?}", s_bytes_array_bytes_hash_bytes_scalar.unwrap()).unwrap();
+
+    println!("Wrote static BLS test vectors to target/__bls_vectors__.log");
 }
