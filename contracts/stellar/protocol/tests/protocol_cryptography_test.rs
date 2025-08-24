@@ -14,7 +14,7 @@ use soroban_sdk::{
 };
 
 mod testutils;
-use testutils::{generate_valid_test_keypair, TEST_BLS_G1_SIGNATURE, TEST_BLS_G2_PUBLIC_KEY};
+use testutils::{generate_valid_test_keypair, TEST_BLS_G1_SIGNATURE_BYTES, TEST_BLS_G2_PUBLIC_KEY};
 
 fn create_delegated_attestation_request(
     env: &Env,
@@ -31,7 +31,7 @@ fn create_delegated_attestation_request(
         attester: attester.clone(),
         expiration_time: None,
         deadline: env.ledger().timestamp() + 1000,
-        signature: BytesN::from_array(env, &TEST_BLS_G1_SIGNATURE),
+        signature: BytesN::from_array(env, &TEST_BLS_G1_SIGNATURE_BYTES),
     }
 }
 
