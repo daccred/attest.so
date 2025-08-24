@@ -5,6 +5,15 @@ use crate::state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedR
 use crate::utils::{self, generate_attestation_uid};
 use soroban_sdk::{Address, Bytes, BytesN, Env};
 
+/// Domain separator for creating delegated attestation signatures.
+/// This MUST be unique to prevent signature reuse in other contexts.
+const ATTEST_DOMAIN_SEPARATOR: &[u8] = b"ATTEST_PROTOCOL_V1_DELEGATED";
+
+/// Domain separator for creating delegated revocation signatures.
+/// This MUST be unique and different from the attestation separator.
+const REVOKE_DOMAIN_SEPARATOR: &[u8] = b"REVOKE_PROTOCOL_V1_DELEGATED";
+
+
 /// Creates an attestation through delegated signature.
 ///
 /// This function allows anyone to submit a pre-signed attestation request on-chain.
@@ -232,7 +241,7 @@ fn verify_and_increment_nonce(env: &Env, attester: &Address, expected_nonce: u64
 /// - **Type Safety**: Big-endian encoding ensures cross-platform consistency
 ///
 /// # Message Structure
-/// ```
+/// ```rust,ignore
 /// Domain Separator: "ATTEST_PROTOCOL_V1_DELEGATED" (26 bytes)
 /// Schema UID:       32 bytes (schema identifier)
 /// Nonce:           8 bytes (big-endian u64, replay protection)
@@ -285,9 +294,8 @@ fn verify_and_increment_nonce(env: &Env, attester: &Address, expected_nonce: u64
 pub fn create_attestation_message(env: &Env, request: &DelegatedAttestationRequest) -> BytesN<32> {
     let mut message = Bytes::new(env);
 
-    // DOMAIN SEPARATION: Unique protocol identifier prevents signature reuse
-    // This string MUST match exactly with JavaScript implementation
-    message.extend_from_slice(b"ATTEST_PROTOCOL_V1_DELEGATED");
+    // DOMAIN SEPARATION: Use the defined constant for clarity and safety.
+    message.extend_from_slice(ATTEST_DOMAIN_SEPARATOR);
 
     // FIELD 1: Schema UID (32 bytes, deterministic order)
     message.extend_from_slice(&request.schema_uid.to_array());
@@ -328,11 +336,11 @@ pub fn create_attestation_message(env: &Env, request: &DelegatedAttestationReque
 ///
 /// # Returns
 /// * `BytesN<32>` - The hash of the message to be signed
-fn create_revocation_message(env: &Env, request: &DelegatedRevocationRequest) -> BytesN<32> {
+pub fn create_revocation_message(env: &Env, request: &DelegatedRevocationRequest) -> BytesN<32> {
     let mut message = Bytes::new(env);
 
-    // Add fixed domain separator (different from attestation)
-    message.extend_from_slice(b"REVOKE_PROTOCOL_V1_DELEGATED");
+    // DOMAIN SEPARATION: Use the defined constant.
+    message.extend_from_slice(REVOKE_DOMAIN_SEPARATOR);
 
     // Encode request data deterministically
     message.extend_from_slice(&request.schema_uid.to_array());
@@ -346,4 +354,26 @@ fn create_revocation_message(env: &Env, request: &DelegatedRevocationRequest) ->
 
     // Return hash of the complete message
     env.crypto().sha256(&message).into()
+}
+
+/// Returns the domain separation tag used for creating delegated attestation signatures.
+///
+/// This is a public utility function for clients to ensure they are using the exact,
+/// correct domain separator when constructing messages for off-chain signing.
+///
+/// # Returns
+/// * `&[u8]` - The byte slice for the attestation domain separator.
+pub fn get_attest_dst() -> &'static [u8] {
+    ATTEST_DOMAIN_SEPARATOR
+}
+
+/// Returns the domain separation tag used for creating delegated revocation signatures.
+///
+/// This is a public utility function for clients to ensure they are using the exact,
+/// correct domain separator when constructing messages for off-chain signing.
+///
+/// # Returns
+/// * `&[u8]` - The byte slice for the revocation domain separator.
+pub fn get_revoke_dst() -> &'static [u8] {
+    REVOKE_DOMAIN_SEPARATOR
 }
