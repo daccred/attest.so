@@ -1,3 +1,5 @@
+use core::hash;
+
 /*
 ==========================================================================================
     JavaScript & Off-Chain Integration Guide for BLS12-381 Signatures
@@ -93,9 +95,10 @@ const signature = signaturePoint.toRawBytes(false); // -> 96-byte Uint8Array
 */
 use crate::errors::Error;
 use crate::state::{BlsPublicKey, DataKey};
+use soroban_sdk::{log, IntoVal};
 use soroban_sdk::{
     crypto::bls12_381::{G1Affine, G2Affine},
-    Address, Bytes, BytesN, Env, Vec,
+    Address, Bytes, BytesN, Env, Vec, TryFromVal, Val
 };
 
 /// Attest Protocol domain separation tag for BLS G1 signature hashing.
@@ -164,7 +167,7 @@ pub fn register_bls_public_key(env: &Env, attester: Address, public_key: BytesN<
 /// * `Option<BlsPublicKey>` - The public key if registered
 pub fn get_bls_public_key(env: &Env, attester: &Address) -> Option<BlsPublicKey> {
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
-    env.storage().persistent().get(&pk_key)
+    env.storage().persistent().get(&pk_key) 
 }
 
 /// **CRITICAL CRYPTOGRAPHIC FUNCTION**: Verifies a BLS12-381 signature using a pairing check.
@@ -203,6 +206,7 @@ pub fn get_bls_public_key(env: &Env, attester: &Address) -> Option<BlsPublicKey>
 /// # Returns
 /// * `Ok(())` if the signature is cryptographically valid for the given message and attester.
 /// * `Err(Error::InvalidSignature)` if the attester has no registered key or if the pairing check fails.
+/// * `Err(Error::BlsPubKeyNotRegistered)` if the attester has no registered key.
 ///
 /// # Cross-Platform Compatibility
 /// This on-chain function is designed to verify signatures created by standard off-chain
@@ -225,13 +229,13 @@ pub fn verify_bls_signature(
         .storage()
         .persistent()
         .get::<DataKey, BlsPublicKey>(&pk_key)
-        .ok_or(Error::InvalidSignature)?; // Fails if no key is registered.
+        .ok_or(Error::BlsPubKeyNotRegistered)?; // Fails if no key is registered.
 
     let hashed_message = env
         .crypto()
         .bls12_381()
         .hash_to_g1(&message.into(), &Bytes::from_slice(env, ATTEST_PROTOCOL_BLS_G1_DST));
-
+ 
     /*
      * STEP 1: Negate the message point for the pairing equation.
      * STEP 2: Deserialize the signature and public key into curve points.

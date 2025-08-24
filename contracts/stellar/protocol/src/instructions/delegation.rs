@@ -37,6 +37,7 @@ const REVOKE_DOMAIN_SEPARATOR: &[u8] = b"REVOKE_PROTOCOL_V1_DELEGATED";
 /// # Errors
 /// * `Error::ExpiredSignature` - If the deadline has passed
 /// * `Error::InvalidSignature` - If the signature verification fails
+/// * `Error::BlsPubKeyNotRegistered` - If the BLS public key is not registered
 /// * `Error::InvalidNonce` - If the nonce doesn't match expected value
 /// * `Error::SchemaNotFound` - If the schema doesn't exist
 pub fn attest_by_delegation(env: &Env, submitter: Address, request: DelegatedAttestationRequest) -> Result<(), Error> {
