@@ -15,21 +15,52 @@ use soroban_sdk::{
 
 mod testutils;
 use testutils::{
-    g1_generator,
-    g2_generator,
-    TEST_BLS_G1_SIGNATURE_BYTES, 
-    TEST_BLS_G1_SIGNATURE_BYTES_COMPRESSED,
-    TEST_BLS_G1_SIGNATURE_HEX, 
-    TEST_BLS_G1_SIGNATURE_MESSAGE, 
+    group_one_generator,
+    group_two_generator,
     TEST_BLS_G2_PUBLIC_KEY,
     TEST_BLS_PRIVATE_KEY,
 };
 
+
+fn create_delegated_attestation_request(
+    env: &Env,
+    attester: &Address,
+    nonce: u64,
+    schema_uid: &BytesN<32>,
+    subject: &Address,
+) -> DelegatedAttestationRequest {
+    let private_key = blst::min_sig::SecretKey::from_bytes(&TEST_BLS_PRIVATE_KEY)
+    .map_err(|e| panic!("Failed to create private key: {:?}", e))
+    .unwrap();
+
+ 
+    let mut request = DelegatedAttestationRequest {
+        schema_uid: schema_uid.clone(),
+        subject: subject.clone(),
+        value: SorobanString::from_str(env, "{\"key\":\"value\"}"),
+        nonce,
+        attester: attester.clone(),
+        expiration_time: None,
+        deadline: env.ledger().timestamp() + 1000,
+        signature: BytesN::from_array(env, &[0; 96]), // Placeholder
+    };
+
+    let message_hash = create_attestation_message(env, &request);
+
+    let signature_scalar = private_key.sign(&message_hash.to_array(), b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_", &[]);
+    let signature_bytes = signature_scalar.serialize();
+
+    request.signature = BytesN::from_array(env, &signature_bytes);
+    request
+
+}
+
+
 #[test]
 fn test_valid_points() {
     // Verify our constants are valid points
-    let g1_gen = g1_generator();
-    let g2_gen = g2_generator();
+    let g1_gen = group_one_generator();
+    let g2_gen = group_two_generator();
 
     assert!(bool::from(g1_gen.is_on_curve()));
     assert!(bool::from(g1_gen.is_torsion_free()));
@@ -74,25 +105,6 @@ fn generate_valid_bls_constants() {
     assert_eq!(g2_from_bytes, g2_gen);
 
     println!("\n✅ All constants are valid BLS12-381 points!");
-}
-
-fn create_delegated_attestation_request(
-    env: &Env,
-    attester: &Address,
-    nonce: u64,
-    schema_uid: &BytesN<32>,
-    subject: &Address,
-) -> DelegatedAttestationRequest {
-    DelegatedAttestationRequest {
-        schema_uid: schema_uid.clone(),
-        subject: subject.clone(),
-        value: SorobanString::from_str(env, "{\"key\":\"value\"}"),
-        nonce,
-        attester: attester.clone(),
-        expiration_time: None,
-        deadline: env.ledger().timestamp() + 1000,
-        signature: BytesN::from_array(env, &TEST_BLS_G1_SIGNATURE_BYTES),
-    }
 }
 
 // =======================================================================================
@@ -522,7 +534,6 @@ fn test_delegated_action_with_unregistered_key() {
 }
 
 #[test]
-#[should_panic]
 
 fn test_delegated_attestation_with_valid_signature() {
     let env = Env::default();
