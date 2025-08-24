@@ -1,5 +1,6 @@
 //! # BLS G2 Generator Sanity Checks
 //!
+//! reference: https://iancoleman.io/blsttc_ui/
 //! This test file is a standalone utility for auditing and verifying the canonical
 //! G2 generator point for the BLS12-381 curve. Its purpose is to provide high
 //! confidence that the cryptographic constants used in the contract are correct

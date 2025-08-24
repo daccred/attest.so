@@ -4,6 +4,7 @@
 //
 // =======================================================================================
 //! Test utilities for BLS12-381 cryptographic testing
+//! reference: https://iancoleman.io/blsttc_ui/
 //!
 //! This module provides valid BLS12-381 curve points for testing signature verification
 //! and other cryptographic operations. All constants are valid points on the curve.
