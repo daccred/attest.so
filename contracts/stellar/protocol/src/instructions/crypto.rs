@@ -94,8 +94,8 @@ const signature = signaturePoint.toRawBytes(false); // -> 96-byte Uint8Array
 use crate::errors::Error;
 use crate::state::{BlsPublicKey, DataKey};
 use soroban_sdk::{
-    crypto::bls12_381::{G1Affine, G2Affine}, log,
-    Address, Bytes, BytesN, Env, Vec, TryFromVal, Val
+    crypto::bls12_381::{G1Affine, G2Affine},
+    log, Address, Bytes, BytesN, Env, Vec,
 };
 
 /// Attest Protocol domain separation tag for BLS G1 signature hashing.
@@ -164,7 +164,7 @@ pub fn register_bls_public_key(env: &Env, attester: Address, public_key: BytesN<
 /// * `Option<BlsPublicKey>` - The public key if registered
 pub fn get_bls_public_key(env: &Env, attester: &Address) -> Option<BlsPublicKey> {
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
-    env.storage().persistent().get(&pk_key) 
+    env.storage().persistent().get(&pk_key)
 }
 
 /// **CRITICAL CRYPTOGRAPHIC FUNCTION**: Verifies a BLS12-381 signature using a pairing check.
@@ -228,17 +228,24 @@ pub fn verify_bls_signature(
         .get::<DataKey, BlsPublicKey>(&pk_key)
         .ok_or(Error::BlsPubKeyNotRegistered)?; // Fails if no key is registered.
 
-
     log!(&env, "message: {:?}", BytesN::from_array(env, &message.to_array()));
 
-    log!(&env, "G1: Hashing message to G1 curve with DST: {:?}", ATTEST_PROTOCOL_BLS_G1_DST);
+    log!(
+        &env,
+        "G1: Hashing message to G1 curve with DST: {:?}",
+        ATTEST_PROTOCOL_BLS_G1_DST
+    );
     let hashed_message = env
         .crypto()
         .bls12_381()
         .hash_to_g1(&message.into(), &Bytes::from_slice(env, ATTEST_PROTOCOL_BLS_G1_DST));
- 
+
     log!(&env, "G1: Message hashed to G1 point (96 bytes)");
-    log!(&env, "G1: Hashed message point: {:?}", BytesN::from_array(env, &hashed_message.to_array()));
+    log!(
+        &env,
+        "G1: Hashed message point: {:?}",
+        BytesN::from_array(env, &hashed_message.to_array())
+    );
 
     /*
      * STEP 1: Negate the message point for the pairing equation.
@@ -247,16 +254,28 @@ pub fn verify_bls_signature(
      */
     let neg_hashed_message = -hashed_message;
     log!(&env, "G1: Negating hashed message for pairing equation");
-    
+
     let s = G1Affine::from_bytes(signature.clone());
     log!(&env, "G1: Signature deserialized from bytes (96 bytes -> G1Affine)");
-    log!(&env, "G1: Signature point: {:?}", BytesN::from_array(env, &s.to_bytes().to_array()));
-    
+    log!(
+        &env,
+        "G1: Signature point: {:?}",
+        BytesN::from_array(env, &s.to_bytes().to_array())
+    );
+
     let pk = G2Affine::from_bytes(bls_key.key);
     log!(&env, "G2: Public key deserialized from bytes (192 bytes -> G2Affine)");
-    log!(&env, "G2: Public key point: {:?}", BytesN::from_array(env, &pk.to_bytes().to_array()));
+    log!(
+        &env,
+        "G2: Public key point: {:?}",
+        BytesN::from_array(env, &pk.to_bytes().to_array())
+    );
 
-    log!(&env, "G1: Negated message point: {:?}", BytesN::from_array(env, &neg_hashed_message.to_array()));
+    log!(
+        &env,
+        "G1: Negated message point: {:?}",
+        BytesN::from_array(env, &neg_hashed_message.to_array())
+    );
 
     /*
      * STEP 3: Prepare the points for the pairing check.
@@ -267,8 +286,12 @@ pub fn verify_bls_signature(
 
     log!(&env, "G2: Loading G2 generator constant (192 bytes)");
     let g2_generator = G2Affine::from_bytes(BytesN::from_array(env, &G2_GENERATOR));
-    log!(&env, "G2: Generator point: {:?}", BytesN::from_array(env, &g2_generator.to_bytes().to_array()));
-    
+    log!(
+        &env,
+        "G2: Generator point: {:?}",
+        BytesN::from_array(env, &g2_generator.to_bytes().to_array())
+    );
+
     log!(&env, "G2: Creating G2 points vector [g2_generator, public_key]");
     let g2_points = Vec::from_array(env, [g2_generator, pk]);
 

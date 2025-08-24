@@ -1,64 +1,28 @@
-use bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective, Scalar};
+mod testutils;
+use testutils::{
+    create_delegated_attestation_request, group_one_generator, group_two_generator, TEST_BLS_G2_PUBLIC_KEY,
+};
+
+use bls12_381::{G1Affine, G2Affine};
 use protocol::{
-    errors::Error,
-    instructions::{self, create_revocation_message, delegation::create_attestation_message},
-    state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest, Schema},
-    utils::{create_xdr_string, generate_attestation_uid},
+    errors::Error as ProtocolError,
+    instructions::{self, delegation::create_attestation_message},
+    state::{DelegatedAttestationRequest, DelegatedRevocationRequest},
     AttestationContract, AttestationContractClient,
 };
+
 use soroban_sdk::{
-    panic_with_error, symbol_short,
-    testutils::{Address as _, Events, Ledger, LedgerInfo, MockAuth, MockAuthInvoke},
-    xdr::{self, Limits, WriteXdr},
+    testutils::{Address as _, Events, MockAuth, MockAuthInvoke},
     Address, Bytes, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal,
 };
 
-mod testutils;
-use testutils::{
-    group_one_generator,
-    group_two_generator,
-    TEST_BLS_G2_PUBLIC_KEY,
-    TEST_BLS_PRIVATE_KEY,
-};
-
-
-fn create_delegated_attestation_request(
-    env: &Env,
-    attester: &Address,
-    nonce: u64,
-    schema_uid: &BytesN<32>,
-    subject: &Address,
-) -> DelegatedAttestationRequest {
-    let private_key = blst::min_sig::SecretKey::from_bytes(&TEST_BLS_PRIVATE_KEY)
-    .map_err(|e| panic!("Failed to create private key: {:?}", e))
-    .unwrap();
-
- 
-    let mut request = DelegatedAttestationRequest {
-        schema_uid: schema_uid.clone(),
-        subject: subject.clone(),
-        value: SorobanString::from_str(env, "{\"key\":\"value\"}"),
-        nonce,
-        attester: attester.clone(),
-        expiration_time: None,
-        deadline: env.ledger().timestamp() + 1000,
-        signature: BytesN::from_array(env, &[0; 96]), // Placeholder
-    };
-
-    let message_hash = create_attestation_message(env, &request);
-
-    let signature_scalar = private_key.sign(&message_hash.to_array(), b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_", &[]);
-    let signature_bytes = signature_scalar.serialize();
-
-    request.signature = BytesN::from_array(env, &signature_bytes);
-    request
-
-}
-
-
 #[test]
+/// Verify our constants are valid points on the curve
+/// This is a sanity check to ensure our constants are valid points on the curve
+///
+/// We use the bls12_381 crate to generate the points and verify them.
+///
 fn test_valid_points() {
-    // Verify our constants are valid points
     let g1_gen = group_one_generator();
     let g2_gen = group_two_generator();
 
@@ -68,10 +32,14 @@ fn test_valid_points() {
     assert!(bool::from(g2_gen.is_torsion_free()));
 }
 
-
 #[test]
+/// Generate G1 uncompressed (96 bytes)
+/// Generate G2 uncompressed (192 bytes)
+///
+/// This is a sanity check for compressed and uncompressed points.
+/// We use the bls12_381 crate to generate the points and verify them.
+///
 fn generate_valid_bls_constants() {
-    // Generate G1 uncompressed (96 bytes)
     let g1_gen = G1Affine::generator();
     let g1_uncompressed = g1_gen.to_uncompressed();
     println!("G1 generator uncompressed (96 bytes):");
@@ -84,7 +52,6 @@ fn generate_valid_bls_constants() {
     }
     println!("\n];");
 
-    // Generate G2 uncompressed (192 bytes)
     let g2_gen = G2Affine::generator();
     let g2_uncompressed = g2_gen.to_uncompressed();
     println!("\nG2 generator uncompressed (192 bytes):");
@@ -311,7 +278,6 @@ fn test_nonce_is_attester_specific() {
     println!("=============================================================");
 }
 
- 
 /// Tests that the contract enforces strict sequential nonce usage at scale.
 ///
 /// ## Purpose
@@ -530,7 +496,7 @@ fn test_delegated_action_with_unregistered_key() {
     dbg!(&result);
 
     // 4. Verify that the call fails with the correct error.
-    assert_eq!(result, Err(Ok(Error::BlsPubKeyNotRegistered.into())));
+    assert_eq!(result, Err(Ok(ProtocolError::BlsPubKeyNotRegistered.into())));
 }
 
 #[test]
@@ -564,59 +530,44 @@ fn test_delegated_attestation_with_valid_signature() {
     );
 
     let delegated_attestation_request = create_delegated_attestation_request(&env, &attester, 0, &schema_uid, &subject);
-    // env.mock_auths(&[MockAuth {
-    //     address: &attester,
-    //     invoke: &MockAuthInvoke {
-    //         contract: &contract_id,
-    //         fn_name: "attest_by_delegation",
-    //         args: (
-    //             attester.clone(),
-    //             schema_uid.clone(),
-    //             subject.clone(),
-    //             value.clone(),
-    //             expiration_time.clone(),
-    //         )
-    //             .into_val(&env),
-    //         sub_invokes: &[],
-    //     },
-    // }]);
+    client.attest_by_delegation(&attester, &delegated_attestation_request);
 
-    let result = client.try_attest_by_delegation(&attester, &delegated_attestation_request);
-    dbg!(&result);
+    let events = env.events().all();
+    dbg!(&events);
 
-//     let events = env.events().all();
-   
+    assert!(!events.is_empty(), "Attestation event should be emitted");
 
-     
-    // assert!(!attestation_events.is_empty(), "Attestation event should be emitted");
+    let last_attestation_event = events.last().unwrap();
+    let (event_uid, event_subject, event_attester, _event_value, event_nonce, _): (
+        BytesN<32>,
+        Address,
+        Address,
+        SorobanString,
+        u64,
+        u64,
+    ) = last_attestation_event.2.try_into_val(&env).unwrap();
 
-    // let last_attestation_event = attestation_events.last().unwrap();
-    // let (event_uid, event_attester, event_subject, event_value, event_nonce, event_timestamp): (
-    //     BytesN<32>,
-    //     Address,
-    //     Address,
-    //     SorobanString,
-    //     u64,
-    //     u64,
-    // ) = last_attestation_event.2.try_into_val(&env).unwrap();
+    // 4. Verify that the attestation was created.
+    let attestation_uid = protocol::utils::generate_attestation_uid(&env, &schema_uid, &subject, 0);
+    let fetched = client.get_attestation(&attestation_uid);
 
-    // // 4. Verify that the attestation was created.
-    // let attestation_uid = protocol::utils::generate_attestation_uid(&env, &schema_uid, &subject, 0);
-    // let fetched = client.get_attestation(&attestation_uid);
-    // assert_eq!(fetched.attester, attester);
+    assert_eq!(
+        fetched.attester, attester,
+        "Attestation should be from the correct attester"
+    );
 
-    // // Verify event data
-    // assert_eq!(event_attester, attester, "Event should contain correct attester");
-    // assert_eq!(event_subject, subject, "Event should contain correct subject");
-    // assert_eq!(event_value, attestation_value, "Event should contain correct value");
-    // assert_eq!(event_nonce, 0, "First attestation should use nonce 0");
+    // Verify event data
+    assert_eq!(event_attester, attester, "Event should contain correct attester");
+    assert_eq!(event_subject, subject, "Event should contain correct subject");
+    assert_eq!(event_nonce, 0, "First attestation should use nonce 0");
 
-    // dbg!(
-    //     "Delegated attestation successful:",
-    //     &event_uid,
-    //     &event_attester,
-    //     &event_nonce
-    // );
+    dbg!(
+        "Delegated attestation successful:",
+        &event_uid,
+        &event_attester,
+        &event_subject,
+        &event_attester,
+    );
 
     println!("=============================================================");
     println!("      Finished: {}", "test_delegated_attestation_with_valid_signature");
@@ -628,6 +579,7 @@ fn test_delegated_attestation_with_valid_signature() {
 //   can be successfully verified by the on-chain contract logic.
 // - This confirms the message construction and signature verification are compatible.
 #[test]
+// #[should_panic="this is runnable"]
 fn test_end_to_end_bls_signature_verification() {
     let env = Env::default();
     env.mock_all_auths();
@@ -636,70 +588,99 @@ fn test_end_to_end_bls_signature_verification() {
     let admin = Address::generate(&env);
     let attester = Address::generate(&env);
     let subject = Address::generate(&env);
-    let submitter = Address::generate(&env);
+    let relayer = Address::generate(&env);
 
     client.initialize(&admin);
+
     let schema_uid = client.register(&attester, &SorobanString::from_str(&env, "schema"), &None, &true);
 
-    // 1. Load the constant private key and derive the public key.
-    // #[derive(Debug)]
-    // struct KeyInfo {
-    //     private_key: Scalar,
-    //     schema_uid: BytesN<32>,
-    // }
+    let ikm: [u8; 32] = [
+        0x1a, 0x9e, 0x24, 0x8c, 0x1f, 0x4d, 0x8a, 0x2a, 0x48, 0x9c, 0x3a, 0x4b, 0x5b, 0x1c, 0x8e, 0x2f, 0x9d, 0x3b,
+        0x7e, 0x5f, 0x1a, 0x2a, 0x3c, 0x4d, 0x5e, 0x6f, 0x7a, 0x8b, 0x9c, 0x0d, 0x1e, 0x2f,
+    ];
 
-    // let key_info = KeyInfo {
-    //     private_key: Scalar::from_bytes(&TEST_BLS_PRIVATE_KEY).unwrap(),
-    //     schema_uid: schema_uid.clone(),
-    // };
+    // Generate new public key from private key using the blst crate with keygen or seed
+    let private_key = blst::min_sig::SecretKey::key_gen_v3(&ikm, &[0; 8]).unwrap();
+    let public_key = private_key.clone().sk_to_pk();
+    let public_key_bytes = BytesN::from_array(&env, &public_key.serialize());
 
-    // dbg!(&key_info);
+    // 3. Register the public key on-chain.
+    client.register_bls_key(&attester, &public_key_bytes);
 
-    // 2. Register the public key on-chain.
-    // client.register_bls_key(&attester, &BytesN::from_array(&env, &TEST_BLS_G2_PUBLIC_KEY));
+    let attester_nonce = client.get_attester_nonce(&attester);
 
-    // 3. Create the attestation request payload.
-    // let mut request = DelegatedAttestationRequest {
-    //     schema_uid: schema_uid.clone(),
-    //     subject: subject.clone(),
-    //     value: SorobanString::from_str(&env, "{\"key\":\"value\"}"),
-    //     nonce: 0,
-    //     attester: attester.clone(),
-    //     expiration_time: None,
-    //     deadline: env.ledger().timestamp() + 1000,
-    //     signature: BytesN::from_array(&env, &[0; 96]), // Placeholder
-    // };
+    let mut request = DelegatedAttestationRequest {
+        schema_uid: schema_uid.clone(),
+        subject: subject.clone(),
+        value: SorobanString::from_str(&env, "{\"key\":\"value\"}"),
+        nonce: attester_nonce,
+        attester: attester.clone(),
+        expiration_time: Some(9876543210),
+        deadline: env.ledger().timestamp() + 666,
+        signature: BytesN::from_array(&env, &[0; 96]), // Not used for this test
+    };
 
-    // // 4. Construct the message hash using the contract's public function.
-    // let message_hash = create_attestation_message(&env, &request);
+    let delegated_attestation_message: [u8; 32] = {
+        let mut message_payload = Bytes::new(&env);
 
-    // // 5. Sign the message off-chain.
-    // // The `bls12_381::sign` process involves hashing to the G1 curve internally.
-    // // The `soroban_sdk::bls12_381::hash_to_g1` host function is the on-chain equivalent.
-    // // For this test, we must manually perform the hash-to-curve mapping to create the signature.
-    // // NOTE: This part is complex. The simplest way to test the *contract's* logic is
-    // // to trust that the off-chain lib and on-chain host function are compatible,
-    // // which is what the `pairing_check` is for.
-    // // A simplified but effective signature simulation:
-    // let signature_point = G1Affine::generator() * private_key; // Simplified for test
-    // let signature_bytes = signature_point.to_compressed();
+        let attestation_domain_separator = instructions::delegation::get_attest_dst();
+        message_payload.extend_from_slice(attestation_domain_separator);
 
-    // request.signature = BytesN::from_array(&env, &signature_bytes);
+        message_payload.extend_from_slice(&request.schema_uid.to_array());
+        message_payload.extend_from_slice(&request.nonce.to_be_bytes());
 
-    // // 6. Submit the signed request for on-chain verification.
-    // // This will fail because the signature is not correct. We need a way to perform hash-to-g1.
-    // // Since `G1Projective` does not expose `hash_to_curve`, the most robust test we can write
-    // // is one that provides a validly formatted signature and tests the contract flow,
-    // // trusting the mocked host function handles the crypto.
+        // Field 3: Deadline (big-endian)
+        message_payload.extend_from_slice(&request.deadline.to_be_bytes());
+        // Field 4: Expiration Time (optional, big-endian)
+        if let Some(exp_time) = request.expiration_time {
+            message_payload.extend_from_slice(&exp_time.to_be_bytes());
+        }
 
-    // // Reverting to the dummy signature approach which correctly tests the contract flow.
-    // request.signature = BytesN::from_array(&env, &[1; 96]);
-    // client.attest_by_delegation(&submitter, &request);
+        let value_len_bytes = (request.value.len() as u64).to_be_bytes();
+        message_payload.extend_from_slice(&value_len_bytes);
 
-    // // 7. Verify the attestation was created
-    // let attestation_uid = protocol::utils::generate_attestation_uid(&env, &schema_uid, &subject, 0);
-    // let fetched = client.get_attestation(&attestation_uid);
-    // assert_eq!(fetched.attester, attester);
+        env.crypto().sha256(&message_payload).into()
+    };
+
+    let signature = private_key.sign(
+        &delegated_attestation_message,
+        b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_",
+        &[],
+    );
+    request.signature = BytesN::from_array(&env, &signature.serialize());
+
+    env.mock_auths(&[MockAuth {
+        address: &relayer,
+        invoke: &MockAuthInvoke {
+            contract: &contract_id,
+            fn_name: "attest_by_delegation",
+            args: (relayer.clone(), request.clone()).into_val(&env),
+            sub_invokes: &[],
+        },
+    }]);
+
+    let delegated_attestation = client.try_attest_by_delegation(&relayer, &request);
+    dbg!(&delegated_attestation);
+
+    let event = env.events().all().last().unwrap();
+
+    let (event_uid, event_subject, event_attester, _event_value, event_nonce, _): (
+        BytesN<32>,
+        Address,
+        Address,
+        SorobanString,
+        u64,
+        u64,
+    ) = event.2.try_into_val(&env).unwrap();
+
+    let attestation_uid = protocol::utils::generate_attestation_uid(&env, &schema_uid, &subject, attester_nonce);
+    let fetched = client.get_attestation(&attestation_uid);
+
+    assert_eq!(fetched.attester, attester);
+    assert_eq!(event_uid, attestation_uid);
+    assert_eq!(event_subject, subject);
+    assert_eq!(event_attester, attester);
+    assert_eq!(event_nonce, attester_nonce);
 }
 
 /// **Test: Message Hash Consistency Between On-Chain and Off-Chain Logic**
@@ -731,7 +712,7 @@ fn test_clean_room_attestation_message_hash() {
     // This logic is a clean-room implementation that MUST perfectly mirror
     // the production `create_attestation_message` function.
     let off_chain_hash: [u8; 32] = {
-        let mut message_payload= Bytes::new(&env);
+        let mut message_payload = Bytes::new(&env);
 
         let attestation_domain_separator = instructions::delegation::get_attest_dst();
         message_payload.extend_from_slice(attestation_domain_separator);
@@ -746,12 +727,12 @@ fn test_clean_room_attestation_message_hash() {
             message_payload.extend_from_slice(&exp_time.to_be_bytes());
         }
 
-                let value_len_bytes = (request.value.len() as u64).to_be_bytes();
-                message_payload.extend_from_slice(&value_len_bytes);
-    
-    env.crypto().sha256(&message_payload).into()
+        let value_len_bytes = (request.value.len() as u64).to_be_bytes();
+        message_payload.extend_from_slice(&value_len_bytes);
+
+        env.crypto().sha256(&message_payload).into()
     };
-    
+
     // 3. Call the ON-CHAIN message construction function from the contract.
     let on_chain_hash_bytesn = create_attestation_message(&env, &request);
     let on_chain_hash = on_chain_hash_bytesn.to_array();
@@ -762,7 +743,6 @@ fn test_clean_room_attestation_message_hash() {
     assert_eq!(off_chain_hash, on_chain_hash);
 }
 
-
 #[test]
 fn test_clean_room_revocation_message_hash() {
     let env = Env::default();
@@ -770,40 +750,38 @@ fn test_clean_room_revocation_message_hash() {
     let subject = Address::generate(&env);
     let schema_uid = BytesN::from_array(&env, &[1; 32]);
 
-        // 1. Create a sample request object with all fields populated.
-        let request = DelegatedRevocationRequest {
-            schema_uid: schema_uid.clone(),
-            subject: subject.clone(),
-            nonce: 0,
-            deadline: env.ledger().timestamp() + 1000,
-            /* This is not valid because we are only computing for
-             the hash of the message, not the signature 
-             */
-            attestation_uid: BytesN::from_array(&env, &[0; 32]),
-            revoker: attester.clone(),
-            signature: BytesN::from_array(&env, &[0; 96]), // Not used for this test
-        };
-    
-        // 2. Simulate the OFF-CHAIN message construction.
-        // This logic is a clean-room implementation that MUST perfectly mirror
-        // the production `create_attestation_message` function.
-        let off_chain_hash: [u8; 32] = {
-            let mut payload= Bytes::new(&env);
-    
-            let revocation_domain_separator = instructions::delegation::get_revoke_dst();
-            payload.extend_from_slice(revocation_domain_separator);
-    
-            payload.extend_from_slice(&request.schema_uid.to_array());
-            payload.extend_from_slice(&request.nonce.to_be_bytes());
-    
-            payload.extend_from_slice(&request.deadline.to_be_bytes());
+    // 1. Create a sample request object with all fields populated.
+    let request = DelegatedRevocationRequest {
+        schema_uid: schema_uid.clone(),
+        subject: subject.clone(),
+        nonce: 0,
+        deadline: env.ledger().timestamp() + 1000,
+        /* This is not valid because we are only computing for
+        the hash of the message, not the signature
+        */
+        attestation_uid: BytesN::from_array(&env, &[0; 32]),
+        revoker: attester.clone(),
+        signature: BytesN::from_array(&env, &[0; 96]), // Not used for this test
+    };
 
-        
+    // 2. Simulate the OFF-CHAIN message construction.
+    // This logic is a clean-room implementation that MUST perfectly mirror
+    // the production `create_attestation_message` function.
+    let off_chain_hash: [u8; 32] = {
+        let mut payload = Bytes::new(&env);
+
+        let revocation_domain_separator = instructions::delegation::get_revoke_dst();
+        payload.extend_from_slice(revocation_domain_separator);
+
+        payload.extend_from_slice(&request.schema_uid.to_array());
+        payload.extend_from_slice(&request.nonce.to_be_bytes());
+
+        payload.extend_from_slice(&request.deadline.to_be_bytes());
+
         env.crypto().sha256(&payload).into()
-        };
-        
-        // 3. Call the ON-CHAIN message construction function from the contract.
-        let on_chain_hash_bytesn = create_revocation_message(&env, &request);
-        assert_eq!(off_chain_hash, on_chain_hash_bytesn.to_array());
-    }
-    
+    };
+
+    // 3. Call the ON-CHAIN message construction function from the contract.
+    let on_chain_hash_bytesn = instructions::create_revocation_message(&env, &request);
+    assert_eq!(off_chain_hash, on_chain_hash_bytesn.to_array());
+}

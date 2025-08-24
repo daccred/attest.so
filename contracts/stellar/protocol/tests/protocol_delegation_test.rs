@@ -34,8 +34,6 @@ fn test_nonce_is_scoped_to_attester_not_submitter() {
     // TODO: Implementation
 }
 
-
-
 #[test]
 fn test_delegated_revocation_with_valid_signature() {}
 #[test]

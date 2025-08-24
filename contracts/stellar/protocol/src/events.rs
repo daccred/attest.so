@@ -10,7 +10,7 @@ pub fn schema_registered(env: &Env, schema_uid: &BytesN<32>, schema: &Schema, au
 pub fn publish_attestation_event(env: &Env, attestation: &Attestation) {
     let topics = (symbol_short!("ATTEST"), symbol_short!("CREATE"));
     let data = (
-        attestation.schema_uid.clone(),
+        attestation.uid.clone(),
         attestation.subject.clone(),
         attestation.attester.clone(),
         attestation.value.clone(),
