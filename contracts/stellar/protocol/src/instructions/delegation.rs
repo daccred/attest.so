@@ -333,7 +333,6 @@ fn create_revocation_message(env: &Env, request: &DelegatedRevocationRequest) ->
 
     // Add fixed domain separator (different from attestation)
     message.extend_from_slice(b"REVOKE_PROTOCOL_V1_DELEGATED");
-    
 
     // Encode request data deterministically
     message.extend_from_slice(&request.schema_uid.to_array());

@@ -25,7 +25,6 @@ use hex;
 use std::fs::{create_dir_all, File};
 use std::io::Write;
 
-
 /// **Test: Dump and Verify `bls12_381` G2 Generator**
 ///
 /// This test performs an internal sanity check on the `bls12_381` crate's G2 generator.
@@ -40,7 +39,10 @@ fn dump_and_verify_g2_generator() {
     // 2. Assert fundamental cryptographic invariants.
     // These checks confirm the point is valid according to curve mathematics.
     assert!(bool::from(g2_generator.is_on_curve()), "Generator must be on the curve");
-    assert!(bool::from(g2_generator.is_torsion_free()), "Generator must be in the prime-order subgroup");
+    assert!(
+        bool::from(g2_generator.is_torsion_free()),
+        "Generator must be in the prime-order subgroup"
+    );
 
     // 3. Serialize the point to its two standard byte representations.
     let compressed_bytes = g2_generator.to_compressed();
@@ -59,8 +61,18 @@ fn dump_and_verify_g2_generator() {
     let mut log_file = File::create("target/__bls_generator__.log").expect("Failed to create log file");
     writeln!(log_file, "--- BLS12-381 G2 Generator Audit ---").unwrap();
     writeln!(log_file, "Source Crate: bls12_381").unwrap();
-    writeln!(log_file, "Is On Curve      : {}", bool::from(g2_generator.is_on_curve())).unwrap();
-    writeln!(log_file, "Is Torsion-Free  : {}", bool::from(g2_generator.is_torsion_free())).unwrap();
+    writeln!(
+        log_file,
+        "Is On Curve      : {}",
+        bool::from(g2_generator.is_on_curve())
+    )
+    .unwrap();
+    writeln!(
+        log_file,
+        "Is Torsion-Free  : {}",
+        bool::from(g2_generator.is_torsion_free())
+    )
+    .unwrap();
     writeln!(log_file, "------------------------------------------").unwrap();
     writeln!(log_file, "Compressed (96B) Hex   : {}", hex::encode(compressed_bytes)).unwrap();
     writeln!(log_file, "Compressed (96B) Bytes : {:?}", compressed_bytes).unwrap();
@@ -68,10 +80,8 @@ fn dump_and_verify_g2_generator() {
     writeln!(log_file, "Uncompressed (192B) Hex: {}", hex::encode(uncompressed_bytes)).unwrap();
     writeln!(log_file, "Uncompressed (192B) Bytes: {:?}", uncompressed_bytes).unwrap();
 
-
     println!("Wrote G2 generator dump to target/__bls_generator__.log");
 }
-
 
 /// **Test: Cross-Check G2 Generator Between `bls12_381` and `blst` Crates**
 ///
@@ -89,17 +99,23 @@ fn cross_check_g2_generator_between_crates() {
     // --- Part 2: Verify the reference bytes using the `blst` library ---
 
     // 2a. Check if `blst` can parse and validate the bytes from `bls12_381`.
-    let pk_from_comp = BlstPublicKey::from_bytes(&ref_compressed)
-        .expect("blst failed to parse compressed bytes");
-    let pk_from_uncomp = BlstPublicKey::from_bytes(&ref_uncompressed)
-        .expect("blst failed to parse uncompressed bytes");
+    let pk_from_comp = BlstPublicKey::from_bytes(&ref_compressed).expect("blst failed to parse compressed bytes");
+    let pk_from_uncomp = BlstPublicKey::from_bytes(&ref_uncompressed).expect("blst failed to parse uncompressed bytes");
 
     pk_from_comp.validate().expect("blst rejected compressed point");
     pk_from_uncomp.validate().expect("blst rejected uncompressed point");
 
     // 2b. Check if `blst` re-serializes to the exact same byte representation.
-    assert_eq!(pk_from_comp.compress(), ref_compressed, "blst vs bls12_381 compressed mismatch");
-    assert_eq!(pk_from_uncomp.serialize(), ref_uncompressed, "blst vs bls12_381 uncompressed mismatch");
+    assert_eq!(
+        pk_from_comp.compress(),
+        ref_compressed,
+        "blst vs bls12_381 compressed mismatch"
+    );
+    assert_eq!(
+        pk_from_uncomp.serialize(),
+        ref_uncompressed,
+        "blst vs bls12_381 uncompressed mismatch"
+    );
 
     // 2c. Check if `blst` derives the same generator from a secret key of 1.
     // This proves mathematically that both crates are using the same generator point.
@@ -109,7 +125,11 @@ fn cross_check_g2_generator_between_crates() {
         BlstSecretKey::from_bytes(&b).expect("blst failed to create secret key of 1")
     };
     let generator_from_blst = sk_one.sk_to_pk();
-    assert_eq!(generator_from_blst.compress(), ref_compressed, "Generator value mismatch between crates");
+    assert_eq!(
+        generator_from_blst.compress(),
+        ref_compressed,
+        "Generator value mismatch between crates"
+    );
 
     // --- Part 3: Write a detailed audit log ---
     let _ = create_dir_all("target");
@@ -121,13 +141,38 @@ fn cross_check_g2_generator_between_crates() {
     writeln!(log_file, "Ref Compressed (96B) Hex   : {}", hex::encode(ref_compressed)).unwrap();
     writeln!(log_file, "Ref Compressed (96B) Bytes : {:?}", ref_compressed).unwrap();
     writeln!(log_file, "------------------------------------------").unwrap();
-    writeln!(log_file, "Ref Uncompressed (192B) Hex: {}", hex::encode(ref_uncompressed)).unwrap();
+    writeln!(
+        log_file,
+        "Ref Uncompressed (192B) Hex: {}",
+        hex::encode(ref_uncompressed)
+    )
+    .unwrap();
     writeln!(log_file, "Ref Uncompressed (192B) Bytes: {:?}", ref_uncompressed).unwrap();
     writeln!(log_file, "------------------------------------------").unwrap();
-    writeln!(log_file, "blst valid(compressed)?   : {}", pk_from_comp.validate().is_ok()).unwrap();
-    writeln!(log_file, "blst valid(uncompressed)? : {}", pk_from_uncomp.validate().is_ok()).unwrap();
-    writeln!(log_file, "blst re-compress matches?   : {}", pk_from_comp.compress() == ref_compressed).unwrap();
-    writeln!(log_file, "blst sk=1 matches?          : {}", generator_from_blst.compress() == ref_compressed).unwrap();
+    writeln!(
+        log_file,
+        "blst valid(compressed)?   : {}",
+        pk_from_comp.validate().is_ok()
+    )
+    .unwrap();
+    writeln!(
+        log_file,
+        "blst valid(uncompressed)? : {}",
+        pk_from_uncomp.validate().is_ok()
+    )
+    .unwrap();
+    writeln!(
+        log_file,
+        "blst re-compress matches?   : {}",
+        pk_from_comp.compress() == ref_compressed
+    )
+    .unwrap();
+    writeln!(
+        log_file,
+        "blst sk=1 matches?          : {}",
+        generator_from_blst.compress() == ref_compressed
+    )
+    .unwrap();
 
     println!("Wrote G2 generator cross-check to target/__bls_cross_check__.log");
 }
