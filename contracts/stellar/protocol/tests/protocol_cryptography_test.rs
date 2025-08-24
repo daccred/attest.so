@@ -1,8 +1,8 @@
 use bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective, Scalar};
 use protocol::{
     errors::Error,
-    instructions::delegation::create_attestation_message,
-    state::{Attestation, DataKey, DelegatedAttestationRequest, Schema},
+    instructions::{self, create_revocation_message, delegation::create_attestation_message},
+    state::{Attestation, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest, Schema},
     utils::{create_xdr_string, generate_attestation_uid},
     AttestationContract, AttestationContractClient,
 };
@@ -10,7 +10,7 @@ use soroban_sdk::{
     panic_with_error, symbol_short,
     testutils::{Address as _, Events, Ledger, LedgerInfo, MockAuth, MockAuthInvoke},
     xdr::{self, Limits, WriteXdr},
-    Address, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal,
+    Address, Bytes, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal,
 };
 
 mod testutils;
@@ -701,3 +701,109 @@ fn test_end_to_end_bls_signature_verification() {
     // let fetched = client.get_attestation(&attestation_uid);
     // assert_eq!(fetched.attester, attester);
 }
+
+/// **Test: Message Hash Consistency Between On-Chain and Off-Chain Logic**
+///
+/// This test provides very high confidence that the off-chain message construction
+/// (simulated here in Rust) and the on-chain `create_attestation_message` function
+/// produce the exact same hash. This is a critical check to prevent signature
+/// verification failures caused by serialization mismatches.
+#[test]
+fn test_clean_room_attestation_message_hash() {
+    let env = Env::default();
+    let attester = Address::generate(&env);
+    let subject = Address::generate(&env);
+    let schema_uid = BytesN::from_array(&env, &[1; 32]);
+
+    // 1. Create a sample request object with all fields populated.
+    let request = DelegatedAttestationRequest {
+        schema_uid: schema_uid.clone(),
+        subject: subject.clone(),
+        value: SorobanString::from_str(&env, "{\"key\":\"value\"}"),
+        nonce: 12345,
+        attester: attester.clone(),
+        expiration_time: Some(9876543210),
+        deadline: 1234567890,
+        signature: BytesN::from_array(&env, &[0; 96]), // Not used for this test
+    };
+
+    // 2. Simulate the OFF-CHAIN message construction.
+    // This logic is a clean-room implementation that MUST perfectly mirror
+    // the production `create_attestation_message` function.
+    let off_chain_hash: [u8; 32] = {
+        let mut message_payload= Bytes::new(&env);
+
+        let attestation_domain_separator = instructions::delegation::get_attest_dst();
+        message_payload.extend_from_slice(attestation_domain_separator);
+
+        message_payload.extend_from_slice(&request.schema_uid.to_array());
+        message_payload.extend_from_slice(&request.nonce.to_be_bytes());
+
+        // Field 3: Deadline (big-endian)
+        message_payload.extend_from_slice(&request.deadline.to_be_bytes());
+        // Field 4: Expiration Time (optional, big-endian)
+        if let Some(exp_time) = request.expiration_time {
+            message_payload.extend_from_slice(&exp_time.to_be_bytes());
+        }
+
+                let value_len_bytes = (request.value.len() as u64).to_be_bytes();
+                message_payload.extend_from_slice(&value_len_bytes);
+    
+    env.crypto().sha256(&message_payload).into()
+    };
+    
+    // 3. Call the ON-CHAIN message construction function from the contract.
+    let on_chain_hash_bytesn = create_attestation_message(&env, &request);
+    let on_chain_hash = on_chain_hash_bytesn.to_array();
+
+    // 4. Assert that the two hashes are absolutely identical.
+    println!("Off-chain generated hash: {:?}", off_chain_hash);
+    println!("On-chain generated hash:  {:?}", on_chain_hash);
+    assert_eq!(off_chain_hash, on_chain_hash);
+}
+
+
+#[test]
+fn test_clean_room_revocation_message_hash() {
+    let env = Env::default();
+    let attester = Address::generate(&env);
+    let subject = Address::generate(&env);
+    let schema_uid = BytesN::from_array(&env, &[1; 32]);
+
+        // 1. Create a sample request object with all fields populated.
+        let request = DelegatedRevocationRequest {
+            schema_uid: schema_uid.clone(),
+            subject: subject.clone(),
+            nonce: 0,
+            deadline: env.ledger().timestamp() + 1000,
+            /* This is not valid because we are only computing for
+             the hash of the message, not the signature 
+             */
+            attestation_uid: BytesN::from_array(&env, &[0; 32]),
+            revoker: attester.clone(),
+            signature: BytesN::from_array(&env, &[0; 96]), // Not used for this test
+        };
+    
+        // 2. Simulate the OFF-CHAIN message construction.
+        // This logic is a clean-room implementation that MUST perfectly mirror
+        // the production `create_attestation_message` function.
+        let off_chain_hash: [u8; 32] = {
+            let mut payload= Bytes::new(&env);
+    
+            let revocation_domain_separator = instructions::delegation::get_revoke_dst();
+            payload.extend_from_slice(revocation_domain_separator);
+    
+            payload.extend_from_slice(&request.schema_uid.to_array());
+            payload.extend_from_slice(&request.nonce.to_be_bytes());
+    
+            payload.extend_from_slice(&request.deadline.to_be_bytes());
+
+        
+        env.crypto().sha256(&payload).into()
+        };
+        
+        // 3. Call the ON-CHAIN message construction function from the contract.
+        let on_chain_hash_bytesn = create_revocation_message(&env, &request);
+        assert_eq!(off_chain_hash, on_chain_hash_bytesn.to_array());
+    }
+    
