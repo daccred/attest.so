@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String};
+use soroban_sdk::{contract, contractimpl, Address, Bytes, BytesN, Env, String};
 
 pub mod errors;
 pub mod events;
@@ -12,8 +12,8 @@ pub mod utils;
 use state::{Attestation, BlsPublicKey, DataKey, DelegatedAttestationRequest, DelegatedRevocationRequest};
 
 use instructions::{
-    attest, attest_by_delegation, get_attestation_record, get_bls_public_key, register_bls_public_key, register_schema,
-    revoke_attestation, revoke_by_delegation,
+    attest, attest_by_delegation, get_attest_dst, get_attestation_record, get_bls_public_key, get_revoke_dst,
+    register_bls_public_key, register_schema, revoke_attestation, revoke_by_delegation,
 };
 
 #[contract]
@@ -88,12 +88,22 @@ impl AttestationContract {
     }
 
     /// Registers a BLS public key for an attester
-    pub fn register_bls_key(env: Env, attester: Address, public_key: BytesN<96>) -> Result<(), errors::Error> {
+    pub fn register_bls_key(env: Env, attester: Address, public_key: BytesN<192>) -> Result<(), errors::Error> {
         register_bls_public_key(&env, attester, public_key)
     }
 
     /// Gets the BLS public key for an attester
     pub fn get_bls_key(env: Env, attester: Address) -> Option<BlsPublicKey> {
         get_bls_public_key(&env, &attester)
+    }
+
+    /// Gets the domain separation tag for delegated attestations.
+    pub fn get_dst_for_attestation(env: Env) -> Bytes {
+        Bytes::from_slice(&env, get_attest_dst())
+    }
+
+    /// Gets the domain separation tag for delegated revocations.
+    pub fn get_dst_for_revocation(env: Env) -> Bytes {
+        Bytes::from_slice(&env, get_revoke_dst())
     }
 }

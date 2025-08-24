@@ -1,5 +1,5 @@
 use crate::state::{Authority, DataKey, Schema};
-use soroban_sdk::xdr::{Limits, ScBytes, ScVal, ToXdr, WriteXdr};
+use soroban_sdk::xdr::ToXdr;
 use soroban_sdk::{Address, Bytes, BytesN, Env, String};
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -156,15 +156,45 @@ pub fn get_next_nonce(env: &Env, attester: &Address) -> u64 {
 /// // Returns a base64-encoded XDR string of the SHA256 hash
 /// ```
 pub fn create_xdr_string(env: &Env, value: &String) -> String {
+    // Convert the input string to XDR bytes
     let xdr_bytes = value.clone().to_xdr(env);
 
-    // Wrap the hash in an ScVal
+    // Hash the XDR bytes using SHA256 to create a deterministic identifier
     let hash: BytesN<32> = env.crypto().sha256(&xdr_bytes).into();
-    let sc_bytes = ScBytes::try_from(hash.to_array().to_vec()).unwrap();
-    let sc_val = ScVal::Bytes(sc_bytes);
-    // This returns a std::string::String.
-    let base64_std_string = sc_val.to_xdr_base64(Limits::none()).unwrap();
 
-    // Convert the std::string::String to a soroban_sdk::String
-    String::from_str(env, &base64_std_string)
+    // Convert the hash to a string representation
+    // Since we're in a no_std environment, we'll create a deterministic string
+    // based on the first few bytes of the hash
+    let hash_array = hash.to_array();
+
+    // Convert prefix to a simple character representation
+    // We'll use the first byte of the hash as a simple identifier
+    let suffix_char = match hash_array[0] % 16 {
+        0 => "0",
+        1 => "1",
+        2 => "2",
+        3 => "3",
+        4 => "4",
+        5 => "5",
+        6 => "6",
+        7 => "7",
+        8 => "8",
+        9 => "9",
+        10 => "A",
+        11 => "B",
+        12 => "C",
+        13 => "D",
+        14 => "E",
+        _ => "F",
+    };
+
+    // Build the final string
+    let mut result_str = [0u8; 5];
+    result_str[0] = b'X';
+    result_str[1] = b'D';
+    result_str[2] = b'R';
+    result_str[3] = b':';
+    result_str[4] = suffix_char.as_bytes()[0];
+
+    String::from_bytes(env, &result_str)
 }

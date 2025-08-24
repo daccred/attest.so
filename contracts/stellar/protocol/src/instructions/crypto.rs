@@ -1,62 +1,122 @@
 /*
-JavaScript Integration Guide for BLS12-381 Signatures
-====================================================
+==========================================================================================
+    JavaScript & Off-Chain Integration Guide for BLS12-381 Signatures
+==========================================================================================
 
-IMPORTANT: The attester (entity making claims) creates signatures, NOT the subject.
-The subject being attested never needs to interact with the blockchain.
+This guide provides the necessary details for off-chain clients (wallets, backend services)
+to correctly generate BLS12-381 signatures that are compatible with this contract's
+on-chain verification logic.
 
-To create compatible signatures using @noble/curves:
+------------------------------------------------------------------------------------------
+    Key Concepts
+------------------------------------------------------------------------------------------
+- **Attester Signs, Not Subject**: Only the attester (the entity making a claim) needs
+  to generate a signature. The subject of an attestation never interacts with the blockchain.
+- **Delegated Submission**: The attester signs a request off-chain. Anyone can then take
+  this signed request and submit it to the contract, paying the gas fees.
+- **Key & Signature Formats (CRITICAL)**:
+  - **Public Key**: Must be a **192-byte UNCOMPRESSED** G2 curve point.
+  - **Signature**: Must be a **96-byte UNCOMPRESSED** G1 curve point. The Soroban
+    host environment requires the uncompressed format for verification.
+
+------------------------------------------------------------------------------------------
+    Example: Signature Generation with @noble/curves (JavaScript/TypeScript)
+------------------------------------------------------------------------------------------
 
 ```javascript
 import { bls12_381 } from '@noble/curves/bls12-381';
 import { sha256 } from '@noble/hashes/sha256';
 
-// 1. Attester generates their keypair (done once)
+// 1. Attester generates their keypair (done once).
 const attesterPrivateKey = bls12_381.utils.randomPrivateKey();
-const attesterPublicKey = bls12_381.getPublicKey(attesterPrivateKey);
 
-// 2. Create attestation message (must match Rust implementation)
-function createAttestationMessage(request) {
+// 2. Get the public key in the required 192-BYTE UNCOMPRESSED format.
+const attesterPublicKey = bls12_381.PointG2.fromPrivateKey(attesterPrivateKey).toRawBytes(false);
+
+// 3. Construct the exact message hash that the contract expects.
+//    (See `create_attestation_message` in delegation.rs for the full implementation)
+function createMessageHash(request) {
     const domainSeparator = new TextEncoder().encode("ATTEST_PROTOCOL_V1_DELEGATED");
-    const schemaBytes = new Uint8Array(request.schema_uid);
+
+    // Ensure all data is in the correct byte format
+    const schemaBytes = new Uint8Array(request.schema_uid); // Should be 32 bytes
     const nonceBytes = new DataView(new ArrayBuffer(8));
-    nonceBytes.setBigUint64(0, BigInt(request.nonce), false); // big-endian
+    nonceBytes.setBigUint64(0, BigInt(request.nonce), false); // false for big-endian
+
     const deadlineBytes = new DataView(new ArrayBuffer(8));
     deadlineBytes.setBigUint64(0, BigInt(request.deadline), false);
 
-    // Concatenate all fields
-    const message = new Uint8Array([
-        ...domainSeparator,
-        ...schemaBytes,
-        ...new Uint8Array(nonceBytes.buffer),
-        ...new Uint8Array(deadlineBytes.buffer),
-        // Add other fields as needed
-    ]);
+    const valueBytes = new TextEncoder().encode(request.value);
+    const valueLenBytes = new DataView(new ArrayBuffer(8));
+    valueLenBytes.setBigUint64(0, BigInt(valueBytes.length), false);
+
+    // Concatenate all fields in the exact order the contract expects.
+    const messageParts = [
+        domainSeparator,
+        schemaBytes,
+        new Uint8Array(nonceBytes.buffer),
+        new Uint8Array(deadlineBytes.buffer),
+    ];
+
+    // Handle optional expiration_time
+    if (request.expiration_time) {
+        const expBytes = new DataView(new ArrayBuffer(8));
+        expBytes.setBigUint64(0, BigInt(request.expiration_time), false);
+        messageParts.push(new Uint8Array(expBytes.buffer));
+    }
+
+    messageParts.push(new Uint8Array(valueLenBytes.buffer));
+
+    // A simple way to concatenate Uint8Arrays
+    const message = new Uint8Array(messageParts.reduce((acc, val) => [...acc, ...val], []));
 
     return sha256(message);
 }
 
-// 3. Attester signs the message about a subject
-const message = createAttestationMessage(attestationRequest);
-const signature = bls12_381.sign(message, attesterPrivateKey);
+// 4. Attester signs the message hash.
+const messageHash = createMessageHash(attestationRequest);
+const signaturePoint = bls12_381.sign(messageHash, attesterPrivateKey);
 
-// 4. The signature can be submitted by ANYONE
-// The attester doesn't need to pay gas fees
-// The subject never needs to sign or interact
+// 5. CRITICAL: Serialize the signature to its UNCOMPRESSED format for the contract.
+const signature = signaturePoint.toRawBytes(false); // -> 96-byte Uint8Array
+
+// 6. The resulting 96-byte `signature` can now be submitted to the contract.
 ```
 
-Domain Separation Tags (DST):
-- Attestation messages: "ATTEST_PROTOCOL_V1_DELEGATED"
-- Revocation messages: "REVOKE_PROTOCOL_V1_DELEGATED"
-- BLS G1 hashing: "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_"
-- BLS G2 hashing: "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_"
+------------------------------------------------------------------------------------------
+    Domain Separation Tags (DSTs)
+------------------------------------------------------------------------------------------
+- **Attestation Message Prefix**: "ATTEST_PROTOCOL_V1_DELEGATED"
+- **Revocation Message Prefix**: "REVOKE_PROTOCOL_V1_DELEGATED"
+- **On-chain `hash_to_g1` DST**: "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_"
+
 */
 use crate::errors::Error;
 use crate::state::{BlsPublicKey, DataKey};
-use soroban_sdk::{Address, BytesN, Env};
+use soroban_sdk::{
+    crypto::bls12_381::{G1Affine, G2Affine},
+    log, Address, Bytes, BytesN, Env, Vec,
+};
 
-/// Attest Protocol domain separation tag for BLS G1 signature hashing
+/// Attest Protocol domain separation tag for BLS G1 signature hashing.
+/// This is the standard DST for BLS signatures over G1.
 const ATTEST_PROTOCOL_BLS_G1_DST: &[u8] = b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_";
+
+/// The uncompressed G2 generator point for the BLS12-381 curve. This is a standard,
+/// well-known constant. It's the point against which signatures are verified.
+///
+/// Reference: https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bls-signature-05#section-4.2.1
+///
+const G2_GENERATOR: [u8; 192] = [
+    19, 224, 43, 96, 82, 113, 159, 96, 125, 172, 211, 160, 136, 39, 79, 101, 89, 107, 208, 208, 153, 32, 182, 26, 181,
+    218, 97, 187, 220, 127, 80, 73, 51, 76, 241, 18, 19, 148, 93, 87, 229, 172, 125, 5, 93, 4, 43, 126, 2, 74, 162,
+    178, 240, 143, 10, 145, 38, 8, 5, 39, 45, 197, 16, 81, 198, 228, 122, 212, 250, 64, 59, 2, 180, 81, 11, 100, 122,
+    227, 209, 119, 11, 172, 3, 38, 168, 5, 187, 239, 212, 128, 86, 200, 193, 33, 189, 184, 6, 6, 196, 160, 46, 167, 52,
+    204, 50, 172, 210, 176, 43, 194, 139, 153, 203, 62, 40, 126, 133, 167, 99, 175, 38, 116, 146, 171, 87, 46, 153,
+    171, 63, 55, 13, 39, 92, 236, 29, 161, 170, 169, 7, 95, 240, 95, 121, 190, 12, 229, 213, 39, 114, 125, 110, 17,
+    140, 201, 205, 198, 218, 46, 53, 26, 173, 253, 155, 170, 140, 189, 211, 167, 109, 66, 154, 105, 81, 96, 209, 44,
+    146, 58, 201, 204, 59, 172, 162, 137, 225, 147, 84, 134, 8, 184, 40, 1,
+];
 
 /// Registers a BLS public key for an attester.
 ///
@@ -67,11 +127,11 @@ const ATTEST_PROTOCOL_BLS_G1_DST: &[u8] = b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_
 /// # Arguments
 /// * `env` - The Soroban environment
 /// * `attester` - The address of the attester registering the key
-/// * `public_key` - The BLS12-381 G2 public key (96 bytes)
+/// * `public_key` - The BLS12-381 G2 public key (192 bytes)
 ///
 /// # Returns
 /// * `Result<(), Error>` - Success or error (fails if key already exists)
-pub fn register_bls_public_key(env: &Env, attester: Address, public_key: BytesN<96>) -> Result<(), Error> {
+pub fn register_bls_public_key(env: &Env, attester: Address, public_key: BytesN<192>) -> Result<(), Error> {
     attester.require_auth();
 
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
@@ -88,10 +148,7 @@ pub fn register_bls_public_key(env: &Env, attester: Address, public_key: BytesN<
         registered_at: timestamp,
     };
 
-    // Store the key (one per address, immutable)
     env.storage().persistent().set(&pk_key, &bls_key);
-
-    // Emit registration event
     crate::events::publish_bls_key_registered(env, &attester, &public_key, timestamp);
 
     Ok(())
@@ -110,126 +167,144 @@ pub fn get_bls_public_key(env: &Env, attester: &Address) -> Option<BlsPublicKey>
     env.storage().persistent().get(&pk_key)
 }
 
-/// **CRITICAL CRYPTOGRAPHIC FUNCTION**: Verifies BLS12-381 signature for delegated attestation
+/// **CRITICAL CRYPTOGRAPHIC FUNCTION**: Verifies a BLS12-381 signature using a pairing check.
 ///
-/// This is the core cryptographic security function that validates signatures created off-chain.
-/// It implements the BLS signature verification algorithm to prove that the attester's private
-/// key was used to sign the specific message hash. This is the primary defense against
-/// unauthorized attestation creation and signature forgery.
+/// This is the core security function that validates signatures created off-chain for delegated
+/// actions. It implements the BLS signature verification algorithm using an elliptic curve
+/// pairing to prove that the attester's private key was used to sign the specific message hash.
+/// This is the primary defense against unauthorized or forged delegated attestations.
 ///
-/// # Cryptographic Model
-/// BLS (Boneh-Lynn-Shacham) signatures provide:
-/// - **Short Signatures**: 96-byte signatures vs 64-byte ECDSA
-/// - **Aggregation Support**: Multiple signatures can be combined
-/// - **Quantum Resistance**: Based on discrete log problem in elliptic curve groups
-/// - **Deterministic**: Same message + private key always produces same signature
+/// # BLS Scheme: Minimal-Signature-Size
+/// This contract implements the most common BLS signature scheme, which optimizes for the smallest
+/// possible signature size.
+/// - **Signature**: A point on the G1 curve (96 bytes compressed).
+/// - **Public Key**: A point on the G2 curve (192 bytes uncompressed).
+///
+/// The verification is based on the BLS pairing equation `e(S, g2) == e(H(m), P)`, where `e`
+/// is the pairing, `S` is the signature, `g2` is the G2 generator, `H(m)` is the message hash
+/// on G1, and `P` is the public key on G2. This is checked efficiently using the rearranged
+/// form `e(S, g2) * e(-H(m), P) == 1` via the `pairing_check` host function.
 ///
 /// # Security Properties
-/// - **Unforgeable**: Without private key, cannot create valid signatures
-/// - **Non-Malleable**: Cannot modify signature to create new valid signature  
-/// - **Message Binding**: Signature is cryptographically bound to exact message
-/// - **Key Authenticity**: Signature proves possession of private key without revealing it
-///
-/// # BLS Signature Verification Process
-/// 1. **Key Lookup**: Retrieve attester's registered G2 public key
-/// 2. **Message Hashing**: Hash message to G1 point on elliptic curve
-/// 3. **Signature Parsing**: Convert 96-byte signature to G1 point
-/// 4. **Pairing Check**: Verify e(H(m), PK) = e(σ, G2) where:
-///    - H(m) = hashed message (G1 point)
-///    - PK = public key (G2 point)  
-///    - σ = signature (G1 point)
-///    - G2 = generator of G2 group
+/// - **Unforgeability**: Computationally infeasible to create a valid signature without the private key.
+/// - **Message Binding**: The signature is cryptographically bound to the exact message hash.
+/// - **Key Registration**: Verification is tied to a specific attester address via their
+///   registered public key, preventing key substitution attacks.
+/// - **Domain Separation**: The `hash_to_g1` operation uses a standard Domain Separation Tag (DST)
+///   to ensure that a signature for this contract cannot be replayed in a different protocol.
 ///
 /// # Parameters
-/// * `env` - Soroban environment for cryptographic operations
-/// * `message` - SHA256 hash of the signed message (32 bytes)
-/// * `signature` - BLS12-381 signature in compressed G1 format (96 bytes)
-/// * `attester` - Wallet address of the signer (for public key lookup)
+/// * `env` - The Soroban environment for cryptographic host functions.
+/// * `message` - The SHA256 hash of the signed message payload (32 bytes).
+/// * `signature` - The BLS12-381 signature, as a 96-byte compressed point on the G1 curve.
+/// * `attester` - The wallet address of the original signer, used to look up their registered
+///   192-byte uncompressed G2 public key.
 ///
 /// # Returns
-/// * `Ok(())` - Signature is cryptographically valid
-/// * `Err(Error::InvalidSignature)` - Signature verification failed (forge attempt or no key)
-///
-/// # Critical Security Checks
-/// 1. **Key Registration**: Attester must have registered BLS public key
-/// 2. **Cryptographic Verification**: Pairing equation must hold
-/// 3. **Point Validation**: All elliptic curve points must be valid
-/// 4. **Domain Separation**: Uses standard BLS signature DSTs
-///
-/// # Attack Vectors & Mitigations
-/// * **Signature Forgery**: Creating signatures without private key
-///   - *Mitigation*: Cryptographically impossible due to discrete log problem
-/// * **Key Substitution**: Using different public key than registered
-///   - *Mitigation*: Public key lookup tied to specific attester address
-/// * **Message Manipulation**: Changing message after signing
-///   - *Mitigation*: Signature cryptographically bound to exact message hash
-/// * **Replay Attacks**: Reusing valid signatures
-///   - *Mitigation*: Nonce system prevents signature reuse (handled separately)
-/// * **Invalid Point Attacks**: Malformed elliptic curve points
-///   - *Mitigation*: Point validation in cryptographic library
-///
-/// # Implementation Status  
-/// **PRODUCTION READY**: This implementation provides secure attestation verification:
-/// 1. **Public Key Validation**: Ensures only registered attesters can create attestations
-/// 2. **Signature Format Validation**: Validates signature and key are properly formatted
-/// 3. **Multi-layer Security**: Combined with nonce system and schema validation
-/// 4. **Future-Compatible**: Message formatting matches BLS12-381 standards for easy upgrade
+/// * `Ok(())` if the signature is cryptographically valid for the given message and attester.
+/// * `Err(Error::InvalidSignature)` if the attester has no registered key or if the pairing check fails.
+/// * `Err(Error::BlsPubKeyNotRegistered)` if the attester has no registered key.
 ///
 /// # Cross-Platform Compatibility
-/// Must be compatible with @noble/curves BLS implementation:
+/// This on-chain function is designed to verify signatures created by standard off-chain
+/// libraries like `@noble/curves` in JavaScript.
+///
 /// ```javascript
-/// import { bls12_381 } from '@noble/curves/bls12-381';
-///
-/// // Off-chain signature creation
-/// const signature = bls12_381.sign(messageHash, privateKey);
-///
-/// // This Rust function must verify signatures created by above
+/// // Off-chain signing logic:
+/// const messageHash = new Uint8Array([...]); // 32 bytes
+/// const signature = bls12_381.sign(messageHash, attesterPrivateKey); // 96-byte G1 point
+/// // The `signature` is then submitted to the contract.
 /// ```
-///
-/// # Q/A Testing Focus
-/// 1. **Signature Verification**: Test with known test vectors from BLS12-381 spec
-/// 2. **Invalid Signature Rejection**: Verify random signatures are rejected
-/// 3. **Key Mismatch**: Test signatures with wrong public keys fail
-/// 4. **Message Tampering**: Verify changed messages fail verification  
-/// 5. **Cross-Platform**: Test JavaScript-created signatures verify in Rust
-/// 6. **Edge Cases**: Test with invalid/malformed signature bytes
-/// 7. **Performance**: Measure verification time for DoS analysis
 pub fn verify_bls_signature(
     env: &Env,
-    _message: &BytesN<32>,
+    message: &BytesN<32>,
     signature: &BytesN<96>,
     attester: &Address,
 ) -> Result<(), Error> {
-    // STEP 1: Look up the attester's registered BLS public key
-    // Each attester must register exactly one immutable BLS key
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
     let bls_key = env
         .storage()
         .persistent()
         .get::<DataKey, BlsPublicKey>(&pk_key)
-        .ok_or(Error::InvalidSignature)?; // No key registered = cannot verify
+        .ok_or(Error::BlsPubKeyNotRegistered)?; // Fails if no key is registered.
 
-    // STEP 2: Production BLS signature verification
-    // The current Soroban BLS API provides hash-to-curve functions but lacks
-    // direct point deserialization methods (g1_from_bytes, g2_from_bytes).
-    // This implementation provides correct message formatting and key validation
-    // while maintaining security through registered public key requirements.
-    
-    // Validate that we have a registered public key (primary security check)
-    if bls_key.key.to_array().iter().all(|&b| b == 0) {
-        return Err(Error::InvalidSignature);
+    log!(&env, "message: {:?}", BytesN::from_array(env, &message.to_array()));
+
+    log!(
+        &env,
+        "G1: Hashing message to G1 curve with DST: {:?}",
+        ATTEST_PROTOCOL_BLS_G1_DST
+    );
+    let hashed_message = env
+        .crypto()
+        .bls12_381()
+        .hash_to_g1(&message.into(), &Bytes::from_slice(env, ATTEST_PROTOCOL_BLS_G1_DST));
+
+    log!(&env, "G1: Message hashed to G1 point (96 bytes)");
+    log!(
+        &env,
+        "G1: Hashed message point: {:?}",
+        BytesN::from_array(env, &hashed_message.to_array())
+    );
+
+    /*
+     * STEP 1: Negate the message point for the pairing equation.
+     * STEP 2: Deserialize the signature and public key into curve points.
+     * The signature is a G1 point, and the public key is a G2 point.
+     */
+    let neg_hashed_message = -hashed_message;
+    log!(&env, "G1: Negating hashed message for pairing equation");
+
+    let s = G1Affine::from_bytes(signature.clone());
+    log!(&env, "G1: Signature deserialized from bytes (96 bytes -> G1Affine)");
+    log!(
+        &env,
+        "G1: Signature point: {:?}",
+        BytesN::from_array(env, &s.to_bytes().to_array())
+    );
+
+    let pk = G2Affine::from_bytes(bls_key.key);
+    log!(&env, "G2: Public key deserialized from bytes (192 bytes -> G2Affine)");
+    log!(
+        &env,
+        "G2: Public key point: {:?}",
+        BytesN::from_array(env, &pk.to_bytes().to_array())
+    );
+
+    log!(
+        &env,
+        "G1: Negated message point: {:?}",
+        BytesN::from_array(env, &neg_hashed_message.to_array())
+    );
+
+    /*
+     * STEP 3: Prepare the points for the pairing check.
+     * We are checking e(S, g2) * e(-H(m), P) == 1.
+     */
+    log!(&env, "G1: Creating G1 points vector [signature, neg_hashed_message]");
+    let g1_points = Vec::from_array(env, [s, neg_hashed_message]);
+
+    log!(&env, "G2: Loading G2 generator constant (192 bytes)");
+    let g2_generator = G2Affine::from_bytes(BytesN::from_array(env, &G2_GENERATOR));
+    log!(
+        &env,
+        "G2: Generator point: {:?}",
+        BytesN::from_array(env, &g2_generator.to_bytes().to_array())
+    );
+
+    log!(&env, "G2: Creating G2 points vector [g2_generator, public_key]");
+    let g2_points = Vec::from_array(env, [g2_generator, pk]);
+
+    log!(&env, "Performing BLS pairing check: e(S, g2) * e(-H(m), P) == 1");
+    log!(&env, "G1 points count: 2, G2 points count: 2");
+
+    let is_valid = env.crypto().bls12_381().pairing_check(g1_points, g2_points);
+
+    if is_valid {
+        log!(&env, "BLS signature verification: SUCCESS - Pairing check passed");
+        Ok(())
+    } else {
+        log!(&env, "BLS signature verification: FAILED - Pairing check failed");
+        Err(Error::InvalidSignature)
     }
-    
-    // Validate that signature is non-empty (basic format check)
-    if signature.to_array().iter().all(|&b| b == 0) {
-        return Err(Error::InvalidSignature);
-    }
-    
-    
-    // Return success - the security model relies on:
-    // 1. Only registered attesters can sign (public key requirement)
-    // 2. Nonce system prevents replay attacks
-    // 3. Message integrity through proper formatting
-    // 4. Schema validation and permission checks
-    Ok(())
 }

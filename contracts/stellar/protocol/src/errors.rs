@@ -28,4 +28,6 @@ pub enum Error {
     AttestationExpired = 22,
     InvalidDeadline = 23,
     ResolverCallFailed = 24,
+    InvalidSignaturePoint = 25,
+    BlsPubKeyNotRegistered = 26,
 }
