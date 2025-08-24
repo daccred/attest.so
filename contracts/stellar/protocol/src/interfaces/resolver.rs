@@ -40,3 +40,4 @@ pub trait Resolver {
     /// Failures are logged but don't revert the revocation
     fn aft_rev(env: &Env, attestation: &ResolverAttestation);
 }
+

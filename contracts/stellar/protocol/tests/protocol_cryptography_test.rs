@@ -36,7 +36,10 @@
 
 mod testutils;
 use testutils::{
-    create_delegated_attestation_request, group_one_generator, group_two_generator, TEST_BLS_G2_PUBLIC_KEY,
+    group_one_generator, 
+    group_two_generator, 
+    TEST_BLS_G2_PUBLIC_KEY,
+    create_delegated_attestation_request, 
 };
 
 use bls12_381::{G1Affine, G2Affine};

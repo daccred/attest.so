@@ -92,3 +92,4 @@ pub trait ResolverInterface {
     /// Get resolver metadata
     fn get_metadata(env: Env) -> ResolverMetadata;
 }
+
