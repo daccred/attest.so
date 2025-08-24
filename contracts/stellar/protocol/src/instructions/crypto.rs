@@ -171,57 +171,45 @@ pub fn get_bls_public_key(env: &Env, attester: &Address) -> Option<BlsPublicKey>
 /// pairing to prove that the attester's private key was used to sign the specific message hash.
 /// This is the primary defense against unauthorized or forged delegated attestations.
 ///
-/// # Cryptographic Model
-/// The verification is based on the BLS pairing equation: `e(S, g2) == e(H(m), P)`,
-/// where `e` is the pairing, `S` is the signature, `g2` is the G2 generator, `H(m)` is the
-/// message hash on the G1 curve, and `P` is the public key on the G2 curve.
+/// # BLS Scheme: Minimal-Signature-Size
+/// This contract implements the most common BLS signature scheme, which optimizes for the smallest
+/// possible signature size.
+/// - **Signature**: A point on the G1 curve (96 bytes compressed).
+/// - **Public Key**: A point on the G2 curve (192 bytes uncompressed).
 ///
-/// This contract uses the rearranged form for efficiency: `e(S, g2) * e(-H(m), P) == 1`,
-/// which is verified by the `pairing_check` host function.
+/// The verification is based on the BLS pairing equation `e(S, g2) == e(H(m), P)`, where `e`
+/// is the pairing, `S` is the signature, `g2` is the G2 generator, `H(m)` is the message hash
+/// on G1, and `P` is the public key on G2. This is checked efficiently using the rearranged
+/// form `e(S, g2) * e(-H(m), P) == 1` via the `pairing_check` host function.
 ///
 /// # Security Properties
 /// - **Unforgeability**: Computationally infeasible to create a valid signature without the private key.
-/// - **Non-Malleability**: A valid signature for one message cannot be transformed into a valid
-///   signature for another message.
 /// - **Message Binding**: The signature is cryptographically bound to the exact message hash.
+/// - **Key Registration**: Verification is tied to a specific attester address via their
+///   registered public key, preventing key substitution attacks.
+/// - **Domain Separation**: The `hash_to_g1` operation uses a standard Domain Separation Tag (DST)
+///   to ensure that a signature for this contract cannot be replayed in a different protocol.
 ///
 /// # Parameters
 /// * `env` - The Soroban environment for cryptographic host functions.
 /// * `message` - The SHA256 hash of the signed message payload (32 bytes).
-/// * `signature` - The BLS12-381 signature, which is a point on the G1 curve in
-///   compressed format (96 bytes).
-/// * `attester` - The wallet address of the signer, used to look up their registered public key.
+/// * `signature` - The BLS12-381 signature, as a 96-byte compressed point on the G1 curve.
+/// * `attester` - The wallet address of the original signer, used to look up their registered
+///   192-byte uncompressed G2 public key.
 ///
 /// # Returns
 /// * `Ok(())` if the signature is cryptographically valid for the given message and attester.
-/// * `Err(Error::InvalidSignature)` if the attester has no registered key or if the pairing
-///   check fails.
-///
-/// # Critical Security Checks
-/// 1. **Key Registration**: The function first checks if the `attester` has a registered
-///    BLS public key. If not, verification fails immediately. This is the primary
-///    authentication mechanism.
-/// 2. **Cryptographic Verification**: The `pairing_check` host function performs the core
-///    mathematical verification, confirming the signature's validity.
-/// 3. **Domain Separation**: The `hash_to_g1` operation uses a Domain Separation Tag (DST)
-///    to ensure that a signature for this contract cannot be replayed in a different context.
+/// * `Err(Error::InvalidSignature)` if the attester has no registered key or if the pairing check fails.
 ///
 /// # Cross-Platform Compatibility
-/// This on-chain verification function is designed to be compatible with standard off-chain
-/// BLS signing libraries, such as `@noble/curves` in JavaScript.
+/// This on-chain function is designed to verify signatures created by standard off-chain
+/// libraries like `@noble/curves` in JavaScript.
 ///
 /// ```javascript
 /// // Off-chain signing logic:
-/// import { bls12_381 } from '@noble/curves/bls12-381';
-///
-/// // 1. The message hash must match the on-chain `create_attestation_message` output.
 /// const messageHash = new Uint8Array([...]); // 32 bytes
-///
-/// // 2. The attester signs the hash with their private key.
 /// const signature = bls12_381.sign(messageHash, attesterPrivateKey); // 96-byte G1 point
-///
-/// // 3. The `signature` is submitted to the contract. This Rust function MUST
-/// //    successfully verify it.
+/// // The `signature` is then submitted to the contract.
 /// ```
 pub fn verify_bls_signature(
     env: &Env,
