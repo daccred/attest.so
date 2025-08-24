@@ -57,11 +57,11 @@ pub const _TEST_BLS_SIGNATURE_BYTES: [u8; 96] = [
 /// =======================================================================================
 
 /// Helper function to get the G1 generator point
-pub fn group_one_generator() -> G1Affine {
+pub fn _group_one_generator() -> G1Affine {
     G1Affine::generator()
 }
 /// Helper function to get the G2 generator point  
-pub fn group_two_generator() -> G2Affine {
+pub fn _group_two_generator() -> G2Affine {
     G2Affine::generator()
 }
 

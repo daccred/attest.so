@@ -1,3 +1,39 @@
+//! # BLS Cryptography and Delegation Tests
+//! 
+//! This module contains comprehensive tests for the BLS12-381 cryptographic functionality
+//! and delegated attestation/revocation features of the Attest Protocol.
+//! 
+//! ## Test Categories
+//! 
+//! ### Cryptographic Constants Validation
+//! - Validates that hardcoded BLS12-381 curve points are valid and on-curve
+//! - Generates reference constants for G1 and G2 generators
+//! 
+//! ### Nonce Management
+//! - Tests sequential nonce incrementation for UID collision prevention
+//! - Validates attester-specific nonce isolation
+//! - Stress tests nonce sequence integrity at scale
+//! 
+//! ### BLS Key Registration
+//! - Tests BLS public key registration and event emission
+//! - Validates key storage and retrieval functionality
+//! 
+//! ### Delegated Actions Security
+//! - Tests signature verification for delegated attestations
+//! - Validates rejection of unregistered BLS keys
+//! - End-to-end signature verification with known key pairs
+//! 
+//! ### Message Hash Consistency
+//! - Cross-validates on-chain vs off-chain message construction
+//! - Ensures signature compatibility between environments
+//! - Tests both attestation and revocation message formats
+//! 
+//! ## Security Properties Tested
+//! - **Replay Attack Prevention**: Nonce-based protection mechanisms
+//! - **Signature Authenticity**: BLS signature verification integrity
+//! - **Cross-Chain Compatibility**: Message hash consistency
+//! - **Key Management**: Secure BLS key registration and retrieval
+
 mod testutils;
 use testutils::{
     create_delegated_attestation_request, group_one_generator, group_two_generator, TEST_BLS_G2_PUBLIC_KEY,
@@ -302,7 +338,7 @@ fn test_nonce_is_attester_specific() {
 /// properties under realistic high-volume conditions, preventing sequence manipulation
 /// attacks that could exploit edge cases or performance degradation scenarios.
 #[test]
-#[ignore]
+// #[ignore="this takes a lot of time"]
 fn test_nonce_replay_future_nonce_rejection() {
     let env = Env::default();
     env.mock_all_auths();
