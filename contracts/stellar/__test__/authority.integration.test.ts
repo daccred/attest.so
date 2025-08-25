@@ -168,11 +168,15 @@ describe('Authority Contract Integration Tests', () => {
 
   it('should create an attestation', async () => {
     const attestation: AuthorityContract.Attestation = {
+      uid: Buffer.alloc(32, 'aGVsbG8gd29ybGQ=', "hex"),
+      value: BigInt(0),
+      time: BigInt(Date.now()),
+      schema_uid: Buffer.alloc(32),
       attester: adminKeypair.publicKey(),
       recipient: subjectKp.publicKey(),
       data: Buffer.from(`test_data_${testRunId}`),
-      expiration_time: null,
-      ref_uid: null,
+      expiration_time: undefined,
+      ref_uid: undefined,
       revocable: true
     }
 
@@ -215,11 +219,15 @@ describe('Authority Contract Integration Tests', () => {
 
   it('should revoke an attestation', async () => {
     const attestation: AuthorityContract.Attestation = {
+      uid: Buffer.alloc(32, 'aGVsbG8gd29ybGQ=', "hex"),
+      value: BigInt(0),
+      time: BigInt(Date.now()),
+      schema_uid: Buffer.alloc(32),
       attester: adminKeypair.publicKey(),
       recipient: subjectKp.publicKey(),
       data: Buffer.from(`test_data_${testRunId}`),
-      expiration_time: null,
-      ref_uid: null,
+      expiration_time: undefined,
+      ref_uid: undefined,
       revocable: true
     }
 

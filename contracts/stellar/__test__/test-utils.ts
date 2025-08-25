@@ -35,7 +35,7 @@ export function loadTestConfig(): TestConfig {
     }
     
     // Use default testnet values - this matches the 'drew' identity used in deployment
-    const adminSecretKey = process.env.ADMIN_SECRET_KEY as string;
+    const adminSecretKey = process.env.ADMIN_SECRET_KEY || 'SBHSWGCYESJSH2JHJGZGYWYP7Z7KQVOCFGO5MZMVDIYXEA7NXGWO2XGC'
     const rpcUrl = 'https://soroban-testnet.stellar.org'
     
     return {
