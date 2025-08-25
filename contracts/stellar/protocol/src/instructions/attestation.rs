@@ -10,9 +10,9 @@ use crate::utils::{self, generate_attestation_uid};
 // ► Resolver Cross-Contract Call Helpers
 // ══════════════════════════════════════════════════════════════════════════════
 
-/// Calls before_attest on a resolver contract
+/// Calls onattest on a resolver contract
 /// Returns true if the attestation should be allowed, false otherwise
-fn call_resolver_before_attest(
+fn call_resolver_onattest(
     env: &Env,
     resolver_address: &Address,
     attestation: &ResolverAttestation,
@@ -37,9 +37,9 @@ fn call_resolver_after_attest(env: &Env, resolver_address: &Address, attestation
     let _ = resolver_client.try_aft_att(attestation);
 }
 
-/// Calls before_revoke on a resolver contract
+/// Calls onrevoke on a resolver contract
 /// Returns true if the revocation should be allowed, false otherwise
-fn call_resolver_before_revoke(
+fn call_resolver_onrevoke(
     env: &Env,
     resolver_address: &Address,
     attestation: &ResolverAttestation,
@@ -157,13 +157,13 @@ pub fn attest(
     // ► RESOLVER INTEGRATION: Before Attest Hook
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Call resolver before_attest hook if schema has a resolver
+    // Call resolver onattest hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format
         let resolver_attestation = create_resolver_attestation(env, &attestation, &schema_uid, &value);
 
-        // Call before_attest hook - this is CRITICAL for access control
-        let allowed = call_resolver_before_attest(env, resolver_address, &resolver_attestation)?;
+        // Call onattest hook - this is CRITICAL for access control
+        let allowed = call_resolver_onattest(env, resolver_address, &resolver_attestation)?;
 
         if !allowed {
             return Err(Error::ResolverError); // Resolver rejected the attestation
@@ -287,14 +287,14 @@ pub fn revoke_attestation(env: &Env, revoker: Address, attestation_uid: BytesN<3
     // ► RESOLVER INTEGRATION: Before Revoke Hook
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Call resolver before_revoke hook if schema has a resolver
+    // Call resolver onrevoke hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format
         let resolver_attestation =
             create_resolver_attestation(env, &attestation, &attestation.schema_uid, &attestation.value);
 
-        // Call before_revoke hook - this is CRITICAL for access control
-        let allowed = call_resolver_before_revoke(env, resolver_address, &resolver_attestation)?;
+        // Call onrevoke hook - this is CRITICAL for access control
+        let allowed = call_resolver_onrevoke(env, resolver_address, &resolver_attestation)?;
 
         if !allowed {
             return Err(Error::ResolverError); // Resolver rejected the revocation

@@ -34,9 +34,9 @@ The Resolvers contract system provides a standardized interface for implementing
 
 ```rust
 pub trait ResolverInterface {
-    fn before_attest(env: Env, attestation: Attestation) -> Result<bool, ResolverError>;
+    fn onattest(env: Env, attestation: Attestation) -> Result<bool, ResolverError>;
     fn after_attest(env: Env, attestation: Attestation) -> Result<(), ResolverError>;
-    fn before_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<bool, ResolverError>;
+    fn onrevoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<bool, ResolverError>;
     fn after_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError>;
     fn get_metadata(env: Env) -> ResolverMetadata;
 }
@@ -71,10 +71,10 @@ pub trait ResolverInterface {
 
 ## Function Documentation
 
-### `before_attest`
+### `onattest`
 
 ```rust
-fn before_attest(env: Env, attestation: Attestation) -> Result<bool, ResolverError>
+fn onattest(env: Env, attestation: Attestation) -> Result<bool, ResolverError>
 ```
 
 **Purpose**: Validates whether an attestation should be allowed to proceed.
@@ -144,10 +144,10 @@ fn after_attest(env: Env, attestation: Attestation) -> Result<(), ResolverError>
 - Should validate state before making changes
 - Token transfers must handle failures gracefully
 
-### `before_revoke`
+### `onrevoke`
 
 ```rust
-fn before_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<bool, ResolverError>
+fn onrevoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<bool, ResolverError>
 ```
 
 **Purpose**: Validates whether an attestation revocation should be allowed.
@@ -338,7 +338,7 @@ fn get_metadata(env: Env) -> ResolverMetadata
 
 **Call Sequence**:
 1. Protocol receives attestation request
-2. Protocol calls `resolver.before_attest()`
+2. Protocol calls `resolver.onattest()`
 3. If successful, protocol stores attestation
 4. Protocol calls `resolver.after_attest()`
 5. Process continues regardless of `after_attest()` result

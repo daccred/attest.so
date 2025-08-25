@@ -144,10 +144,10 @@ DataKey::PaymentRecord(Address) → PaymentRecord
 - Protocol calls authority resolver for validation
 - If payment confirmed, attestation proceeds
 
-### Step 5: Resolver Validation (`before_attest`)
+### Step 5: Resolver Validation (`onattest`)
 
 ```rust
-fn before_attest(
+fn onattest(
     env: Env,
     attestation: ResolverAttestation,
 ) -> Result<bool, ResolverError>
@@ -533,9 +533,9 @@ pub enum DataKey {
 **Resolver Interface Compliance**:
 ```rust
 impl ResolverInterface for AuthorityResolverContract {
-    fn before_attest(...) -> Result<bool, ResolverError> { /* payment validation */ }
+    fn onattest(...) -> Result<bool, ResolverError> { /* payment validation */ }
     fn after_attest(...) -> Result<(), ResolverError> { /* authority registration */ }
-    fn before_revoke(...) -> Result<bool, ResolverError> { /* admin validation */ }
+    fn onrevoke(...) -> Result<bool, ResolverError> { /* admin validation */ }
     fn after_revoke(...) -> Result<(), ResolverError> { /* cleanup */ }
     fn get_metadata(...) -> ResolverMetadata { /* resolver info */ }
 }

@@ -171,7 +171,7 @@ pub struct DelegatedAttestationRequest {
 ```rust
 // Step 4: Pre-validation
 if let Some(resolver_addr) = schema.resolver {
-    let validation_result = resolver.before_attest(env, attestation_data);
+    let validation_result = resolver.onattest(env, attestation_data);
     if !validation_result? {
         return Err(Error::ResolverRejected);
     }
@@ -192,7 +192,7 @@ if let Some(resolver_addr) = schema.resolver {
 
 **Design Considerations**:
 - **Atomic Operations**: Either entire attestation succeeds or fails
-- **Resolver Isolation**: `before_attest` failures abort, `after_attest` failures don't
+- **Resolver Isolation**: `onattest` failures abort, `after_attest` failures don't
 - **Gas Optimization**: Early validation prevents unnecessary state changes
 - **Event Emission**: Standard events for indexing and monitoring
 
@@ -353,9 +353,9 @@ if request.nonce != expected_nonce {
 
 The protocol integrates with resolvers at four critical points:
 
-1. **Before Attestation** (`before_attest`): Access control and validation
+1. **Before Attestation** (`onattest`): Access control and validation
 2. **After Attestation** (`after_attest`): Side effects and rewards
-3. **Before Revocation** (`before_revoke`): Revocation authorization
+3. **Before Revocation** (`onrevoke`): Revocation authorization
 4. **After Revocation** (`after_revoke`): Cleanup and penalties
 
 ### Security Boundaries

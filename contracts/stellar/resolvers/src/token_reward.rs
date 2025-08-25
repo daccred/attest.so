@@ -11,9 +11,9 @@
 // ► │  ┌─────────────────────┐    ┌──────────────────────────────────────┐   │
 // ► │  │  ResolverInterface  │    │    OpenZeppelin Fungible             │   │
 // ► │  │                     │    │                                      │   │
-// ► │  │  before_attest()    │    │  name(), symbol(), decimals()       │   │
+// ► │  │  onattest()    │    │  name(), symbol(), decimals()       │   │
 // ► │  │  after_attest()     │    │  balance(), total_supply()           │   │
-// ► │  │  before_revoke()    │    │  transfer(), approve(), allowance()  │   │
+// ► │  │  onrevoke()    │    │  transfer(), approve(), allowance()  │   │
 // ► │  │  after_revoke()     │    │                                      │   │
 // ► │  │  get_metadata()     │    │                                      │   │
 // ► │  └─────────────────────┘    └──────────────────────────────────────┘   │

@@ -64,7 +64,7 @@ We designed the attest.so system to provide a modular, secure foundation for blo
 **Primary Purpose**: Standardized interface for custom business logic
 
 **Core Functions**:
-- **Validation Interface**: `before_attest()`, `before_revoke()` for access control
+- **Validation Interface**: `onattest()`, `onrevoke()` for access control
 - **Side Effects Interface**: `after_attest()`, `after_revoke()` for post-processing
 - **Metadata Interface**: `get_metadata()` for resolver discovery
 - **Template Library**: Pre-built resolvers for common patterns
@@ -143,7 +143,7 @@ platform.processPayment(event.payer, event.ref_id)
 protocol.attest_by_delegation(submitter, request)
   ├─ Validate BLS signature
   ├─ Check nonce for replay protection
-  ├─ Call resolver.before_attest() → Authority validates payment
+  ├─ Call resolver.onattest() → Authority validates payment
   ├─ Store attestation if validation passes
   └─ Call resolver.after_attest() → Authority registers in phone book
 ```
@@ -275,7 +275,7 @@ impl ProtocolContract {
     fn _attest(attestation: Attestation) -> Result<(), Error> {
         // Validation phase (critical path)
         if let Some(resolver) = schema.resolver {
-            let validation_result = resolver.before_attest(env, attestation);
+            let validation_result = resolver.onattest(env, attestation);
             if !validation_result? {
                 return Err(Error::ResolverRejected);
             }

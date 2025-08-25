@@ -136,14 +136,14 @@ fn pay_fee_insufficient_funds_panics() {
 }
 
 #[test]
-fn before_attest_blocks_unpaid() {
+fn onattest_blocks_unpaid() {
     let setup = setup_env();
     let env = &setup.env;
     let unpaid = Address::generate(env);
     let att = build_resolver_attestation(env, &unpaid);
     let client = AuthorityResolverContractClient::new(env, &setup.contract_id);
-    let _res = client.try_before_attest(&att);
-    // TODO: Need to implement before_attest to check payment status
+    let _res = client.try_onattest(&att);
+    // TODO: Need to implement onattest to check payment status
     // RECOMMENDATION: Implement resolver interface methods that check payment before allowing attestation
     // IMPACT: Currently unpaid users can bypass payment requirements
     // assert!(matches!(res, Err(Ok(ResolverError::NotAuthorized))));
@@ -162,10 +162,10 @@ fn before_and_after_attest_with_payment() {
 
     let _att = build_resolver_attestation(env, &payer);
 
-    // TODO: Implement before_attest and after_attest resolver hooks
+    // TODO: Implement onattest and after_attest resolver hooks
     // RECOMMENDATION: Add resolver interface implementation for authority registration flow
     // IMPACT: Cannot validate payment requirements before attestation
-    // assert!(client.before_attest(&att));
+    // assert!(client.onattest(&att));
     // client.after_attest(&att);
     // assert!(client.is_authority(&payer));
 

@@ -575,10 +575,10 @@ export interface Client {
   }) => Promise<AssembledTransaction<Result<void>>>
 
   /**
-   * Construct and simulate a before_attest transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Construct and simulate a onattest transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    * Called before an attestation is created (resolver interface)
    */
-  before_attest: ({attestation}: {attestation: ResolverAttestationData}, options?: {
+  onattest: ({attestation}: {attestation: ResolverAttestationData}, options?: {
     /**
      * The fee to pay for the transaction. Default: BASE_FEE
      */
@@ -689,7 +689,7 @@ export class Client extends ContractClient {
         has_confirmed_payment: this.txFromJSON<boolean>,
         get_payment_record: this.txFromJSON<Option<PaymentRecord>>,
         admin_withdraw_fees: this.txFromJSON<Result<void>>,
-        before_attest: this.txFromJSON<Result<boolean>>,
+        onattest: this.txFromJSON<Result<boolean>>,
         after_attest: this.txFromJSON<Result<void>>
   }
 }

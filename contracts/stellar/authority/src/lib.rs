@@ -235,7 +235,7 @@ impl AuthorityResolverContract {
     // ──────────────────────────────────────────────────────────────────────────
 
     /// Called before an attestation is created (resolver interface)
-    pub fn before_attest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
+    pub fn onattest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         // Check if the attester has confirmed payment
         if !state::has_confirmed_payment(&env, &attestation.attester) {
             return Err(ResolverError::NotAuthorized);

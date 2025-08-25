@@ -53,7 +53,7 @@ fn test_reject_self_attestation() {
     let attestation = build_attestation(&env, &user, &user, 0);
     let res = client.try_onattest(&attestation);
     // If this assertion fails:
-    // ISSUE: self-attestation check missing in before_attest
+    // ISSUE: self-attestation check missing in onattest
     // RECOMMENDATION: Ensure attester != recipient validation
     // IMPACT: Users could create meaningless self-attestations
     assert!(matches!(res.err().unwrap(), Ok(ResolverError::ValidationFailed)));

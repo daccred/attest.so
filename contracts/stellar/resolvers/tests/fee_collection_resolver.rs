@@ -85,7 +85,7 @@ fn test_fee_collected_on_attest() {
     let attestation = build_attestation(&env, &attester);
     assert!(resolver_client.onattest(&attestation));
     // If this line panics with `Error(Auth, InvalidAction)`:
-    // ISSUE: before_attest lacks attester.require_auth before token transfer
+    // ISSUE: onattest lacks attester.require_auth before token transfer
     // RECOMMENDATION: call attester.require_auth() prior to token_client.transfer
     // IMPACT: Fee collection fails because attester authorization isn't recorded
 
@@ -105,7 +105,7 @@ fn test_withdraw_fees_requires_recipient_auth() {
     assert!(resolver_client.onattest(&attestation));
     // If this line panics with `Error(Auth, InvalidAction)`:
     // ISSUE: attester authorization is missing for token transfer
-    // RECOMMENDATION: require attester auth in before_attest
+    // RECOMMENDATION: require attester auth in onattest
     // IMPACT: Fees cannot be collected, preventing withdrawals
 
     // Unauthorized withdraw attempt
@@ -134,6 +134,7 @@ fn test_non_admin_cannot_update_fee() {
     // RECOMMENDATION: enforce require_admin in set_attestation_fee
     // IMPACT: Unauthorized users could manipulate fees
     assert!(matches!(res.err().unwrap(), Ok(ResolverError::NotAuthorized)));
+}
 }
 
 #[test]
