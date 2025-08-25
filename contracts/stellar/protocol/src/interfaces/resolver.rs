@@ -21,6 +21,12 @@ pub struct ResolverAttestation {
 
 /************************************************
 * Resolver Contract Client Interface
+TODO: Let this be a impl for the Trait
+Import the Trait from the resolver contract and implement the functions
+However the function that would be implemented are already defined in
+attestation.rs, so we need to bring them over here. 
+Once we bring them over here, we can have attestation.rs call the functions
+from this interface implementation. 
 ************************************************/
 #[contractclient(name = "ResolverClient")]
 pub trait Resolver {
@@ -28,16 +34,12 @@ pub trait Resolver {
     /// Returns true if attestation should be allowed, false to reject
     fn onattest(env: &Env, attestation: &ResolverAttestation) -> bool;
 
-    /// Called after an attestation is created - for side effects (rewards, etc.)
-    /// Failures are logged but don't revert the attestation
-    fn onresolve(env: &Env, attestation: &ResolverAttestation);
-
     /// Called before an attestation is revoked - CRITICAL for access control
     /// Returns true if revocation should be allowed, false to reject
     fn onrevoke(env: &Env, attestation: &ResolverAttestation) -> bool;
 
-    /// Called after an attestation is revoked - for side effects (cleanup, etc.)
-    /// Failures are logged but don't revert the revocation
+    /// Called after an attestation is attested or revoked - for side effects (rewards, cleanup, etc.)
+    /// Failures are logged but don't revert the attestation or revocation
     fn onresolve(env: &Env, attestation: &ResolverAttestation);
 }
 

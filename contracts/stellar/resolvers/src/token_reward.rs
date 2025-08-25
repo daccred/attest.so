@@ -338,8 +338,7 @@ impl ResolverInterface for TokenRewardResolver {
     }
 
     /// No validation needed for revocations
-    fn onrevoke(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
-        
+    fn onrevoke(_env: Env, _attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         Ok(true)
     }
 

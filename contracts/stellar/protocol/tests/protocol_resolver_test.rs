@@ -22,8 +22,6 @@ mod no_revoke_resolver {
             true
         }
         
-        pub fn onresolve(_env: Env, _attestation: ResolverAttestation) {}
-        
         pub fn onrevoke(_env: Env, _attestation: ResolverAttestation) -> bool {
             false // Always reject revocations
         }
@@ -44,8 +42,6 @@ mod always_approve_resolver {
         pub fn onattest(_env: Env, _attestation: ResolverAttestation) -> bool {
             true
         }
-        
-        pub fn onresolve(_env: Env, _attestation: ResolverAttestation) {}
         
         pub fn onrevoke(_env: Env, _attestation: ResolverAttestation) -> bool {
             true

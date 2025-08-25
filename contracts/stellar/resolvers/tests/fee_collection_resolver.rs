@@ -135,7 +135,6 @@ fn test_non_admin_cannot_update_fee() {
     // IMPACT: Unauthorized users could manipulate fees
     assert!(matches!(res.err().unwrap(), Ok(ResolverError::NotAuthorized)));
 }
-}
 
 #[test]
 fn test_initialize_twice_fails() {

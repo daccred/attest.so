@@ -28,15 +28,6 @@ fn call_resolver_onattest(
     }
 }
 
-/// Calls onresolve on a resolver contract
-/// Failures are logged but don't revert the attestation
-fn call_resolver_onresolve(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
-    let resolver_client = ResolverClient::new(env, resolver_address);
-
-    // Ignore failures in onresolve - they're non-critical side effects
-    let _ = resolver_client.try_onresolve(attestation);
-}
-
 /// Calls onrevoke on a resolver contract
 /// Returns true if the revocation should be allowed, false otherwise
 fn call_resolver_onrevoke(
@@ -56,7 +47,7 @@ fn call_resolver_onrevoke(
 }
 
 /// Calls onresolve on a resolver contract
-/// Failures are logged but don't revert the revocation
+/// Failures are logged but don't revert the attestation or revocation
 fn call_resolver_onresolve(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
     let resolver_client = ResolverClient::new(env, resolver_address);
 
