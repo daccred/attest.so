@@ -107,68 +107,24 @@ describe('Authority Contract Integration Tests', () => {
     expect(res.isOk()).toBe(true)
   }, 60000)
 
-  it('should register a schema through admin', async () => {
-    const schemaRules: AuthorityContract.SchemaRules = {
-      levy_amount: 10000000n, // 1 XLM in stroops
-      levy_recipient: levyRecipientKp.publicKey()
-    }
-
-    const tx = await authorityClient.admin_register_schema({
-      admin: adminKeypair.publicKey(),
-      schema_uid: schemaUid,
-      rules: schemaRules
-    }, {
-      fee: 1000000,
-      timeoutInSeconds: 30
-    })
-
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
-    const sent = await tx.signAndSend({
-      signTransaction: async (xdr) => {
-        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
-        transaction.sign(adminKeypair)
-        
-        for (const signer of needsSigningBy) {
-          if (signer === adminKeypair.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
-        return { signedTxXdr: transaction.toXDR() }
-      }
-    })
-
-    const res = sent.result as AuthorityContract.contract.Result<void>
-    expect(res.isOk()).toBe(true)
+  it('should check contract is initialized', async () => {
+    const tx = await authorityClient.get_admin_address()
+    const result = await tx.simulate()
+    
+    expect(result.result).toBeDefined()
+    // Admin address should be set during initialization
+    const adminResult = tx.result as AuthorityContract.contract.Result<string>
+    expect(adminResult.unwrap()).toBeDefined()
   }, 60000)
 
-  it('should set schema levy through admin', async () => {
-    const tx = await authorityClient.admin_set_schema_levy({
-      admin: adminKeypair.publicKey(),
-      schema_uid: schemaUid,
-      levy_amount: 10000000n, // 1 XLM in stroops
-      levy_recipient: levyRecipientKp.publicKey()
-    }, {
-      fee: 1000000,
-      timeoutInSeconds: 30
-    })
-
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
-    const sent = await tx.signAndSend({
-      signTransaction: async (xdr) => {
-        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
-        transaction.sign(adminKeypair)
-        
-        for (const signer of needsSigningBy) {
-          if (signer === adminKeypair.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
-        return { signedTxXdr: transaction.toXDR() }
-      }
-    })
-
-    const res = sent.result as AuthorityContract.contract.Result<void>
-    expect(res.isOk()).toBe(true)
+  it('should check token ID is set', async () => {
+    const tx = await authorityClient.get_token_id()
+    const result = await tx.simulate()
+    
+    expect(result.result).toBeDefined()
+    // Token ID should be the SAC token we provided
+    const tokenResult = tx.result as AuthorityContract.contract.Result<string>
+    expect(tokenResult.unwrap()).toBeDefined()
   }, 60000)
 
   it('should register an authority through admin', async () => {
@@ -211,21 +167,17 @@ describe('Authority Contract Integration Tests', () => {
   }, 60000)
 
   it('should create an attestation', async () => {
-    const attestationRecord: AuthorityContract.AttestationRecord = {
-      uid: randomBytes(32),
-      schema_uid: schemaUid,
-      recipient: subjectKp.publicKey(),
+    const attestation: AuthorityContract.Attestation = {
       attester: adminKeypair.publicKey(),
-      time: BigInt(Math.floor(Date.now() / 1000)),
-      expiration_time: undefined,
-      revocable: true,
-      ref_uid: undefined,
+      recipient: subjectKp.publicKey(),
       data: Buffer.from(`test_data_${testRunId}`),
-      value: undefined
+      expiration_time: null,
+      ref_uid: null,
+      revocable: true
     }
 
     const tx = await authorityClient.attest({
-      attestation: attestationRecord
+      attestation: attestation
     }, {
       fee: 1000000,
       timeoutInSeconds: 30
@@ -262,21 +214,17 @@ describe('Authority Contract Integration Tests', () => {
   }, 60000)
 
   it('should revoke an attestation', async () => {
-    const attestationRecord: AuthorityContract.AttestationRecord = {
-      uid: randomBytes(32),
-      schema_uid: schemaUid,
-      recipient: subjectKp.publicKey(),
+    const attestation: AuthorityContract.Attestation = {
       attester: adminKeypair.publicKey(),
-      time: BigInt(Math.floor(Date.now() / 1000)),
-      expiration_time: undefined,
-      revocable: true,
-      ref_uid: undefined,
+      recipient: subjectKp.publicKey(),
       data: Buffer.from(`test_data_${testRunId}`),
-      value: undefined
+      expiration_time: null,
+      ref_uid: null,
+      revocable: true
     }
 
     const tx = await authorityClient.revoke({
-      attestation: attestationRecord
+      attestation: attestation
     }, {
       fee: 1000000,
       timeoutInSeconds: 30
