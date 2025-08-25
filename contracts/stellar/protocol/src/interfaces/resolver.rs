@@ -26,18 +26,18 @@ pub struct ResolverAttestation {
 pub trait Resolver {
     /// Called before an attestation is created - CRITICAL for access control
     /// Returns true if attestation should be allowed, false to reject
-    fn bef_att(env: &Env, attestation: &ResolverAttestation) -> bool;
+    fn onattest(env: &Env, attestation: &ResolverAttestation) -> bool;
 
     /// Called after an attestation is created - for side effects (rewards, etc.)
     /// Failures are logged but don't revert the attestation
-    fn aft_att(env: &Env, attestation: &ResolverAttestation);
+    fn onresolve(env: &Env, attestation: &ResolverAttestation);
 
     /// Called before an attestation is revoked - CRITICAL for access control
     /// Returns true if revocation should be allowed, false to reject
-    fn bef_rev(env: &Env, attestation: &ResolverAttestation) -> bool;
+    fn onrevoke(env: &Env, attestation: &ResolverAttestation) -> bool;
 
     /// Called after an attestation is revoked - for side effects (cleanup, etc.)
     /// Failures are logged but don't revert the revocation
-    fn aft_rev(env: &Env, attestation: &ResolverAttestation);
+    fn onresolve(env: &Env, attestation: &ResolverAttestation);
 }
 

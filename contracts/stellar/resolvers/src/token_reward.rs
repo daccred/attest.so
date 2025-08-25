@@ -12,10 +12,10 @@
 // ► │  │  ResolverInterface  │    │    OpenZeppelin Fungible             │   │
 // ► │  │                     │    │                                      │   │
 // ► │  │  onattest()    │    │  name(), symbol(), decimals()       │   │
-// ► │  │  after_attest()     │    │  balance(), total_supply()           │   │
+// ► │  │  onresolve()     │    │  balance(), total_supply()           │   │
 // ► │  │  onrevoke()    │    │  transfer(), approve(), allowance()  │   │
-// ► │  │  after_revoke()     │    │                                      │   │
-// ► │  │  get_metadata()     │    │                                      │   │
+// ► │  │  onresolve()     │    │                                      │   │
+// ► │  │  metadata()     │    │                                      │   │
 // ► │  └─────────────────────┘    └──────────────────────────────────────┘   │
 // ► │                                                                         │
 // ► │  Shared State:                                                          │
@@ -343,7 +343,7 @@ impl ResolverInterface for TokenRewardResolver {
         Ok(true)
     }
 
-    fn get_metadata(env: Env) -> ResolverMetadata {
+    fn metadata(env: Env) -> ResolverMetadata {
         ResolverMetadata {
             name: String::from_str(&env, "Token Reward Resolver"),
             version: String::from_str(&env, "1.0.0"),

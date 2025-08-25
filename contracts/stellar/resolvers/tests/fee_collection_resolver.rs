@@ -152,7 +152,7 @@ fn test_initialize_twice_fails() {
 #[test]
 fn test_metadata() {
     let (env, _admin, _fee_recipient, _token_client, _token_admin_client, _resolver_address, resolver_client) = setup();
-    let meta = resolver_client.get_metadata();
+    let meta = resolver_client.metadata();
     assert_eq!(meta.name, SorobanString::from_str(&env, "Fee Collection Resolver"));
     assert_eq!(meta.resolver_type, ResolverType::FeeCollection);
 }

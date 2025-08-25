@@ -65,8 +65,8 @@ We designed the attest.so system to provide a modular, secure foundation for blo
 
 **Core Functions**:
 - **Validation Interface**: `onattest()`, `onrevoke()` for access control
-- **Side Effects Interface**: `after_attest()`, `after_revoke()` for post-processing
-- **Metadata Interface**: `get_metadata()` for resolver discovery
+- **Side Effects Interface**: `onresolve()`, `onresolve()` for post-processing
+- **Metadata Interface**: `metadata()` for resolver discovery
 - **Template Library**: Pre-built resolvers for common patterns
 
 **Security Boundaries**:
@@ -145,7 +145,7 @@ protocol.attest_by_delegation(submitter, request)
   ├─ Check nonce for replay protection
   ├─ Call resolver.onattest() → Authority validates payment
   ├─ Store attestation if validation passes
-  └─ Call resolver.after_attest() → Authority registers in phone book
+  └─ Call resolver.onresolve() → Authority registers in phone book
 ```
 
 ### Security Flow Analysis
@@ -287,7 +287,7 @@ impl ProtocolContract {
         
         // Side effects phase (non-critical path)
         if let Some(resolver) = schema.resolver {
-            let _ = resolver.after_attest(env, attestation);
+            let _ = resolver.onresolve(env, attestation);
             // Note: Failures here don't revert the attestation
         }
         

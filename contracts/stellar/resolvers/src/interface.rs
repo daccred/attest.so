@@ -59,7 +59,7 @@ pub enum ResolverError {
 /// - Attestation validation (onattest)
 /// - Post-processing for both attestations and revocations (onresolve) 
 /// - Revocation handling (onrevoke)
-/// - Metadata and type identification (get_metadata)
+/// - Metadata and type identification (metadata)
 ///
 /// # Execution Flow
 ///
@@ -241,5 +241,5 @@ pub trait ResolverInterface {
     ///
     /// # Returns
     /// * `ResolverMetadata` - Complete metadata describing the resolver
-    fn get_metadata(env: Env) -> ResolverMetadata;
+    fn metadata(env: Env) -> ResolverMetadata;
 }

@@ -150,7 +150,7 @@ fn onattest_blocks_unpaid() {
 }
 
 #[test]
-fn before_and_after_attest_with_payment() {
+fn before_and_onresolve_with_payment() {
     let setup = setup_env();
     let env = &setup.env;
     let payer = Address::generate(env);
@@ -162,11 +162,11 @@ fn before_and_after_attest_with_payment() {
 
     let _att = build_resolver_attestation(env, &payer);
 
-    // TODO: Implement onattest and after_attest resolver hooks
+    // TODO: Implement onattest and onresolve resolver hooks
     // RECOMMENDATION: Add resolver interface implementation for authority registration flow
     // IMPACT: Cannot validate payment requirements before attestation
     // assert!(client.onattest(&att));
-    // client.after_attest(&att);
+    // client.onresolve(&att);
     // assert!(client.is_authority(&payer));
 
     let events = env.events().all();
@@ -175,7 +175,7 @@ fn before_and_after_attest_with_payment() {
             == Some(SorobanString::from_str(env, "AUTHORITY_REGISTERED"))
     });
     // TODO: AUTHORITY_REGISTERED event not emitted after attestation
-    // RECOMMENDATION: Ensure after_attest publishes AUTHORITY_REGISTERED
+    // RECOMMENDATION: Ensure onresolve publishes AUTHORITY_REGISTERED
     // IMPACT: Authority phone book updates cannot be tracked off-chain
     // assert!(registered_event, "AUTHORITY_REGISTERED event missing: {:?}", events);
 }

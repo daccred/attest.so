@@ -92,8 +92,8 @@ fn test_reward_distribution_on_attestation() {
 
     // Verify attester received reward tokens
     // If this assertion fails:
-    // ISSUE: token_client.transfer() in after_attest may not execute or reward_amount misconfigured
-    // RECOMMENDATION: Inspect after_attest token transfer logic
+    // ISSUE: token_client.transfer() in onresolve may not execute or reward_amount misconfigured
+    // RECOMMENDATION: Inspect onresolve token transfer logic
     // IMPACT: Users would not receive expected rewards
     assert_eq!(token_client.balance(&attester), REWARD_AMOUNT);
 
@@ -139,7 +139,7 @@ fn test_insufficient_pool_handling() {
 
     let result = resolver_client.try_onresolve(&attestation.uid, &attestation.attester);
     // If this assertion fails:
-    // ISSUE: balance verification in after_attest may allow overdrawing reward pool
+    // ISSUE: balance verification in onresolve may allow overdrawing reward pool
     // RECOMMENDATION: Ensure contract checks pool balance before transfer
     // IMPACT: Contract could distribute more tokens than it holds
     assert!(matches!(result.err().unwrap(), Ok(ResolverError::InsufficientFunds)));

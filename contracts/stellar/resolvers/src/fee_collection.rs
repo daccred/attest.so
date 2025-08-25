@@ -16,7 +16,7 @@ pub enum DataKey {
 /// FeeCollectionResolver - Collects XLM fees for attestations
 // Feature gating: expose the contract on native (non-wasm) test builds and when
 // the `export-fee-collection-resolver` feature is enabled for Wasm builds.
-// This prevents duplicate exported symbols (e.g., `after_attest`) when the
+// This prevents duplicate exported symbols (e.g., `onresolve`) when the
 // resolvers library is linked into other Wasm contracts like `protocol`.
 #[contract]
 pub struct FeeCollectionResolver;
@@ -216,7 +216,7 @@ impl ResolverInterface for FeeCollectionResolver {
 
  
 
-    fn get_metadata(env: Env) -> ResolverMetadata {
+    fn metadata(env: Env) -> ResolverMetadata {
         ResolverMetadata {
             name: String::from_str(&env, "Fee Collection Resolver"),
             version: String::from_str(&env, "1.0.0"),

@@ -179,8 +179,8 @@ if let Some(resolver_addr) = schema.resolver {
 
 // Step 7: Post-processing
 if let Some(resolver_addr) = schema.resolver {
-    let _ = resolver.after_attest(env, attestation_data);
-    // Note: after_attest failures don't revert the attestation
+    let _ = resolver.onresolve(env, attestation_data);
+    // Note: onresolve failures don't revert the attestation
 }
 ```
 
@@ -192,7 +192,7 @@ if let Some(resolver_addr) = schema.resolver {
 
 **Design Considerations**:
 - **Atomic Operations**: Either entire attestation succeeds or fails
-- **Resolver Isolation**: `onattest` failures abort, `after_attest` failures don't
+- **Resolver Isolation**: `onattest` failures abort, `onresolve` failures don't
 - **Gas Optimization**: Early validation prevents unnecessary state changes
 - **Event Emission**: Standard events for indexing and monitoring
 
@@ -354,9 +354,9 @@ if request.nonce != expected_nonce {
 The protocol integrates with resolvers at four critical points:
 
 1. **Before Attestation** (`onattest`): Access control and validation
-2. **After Attestation** (`after_attest`): Side effects and rewards
+2. **After Attestation** (`onresolve`): Side effects and rewards
 3. **Before Revocation** (`onrevoke`): Revocation authorization
-4. **After Revocation** (`after_revoke`): Cleanup and penalties
+4. **After Revocation** (`onresolve`): Cleanup and penalties
 
 ### Security Boundaries
 

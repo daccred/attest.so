@@ -117,7 +117,7 @@ pub struct DummyResolver;
 #[contractimpl]
 impl ResolverInterface for DummyResolver {
     /// --- METADATA ---
-    fn get_metadata(_env: Env) -> ResolverMetadata {
+    fn metadata(_env: Env) -> ResolverMetadata {
         ResolverMetadata {
             name: SorobanString::from_str(&_env, "Dummy Resolver"),
             version: SorobanString::from_str(&_env, "1.0.0"),

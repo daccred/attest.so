@@ -35,10 +35,10 @@ The Resolvers contract system provides a standardized interface for implementing
 ```rust
 pub trait ResolverInterface {
     fn onattest(env: Env, attestation: Attestation) -> Result<bool, ResolverError>;
-    fn after_attest(env: Env, attestation: Attestation) -> Result<(), ResolverError>;
+    fn onresolve(env: Env, attestation: Attestation) -> Result<(), ResolverError>;
     fn onrevoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<bool, ResolverError>;
-    fn after_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError>;
-    fn get_metadata(env: Env) -> ResolverMetadata;
+    fn onresolve(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError>;
+    fn metadata(env: Env) -> ResolverMetadata;
 }
 ```
 
@@ -108,10 +108,10 @@ fn onattest(env: Env, attestation: Attestation) -> Result<bool, ResolverError>
 - Should validate ALL required conditions
 - Must not rely on external state that can be manipulated
 
-### `after_attest`
+### `onresolve`
 
 ```rust
-fn after_attest(env: Env, attestation: Attestation) -> Result<(), ResolverError>
+fn onresolve(env: Env, attestation: Attestation) -> Result<(), ResolverError>
 ```
 
 **Purpose**: Processes side effects after an attestation has been successfully created.
@@ -181,15 +181,15 @@ fn onrevoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<
 - Should prevent unauthorized revocations
 - May need to handle edge cases (expired attestations, etc.)
 
-### `after_revoke`
+### `onresolve`
 
 ```rust
-fn after_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError>
+fn onresolve(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError>
 ```
 
 **Purpose**: Processes cleanup after successful revocation.
 
-**Non-Critical Function**: Similar to `after_attest`, failures should not affect revocation.
+**Non-Critical Function**: Similar to `onresolve`, failures should not affect revocation.
 
 **Design Considerations**:
 - **SHOULD** clean up resolver-specific state
@@ -197,10 +197,10 @@ fn after_revoke(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Res
 - **SHOULD** emit revocation events
 - **MUST** handle cases where original attestation data is no longer available
 
-### `get_metadata`
+### `metadata`
 
 ```rust
-fn get_metadata(env: Env) -> ResolverMetadata
+fn metadata(env: Env) -> ResolverMetadata
 ```
 
 **Purpose**: Returns static information about the resolver.
@@ -340,8 +340,8 @@ fn get_metadata(env: Env) -> ResolverMetadata
 1. Protocol receives attestation request
 2. Protocol calls `resolver.onattest()`
 3. If successful, protocol stores attestation
-4. Protocol calls `resolver.after_attest()`
-5. Process continues regardless of `after_attest()` result
+4. Protocol calls `resolver.onresolve()`
+5. Process continues regardless of `onresolve()` result
 
 **Error Handling**:
 - `before_*` errors abort the operation

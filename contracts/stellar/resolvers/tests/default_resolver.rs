@@ -88,14 +88,14 @@ fn test_revocation_hooks() {
     let uid = BytesN::random(&env);
     let attester = Address::generate(&env);
     assert!(client.try_onresolve(&uid, &attester).is_ok());
-    // after_revoke should be a no-op
+    // onresolve should be a no-op
     client.onresolve(&uid, &attester);
 }
 
 #[test]
 fn test_metadata() {
     let (env, client) = setup();
-    let metadata = client.get_metadata();
+    let metadata = client.metadata();
     assert_eq!(metadata.name, SorobanString::from_str(&env, "Default Resolver"));
     assert_eq!(metadata.version, SorobanString::from_str(&env, "1.0.0"));
     assert_eq!(metadata.resolver_type, ResolverType::Default);

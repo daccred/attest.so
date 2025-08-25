@@ -18,17 +18,17 @@ mod no_revoke_resolver {
 
     #[contractimpl]
     impl NoRevokeResolver {
-        pub fn bef_att(_env: Env, _attestation: ResolverAttestation) -> bool {
+        pub fn onattest(_env: Env, _attestation: ResolverAttestation) -> bool {
             true
         }
         
-        pub fn aft_att(_env: Env, _attestation: ResolverAttestation) {}
+        pub fn onresolve(_env: Env, _attestation: ResolverAttestation) {}
         
-        pub fn bef_rev(_env: Env, _attestation: ResolverAttestation) -> bool {
+        pub fn onrevoke(_env: Env, _attestation: ResolverAttestation) -> bool {
             false // Always reject revocations
         }
         
-        pub fn aft_rev(_env: Env, _attestation: ResolverAttestation) {}
+        pub fn onresolve(_env: Env, _attestation: ResolverAttestation) {}
     }
 }
 
@@ -41,17 +41,17 @@ mod always_approve_resolver {
 
     #[contractimpl]
     impl AlwaysApproveResolver {
-        pub fn bef_att(_env: Env, _attestation: ResolverAttestation) -> bool {
+        pub fn onattest(_env: Env, _attestation: ResolverAttestation) -> bool {
             true
         }
         
-        pub fn aft_att(_env: Env, _attestation: ResolverAttestation) {}
+        pub fn onresolve(_env: Env, _attestation: ResolverAttestation) {}
         
-        pub fn bef_rev(_env: Env, _attestation: ResolverAttestation) -> bool {
+        pub fn onrevoke(_env: Env, _attestation: ResolverAttestation) -> bool {
             true
         }
         
-        pub fn aft_rev(_env: Env, _attestation: ResolverAttestation) {}
+        pub fn onresolve(_env: Env, _attestation: ResolverAttestation) {}
     }
 }
 

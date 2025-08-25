@@ -197,10 +197,10 @@ Ok(true)
 - **Time Manipulation**: Using stale or future timestamps
   - *Mitigation*: Blockchain timestamp used; cannot be manipulated by users
 
-### Step 6-7: Authority Registration (`after_attest`)
+### Step 6-7: Authority Registration (`onresolve`)
 
 ```rust
-fn after_attest(
+fn onresolve(
     env: Env,
     attestation: ResolverAttestation,
 ) -> Result<(), ResolverError>
@@ -534,10 +534,10 @@ pub enum DataKey {
 ```rust
 impl ResolverInterface for AuthorityResolverContract {
     fn onattest(...) -> Result<bool, ResolverError> { /* payment validation */ }
-    fn after_attest(...) -> Result<(), ResolverError> { /* authority registration */ }
+    fn onresolve(...) -> Result<(), ResolverError> { /* authority registration */ }
     fn onrevoke(...) -> Result<bool, ResolverError> { /* admin validation */ }
-    fn after_revoke(...) -> Result<(), ResolverError> { /* cleanup */ }
-    fn get_metadata(...) -> ResolverMetadata { /* resolver info */ }
+    fn onresolve(...) -> Result<(), ResolverError> { /* cleanup */ }
+    fn metadata(...) -> ResolverMetadata { /* resolver info */ }
 }
 ```
 

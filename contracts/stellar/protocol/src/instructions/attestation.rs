@@ -19,7 +19,7 @@ fn call_resolver_onattest(
 ) -> Result<bool, Error> {
     let resolver_client = ResolverClient::new(env, resolver_address);
 
-    match resolver_client.try_bef_att(attestation) {
+    match resolver_client.try_onattest(attestation) {
         Ok(result) => match result {
             Ok(allowed) => Ok(allowed),
             Err(_) => Err(Error::ResolverCallFailed),
@@ -28,13 +28,13 @@ fn call_resolver_onattest(
     }
 }
 
-/// Calls after_attest on a resolver contract
+/// Calls onresolve on a resolver contract
 /// Failures are logged but don't revert the attestation
-fn call_resolver_after_attest(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
+fn call_resolver_onresolve(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
     let resolver_client = ResolverClient::new(env, resolver_address);
 
-    // Ignore failures in after_attest - they're non-critical side effects
-    let _ = resolver_client.try_aft_att(attestation);
+    // Ignore failures in onresolve - they're non-critical side effects
+    let _ = resolver_client.try_onresolve(attestation);
 }
 
 /// Calls onrevoke on a resolver contract
@@ -46,7 +46,7 @@ fn call_resolver_onrevoke(
 ) -> Result<bool, Error> {
     let resolver_client = ResolverClient::new(env, resolver_address);
 
-    match resolver_client.try_bef_rev(attestation) {
+    match resolver_client.try_onrevoke(attestation) {
         Ok(result) => match result {
             Ok(allowed) => Ok(allowed),
             Err(_) => Err(Error::ResolverCallFailed),
@@ -55,13 +55,13 @@ fn call_resolver_onrevoke(
     }
 }
 
-/// Calls after_revoke on a resolver contract
+/// Calls onresolve on a resolver contract
 /// Failures are logged but don't revert the revocation
-fn call_resolver_after_revoke(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
+fn call_resolver_onresolve(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
     let resolver_client = ResolverClient::new(env, resolver_address);
 
-    // Ignore failures in after_revoke - they're non-critical side effects
-    let _ = resolver_client.try_aft_rev(attestation);
+    // Ignore failures in onresolve - they're non-critical side effects
+    let _ = resolver_client.try_onresolve(attestation);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -187,14 +187,14 @@ pub fn attest(
     // ► RESOLVER INTEGRATION: After Attest Hook
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Call resolver after_attest hook if schema has a resolver
+    // Call resolver onresolve hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format
         let resolver_attestation = create_resolver_attestation(env, &attestation, &schema_uid, &value);
 
-        // Call after_attest hook for side effects (rewards, registration, etc.)
+        // Call onresolve hook for side effects (rewards, registration, etc.)
         // Note: Failures here don't revert the attestation
-        call_resolver_after_attest(env, resolver_address, &resolver_attestation);
+        call_resolver_onresolve(env, resolver_address, &resolver_attestation);
     }
 
     // Emit event
@@ -316,15 +316,15 @@ pub fn revoke_attestation(env: &Env, revoker: Address, attestation_uid: BytesN<3
     // ► RESOLVER INTEGRATION: After Revoke Hook
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Call resolver after_revoke hook if schema has a resolver
+    // Call resolver onresolve hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format with updated revocation status
         let resolver_attestation =
             create_resolver_attestation(env, &attestation, &attestation.schema_uid, &attestation.value);
 
-        // Call after_revoke hook for side effects (cleanup, notifications, etc.)
+        // Call onresolve hook for side effects (cleanup, notifications, etc.)
         // Note: Failures here don't revert the revocation
-        call_resolver_after_revoke(env, resolver_address, &resolver_attestation);
+        call_resolver_onresolve(env, resolver_address, &resolver_attestation);
     }
 
     // Emit revocation event

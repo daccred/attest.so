@@ -37,7 +37,7 @@ impl ResolverInterface for DefaultResolver {
 
  
 
-    fn get_metadata(env: Env) -> ResolverMetadata {
+    fn metadata(env: Env) -> ResolverMetadata {
         ResolverMetadata {
             name: String::from_str(&env, "Default Resolver"),
             version: String::from_str(&env, "1.0.0"),
