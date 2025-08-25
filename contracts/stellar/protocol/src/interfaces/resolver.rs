@@ -19,15 +19,25 @@ pub struct ResolverAttestation {
     pub value: i128, // Flattened: 0 = not set
 }
 
-/************************************************
-* Resolver Contract Client Interface
-TODO: Let this be a impl for the Trait
-Import the Trait from the resolver contract and implement the functions
-However the function that would be implemented are already defined in
-attestation.rs, so we need to bring them over here. 
-Once we bring them over here, we can have attestation.rs call the functions
-from this interface implementation. 
-************************************************/
+/// Resolver Contract Client Interface
+///
+/// This interface defines the contract between the protocol and resolver implementations.
+/// Resolvers provide custom business logic for attestation validation, economic models,
+/// and post-processing hooks.
+///
+/// The ResolverClient is auto-generated from this trait and provides type-safe
+/// cross-contract calls to resolver implementations. Each method corresponds to
+/// a specific hook in the attestation lifecycle:
+///
+/// - onattest: Validates whether an attestation should be allowed (pre-creation)
+/// - onrevoke: Validates whether a revocation should be allowed (pre-revocation)  
+/// - onresolve: Handles post-processing after attestation/revocation (side effects)
+///
+/// Security Model:
+/// - onattest/onrevoke return boolean values that gate protocol actions
+/// - onresolve failures are logged but don't revert transactions
+/// - Resolvers implement access control, economic barriers, and business logic
+/// 
 #[contractclient(name = "ResolverClient")]
 pub trait Resolver {
     /// Called before an attestation is created - CRITICAL for access control
@@ -42,4 +52,3 @@ pub trait Resolver {
     /// Failures are logged but don't revert the attestation or revocation
     fn onresolve(env: &Env, attestation: &ResolverAttestation);
 }
-

@@ -529,7 +529,10 @@ initialize_contract() {
              echo "Internal Error: Token contract ID is missing for authority initialization."
              return 1
         fi
-        invoke_cmd_full=("${invoke_cmd_base[@]}" --token_contract_id "$token_contract_id")
+        # Use the standard SAC wasm hash for Stellar Asset Contracts
+        # This is the hash for the built-in Stellar Asset Contract
+        local token_wasm_hash="d93f5c7bb0ebc4a9c8f727c5ceec4e0db9cc7c5ec9d14bcffad56e96ccf24fcb"
+        invoke_cmd_full=("${invoke_cmd_base[@]}" --token_contract_id "$token_contract_id" --token_wasm_hash "$token_wasm_hash")
     elif [[ "$contract_name" == "$PROTOCOL_CONTRACT_NAME" ]]; then
         invoke_cmd_full=("${invoke_cmd_base[@]}")
     else
