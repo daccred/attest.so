@@ -94,7 +94,7 @@ export function loadTestConfig(): TestConfig {
 /**
  * Parse environment file content into key-value pairs
  */
-function parseEnvFile(content: string): Record<string, string> {
+function _parseEnvFile(content: string): Record<string, string> {
   const envMap: Record<string, string> = {}
   
   for (const line of content.split('\n')) {
