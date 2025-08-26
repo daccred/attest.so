@@ -234,13 +234,14 @@ describe('Delegated Attestation Integration Tests', () => {
 
     // Create the delegated attestation request
     const delegatedRequest: ProtocolContract.DelegatedAttestationRequest = {
-      attester: attesterKp.publicKey(),
-      deadline: deadline,
-      nonce: nonce,
-      schema_uid: schemaUid,
-      subject: subjectKp.publicKey(),
-      value: attestationValue,
-      signature: Buffer.alloc(96) // Placeholder signature for now
+        attester: attesterKp.publicKey(),
+        deadline: deadline,
+        nonce: nonce,
+        schema_uid: schemaUid,
+        subject: subjectKp.publicKey(),
+        value: attestationValue,
+        signature: Buffer.alloc(96),
+        expiration_time: undefined
     }
 
     // Get the DST for signing
@@ -252,8 +253,8 @@ describe('Delegated Attestation Integration Tests', () => {
     const messageToSign = createAttestationMessage(delegatedRequest, dst)
     
     // Sign with BLS private key (minimal signature scheme)
-    const signature = bls12_381.sign(messageToSign, attesterBlsPrivateKey)
-    delegatedRequest.signature = Buffer.from(signature)
+    const signature = bls12_381.shortSignatures.sign(messageToSign, attesterBlsPrivateKey)
+    delegatedRequest.signature = Buffer.from(signature.toBytes(true))
 
     // Submit the delegated attestation (submitter pays the fees)
     const tx = await protocolClient.attest_by_delegation({
@@ -340,8 +341,8 @@ describe('Delegated Attestation Integration Tests', () => {
     const messageToSign = createRevocationMessage(delegatedRequest, dst)
     
     // Sign with BLS private key (minimal signature scheme)
-    const signature = bls12_381.sign(messageToSign, attesterBlsPrivateKey)
-    delegatedRequest.signature = Buffer.from(signature)
+    const signature = bls12_381.shortSignatures.sign(messageToSign, attesterBlsPrivateKey)
+    delegatedRequest.signature = Buffer.from(signature.toBytes(true))
 
     // Submit the delegated revocation
     const tx = await protocolClient.revoke_by_delegation({
@@ -377,7 +378,7 @@ describe('Delegated Attestation Integration Tests', () => {
  * Creates the message to sign for delegated attestations
  * Must match the exact format from delegation.rs create_attestation_message
  */
-function createAttestationMessage(request: ProtocolContract.DelegatedAttestationRequest, dst: Buffer): Uint8Array {
+function createAttestationMessage(request: ProtocolContract.DelegatedAttestationRequest, dst: Buffer) {
   // Match exact format from Rust contract: 
   // Domain Separator + Schema UID + Nonce + Deadline + [Expiration Time] + Value Length
   const components: Buffer[] = []
@@ -406,14 +407,14 @@ function createAttestationMessage(request: ProtocolContract.DelegatedAttestation
   components.push(valueLenBuffer)
   
   const message = Buffer.concat(components)
-  return sha256(message)
+  return bls12_381.shortSignatures.hash(message, dst)
 }
 
 /**
  * Creates the message to sign for delegated revocations
  * Must match the exact format from delegation.rs create_revocation_message
  */
-function createRevocationMessage(request: ProtocolContract.DelegatedRevocationRequest, dst: Buffer): Uint8Array {
+function createRevocationMessage(request: ProtocolContract.DelegatedRevocationRequest, dst: Buffer) {
   const components: Buffer[] = []
   
   // Domain separation (REVOKE_PROTOCOL_V1_DELEGATED)
@@ -433,5 +434,5 @@ function createRevocationMessage(request: ProtocolContract.DelegatedRevocationRe
   components.push(deadlineBuffer)
   
   const message = Buffer.concat(components)
-  return sha256(message)
+  return bls12_381.shortSignatures.hash(message, dst)
 }
