@@ -38,7 +38,7 @@ pub mod attest {
     // Core attestation functions
     pub fn attest(ctx: Context<Attest>, data: String, ref_uid: Option<Pubkey>, expiration_time: Option<u64>, revocable: bool) -> Result<()>
     pub fn delegated_attest(ctx: Context<DelegatedAttest>, attestation_data: AttestationData, attester_info: AttesterInfo, recipient: Pubkey, attester: Pubkey) -> Result<()>
-    pub fn revoke_attestation(ctx: Context<Revoke>, schema_uid: Pubkey, recipient: Pubkey) -> Result<()>
+    pub fn revoke(ctx: Context<Revoke>, schema_uid: Pubkey, recipient: Pubkey) -> Result<()>
     
     // Authority management
     pub fn register_authority(ctx: Context<RegisterAuthority>) -> Result<()>
