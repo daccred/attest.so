@@ -8,6 +8,12 @@
  * - Delegated submission mechanics
  * - Error handling and edge cases
  * 
+ * @see https://www.npmjs.com/package/@noble/bls12-381
+ * @see https://www.npmjs.com/package/@noble/curves
+ * @see https://github.com/paulmillr/micro-key-producer - for generating BLS keys
+ * 
+ * 
+ * 
  * Tests are designed to run against testnet deployments to validate
  * real-world protocol behavior.
  */
@@ -43,6 +49,7 @@ describe('Delegated Attestation Integration Tests', () => {
   let testRunId: string
   let schemaUid: Buffer
   let attestationUid: Buffer
+  const { secretKey: _, publicKey: __ } = bls12_381.shortSignatures.keygen();
 
   beforeAll(async () => {
     // Load test configuration
@@ -407,7 +414,7 @@ function createAttestationMessage(request: ProtocolContract.DelegatedAttestation
   components.push(valueLenBuffer)
   
   const message = Buffer.concat(components)
-  return bls12_381.shortSignatures.hash(message, dst)
+  return bls12_381.shortSignatures.hash(sha256(message), dst)
 }
 
 /**
