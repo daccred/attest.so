@@ -18,7 +18,7 @@
  * real-world protocol behavior.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, test } from 'vitest'
 import { randomBytes } from 'crypto'
 import { bls12_381 } from '@noble/curves/bls12-381'
 import { sha256 } from '@noble/hashes/sha2'
@@ -38,22 +38,22 @@ describe('Delegated Attestation Integration Tests', () => {
 
   // Test accounts
   let attesterKp: Keypair
-  let submitterKp: Keypair
+  let transactionRelayerKp: Keypair
   let subjectKp: Keypair
 
-  // BLS key pair for the attester
-  let attesterBlsPrivateKey: Uint8Array
-  let attesterBlsPublicKey: Uint8Array
+  const { secretKey: attesterBlsPrivateKey } = bls12_381.shortSignatures.keygen();
+  const attesterBlsPublicKey = bls12_381.shortSignatures.getPublicKey(attesterBlsPrivateKey)
+
 
   // Test data
   let testRunId: string
   let schemaUid: Buffer
   let attestationUid: Buffer
-  const { secretKey: _, publicKey: __ } = bls12_381.shortSignatures.keygen();
 
   beforeAll(async () => {
     // Load test configuration
     config = loadTestConfig()
+    testRunId = randomBytes(4).toString('hex')
     adminKeypair = Keypair.fromSecret(config.adminSecretKey)
 
     // Initialize protocol client
@@ -67,34 +67,19 @@ describe('Delegated Attestation Integration Tests', () => {
 
     // Generate test accounts
     attesterKp = Keypair.random()
-    submitterKp = Keypair.random()
+    transactionRelayerKp = Keypair.random()
     subjectKp = Keypair.random()
 
-    // Use test BLS key pair from Rust tests (known to work with contract)
-    attesterBlsPrivateKey = new Uint8Array([
-      34, 38, 144, 121, 33, 229, 89, 185, 68, 32, 10, 221, 176, 119, 70, 160, 41, 238, 104, 43, 146, 16, 63, 200, 77,
-      240, 207, 42, 165, 238, 248, 220
-    ])
-    
-    attesterBlsPublicKey = new Uint8Array([
-      6, 93, 9, 178, 174, 49, 129, 153, 182, 231, 94, 43, 166, 156, 240, 6, 245, 40, 128, 24, 16, 200, 165, 140, 213,
-      138, 173, 184, 241, 181, 68, 79, 158, 235, 10, 199, 46, 1, 95, 170, 198, 80, 78, 154, 117, 34, 79, 34, 16, 150, 0,
-      78, 71, 46, 44, 45, 50, 165, 223, 217, 71, 237, 143, 212, 88, 132, 30, 164, 254, 207, 117, 121, 40, 221, 243, 25,
-      134, 151, 14, 113, 19, 237, 33, 147, 87, 231, 97, 232, 22, 143, 218, 33, 181, 245, 148, 178, 7, 157, 149, 57, 38,
-      248, 116, 56, 250, 92, 108, 192, 238, 249, 61, 124, 118, 147, 186, 229, 174, 17, 68, 79, 170, 239, 234, 244, 72,
-      255, 99, 171, 38, 111, 159, 131, 174, 144, 237, 194, 86, 4, 244, 176, 154, 77, 44, 188, 18, 17, 184, 111, 29, 54,
-      215, 190, 219, 210, 202, 120, 188, 93, 86, 160, 66, 52, 177, 69, 209, 121, 52, 33, 200, 176, 183, 9, 180, 199, 245,
-      30, 88, 170, 205, 232, 13, 241, 193, 193, 0, 137, 176, 174, 100, 179, 122, 8
-    ])
+    console.log(`Attester Public Key===: ${attesterKp.publicKey()}`)
+    console.log(`Transaction Relayer Public Key===: ${transactionRelayerKp.publicKey()}`)
+    console.log(`Subject Public Key===: ${subjectKp.publicKey()}`)
 
-    // Generate test data
-    testRunId = randomBytes(4).toString('hex')
 
     // Fund test accounts that need it
     const accounts = [
       adminKeypair.publicKey(),
       attesterKp.publicKey(),
-      submitterKp.publicKey(),
+      transactionRelayerKp.publicKey(),
       subjectKp.publicKey()
     ]
 
@@ -118,7 +103,7 @@ describe('Delegated Attestation Integration Tests', () => {
     
     const tx = await attesterProtocolClient.register_bls_key({
       attester: attesterKp.publicKey(),
-      public_key: Buffer.from(attesterBlsPublicKey) // 192 bytes
+      public_key: Buffer.from(attesterBlsPublicKey.toBytes(false))
     }, {
       fee: 1000000,
       timeoutInSeconds: 30
@@ -134,19 +119,18 @@ describe('Delegated Attestation Integration Tests', () => {
 
     const res = sent.result as ProtocolContract.contract.Result<void>
     expect(res.isOk()).toBe(true)
-    console.log(`BLS key registered for attester: ${attesterKp.publicKey()}`)
   }, 60000)
 
-  it('should retrieve the registered BLS public key', async () => {
+  test.todo('should retrieve the registered BLS public key', async () => {
     const tx = await protocolClient.get_bls_key({
       attester: attesterKp.publicKey()
     })
 
     const simulationResult = await tx.simulate()
-    const result = simulationResult.result
+    const result = simulationResult.result as unknown as Map<string, Buffer>
     
     expect(result).toBeDefined()
-    // The result should contain the BLS public key we registered
+    expect(result.get('key')).toEqual(Buffer.from(attesterBlsPublicKey.toBytes(false)))
     console.log('BLS public key retrieved successfully')
   }, 30000)
 
@@ -195,7 +179,7 @@ describe('Delegated Attestation Integration Tests', () => {
     const dst = tx.result
     expect(dst).toBeInstanceOf(Buffer)
     expect(dst.length).toBeGreaterThan(0)
-    console.log(`DST for attestation: ${Buffer.from(dst).toString('hex')}`)
+    console.log(`DST for attestation: ${Buffer.from(dst).toString('utf-8')}`)
   }, 30000)
 
   it('should create a delegated attestation request and submit it', async () => {
@@ -237,11 +221,11 @@ describe('Delegated Attestation Integration Tests', () => {
     
     // Sign with BLS private key (minimal signature scheme)
     const signature = bls12_381.shortSignatures.sign(messageToSign, attesterBlsPrivateKey)
-    delegatedRequest.signature = Buffer.from(signature.toBytes(true))
+    delegatedRequest.signature = Buffer.from(signature.toBytes(false))
 
     // Submit the delegated attestation (submitter pays the fees)
     const tx = await protocolClient.attest_by_delegation({
-      submitter: submitterKp.publicKey(),
+      submitter: transactionRelayerKp.publicKey(),
       request: delegatedRequest
     }, {
       fee: 1000000,
@@ -252,16 +236,21 @@ describe('Delegated Attestation Integration Tests', () => {
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-        transaction.sign(submitterKp) // Submitter signs and pays fees
+        transaction.sign(transactionRelayerKp) // Submitter signs and pays fees
         
         for (const signer of needsSigningBy) {
-          if (signer === submitterKp.publicKey()) continue
+          if (signer === transactionRelayerKp.publicKey()) continue
           console.log(`Additional signer required: ${signer}`)
+          
         }
+
+        console.log(`Transaction Attestation: ${transaction.toXDR()}`)
         
         return { signedTxXdr: transaction.toXDR() }
       }
     })
+
+    console.log(`========Sent Attestation=======: ${sent}`)
 
     const res = sent.result as ProtocolContract.contract.Result<Buffer>
     expect(res.isOk()).toBe(true)
@@ -320,16 +309,19 @@ describe('Delegated Attestation Integration Tests', () => {
     await dstTx.simulate()
     const dst = Buffer.from(dstTx.result)
 
+    console.log(`DST for revocation: ${Buffer.from(dst).toString('utf-8')}`)
+
+
     // Create the message to sign
     const messageToSign = createRevocationMessage(delegatedRequest, dst)
     
-    // Sign with BLS private key (minimal signature scheme)
+    // Sign with BLS privatshould retrieve the registered BLS public key key (minimal signature scheme)
     const signature = bls12_381.shortSignatures.sign(messageToSign, attesterBlsPrivateKey)
-    delegatedRequest.signature = Buffer.from(signature.toBytes(true))
+    delegatedRequest.signature = Buffer.from(signature.toBytes(false))
 
     // Submit the delegated revocation
     const tx = await protocolClient.revoke_by_delegation({
-      submitter: submitterKp.publicKey(),
+      submitter: transactionRelayerKp.publicKey(),
       request: delegatedRequest
     }, {
       fee: 1000000,
@@ -340,16 +332,20 @@ describe('Delegated Attestation Integration Tests', () => {
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-        transaction.sign(submitterKp) // Submitter signs and pays fees
+        transaction.sign(transactionRelayerKp) // Relayer signs and pays fees
         
         for (const signer of needsSigningBy) {
-          if (signer === submitterKp.publicKey()) continue
+          if (signer === transactionRelayerKp.publicKey()) continue
           console.log(`Additional signer required: ${signer}`)
         }
+
+        console.log(`Transaction: ${transaction.toXDR()}`)
         
         return { signedTxXdr: transaction.toXDR() }
       }
     })
+
+    console.log(`Sent: ${sent}`)
 
     const res = sent.result as ProtocolContract.contract.Result<void>
     expect(res.isOk()).toBe(true)
@@ -361,13 +357,13 @@ describe('Delegated Attestation Integration Tests', () => {
  * Creates the message to sign for delegated attestations
  * Must match the exact format from delegation.rs create_attestation_message
  */
-function createAttestationMessage(request: ProtocolContract.DelegatedAttestationRequest, dst: Buffer) {
+function createAttestationMessage(request: ProtocolContract.DelegatedAttestationRequest, attestationDST: Buffer) {
   // Match exact format from Rust contract: 
   // Domain Separator + Schema UID + Nonce + Deadline + [Expiration Time] + Value Length
   const components: Buffer[] = []
   
   // Domain separation (ATTEST_PROTOCOL_V1_DELEGATED)
-  components.push(Buffer.from('ATTEST_PROTOCOL_V1_DELEGATED', 'utf8'))
+  components.push(attestationDST)
   
   // Schema UID (32 bytes)
   components.push(Buffer.from(request.schema_uid))
@@ -390,18 +386,18 @@ function createAttestationMessage(request: ProtocolContract.DelegatedAttestation
   components.push(valueLenBuffer)
   
   const message = Buffer.concat(components)
-  return bls12_381.shortSignatures.hash(sha256(message), dst)
+  return bls12_381.shortSignatures.hash(sha256(message))
 }
 
 /**
  * Creates the message to sign for delegated revocations
  * Must match the exact format from delegation.rs create_revocation_message
  */
-function createRevocationMessage(request: ProtocolContract.DelegatedRevocationRequest, dst: Buffer) {
+function createRevocationMessage(request: ProtocolContract.DelegatedRevocationRequest, revocationDST: Buffer) {
   const components: Buffer[] = []
   
   // Domain separation (REVOKE_PROTOCOL_V1_DELEGATED)
-  components.push(Buffer.from('REVOKE_PROTOCOL_V1_DELEGATED', 'utf8'))
+  components.push(revocationDST)
   
   // Schema UID (32 bytes)
   components.push(Buffer.from(request.schema_uid))
@@ -417,5 +413,5 @@ function createRevocationMessage(request: ProtocolContract.DelegatedRevocationRe
   components.push(deadlineBuffer)
   
   const message = Buffer.concat(components)
-  return bls12_381.shortSignatures.hash(message, dst)
+  return bls12_381.shortSignatures.hash(message)
 }

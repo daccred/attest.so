@@ -150,6 +150,8 @@ describe('Protocol Contract Integration Tests', () => {
       }
     })
 
+    console.log('=======sent=========', { sent, result: sent.result.unwrap() })
+
     const res = sent.result as ProtocolContract.contract.Result<Buffer>
     expect(res.isOk()).toBe(true)
     attestationUid = res.unwrap()
