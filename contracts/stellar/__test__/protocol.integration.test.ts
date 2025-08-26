@@ -12,7 +12,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
 import { Keypair, Transaction } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
-import { loadTestConfig } from './testutils'
+import { loadTestConfig, fundAccountIfNeeded } from './testutils'
 
 describe('Protocol Contract Integration Tests', () => {
   let protocolClient: ProtocolContract.Client
@@ -43,7 +43,8 @@ describe('Protocol Contract Integration Tests', () => {
       contractId: config.protocolContractId,
       networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
       rpcUrl: config.rpcUrl,
-      allowHttp: true
+      allowHttp: true,
+      publicKey: adminKeypair.publicKey()
     })
 
     // Generate test accounts
@@ -53,7 +54,7 @@ describe('Protocol Contract Integration Tests', () => {
     // Generate test data
     testRunId = randomBytes(4).toString('hex')
 
-    // Fund test accounts using Friendbot
+    // Fund test accounts that need it
     const accounts = [
       adminKeypair.publicKey(),
       attesterKp.publicKey(),
@@ -61,15 +62,7 @@ describe('Protocol Contract Integration Tests', () => {
     ]
 
     for (const account of accounts) {
-      try {
-        console.log(`Funding account: ${account}`)
-        const response = await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(account)}`)
-        if (!response.ok) {
-          console.warn(`Friendbot funding failed for ${account}: ${response.statusText}`)
-        }
-      } catch (error) {
-        console.warn(`Error funding account ${account}:`, error)
-      }
+      await fundAccountIfNeeded(account)
     }
 
     // Wait for accounts to be ready
@@ -106,22 +99,10 @@ describe('Protocol Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
-    console.log(`Schema registration needs signatures from: ${needsSigningBy.join(', ')}`)
-    
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
         transaction.sign(adminKeypair)
-        
-        for (const signer of needsSigningBy) {
-          if (signer === adminKeypair.publicKey()) {
-            // Already signed above
-            continue
-          }
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
         return { signedTxXdr: transaction.toXDR() }
       }
     })
@@ -141,7 +122,16 @@ describe('Protocol Contract Integration Tests', () => {
 
     const attestationValue = `{"value":"test_value_${testRunId}"}`
     
-    const tx = await protocolClient.attest({
+    // Create a client with attester as publicKey
+    const attesterProtocolClient = new ProtocolContract.Client({
+      contractId: config.protocolContractId,
+      networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
+      rpcUrl: config.rpcUrl,
+      allowHttp: true,
+      publicKey: attesterKp.publicKey()
+    })
+    
+    const tx = await attesterProtocolClient.attest({
       attester: attesterKp.publicKey(),
       schema_uid: schemaUid,
       subject: subjectKp.publicKey(),
@@ -152,17 +142,10 @@ describe('Protocol Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-        transaction.sign(attesterKp) // Attester signs
-        
-        for (const signer of needsSigningBy) {
-          if (signer === attesterKp.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
+        transaction.sign(attesterKp)
         return { signedTxXdr: transaction.toXDR() }
       }
     })
@@ -201,7 +184,16 @@ describe('Protocol Contract Integration Tests', () => {
       throw new Error('Attestation UID not available - attestation creation test must pass first')
     }
 
-    const tx = await protocolClient.revoke_attestation({
+    // Create a client with attester as publicKey to revoke their own attestation
+    const attesterProtocolClient = new ProtocolContract.Client({
+      contractId: config.protocolContractId,
+      networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
+      rpcUrl: config.rpcUrl,
+      allowHttp: true,
+      publicKey: attesterKp.publicKey()
+    })
+
+    const tx = await attesterProtocolClient.revoke_attestation({
       revoker: attesterKp.publicKey(),
       attestation_uid: attestationUid
     }, {
@@ -209,17 +201,10 @@ describe('Protocol Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-        transaction.sign(attesterKp) // Original attester signs
-        
-        for (const signer of needsSigningBy) {
-          if (signer === attesterKp.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
+        transaction.sign(attesterKp)
         return { signedTxXdr: transaction.toXDR() }
       }
     })

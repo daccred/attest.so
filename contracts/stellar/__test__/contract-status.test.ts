@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { Keypair, rpc } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
 import * as AuthorityContract from '../bindings/src/authority'
-import { loadTestConfig } from './test-utils'
+import { loadTestConfig } from './testutils'
 
 describe('Contract Status Check', () => {
   let protocolClient: ProtocolContract.Client
