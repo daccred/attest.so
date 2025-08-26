@@ -41,6 +41,7 @@
   "repository": "daccred/attest.so.git",
   "scripts": {
     "build": "tsup",
+    "postinstall": "pnpm run build",
     "clean": "rm -rf dist",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest",

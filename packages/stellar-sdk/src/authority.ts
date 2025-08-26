@@ -13,9 +13,8 @@ import {
 
 import { 
   Client as AuthorityClient,
-  SchemaRules,
-  AttestationRecord 
-} from '@attestprotocol/stellar/dist/bindings/src/authority'
+  Attestation 
+} from '@attestprotocol/stellar/dist/authority'
 import { Address, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 
@@ -129,32 +128,7 @@ export class StellarAuthorityService {
     }
   }
 
-  /**
-   * Register schema rules (admin function)
-   */
-  async adminRegisterSchema(
-    schemaUid: Buffer,
-    rules: SchemaRules
-  ): Promise<AttestProtocolResponse<void>> {
-    try {
-      const tx = await this.authorityClient.admin_register_schema({
-        admin: this.publicKey,
-        schema_uid: schemaUid,
-        rules
-      })
-
-      await tx.signAndSend()
-
-      return createSuccessResponse(undefined)
-    } catch (error: any) {
-      return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to register schema rules'
-        )
-      )
-    }
-  }
+ 
 
 
   /**
@@ -253,30 +227,7 @@ export class StellarAuthorityService {
       )
     }
   }
-
-  /**
-   * Get schema rules
-   */
-  async getSchemaRules(schemaUid: Buffer): Promise<AttestProtocolResponse<SchemaRules | null>> {
-    try {
-      const tx = await this.authorityClient.get_schema_rules({ schema_uid: schemaUid })
-      const result = await tx.simulate()
-
-      if (!result.result?.returnValue) {
-        return createSuccessResponse(null)
-      }
-
-      const rules = scValToNative(result.result.returnValue)
-      return createSuccessResponse(rules)
-    } catch (error: any) {
-      return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to get schema rules'
-        )
-      )
-    }
-  }
+ 
 
   /**
    * Get collected levies for an authority

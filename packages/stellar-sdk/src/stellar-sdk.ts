@@ -24,7 +24,7 @@ import {
 } from '@attestprotocol/core'
 
 import { StellarConfig } from './types'
-import { StellarSchemaService } from './schema'
+import { StellarSchemaRegistry } from './schema'
 import { StellarAttestationService } from './attest'
 import { StellarAuthorityService } from './authority'
 
@@ -39,11 +39,11 @@ import {
 import { 
   Client as ProtocolClient,
   networks as ProtocolNetworks 
-} from '@attestprotocol/stellar/dist/bindings/src/protocol'
+} from '@attestprotocol/stellar/dist/protocol'
 import { 
   Client as AuthorityClient,
   networks as AuthorityNetworks 
-} from '@attestprotocol/stellar/dist/bindings/src/authority'
+} from '@attestprotocol/stellar/dist/authority'
 
 /**
  * Stellar implementation of the Attest SDK
@@ -56,7 +56,7 @@ export class StellarAttestProtocol extends AttestProtocolBase {
   private authorityClient: AuthorityClient
   
   // Service modules
-  private schemaService: StellarSchemaService
+  private schemaService: StellarSchemaRegistry
   private attestationService: StellarAttestationService
   private authorityService: StellarAuthorityService
 
@@ -100,7 +100,7 @@ export class StellarAttestProtocol extends AttestProtocolBase {
     })
 
     // Initialize service modules
-    this.schemaService = new StellarSchemaService(config, this.protocolClient)
+    this.schemaService = new StellarSchemaRegistry(config, this.protocolClient)
     this.attestationService = new StellarAttestationService(config, this.protocolClient)
     this.authorityService = new StellarAuthorityService(config, this.authorityClient)
   }
@@ -255,7 +255,7 @@ export class StellarAttestProtocol extends AttestProtocolBase {
   /**
    * Get the schema service for direct access
    */
-  getSchemaService(): StellarSchemaService {
+  getSchemaService(): StellarSchemaRegistry {
     return this.schemaService
   }
 

@@ -18,7 +18,7 @@ import {
   createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/bindings/src/protocol'
+import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/protocol'
 import { Address, xdr, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 
@@ -155,9 +155,7 @@ export class StellarAttestationService {
       const schemaUidBuffer = Buffer.from(schemaUid, 'hex')
       
       const tx = await this.protocolClient.get_attestation({
-        schema_uid: schemaUidBuffer,
-        subject,
-        reference: reference || null
+        attestation_uid: Buffer,
       })
 
       const result = await tx.simulate()
@@ -290,7 +288,7 @@ export class StellarAttestationService {
       const caller = this.publicKey
       const schemaUidBuffer = Buffer.from(schemaUid, 'hex')
 
-      const tx = await this.protocolClient.revoke_attestation({
+      const tx = await this.protocolClient.revoke({
         caller,
         schema_uid: schemaUidBuffer,
         subject,
