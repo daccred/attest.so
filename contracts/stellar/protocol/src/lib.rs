@@ -51,7 +51,7 @@ impl AttestationContract {
         attest(&env, attester, schema_uid, subject, value, expiration_time)
     }
 
-    pub fn revoke_attestation(env: Env, revoker: Address, attestation_uid: BytesN<32>) -> Result<(), errors::Error> {
+    pub fn revoke(env: Env, revoker: Address, attestation_uid: BytesN<32>) -> Result<(), errors::Error> {
         revoke_attestation(&env, revoker, attestation_uid)
     }
 

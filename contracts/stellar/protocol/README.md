@@ -315,7 +315,7 @@ if request.nonce != expected_nonce {
 
 ### Revocation System
 
-#### `revoke_attestation(revoker, schema_uid, subject, nonce)`
+#### `revoke(revoker, schema_uid, subject, nonce)`
 
 **Purpose**: Revokes a specific attestation if permitted by schema and attester policies.
 
