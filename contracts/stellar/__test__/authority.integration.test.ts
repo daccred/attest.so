@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
 import { Keypair, Transaction } from '@stellar/stellar-sdk'
 import * as AuthorityContract from '../bindings/src/authority'
-import { loadTestConfig } from './test-utils'
+import { loadTestConfig } from './testutils'
 
 describe('Authority Contract Integration Tests', () => {
   let authorityClient: AuthorityContract.Client

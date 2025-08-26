@@ -12,7 +12,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
 import { Keypair, Transaction } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
-import { loadTestConfig } from './test-utils'
+import { loadTestConfig } from './testutils'
 
 describe('Protocol Contract Integration Tests', () => {
   let protocolClient: ProtocolContract.Client
