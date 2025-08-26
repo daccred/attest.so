@@ -137,7 +137,7 @@ fn test_resolver_rejection_of_revocation() {
     assert!(!attestation.revoked);
     
     // Attempt revocation - should fail due to resolver rejection
-    let result = client.try_revoke_attestation(&attester, &attestation_uid);
+    let result = client.try_revoke(&attester, &attestation_uid);
     
     // The exact error depends on how the protocol handles resolver rejection
     // It might be ResolverError or a different error
@@ -188,7 +188,7 @@ fn test_schema_without_resolver() {
     assert!(!attestation.revoked);
     
     // Revocation should succeed without resolver
-    client.revoke_attestation(&attester, &attestation_uid);
+    client.revoke(&attester, &attestation_uid);
     
     // Verify attestation is now revoked
     let revoked_attestation = client.get_attestation(&attestation_uid);
@@ -244,12 +244,12 @@ fn test_multiple_schemas_with_different_resolvers() {
     let attestation_uid_2 = client.attest(&attester, &schema_uid_2, &subject, &value, &None);
     
     // Revoke first attestation - should succeed (approve resolver)
-    client.revoke_attestation(&attester, &attestation_uid_1);
+    client.revoke(&attester, &attestation_uid_1);
     let attestation_1 = client.get_attestation(&attestation_uid_1);
     assert!(attestation_1.revoked);
     
     // Try to revoke second attestation - should fail (no-revoke resolver)
-    let result = client.try_revoke_attestation(&attester, &attestation_uid_2);
+    let result = client.try_revoke(&attester, &attestation_uid_2);
     assert!(result.is_err());
     let attestation_2 = client.get_attestation(&attestation_uid_2);
     assert!(!attestation_2.revoked);

@@ -363,12 +363,12 @@ fn test_can_revoke_non_revocable_schema() {
         address: &attester,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
-            fn_name: "revoke_attestation",
+            fn_name: "revoke",
             args: (attester.clone(), non_expired_attestation_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    client.revoke_attestation(&attester, &non_expired_attestation_uid);
+    client.revoke(&attester, &non_expired_attestation_uid);
     let revoke_event_data = env.events().all().last().unwrap();
 
     let expected_topics = (symbol_short!("ATTEST"), symbol_short!("REVOKE")).into_val(&env);

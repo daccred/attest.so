@@ -9,7 +9,7 @@ use soroban_sdk::{
 /// - Verifies successful revocation workflow
 /// - Checks event emission and state updates
 #[test]
-fn revoke_attestation_by_nonce() {
+fn revoke_by_nonce() {
     let env = Env::default();
     let contract_id = env.register(AttestationContract {}, ());
     let client = AttestationContractClient::new(&env, &contract_id);
@@ -18,7 +18,7 @@ fn revoke_attestation_by_nonce() {
     let subject = Address::generate(&env);
 
     println!("=============================================================");
-    println!("      Running TC: {}", "revoke_attestation_by_nonce");
+    println!("      Running TC: {}", "revoke_by_nonce");
     println!("=============================================================");
 
     // initialize
@@ -78,12 +78,12 @@ fn revoke_attestation_by_nonce() {
         address: &attester,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
-            fn_name: "revoke_attestation",
+            fn_name: "revoke",
             args: (attester.clone(), attestation_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    client.revoke_attestation(&attester, &attestation_uid);
+    client.revoke(&attester, &attestation_uid);
 
     // verify revocation event shape
     let events = env.events().all();
@@ -112,7 +112,7 @@ fn revoke_attestation_by_nonce() {
     assert!(fetched.revocation_time.is_some());
 
     println!("=============================================================");
-    println!("      Finished: {}", "revoke_attestation_by_nonce");
+    println!("      Finished: {}", "revoke_by_nonce");
     println!("=============================================================");
 }
 
@@ -190,12 +190,12 @@ fn test_revocation_by_unauthorized_parties() {
         address: &unauthorized_user,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
-            fn_name: "revoke_attestation",
+            fn_name: "revoke",
             args: (unauthorized_user.clone(), attestation_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    let result_unauthorized = client.try_revoke_attestation(&unauthorized_user, &attestation_uid);
+    let result_unauthorized = client.try_revoke(&unauthorized_user, &attestation_uid);
     dbg!(&result_unauthorized);
     assert_eq!(result_unauthorized, Err(Ok(Error::NotAuthorized.into())));
     assert!(env.events().all().is_empty());
@@ -204,12 +204,12 @@ fn test_revocation_by_unauthorized_parties() {
         address: &subject,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
-            fn_name: "revoke_attestation",
+            fn_name: "revoke",
             args: (subject.clone(), attestation_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    let result_subject = client.try_revoke_attestation(&subject, &attestation_uid);
+    let result_subject = client.try_revoke(&subject, &attestation_uid);
     assert_eq!(result_subject, Err(Ok(Error::NotAuthorized.into())));
     assert!(env.events().all().is_empty());
 
@@ -218,12 +218,12 @@ fn test_revocation_by_unauthorized_parties() {
         address: &admin,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
-            fn_name: "revoke_attestation",
+            fn_name: "revoke",
             args: (admin.clone(), attestation_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    let result_admin = client.try_revoke_attestation(&admin, &attestation_uid);
+    let result_admin = client.try_revoke(&admin, &attestation_uid);
     assert_eq!(result_admin, Err(Ok(Error::NotAuthorized.into())));
 
     // verify no new events were emitted
@@ -242,7 +242,7 @@ fn test_revocation_by_unauthorized_parties() {
 /// - Create schema with revocable=false
 /// - Attempt revocation should fail with Error::AttestationNotRevocable
 #[test]
-fn test_cannot_revoke_attestation_from_non_revocable_schema() {
+fn test_cannot_revoke_from_non_revocable_schema() {
     let env = Env::default();
     let contract_id = env.register(AttestationContract {}, ());
     let client = AttestationContractClient::new(&env, &contract_id);
@@ -309,12 +309,12 @@ fn test_cannot_revoke_attestation_from_non_revocable_schema() {
         address: &attester,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
-            fn_name: "revoke_attestation",
+            fn_name: "revoke",
             args: (attester.clone(), attestation_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    let result = client.try_revoke_attestation(&attester, &attestation_uid);
+    let result = client.try_revoke(&attester, &attestation_uid);
     dbg!(&result);
     assert_eq!(result, Err(Ok(Error::AttestationNotRevocable.into())));
 
@@ -324,7 +324,7 @@ fn test_cannot_revoke_attestation_from_non_revocable_schema() {
     assert!(!fetched.revoked);
 
     println!("=============================================================");
-    println!("Finished: {}", "__revoke_attestation_from_non_revocable_schema");
+    println!("Finished: {}", "__revoke_from_non_revocable_schema");
     println!("=============================================================");
 }
 
@@ -400,12 +400,12 @@ fn test_double_revocation_fails() {
         address: &attester,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
-            fn_name: "revoke_attestation",
+            fn_name: "revoke",
             args: (attester.clone(), attestation_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    client.revoke_attestation(&attester, &attestation_uid);
+    client.revoke(&attester, &attestation_uid);
 
     let fetched = client.get_attestation(&attestation_uid);
     assert!(fetched.revoked);
@@ -417,12 +417,12 @@ fn test_double_revocation_fails() {
         address: &attester,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
-            fn_name: "revoke_attestation",
+            fn_name: "revoke",
             args: (attester.clone(), attestation_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    let result = client.try_revoke_attestation(&attester, &attestation_uid);
+    let result = client.try_revoke(&attester, &attestation_uid);
     dbg!(&result);
     assert_eq!(result, Err(Ok(Error::AttestationNotFound.into())));
 
@@ -470,12 +470,12 @@ fn test_revoking_non_existent_attestation_fails() {
         address: &attester,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
-            fn_name: "revoke_attestation",
+            fn_name: "revoke",
             args: (attester.clone(), non_existent_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    let result = client.try_revoke_attestation(&attester, &non_existent_uid);
+    let result = client.try_revoke(&attester, &non_existent_uid);
     dbg!(&result);
     assert_eq!(result, Err(Ok(Error::AttestationNotFound.into())));
 

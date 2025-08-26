@@ -17,7 +17,7 @@ Key functions:
 - `initialize(env, admin)`: Initialize the contract with an admin
 - `register(env, caller, schema_definition, resolver, revocable)`: Register a new schema
 - `attest(env, caller, schema_uid, subject, value, reference)`: Create an attestation
-- `revoke_attestation(env, caller, schema_uid, subject, reference)`: Revoke an attestation
+- `revoke(env, caller, schema_uid, subject, reference)`: Revoke an attestation
 - `get_attestation(env, schema_uid, subject, reference)`: Retrieve attestation data
 
 ### 2. Authority Resolver Contract (`authority/src/lib.rs`)
