@@ -31,7 +31,7 @@ import { sha256 } from '@noble/hashes/sha256';
 const attesterPrivateKey = bls12_381.utils.randomPrivateKey();
 
 // 2. Get the public key in the required 192-BYTE UNCOMPRESSED format.
-const attesterPublicKey = bls12_381.PointG2.fromPrivateKey(attesterPrivateKey).toRawBytes(false);
+const attesterPublicKey = bls12_381.shortSignatures.getPublicKey(attesterPrivateKey).toRawBytes(false);
 
 // 3. Construct the exact message hash that the contract expects.
 //    (See `create_attestation_message` in delegation.rs for the full implementation)
