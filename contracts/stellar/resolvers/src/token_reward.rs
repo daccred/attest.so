@@ -11,11 +11,11 @@
 // ► │  ┌─────────────────────┐    ┌──────────────────────────────────────┐   │
 // ► │  │  ResolverInterface  │    │    OpenZeppelin Fungible             │   │
 // ► │  │                     │    │                                      │   │
-// ► │  │  before_attest()    │    │  name(), symbol(), decimals()       │   │
-// ► │  │  after_attest()     │    │  balance(), total_supply()           │   │
-// ► │  │  before_revoke()    │    │  transfer(), approve(), allowance()  │   │
-// ► │  │  after_revoke()     │    │                                      │   │
-// ► │  │  get_metadata()     │    │                                      │   │
+// ► │  │  onattest()    │    │  name(), symbol(), decimals()       │   │
+// ► │  │  onresolve()     │    │  balance(), total_supply()           │   │
+// ► │  │  onrevoke()    │    │  transfer(), approve(), allowance()  │   │
+// ► │  │  onresolve()     │    │                                      │   │
+// ► │  │  metadata()     │    │                                      │   │
 // ► │  └─────────────────────┘    └──────────────────────────────────────┘   │
 // ► │                                                                         │
 // ► │  Shared State:                                                          │
@@ -219,7 +219,7 @@ impl ResolverInterface for TokenRewardResolver {
     ///
     /// # Returns
     /// * `Ok(true)` - Always allows attestations (permissionless access)
-    fn before_attest(_env: Env, _attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
+    fn onattest(_env: Env, _attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         // PERMISSIONLESS MODEL: Allow all attestations
         // Economic incentives through token rewards drive participation
         // Gas costs provide natural spam resistance
@@ -280,7 +280,7 @@ impl ResolverInterface for TokenRewardResolver {
     /// - **Profitability Threshold**: Attack profitable only if reward > gas cost
     /// - **Natural Rate Limiting**: Economics provide automatic spam resistance
     /// - **Pool Sustainability**: Requires periodic refunding for continued operation
-    fn after_attest(env: Env, attestation: ResolverAttestationData) -> Result<(), ResolverError> {
+    fn onresolve(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError> {
         // STEP 1: Load reward configuration from contract storage
         let reward_token: Address = env
             .storage()
@@ -308,7 +308,7 @@ impl ResolverInterface for TokenRewardResolver {
         // This is the core economic incentive - immediate token reward for attestation
         token_client.transfer(
             &env.current_contract_address(), // From: contract's reward pool
-            &attestation.attester,           // To: attestation creator
+            &attester,           // To: attestation creator
             &reward_amount,                  // Amount: configured reward per attestation
         );
 
@@ -319,7 +319,7 @@ impl ResolverInterface for TokenRewardResolver {
             .set(&DataKey::TotalRewarded, &(total + reward_amount));
 
         // STEP 5: Update individual user reward totals
-        let user_key = (DataKey::UserRewards, attestation.attester.clone());
+        let user_key = (DataKey::UserRewards, attester.clone());
         let user_total: i128 = env.storage().persistent().get(&user_key).unwrap_or(0);
         env.storage().persistent().set(&user_key, &(user_total + reward_amount));
 
@@ -330,24 +330,19 @@ impl ResolverInterface for TokenRewardResolver {
 
         // STEP 6: Emit reward distribution event for monitoring
         env.events().publish(
-            (String::from_str(&env, "REWARD_DISTRIBUTED"), &attestation.attester),
-            (&attestation.uid, &reward_amount),
+            (String::from_str(&env, "REWARD_DISTRIBUTED"), &attester),
+            (&attestation_uid, &reward_amount),
         );
 
         Ok(())
     }
 
     /// No validation needed for revocations
-    fn before_revoke(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<bool, ResolverError> {
+    fn onrevoke(_env: Env, _attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
         Ok(true)
     }
 
-    /// No cleanup needed for revocations (rewards not clawed back)
-    fn after_revoke(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> Result<(), ResolverError> {
-        Ok(())
-    }
-
-    fn get_metadata(env: Env) -> ResolverMetadata {
+    fn metadata(env: Env) -> ResolverMetadata {
         ResolverMetadata {
             name: String::from_str(&env, "Token Reward Resolver"),
             version: String::from_str(&env, "1.0.0"),

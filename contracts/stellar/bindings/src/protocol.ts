@@ -34,7 +34,7 @@ if (typeof window !== 'undefined') {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CCZMNGZ4IUPLGYDUAGLC2MJ2CXO5E5TREZKGGUDHS7HFNNXGMEI37PTZ",
+    contractId: "CCVXRP5PUMR6RQWXEM2G766JHBWBGLG4YLFE3MFDIPYHTHX667CVK3FN",
   }
 } as const
 
@@ -61,7 +61,9 @@ export const Errors = {
   21: {message:"InvalidSignature"},
   22: {message:"AttestationExpired"},
   23: {message:"InvalidDeadline"},
-  24: {message:"ResolverCallFailed"}
+  24: {message:"ResolverCallFailed"},
+  25: {message:"InvalidSignaturePoint"},
+  26: {message:"BlsPubKeyNotRegistered"}
 }
 
 
@@ -532,6 +534,48 @@ export interface Client {
     simulate?: boolean;
   }) => Promise<AssembledTransaction<Option<BlsPublicKey>>>
 
+  /**
+   * Construct and simulate a get_dst_for_attestation transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Gets the domain separation tag for delegated attestations.
+   */
+  get_dst_for_attestation: (options?: {
+    /**
+     * The fee to pay for the transaction. Default: BASE_FEE
+     */
+    fee?: number;
+
+    /**
+     * The maximum amount of time to wait for the transaction to complete. Default: DEFAULT_TIMEOUT
+     */
+    timeoutInSeconds?: number;
+
+    /**
+     * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
+     */
+    simulate?: boolean;
+  }) => Promise<AssembledTransaction<Buffer>>
+
+  /**
+   * Construct and simulate a get_dst_for_revocation transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Gets the domain separation tag for delegated revocations.
+   */
+  get_dst_for_revocation: (options?: {
+    /**
+     * The fee to pay for the transaction. Default: BASE_FEE
+     */
+    fee?: number;
+
+    /**
+     * The maximum amount of time to wait for the transaction to complete. Default: DEFAULT_TIMEOUT
+     */
+    timeoutInSeconds?: number;
+
+    /**
+     * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
+     */
+    simulate?: boolean;
+  }) => Promise<AssembledTransaction<Buffer>>
+
 }
 export class Client extends ContractClient {
   static async deploy<T = Client>(
@@ -550,7 +594,7 @@ export class Client extends ContractClient {
   }
   constructor(public readonly options: ContractClientOptions) {
     super(
-      new ContractSpec([ "AAAABAAAAAAAAAAAAAAABUVycm9yAAAAAAAAFwAAAAAAAAAOVHJhbnNmZXJGYWlsZWQAAAAAAAEAAAAAAAAAFkF1dGhvcml0eU5vdFJlZ2lzdGVyZWQAAAAAAAIAAAAAAAAADlNjaGVtYU5vdEZvdW5kAAAAAAADAAAAAAAAABFBdHRlc3RhdGlvbkV4aXN0cwAAAAAAAAQAAAAAAAAAE0F0dGVzdGF0aW9uTm90Rm91bmQAAAAABQAAAAAAAAANTm90QXV0aG9yaXplZAAAAAAAAAYAAAAAAAAADVN0b3JhZ2VGYWlsZWQAAAAAAAAHAAAAAAAAAApJbnZhbGlkVWlkAAAAAAAJAAAAAAAAAA1SZXNvbHZlckVycm9yAAAAAAAACgAAAAAAAAATU2NoZW1hSGFzTm9SZXNvbHZlcgAAAAALAAAAAAAAAAtBZG1pbk5vdFNldAAAAAAMAAAAAAAAABJBbHJlYWR5SW5pdGlhbGl6ZWQAAAAAAA0AAAAAAAAADk5vdEluaXRpYWxpemVkAAAAAAAOAAAAAAAAABdBdHRlc3RhdGlvbk5vdFJldm9jYWJsZQAAAAAPAAAAAAAAABdJbnZhbGlkU2NoZW1hRGVmaW5pdGlvbgAAAAAQAAAAAAAAABdJbnZhbGlkQXR0ZXN0YXRpb25WYWx1ZQAAAAARAAAAAAAAABBJbnZhbGlkUmVmZXJlbmNlAAAAEgAAAAAAAAAMSW52YWxpZE5vbmNlAAAAEwAAAAAAAAAQRXhwaXJlZFNpZ25hdHVyZQAAABQAAAAAAAAAEEludmFsaWRTaWduYXR1cmUAAAAVAAAAAAAAABJBdHRlc3RhdGlvbkV4cGlyZWQAAAAAABYAAAAAAAAAD0ludmFsaWREZWFkbGluZQAAAAAXAAAAAAAAABJSZXNvbHZlckNhbGxGYWlsZWQAAAAAABg=",
+      new ContractSpec([ "AAAABAAAAAAAAAAAAAAABUVycm9yAAAAAAAAGQAAAAAAAAAOVHJhbnNmZXJGYWlsZWQAAAAAAAEAAAAAAAAAFkF1dGhvcml0eU5vdFJlZ2lzdGVyZWQAAAAAAAIAAAAAAAAADlNjaGVtYU5vdEZvdW5kAAAAAAADAAAAAAAAABFBdHRlc3RhdGlvbkV4aXN0cwAAAAAAAAQAAAAAAAAAE0F0dGVzdGF0aW9uTm90Rm91bmQAAAAABQAAAAAAAAANTm90QXV0aG9yaXplZAAAAAAAAAYAAAAAAAAADVN0b3JhZ2VGYWlsZWQAAAAAAAAHAAAAAAAAAApJbnZhbGlkVWlkAAAAAAAJAAAAAAAAAA1SZXNvbHZlckVycm9yAAAAAAAACgAAAAAAAAATU2NoZW1hSGFzTm9SZXNvbHZlcgAAAAALAAAAAAAAAAtBZG1pbk5vdFNldAAAAAAMAAAAAAAAABJBbHJlYWR5SW5pdGlhbGl6ZWQAAAAAAA0AAAAAAAAADk5vdEluaXRpYWxpemVkAAAAAAAOAAAAAAAAABdBdHRlc3RhdGlvbk5vdFJldm9jYWJsZQAAAAAPAAAAAAAAABdJbnZhbGlkU2NoZW1hRGVmaW5pdGlvbgAAAAAQAAAAAAAAABdJbnZhbGlkQXR0ZXN0YXRpb25WYWx1ZQAAAAARAAAAAAAAABBJbnZhbGlkUmVmZXJlbmNlAAAAEgAAAAAAAAAMSW52YWxpZE5vbmNlAAAAEwAAAAAAAAAQRXhwaXJlZFNpZ25hdHVyZQAAABQAAAAAAAAAEEludmFsaWRTaWduYXR1cmUAAAAVAAAAAAAAABJBdHRlc3RhdGlvbkV4cGlyZWQAAAAAABYAAAAAAAAAD0ludmFsaWREZWFkbGluZQAAAAAXAAAAAAAAABJSZXNvbHZlckNhbGxGYWlsZWQAAAAAABgAAAAAAAAAFUludmFsaWRTaWduYXR1cmVQb2ludAAAAAAAABkAAAAAAAAAFkJsc1B1YktleU5vdFJlZ2lzdGVyZWQAAAAAABo=",
         "AAAAAQAAAAAAAAAAAAAAE1Jlc29sdmVyQXR0ZXN0YXRpb24AAAAACwAAAAAAAAAIYXR0ZXN0ZXIAAAATAAAAAAAAAARkYXRhAAAADgAAAAAAAAAPZXhwaXJhdGlvbl90aW1lAAAAAAYAAAAAAAAACXJlY2lwaWVudAAAAAAAABMAAAAAAAAAB3JlZl91aWQAAAAADgAAAAAAAAAJcmV2b2NhYmxlAAAAAAAAAQAAAAAAAAAPcmV2b2NhdGlvbl90aW1lAAAAAAYAAAAAAAAACnNjaGVtYV91aWQAAAAAA+4AAAAgAAAAAAAAAAR0aW1lAAAABgAAAAAAAAADdWlkAAAAA+4AAAAgAAAAAAAAAAV2YWx1ZQAAAAAAAAs=",
         "AAAAAgAAAsbilZTilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZcK4pWRICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgRGF0YUtleSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg4pWRCuKVmuKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVnQoKUmVwcmVzZW50cyB0aGUga2V5cyB1c2VkIGZvciBkYXRhIHN0b3JhZ2UgaW4gdGhlIGNvbnRyYWN0LgoKRWFjaCB2YXJpYW50IGNvcnJlc3BvbmRzIHRvIGEgZGlmZmVyZW50IHR5cGUgb2YgZGF0YSB0aGF0IGNhbiBiZSBzdG9yZWQKaW4gdGhlIGNvbnRyYWN0J3MgcGVyc2lzdGVudCBzdG9yYWdlLgAAAAAAAAAAAAdEYXRhS2V5AAAAAAYAAAAAAAAAKktleSBmb3Igc3RvcmluZyB0aGUgY29udHJhY3QgYWRtaW4gYWRkcmVzcwAAAAAABUFkbWluAAAAAAAAAQAAAElLZXkgZm9yIHN0b3JpbmcgYXV0aG9yaXR5IGluZm9ybWF0aW9uLCBpbmRleGVkIGJ5IHRoZSBhdXRob3JpdHkncyBhZGRyZXNzAAAAAAAACUF1dGhvcml0eQAAAAAAAAEAAAATAAAAAQAAAFhLZXkgZm9yIHN0b3Jpbmcgc3RydWN0dXJlZCBzY2hlbWEgaW5mb3JtYXRpb24sIGluZGV4ZWQgYnkgdGhlIHNjaGVtYSdzIHVuaXF1ZSBpZGVudGlmaWVyAAAABlNjaGVtYQAAAAAAAQAAA+4AAAAgAAAAAQAAAE5LZXkgZm9yIHN0b3JpbmcgYXR0ZXN0YXRpb24gZGF0YQoKSW5kZXhlZCBieSBhdHRlc3RhdGlvbiBVSUQgZm9yIGRpcmVjdCBsb29rdXAAAAAAAA5BdHRlc3RhdGlvblVJRAAAAAAAAQAAA+4AAAAgAAAAAQAAAGtLZXkgZm9yIHN0b3JpbmcgdGhlIGN1cnJlbnQgbm9uY2UgZm9yIGFuIGF0dGVzdGVyCgpVc2VkIHRvIHByZXZlbnQgcmVwbGF5IGF0dGFja3MgaW4gZGVsZWdhdGVkIGF0dGVzdGF0aW9ucwAAAAANQXR0ZXN0ZXJOb25jZQAAAAAAAAEAAAATAAAAAQAAAGhLZXkgZm9yIHN0b3JpbmcgdGhlIEJMUyBwdWJsaWMga2V5IGZvciBhbiBhdHRlc3RlcgoKT25lLXRvLW9uZSBtYXBwaW5nOiB3YWxsZXQgYWRkcmVzcyAtPiBCTFMgcHVibGljIGtleQAAABFBdHRlc3RlclB1YmxpY0tleQAAAAAAAAEAAAAT",
         "AAAAAQAAAtvilZTilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZcK4pWRICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIEF1dGhvcml0eSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg4pWRCuKVmuKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVnQoKUmVwcmVzZW50cyBhbiBhdXRob3JpdHkgdGhhdCBjYW4gY3JlYXRlIHNjaGVtYXMgYW5kIGF0dGVzdGF0aW9ucy4KCkF1dGhvcml0aWVzIGFyZSByZWdpc3RlcmVkIGVudGl0aWVzIHdpdGggc3BlY2lmaWMgcGVybWlzc2lvbnMgaW4gdGhlIHN5c3RlbQp0aGF0IGNhbiBjcmVhdGUgc2NoZW1hcyBhbmQgaXNzdWUgYXR0ZXN0YXRpb25zLgAAAAAAAAAACUF1dGhvcml0eQAAAAAAAAIAAAAkVGhlIFN0ZWxsYXIgYWRkcmVzcyBvZiB0aGUgYXV0aG9yaXR5AAAAB2FkZHJlc3MAAAAAEwAAAGhNZXRhZGF0YSBkZXNjcmliaW5nIHRoZSBhdXRob3JpdHkKClR5cGljYWxseSBpbiBKU09OIGZvcm1hdCwgY29udGFpbmluZyBpbmZvcm1hdGlvbiBhYm91dCB0aGUgYXV0aG9yaXR5LgAAAAhtZXRhZGF0YQAAABA=",
@@ -568,7 +612,9 @@ export class Client extends ContractClient {
         "AAAAAAAAADJSZXZva2VzIGFuIGF0dGVzdGF0aW9uIHVzaW5nIGEgZGVsZWdhdGVkIHNpZ25hdHVyZQAAAAAAFHJldm9rZV9ieV9kZWxlZ2F0aW9uAAAAAgAAAAAAAAAJc3VibWl0dGVyAAAAAAAAEwAAAAAAAAAHcmVxdWVzdAAAAAfQAAAAGkRlbGVnYXRlZFJldm9jYXRpb25SZXF1ZXN0AAAAAAABAAAD6QAAA+0AAAAAAAAAAw==",
         "AAAAAAAAACNHZXRzIHRoZSBuZXh0IG5vbmNlIGZvciBhbiBhdHRlc3RlcgAAAAASZ2V0X2F0dGVzdGVyX25vbmNlAAAAAAABAAAAAAAAAAhhdHRlc3RlcgAAABMAAAABAAAABg==",
         "AAAAAAAAACpSZWdpc3RlcnMgYSBCTFMgcHVibGljIGtleSBmb3IgYW4gYXR0ZXN0ZXIAAAAAABByZWdpc3Rlcl9ibHNfa2V5AAAAAgAAAAAAAAAIYXR0ZXN0ZXIAAAATAAAAAAAAAApwdWJsaWNfa2V5AAAAAAPuAAAAwAAAAAEAAAPpAAAD7QAAAAAAAAAD",
-        "AAAAAAAAACdHZXRzIHRoZSBCTFMgcHVibGljIGtleSBmb3IgYW4gYXR0ZXN0ZXIAAAAAC2dldF9ibHNfa2V5AAAAAAEAAAAAAAAACGF0dGVzdGVyAAAAEwAAAAEAAAPoAAAH0AAAAAxCbHNQdWJsaWNLZXk=" ]),
+        "AAAAAAAAACdHZXRzIHRoZSBCTFMgcHVibGljIGtleSBmb3IgYW4gYXR0ZXN0ZXIAAAAAC2dldF9ibHNfa2V5AAAAAAEAAAAAAAAACGF0dGVzdGVyAAAAEwAAAAEAAAPoAAAH0AAAAAxCbHNQdWJsaWNLZXk=",
+        "AAAAAAAAADpHZXRzIHRoZSBkb21haW4gc2VwYXJhdGlvbiB0YWcgZm9yIGRlbGVnYXRlZCBhdHRlc3RhdGlvbnMuAAAAAAAXZ2V0X2RzdF9mb3JfYXR0ZXN0YXRpb24AAAAAAAAAAAEAAAAO",
+        "AAAAAAAAADlHZXRzIHRoZSBkb21haW4gc2VwYXJhdGlvbiB0YWcgZm9yIGRlbGVnYXRlZCByZXZvY2F0aW9ucy4AAAAAAAAWZ2V0X2RzdF9mb3JfcmV2b2NhdGlvbgAAAAAAAAAAAAEAAAAO" ]),
       options
     )
   }
@@ -582,6 +628,8 @@ export class Client extends ContractClient {
         revoke_by_delegation: this.txFromJSON<Result<void>>,
         get_attester_nonce: this.txFromJSON<u64>,
         register_bls_key: this.txFromJSON<Result<void>>,
-        get_bls_key: this.txFromJSON<Option<BlsPublicKey>>
+        get_bls_key: this.txFromJSON<Option<BlsPublicKey>>,
+        get_dst_for_attestation: this.txFromJSON<Buffer>,
+        get_dst_for_revocation: this.txFromJSON<Buffer>
   }
 }

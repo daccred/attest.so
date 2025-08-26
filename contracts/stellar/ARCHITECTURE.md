@@ -64,9 +64,9 @@ We designed the attest.so system to provide a modular, secure foundation for blo
 **Primary Purpose**: Standardized interface for custom business logic
 
 **Core Functions**:
-- **Validation Interface**: `before_attest()`, `before_revoke()` for access control
-- **Side Effects Interface**: `after_attest()`, `after_revoke()` for post-processing
-- **Metadata Interface**: `get_metadata()` for resolver discovery
+- **Validation Interface**: `onattest()`, `onrevoke()` for access control
+- **Side Effects Interface**: `onresolve()`, `onresolve()` for post-processing
+- **Metadata Interface**: `metadata()` for resolver discovery
 - **Template Library**: Pre-built resolvers for common patterns
 
 **Security Boundaries**:
@@ -143,9 +143,9 @@ platform.processPayment(event.payer, event.ref_id)
 protocol.attest_by_delegation(submitter, request)
   ├─ Validate BLS signature
   ├─ Check nonce for replay protection
-  ├─ Call resolver.before_attest() → Authority validates payment
+  ├─ Call resolver.onattest() → Authority validates payment
   ├─ Store attestation if validation passes
-  └─ Call resolver.after_attest() → Authority registers in phone book
+  └─ Call resolver.onresolve() → Authority registers in phone book
 ```
 
 ### Security Flow Analysis
@@ -275,7 +275,7 @@ impl ProtocolContract {
     fn _attest(attestation: Attestation) -> Result<(), Error> {
         // Validation phase (critical path)
         if let Some(resolver) = schema.resolver {
-            let validation_result = resolver.before_attest(env, attestation);
+            let validation_result = resolver.onattest(env, attestation);
             if !validation_result? {
                 return Err(Error::ResolverRejected);
             }
@@ -287,7 +287,7 @@ impl ProtocolContract {
         
         // Side effects phase (non-critical path)
         if let Some(resolver) = schema.resolver {
-            let _ = resolver.after_attest(env, attestation);
+            let _ = resolver.onresolve(env, attestation);
             // Note: Failures here don't revert the attestation
         }
         

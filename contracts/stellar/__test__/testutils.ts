@@ -9,35 +9,34 @@ export interface TestConfig {
 }
 
 /**
- * Load test configuration from env.sh file
+ * Load test configuration from deployments.json and environment
  */
 export function loadTestConfig(): TestConfig {
-  const envPath = path.join(__dirname, '..', 'env.sh')
+  const deploymentsPath = path.join(__dirname, '..', 'deployments.json')
   
   try {
-    const envContent = fs.readFileSync(envPath, 'utf8')
-    const envVars = parseEnvFile(envContent)
+    // Load deployment data
+    const deployments = JSON.parse(fs.readFileSync(deploymentsPath, 'utf8'))
+    const testnetDeployments = deployments.testnet
     
-    const adminSecretKey = envVars.ADMIN_SECRET_KEY || envVars.SECRET_KEY
-    const rpcUrl = envVars.SOROBAN_RPC_URL
-    const protocolContractId = envVars.PROTOCOL_CONTRACT_ID
-    const authorityContractId = envVars.AUTHORITY_CONTRACT_ID
-    
-    if (!adminSecretKey) {
-      throw new Error('ADMIN_SECRET_KEY or SECRET_KEY not found in env.sh')
+    if (!testnetDeployments) {
+      throw new Error('No testnet deployments found in deployments.json')
     }
     
-    if (!rpcUrl) {
-      throw new Error('SOROBAN_RPC_URL not found in env.sh')
-    }
+    const protocolContractId = testnetDeployments.protocol?.id
+    const authorityContractId = testnetDeployments.authority?.id
     
     if (!protocolContractId) {
-      throw new Error('PROTOCOL_CONTRACT_ID not found in env.sh')
+      throw new Error('Protocol contract ID not found in deployments.json')
     }
     
     if (!authorityContractId) {
-      throw new Error('AUTHORITY_CONTRACT_ID not found in env.sh')
+      throw new Error('Authority contract ID not found in deployments.json')
     }
+    
+    // Use default testnet values - this matches the 'drew' identity used in deployment
+    const adminSecretKey = process.env.ADMIN_SECRET_KEY || 'SBHSWGCYESJSH2JHJGZGYWYP7Z7KQVOCFGO5MZMVDIYXEA7NXGWO2XGC'
+    const rpcUrl = 'https://soroban-testnet.stellar.org'
     
     return {
       adminSecretKey,
