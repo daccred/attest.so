@@ -6,8 +6,7 @@
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
     "@attestprotocol/core": "1.7.0",
-    "@attestprotocol/stellar": "1.7.0",
-    "@stellar/stellar-sdk": "14.1.0"
+    "@attestprotocol/stellar": "1.7.0"
   },
   "peerDependencies": {
     "@stellar/stellar-sdk": ">=14.1.0"

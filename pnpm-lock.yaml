@@ -20,6 +20,9 @@ importers:
       '@semantic-release/github':
         specifier: ^11.0.1
         version: 11.0.1(semantic-release@24.2.3(typescript@5.8.3))
+      '@stellar/stellar-sdk':
+        specifier: 14.1.0
+        version: 14.1.0
       conventional-changelog-conventionalcommits:
         specifier: ^8.0.0
         version: 8.0.0
@@ -262,7 +265,7 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       '@stellar/stellar-sdk':
-        specifier: 14.1.0
+        specifier: '>=14.1.0'
         version: 14.1.0
       buffer:
         specifier: 6.0.3
@@ -289,7 +292,7 @@ importers:
         specifier: ^11.0.1
         version: 11.0.1(semantic-release@24.2.3(typescript@5.8.3))
       '@stellar/stellar-sdk':
-        specifier: 14.1.0
+        specifier: '>=14.1.0'
         version: 14.1.0
       consola:
         specifier: ^3.2.3
@@ -479,7 +482,7 @@ importers:
         specifier: 1.7.0
         version: link:../../contracts/stellar
       '@stellar/stellar-sdk':
-        specifier: 14.1.0
+        specifier: '>=14.1.0'
         version: 14.1.0
     devDependencies:
       '@types/node':
