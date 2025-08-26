@@ -9,6 +9,43 @@ export interface TestConfig {
 }
 
 /**
+ * Check if a Stellar account exists on the network
+ */
+export async function accountExists(publicKey: string): Promise<boolean> {
+  try {
+    const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${publicKey}`)
+    return response.ok
+  } catch (error) {
+    return false
+  }
+}
+
+/**
+ * Fund a Stellar account using Friendbot (testnet only)
+ * Only funds if the account doesn't exist yet
+ */
+export async function fundAccountIfNeeded(publicKey: string): Promise<void> {
+  const exists = await accountExists(publicKey)
+  
+  if (exists) {
+    console.log(`Account ${publicKey} already exists, skipping funding`)
+    return
+  }
+  
+  try {
+    console.log(`Funding new account: ${publicKey}`)
+    const response = await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`)
+    if (!response.ok) {
+      console.warn(`Friendbot funding failed for ${publicKey}: ${response.statusText}`)
+    } else {
+      console.log(`Successfully funded account: ${publicKey}`)
+    }
+  } catch (error) {
+    console.warn(`Error funding account ${publicKey}:`, error)
+  }
+}
+
+/**
  * Load test configuration from deployments.json and environment
  */
 export function loadTestConfig(): TestConfig {
