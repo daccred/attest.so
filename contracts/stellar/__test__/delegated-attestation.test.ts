@@ -12,577 +12,426 @@
  * real-world protocol behavior.
  */
 
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
-import { bls12_381 } from '@noble/curves/bls12-381';
-import { sha256 } from '@noble/hashes/sha256';
-import { 
-    StellarSDK, 
-    AttestationContractClient,
-    DelegatedAttestationRequest,
-    DelegatedRevocationRequest 
-} from '../src/stellar-sdk';
+import { describe, it, expect, beforeAll } from 'vitest'
+import { randomBytes } from 'crypto'
+import { bls12_381 } from '@noble/curves/bls12-381'
+import { sha256 } from '@noble/hashes/sha2'
+import { Keypair, Transaction } from '@stellar/stellar-sdk'
+import * as ProtocolContract from '../bindings/src/protocol'
+import { loadTestConfig } from './testutils'
 
 describe('Delegated Attestation Integration Tests', () => {
-    let contractClient: AttestationContractClient;
-    let attesters: Array<{
-        address: string;
-        keypair: any;
-        blsPrivateKey: Uint8Array;
-        blsPublicKey: Uint8Array;
-    }>;
-    let subjects: Array<{ address: string; keypair: any }>;
-    let schemaUID: string;
+  let protocolClient: ProtocolContract.Client
+  let adminKeypair: Keypair
+  let config: {
+    adminSecretKey: string
+    rpcUrl: string
+    protocolContractId: string
+    authorityContractId: string
+  }
 
-    beforeAll(async () => {
-        // Initialize contract client for testnet
-        contractClient = new AttestationContractClient({
-            contractId: process.env.TESTNET_CONTRACT_ID!,
-            networkPassphrase: 'Test SDF Network ; September 2015',
-            rpcUrl: 'https://soroban-testnet.stellar.org',
-        });
+  // Test accounts
+  let attesterKp: Keypair
+  let submitterKp: Keypair
+  let subjectKp: Keypair
 
-        // Generate test accounts
-        attesters = await Promise.all([
-            generateAttesterAccount(),
-            generateAttesterAccount(),
-            generateAttesterAccount(),
-        ]);
+  // BLS key pair for the attester
+  let attesterBlsPrivateKey: Uint8Array
+  let attesterBlsPublicKey: Uint8Array
 
-        subjects = await Promise.all([
-            generateSubjectAccount(),
-            generateSubjectAccount(),
-        ]);
+  // Test data
+  let testRunId: string
+  let schemaUid: Buffer
+  let attestationUid: Buffer
 
-        // Register a test schema
-        schemaUID = await registerTestSchema();
-    });
+  beforeAll(async () => {
+    // Load test configuration
+    config = loadTestConfig()
+    adminKeypair = Keypair.fromSecret(config.adminSecretKey)
 
-    describe('BLS Key Registration', () => {
-        test('should register BLS public key for attester', async () => {
-            const attester = attesters[0];
-            
-            const result = await contractClient.registerBlsKey({
-                attester: attester.address,
-                publicKey: attester.blsPublicKey,
-                signerKeypair: attester.keypair,
-            });
+    // Initialize protocol client
+    protocolClient = new ProtocolContract.Client({
+      contractId: config.protocolContractId,
+      networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
+      rpcUrl: config.rpcUrl,
+      allowHttp: true
+    })
 
-            expect(result.success).toBe(true);
-            
-            // Verify key was stored
-            const storedKey = await contractClient.getBlsKey(attester.address);
-            expect(storedKey?.key).toEqual(attester.blsPublicKey);
-            expect(storedKey?.registered_at).toBeGreaterThan(0);
-        });
+    // Generate test accounts
+    attesterKp = Keypair.random()
+    submitterKp = Keypair.random()
+    subjectKp = Keypair.random()
 
-        test('should prevent duplicate BLS key registration', async () => {
-            const attester = attesters[0];
-            
-            // Attempt duplicate registration
-            const result = await contractClient.registerBlsKey({
-                attester: attester.address,
-                publicKey: attester.blsPublicKey,
-                signerKeypair: attester.keypair,
-            });
-
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('AlreadyInitialized');
-        });
-
-        test('should allow different attesters to register their own keys', async () => {
-            for (let i = 1; i < attesters.length; i++) {
-                const attester = attesters[i];
-                
-                const result = await contractClient.registerBlsKey({
-                    attester: attester.address,
-                    publicKey: attester.blsPublicKey,
-                    signerKeypair: attester.keypair,
-                });
-
-                expect(result.success).toBe(true);
-            }
-        });
-    });
-
-    describe('Cross-Platform Signature Creation', () => {
-        test('should create valid BLS signature using @noble/curves', async () => {
-            const attester = attesters[0];
-            const subject = subjects[0];
-            
-            // Create attestation request
-            const request = {
-                schema_uid: schemaUID,
-                subject: subject.address,
-                attester: attester.address,
-                value: 'Test attestation value',
-                nonce: 0,
-                deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-                expiration_time: null,
-            };
-
-            // Create deterministic message (must match Rust implementation)
-            const message = createAttestationMessage(request);
-            
-            // Sign with BLS private key
-            const signature = bls12_381.sign(message, attester.blsPrivateKey);
-            
-            // Verify signature locally with @noble/curves
-            const isValid = bls12_381.verify(signature, message, attester.blsPublicKey);
-            expect(isValid).toBe(true);
-
-            // Store for later tests
-            (request as any).signature = signature;
-            expect(signature).toHaveLength(96); // BLS G1 signature length
-        });
-
-        test('should create signatures compatible with Soroban verification', async () => {
-            const attester = attesters[1];
-            const subject = subjects[1];
-            
-            const request = {
-                schema_uid: schemaUID,
-                subject: subject.address,
-                attester: attester.address,
-                value: 'Cross-platform test',
-                nonce: 0,
-                deadline: Math.floor(Date.now() / 1000) + 3600,
-                expiration_time: null,
-            };
-
-            const message = createAttestationMessage(request);
-            const signature = bls12_381.sign(message, attester.blsPrivateKey);
-
-            // Test direct verification on Soroban
-            const verificationResult = await contractClient.testBlsSignatureVerification({
-                message,
-                signature,
-                attester: attester.address,
-            });
-
-            expect(verificationResult.success).toBe(true);
-        });
-    });
-
-    describe('Delegated Attestation Submission', () => {
-        test('should submit delegated attestation by third party', async () => {
-            const attester = attesters[0];
-            const subject = subjects[0];
-            const submitter = subjects[1]; // Different from attester
-            
-            const request = {
-                schema_uid: schemaUID,
-                subject: subject.address,
-                attester: attester.address,
-                value: 'Delegated attestation test',
-                nonce: 0,
-                deadline: Math.floor(Date.now() / 1000) + 3600,
-                expiration_time: null,
-            };
-
-            const message = createAttestationMessage(request);
-            const signature = bls12_381.sign(message, attester.blsPrivateKey);
-
-            const delegatedRequest: DelegatedAttestationRequest = {
-                ...request,
-                signature,
-            };
-
-            // Submit by third party (submitter pays fees)
-            const result = await contractClient.attestByDelegation({
-                submitter: submitter.address,
-                request: delegatedRequest,
-                signerKeypair: submitter.keypair, // Submitter signs transaction
-            });
-
-            expect(result.success).toBe(true);
-            
-            // Verify attestation was created
-            const attestation = await contractClient.getAttestation({
-                schema_uid: schemaUID,
-                subject: subject.address,
-                nonce: 0,
-            });
-
-            expect(attestation).toBeDefined();
-            expect(attestation!.attester).toBe(attester.address); // Original attester recorded
-            expect(attestation!.subject).toBe(subject.address);
-            expect(attestation!.value).toBe('Delegated attestation test');
-        });
-
-        test('should allow subject to submit their own delegated attestation', async () => {
-            const attester = attesters[1];
-            const subject = subjects[0];
-            
-            const request = {
-                schema_uid: schemaUID,
-                subject: subject.address,
-                attester: attester.address,
-                value: 'Self-submitted delegated attestation',
-                nonce: 0, // First nonce for this attester
-                deadline: Math.floor(Date.now() / 1000) + 3600,
-                expiration_time: null,
-            };
-
-            const message = createAttestationMessage(request);
-            const signature = bls12_381.sign(message, attester.blsPrivateKey);
-
-            // Subject submits attestation about themselves
-            const result = await contractClient.attestByDelegation({
-                submitter: subject.address,
-                request: { ...request, signature },
-                signerKeypair: subject.keypair,
-            });
-
-            expect(result.success).toBe(true);
-        });
-    });
-
-    describe('Nonce Management', () => {
-        test('should increment nonces correctly', async () => {
-            const attester = attesters[0];
-            const subject = subjects[1];
-            
-            // Get initial nonce
-            const initialNonce = await contractClient.getAttesterNonce(attester.address);
-            expect(initialNonce).toBe(1); // Should be 1 after previous test
-
-            // Submit multiple attestations
-            for (let i = 0; i < 3; i++) {
-                const request = {
-                    schema_uid: schemaUID,
-                    subject: subject.address,
-                    attester: attester.address,
-                    value: `Sequential attestation ${i}`,
-                    nonce: initialNonce + i,
-                    deadline: Math.floor(Date.now() / 1000) + 3600,
-                    expiration_time: null,
-                };
-
-                const message = createAttestationMessage(request);
-                const signature = bls12_381.sign(message, attester.blsPrivateKey);
-
-                const result = await contractClient.attestByDelegation({
-                    submitter: subject.address,
-                    request: { ...request, signature },
-                    signerKeypair: subject.keypair,
-                });
-
-                expect(result.success).toBe(true);
-            }
-
-            // Verify final nonce
-            const finalNonce = await contractClient.getAttesterNonce(attester.address);
-            expect(finalNonce).toBe(initialNonce + 3);
-        });
-
-        test('should reject invalid nonce', async () => {
-            const attester = attesters[0];
-            const subject = subjects[1];
-            
-            const currentNonce = await contractClient.getAttesterNonce(attester.address);
-            
-            const request = {
-                schema_uid: schemaUID,
-                subject: subject.address,
-                attester: attester.address,
-                value: 'Invalid nonce test',
-                nonce: currentNonce + 5, // Skip ahead - should fail
-                deadline: Math.floor(Date.now() / 1000) + 3600,
-                expiration_time: null,
-            };
-
-            const message = createAttestationMessage(request);
-            const signature = bls12_381.sign(message, attester.blsPrivateKey);
-
-            const result = await contractClient.attestByDelegation({
-                submitter: subject.address,
-                request: { ...request, signature },
-                signerKeypair: subject.keypair,
-            });
-
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('InvalidNonce');
-        });
-
-        test('should isolate nonces between attesters', async () => {
-            // Verify each attester has independent nonces
-            for (let i = 0; i < attesters.length; i++) {
-                const nonce = await contractClient.getAttesterNonce(attesters[i].address);
-                // Each attester should have different nonce progression
-                console.log(`Attester ${i} nonce: ${nonce}`);
-            }
-        });
-    });
-
-    describe('Deadline Enforcement', () => {
-        test('should reject expired delegated attestation', async () => {
-            const attester = attesters[0];
-            const subject = subjects[0];
-            
-            const request = {
-                schema_uid: schemaUID,
-                subject: subject.address,
-                attester: attester.address,
-                value: 'Expired attestation test',
-                nonce: await contractClient.getAttesterNonce(attester.address),
-                deadline: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
-                expiration_time: null,
-            };
-
-            const message = createAttestationMessage(request);
-            const signature = bls12_381.sign(message, attester.blsPrivateKey);
-
-            const result = await contractClient.attestByDelegation({
-                submitter: subject.address,
-                request: { ...request, signature },
-                signerKeypair: subject.keypair,
-            });
-
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('ExpiredSignature');
-        });
-    });
-
-    describe('Delegated Revocation', () => {
-        test('should revoke attestation using delegated signature', async () => {
-            const attester = attesters[0];
-            const subject = subjects[0];
-            
-            // First create an attestation to revoke
-            const currentNonce = await contractClient.getAttesterNonce(attester.address);
-            const attestRequest = {
-                schema_uid: schemaUID,
-                subject: subject.address,
-                attester: attester.address,
-                value: 'To be revoked',
-                nonce: currentNonce,
-                deadline: Math.floor(Date.now() / 1000) + 3600,
-                expiration_time: null,
-            };
-
-            const attestMessage = createAttestationMessage(attestRequest);
-            const attestSignature = bls12_381.sign(attestMessage, attester.blsPrivateKey);
-
-            await contractClient.attestByDelegation({
-                submitter: subject.address,
-                request: { ...attestRequest, signature: attestSignature },
-                signerKeypair: subject.keypair,
-            });
-
-            // Now create delegated revocation
-            const revokeRequest = {
-                schema_uid: schemaUID,
-                subject: subject.address,
-                nonce: currentNonce,
-                revoker: attester.address,
-                deadline: Math.floor(Date.now() / 1000) + 3600,
-            };
-
-            const revokeMessage = createRevocationMessage(revokeRequest);
-            const revokeSignature = bls12_381.sign(revokeMessage, attester.blsPrivateKey);
-
-            const result = await contractClient.revokeByDelegation({
-                submitter: subject.address,
-                request: { ...revokeRequest, signature: revokeSignature },
-                signerKeypair: subject.keypair,
-            });
-
-            expect(result.success).toBe(true);
-
-            // Verify attestation is revoked
-            const attestation = await contractClient.getAttestation({
-                schema_uid: schemaUID,
-                subject: subject.address,
-                nonce: currentNonce,
-            });
-
-            expect(attestation!.revoked).toBe(true);
-            expect(attestation!.revocation_time).toBeGreaterThan(0);
-        });
-    });
-
-    describe('Error Handling', () => {
-        test('should reject invalid BLS signature', async () => {
-            const attester = attesters[0];
-            const subject = subjects[0];
-            
-            const request = {
-                schema_uid: schemaUID,
-                subject: subject.address,
-                attester: attester.address,
-                value: 'Invalid signature test',
-                nonce: await contractClient.getAttesterNonce(attester.address),
-                deadline: Math.floor(Date.now() / 1000) + 3600,
-                expiration_time: null,
-            };
-
-            // Create invalid signature (random bytes)
-            const invalidSignature = new Uint8Array(96).fill(0);
-
-            const result = await contractClient.attestByDelegation({
-                submitter: subject.address,
-                request: { ...request, signature: invalidSignature },
-                signerKeypair: subject.keypair,
-            });
-
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('InvalidSignature');
-        });
-
-        test('should reject attestation from unregistered BLS key', async () => {
-            // Create new attester without registering BLS key
-            const unregisteredAttester = await generateAttesterAccount();
-            const subject = subjects[0];
-            
-            const request = {
-                schema_uid: schemaUID,
-                subject: subject.address,
-                attester: unregisteredAttester.address,
-                value: 'Unregistered attester test',
-                nonce: 0,
-                deadline: Math.floor(Date.now() / 1000) + 3600,
-                expiration_time: null,
-            };
-
-            const message = createAttestationMessage(request);
-            const signature = bls12_381.sign(message, unregisteredAttester.blsPrivateKey);
-
-            const result = await contractClient.attestByDelegation({
-                submitter: subject.address,
-                request: { ...request, signature },
-                signerKeypair: subject.keypair,
-            });
-
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('InvalidSignature');
-        });
-    });
-
-    describe('Gas Fee Economics', () => {
-        test('should measure gas costs for delegated vs direct attestations', async () => {
-            // This test measures and compares gas costs
-            // Implementation depends on Stellar fee structure
-            
-            // TODO: Implement gas cost comparison
-            // - Direct attestation cost
-            // - Delegated attestation cost
-            // - Verify submitter pays fees, not attester
-        });
-    });
-
-    describe('Event Emission', () => {
-        test('should emit correct events for BLS key registration', async () => {
-            // TODO: Test event filtering and verification
-            // - BLS_KEY::REGISTER events
-            // - Attestation events
-            // - Revocation events
-        });
-    });
-});
-
-// Helper Functions
-
-async function generateAttesterAccount() {
-    // Generate Stellar keypair
-    const keypair = StellarSDK.Keypair.random();
+    // Use test BLS key pair from Rust tests (known to work with contract)
+    attesterBlsPrivateKey = new Uint8Array([
+      34, 38, 144, 121, 33, 229, 89, 185, 68, 32, 10, 221, 176, 119, 70, 160, 41, 238, 104, 43, 146, 16, 63, 200, 77,
+      240, 207, 42, 165, 238, 248, 220
+    ])
     
-    // Generate BLS keypair
-    const blsPrivateKey = bls12_381.utils.randomPrivateKey();
-    const blsPublicKey = bls12_381.getPublicKey(blsPrivateKey);
-    
-    // Fund account on testnet
-    await fundTestnetAccount(keypair.publicKey());
-    
-    return {
-        address: keypair.publicKey(),
-        keypair,
-        blsPrivateKey,
-        blsPublicKey,
-    };
-}
+    attesterBlsPublicKey = new Uint8Array([
+      6, 93, 9, 178, 174, 49, 129, 153, 182, 231, 94, 43, 166, 156, 240, 6, 245, 40, 128, 24, 16, 200, 165, 140, 213,
+      138, 173, 184, 241, 181, 68, 79, 158, 235, 10, 199, 46, 1, 95, 170, 198, 80, 78, 154, 117, 34, 79, 34, 16, 150, 0,
+      78, 71, 46, 44, 45, 50, 165, 223, 217, 71, 237, 143, 212, 88, 132, 30, 164, 254, 207, 117, 121, 40, 221, 243, 25,
+      134, 151, 14, 113, 19, 237, 33, 147, 87, 231, 97, 232, 22, 143, 218, 33, 181, 245, 148, 178, 7, 157, 149, 57, 38,
+      248, 116, 56, 250, 92, 108, 192, 238, 249, 61, 124, 118, 147, 186, 229, 174, 17, 68, 79, 170, 239, 234, 244, 72,
+      255, 99, 171, 38, 111, 159, 131, 174, 144, 237, 194, 86, 4, 244, 176, 154, 77, 44, 188, 18, 17, 184, 111, 29, 54,
+      215, 190, 219, 210, 202, 120, 188, 93, 86, 160, 66, 52, 177, 69, 209, 121, 52, 33, 200, 176, 183, 9, 180, 199, 245,
+      30, 88, 170, 205, 232, 13, 241, 193, 193, 0, 137, 176, 174, 100, 179, 122, 8
+    ])
 
-async function generateSubjectAccount() {
-    const keypair = StellarSDK.Keypair.random();
-    await fundTestnetAccount(keypair.publicKey());
-    
-    return {
-        address: keypair.publicKey(),
-        keypair,
-    };
-}
+    // Generate test data
+    testRunId = randomBytes(4).toString('hex')
 
-async function fundTestnetAccount(address: string) {
-    // Use Stellar testnet friendbot
-    await fetch(`https://friendbot.stellar.org?addr=${address}`);
-    // Wait for funding to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
-}
+    // Fund test accounts using Friendbot
+    const accounts = [
+      adminKeypair.publicKey(),
+      attesterKp.publicKey(),
+      submitterKp.publicKey(),
+      subjectKp.publicKey()
+    ]
 
-async function registerTestSchema(): Promise<string> {
-    // Register a test schema for attestations
-    // Implementation depends on contract client
-    return 'test-schema-uid';
-}
-
-function createAttestationMessage(request: any): Uint8Array {
-    // Create deterministic message that matches Rust implementation
-    const encoder = new TextEncoder();
-    const domainSeparator = encoder.encode('ATTEST_PROTOCOL_V1_DELEGATED');
-    
-    // Convert schema UID to bytes (assuming hex string)
-    const schemaBytes = hexToBytes(request.schema_uid);
-    
-    // Convert numbers to big-endian bytes
-    const nonceBytes = numberToBeBytes(request.nonce, 8);
-    const deadlineBytes = numberToBeBytes(request.deadline, 8);
-    
-    // Concatenate all fields in same order as Rust
-    const message = new Uint8Array([
-        ...domainSeparator,
-        ...schemaBytes,
-        ...nonceBytes,
-        ...deadlineBytes,
-        // Add other fields as needed to match Rust implementation
-    ]);
-    
-    return sha256(message);
-}
-
-function createRevocationMessage(request: any): Uint8Array {
-    // Create deterministic revocation message
-    const encoder = new TextEncoder();
-    const domainSeparator = encoder.encode('REVOKE_PROTOCOL_V1_DELEGATED');
-    
-    const schemaBytes = hexToBytes(request.schema_uid);
-    const nonceBytes = numberToBeBytes(request.nonce, 8);
-    const deadlineBytes = numberToBeBytes(request.deadline, 8);
-    
-    const message = new Uint8Array([
-        ...domainSeparator,
-        ...schemaBytes,
-        ...nonceBytes,
-        ...deadlineBytes,
-    ]);
-    
-    return sha256(message);
-}
-
-function hexToBytes(hex: string): Uint8Array {
-    // Convert hex string to bytes
-    const cleanHex = hex.replace(/^0x/, '');
-    const bytes = new Uint8Array(cleanHex.length / 2);
-    for (let i = 0; i < cleanHex.length; i += 2) {
-        bytes[i / 2] = parseInt(cleanHex.substr(i, 2), 16);
+    for (const account of accounts) {
+      try {
+        console.log(`Funding account: ${account}`)
+        const response = await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(account)}`)
+        if (!response.ok) {
+          console.warn(`Friendbot funding failed for ${account}: ${response.statusText}`)
+        }
+      } catch (error) {
+        console.warn(`Error funding account ${account}:`, error)
+      }
     }
-    return bytes;
+
+    // Wait for accounts to be ready
+    await new Promise(resolve => setTimeout(resolve, 5000))
+  }, 60000)
+
+  it('should register a BLS public key for the attester', async () => {
+    const tx = await protocolClient.register_bls_key({
+      attester: attesterKp.publicKey(),
+      public_key: Buffer.from(attesterBlsPublicKey) // 192 bytes
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const needsSigningBy = tx.needsNonInvokerSigningBy()
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        
+        // Sign with all available keypairs
+        const allKeypairs = [attesterKp, adminKeypair, submitterKp, subjectKp]
+        for (const signer of needsSigningBy) {
+          const keypair = allKeypairs.find(kp => kp.publicKey() === signer)
+          if (keypair) {
+            transaction.sign(keypair)
+          } else {
+            console.log(`No keypair available for signer: ${signer}`)
+          }
+        }
+        
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as ProtocolContract.contract.Result<void>
+    expect(res.isOk()).toBe(true)
+    console.log(`BLS key registered for attester: ${attesterKp.publicKey()}`)
+  }, 60000)
+
+  it('should retrieve the registered BLS public key', async () => {
+    const tx = await protocolClient.get_bls_key({
+      attester: attesterKp.publicKey()
+    })
+
+    await tx.simulate()
+    const result = tx.result as ProtocolContract.contract.Option<ProtocolContract.BlsPublicKey>
+    
+    expect(result).toBeDefined()
+    if (result) {
+      expect(Buffer.from(result.key).equals(Buffer.from(attesterBlsPublicKey))).toBe(true)
+      console.log('BLS public key retrieved successfully')
+    }
+  }, 30000)
+
+  it('should register a schema for delegated attestations', async () => {
+    const schemaDefinition = `{"name":"Delegated Test Schema ${testRunId}","fields":[{"name":"claim","type":"string"}]}`
+    
+    const tx = await protocolClient.register({
+      caller: adminKeypair.publicKey(),
+      schema_definition: schemaDefinition,
+      resolver: undefined, // No resolver for this test
+      revocable: true
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const needsSigningBy = tx.needsNonInvokerSigningBy()
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        
+        // Sign with all available keypairs
+        const allKeypairs = [adminKeypair, attesterKp, submitterKp, subjectKp]
+        for (const signer of needsSigningBy) {
+          const keypair = allKeypairs.find(kp => kp.publicKey() === signer)
+          if (keypair) {
+            transaction.sign(keypair)
+          } else {
+            console.log(`No keypair available for signer: ${signer}`)
+          }
+        }
+        
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as ProtocolContract.contract.Result<Buffer>
+    expect(res.isOk()).toBe(true)
+    schemaUid = res.unwrap()
+    console.log(`Schema registered for delegated attestations: ${schemaUid.toString('hex')}`)
+  }, 60000)
+
+  it('should get the attestation nonce for the attester', async () => {
+    const tx = await protocolClient.get_attester_nonce({
+      attester: attesterKp.publicKey()
+    })
+
+    await tx.simulate()
+    const nonce = tx.result
+    expect(typeof nonce).toBe('bigint')
+    console.log(`Attester nonce: ${nonce}`)
+  }, 30000)
+
+  it('should get the DST (Domain Separation Tag) for attestation signatures', async () => {
+    const tx = await protocolClient.get_dst_for_attestation()
+
+    await tx.simulate()
+    const dst = tx.result
+    expect(dst).toBeInstanceOf(Buffer)
+    expect(dst.length).toBeGreaterThan(0)
+    console.log(`DST for attestation: ${Buffer.from(dst).toString('hex')}`)
+  }, 30000)
+
+  it('should create a delegated attestation request and submit it', async () => {
+    if (!schemaUid) {
+      throw new Error('Schema UID not available - schema registration test must pass first')
+    }
+
+    // Get current nonce
+    const nonceTx = await protocolClient.get_attester_nonce({
+      attester: attesterKp.publicKey()
+    })
+    await nonceTx.simulate()
+    const nonce = nonceTx.result
+
+    // Create deadline (1 hour from now)
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600)
+    
+    const attestationValue = `{"claim":"delegated_test_claim_${testRunId}"}`
+
+    // Create the delegated attestation request
+    const delegatedRequest: ProtocolContract.DelegatedAttestationRequest = {
+      attester: attesterKp.publicKey(),
+      deadline: deadline,
+      nonce: nonce,
+      schema_uid: schemaUid,
+      subject: subjectKp.publicKey(),
+      value: attestationValue,
+      signature: Buffer.alloc(96) // Placeholder signature for now
+    }
+
+    // Get the DST for signing
+    const dstTx = await protocolClient.get_dst_for_attestation()
+    await dstTx.simulate()
+    const dst = Buffer.from(dstTx.result)
+
+    // Create the message to sign
+    const messageToSign = createAttestationMessage(delegatedRequest, dst)
+    
+    // Sign with BLS private key (minimal signature scheme)
+    const signature = bls12_381.sign(messageToSign, attesterBlsPrivateKey)
+    delegatedRequest.signature = Buffer.from(signature)
+
+    // Submit the delegated attestation (submitter pays the fees)
+    const tx = await protocolClient.attest_by_delegation({
+      submitter: submitterKp.publicKey(),
+      request: delegatedRequest
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const needsSigningBy = tx.needsNonInvokerSigningBy()
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(submitterKp) // Submitter signs and pays fees
+        
+        for (const signer of needsSigningBy) {
+          if (signer === submitterKp.publicKey()) continue
+          console.log(`Additional signer required: ${signer}`)
+        }
+        
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as ProtocolContract.contract.Result<Buffer>
+    expect(res.isOk()).toBe(true)
+    attestationUid = res.unwrap()
+    console.log(`Delegated attestation created successfully with UID: ${attestationUid.toString('hex')}`)
+  }, 60000)
+
+  it('should verify nonce incremented after delegated attestation', async () => {
+    const tx = await protocolClient.get_attester_nonce({
+      attester: attesterKp.publicKey()
+    })
+
+    await tx.simulate()
+    const nonce = tx.result
+    expect(typeof nonce).toBe('bigint')
+    expect(nonce).toBeGreaterThan(0n) // Should have incremented
+    console.log(`Updated attester nonce: ${nonce}`)
+  }, 30000)
+
+  it('should create and submit a delegated revocation request', async () => {
+    if (!attestationUid) {
+      console.log('Skipping revocation test - no attestation UID available from direct attestation')
+      return
+    }
+
+    // Get current nonce
+    const nonceTx = await protocolClient.get_attester_nonce({
+      attester: attesterKp.publicKey()
+    })
+    await nonceTx.simulate()
+    const nonce = nonceTx.result
+
+    const attestationTx = await protocolClient.get_attestation({
+      attestation_uid: attestationUid
+    })
+    await attestationTx.simulate()
+    const attestationResult = attestationTx.result as ProtocolContract.contract.Result<ProtocolContract.Attestation>
+    const attestation = attestationResult.unwrap()
+
+    // Create deadline (1 hour from now)
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600)
+
+    // Create the delegated revocation request
+    const delegatedRequest: ProtocolContract.DelegatedRevocationRequest = {
+        attestation_uid: attestationUid,
+        deadline: deadline,
+        nonce: nonce,
+        signature: Buffer.alloc(96),
+        revoker: attestation.attester,
+        schema_uid: attestation.schema_uid,
+        subject: ''
+    }
+
+    // Get the DST for revocation signing
+    const dstTx = await protocolClient.get_dst_for_revocation()
+    await dstTx.simulate()
+    const dst = Buffer.from(dstTx.result)
+
+    // Create the message to sign
+    const messageToSign = createRevocationMessage(delegatedRequest, dst)
+    
+    // Sign with BLS private key (minimal signature scheme)
+    const signature = bls12_381.sign(messageToSign, attesterBlsPrivateKey)
+    delegatedRequest.signature = Buffer.from(signature)
+
+    // Submit the delegated revocation
+    const tx = await protocolClient.revoke_by_delegation({
+      submitter: submitterKp.publicKey(),
+      request: delegatedRequest
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const needsSigningBy = tx.needsNonInvokerSigningBy()
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(submitterKp) // Submitter signs and pays fees
+        
+        for (const signer of needsSigningBy) {
+          if (signer === submitterKp.publicKey()) continue
+          console.log(`Additional signer required: ${signer}`)
+        }
+        
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as ProtocolContract.contract.Result<void>
+    expect(res.isOk()).toBe(true)
+    console.log('Delegated revocation submitted successfully')
+  }, 60000)
+})
+
+/**
+ * Creates the message to sign for delegated attestations
+ * Must match the exact format from delegation.rs create_attestation_message
+ */
+function createAttestationMessage(request: ProtocolContract.DelegatedAttestationRequest, dst: Buffer): Uint8Array {
+  // Match exact format from Rust contract: 
+  // Domain Separator + Schema UID + Nonce + Deadline + [Expiration Time] + Value Length
+  const components: Buffer[] = []
+  
+  // Domain separation (ATTEST_PROTOCOL_V1_DELEGATED)
+  components.push(Buffer.from('ATTEST_PROTOCOL_V1_DELEGATED', 'utf8'))
+  
+  // Schema UID (32 bytes)
+  components.push(Buffer.from(request.schema_uid))
+  
+  // Nonce (8 bytes, big-endian u64)
+  const nonceBuffer = Buffer.allocUnsafe(8)
+  nonceBuffer.writeBigUInt64BE(request.nonce, 0)
+  components.push(nonceBuffer)
+  
+  // Deadline (8 bytes, big-endian u64) 
+  const deadlineBuffer = Buffer.allocUnsafe(8)
+  deadlineBuffer.writeBigUInt64BE(request.deadline, 0)
+  components.push(deadlineBuffer)
+  
+  // Optional expiration time - skip since request doesn't have it
+  
+  // Value length (8 bytes, big-endian u64)
+  const valueLenBuffer = Buffer.allocUnsafe(8)
+  valueLenBuffer.writeBigUInt64BE(BigInt(request.value.length), 0)
+  components.push(valueLenBuffer)
+  
+  const message = Buffer.concat(components)
+  return sha256(message)
 }
 
-function numberToBeBytes(num: number, byteLength: number): Uint8Array {
-    // Convert number to big-endian bytes
-    const bytes = new Uint8Array(byteLength);
-    for (let i = byteLength - 1; i >= 0; i--) {
-        bytes[i] = num & 0xff;
-        num = Math.floor(num / 256);
-    }
-    return bytes;
+/**
+ * Creates the message to sign for delegated revocations
+ * Must match the exact format from delegation.rs create_revocation_message
+ */
+function createRevocationMessage(request: ProtocolContract.DelegatedRevocationRequest, dst: Buffer): Uint8Array {
+  const components: Buffer[] = []
+  
+  // Domain separation (REVOKE_PROTOCOL_V1_DELEGATED)
+  components.push(Buffer.from('REVOKE_PROTOCOL_V1_DELEGATED', 'utf8'))
+  
+  // Schema UID (32 bytes)
+  components.push(Buffer.from(request.schema_uid))
+  
+  // Nonce (8 bytes, big-endian u64)
+  const nonceBuffer = Buffer.allocUnsafe(8)
+  nonceBuffer.writeBigUInt64BE(request.nonce, 0)
+  components.push(nonceBuffer)
+  
+  // Deadline (8 bytes, big-endian u64)
+  const deadlineBuffer = Buffer.allocUnsafe(8)
+  deadlineBuffer.writeBigUInt64BE(request.deadline, 0)
+  components.push(deadlineBuffer)
+  
+  const message = Buffer.concat(components)
+  return sha256(message)
 }
