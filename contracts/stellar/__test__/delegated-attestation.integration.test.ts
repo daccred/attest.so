@@ -24,7 +24,7 @@ import { bls12_381 } from '@noble/curves/bls12-381'
 import { sha256 } from '@noble/hashes/sha2'
 import { Keypair, Transaction } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
-import { loadTestConfig, fundAccountIfNeeded } from './testutils'
+import { loadTestConfig, fundAccountIfNeeded, generateAttestationUid, createAttestationMessage, createRevocationMessage } from './testutils'
 
 describe('Delegated Attestation Integration Tests', () => {
   let protocolClient: ProtocolContract.Client
@@ -70,9 +70,9 @@ describe('Delegated Attestation Integration Tests', () => {
     transactionRelayerKp = Keypair.random()
     subjectKp = Keypair.random()
 
-    console.log(`Attester Public Key===: ${attesterKp.publicKey()}`)
-    console.log(`Transaction Relayer Public Key===: ${transactionRelayerKp.publicKey()}`)
-    console.log(`Subject Public Key===: ${subjectKp.publicKey()}`)
+    console.log(`Attester PK ===: ${attesterKp.publicKey()}`)
+    console.log(`Transaction Relayer PK ===: ${transactionRelayerKp.publicKey()}`)
+    console.log(`Subject PK ===: ${subjectKp.publicKey()}`)
 
 
     // Fund test accounts that need it
@@ -186,9 +186,18 @@ describe('Delegated Attestation Integration Tests', () => {
     if (!schemaUid) {
       throw new Error('Schema UID not available - schema registration test must pass first')
     }
+    
+        const delegatedRequestClient = new ProtocolContract.Client({
+          contractId: config.protocolContractId,
+          networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
+          rpcUrl: config.rpcUrl,
+          allowHttp: true,
+          publicKey: transactionRelayerKp.publicKey()
+        })
+    
 
     // Get current nonce
-    const nonceTx = await protocolClient.get_attester_nonce({
+    const nonceTx = await delegatedRequestClient.get_attester_nonce({
       attester: attesterKp.publicKey()
     })
     await nonceTx.simulate()
@@ -212,7 +221,7 @@ describe('Delegated Attestation Integration Tests', () => {
     }
 
     // Get the DST for signing
-    const dstTx = await protocolClient.get_dst_for_attestation()
+    const dstTx = await delegatedRequestClient.get_dst_for_attestation()
     await dstTx.simulate()
     const dst = Buffer.from(dstTx.result)
 
@@ -224,7 +233,7 @@ describe('Delegated Attestation Integration Tests', () => {
     delegatedRequest.signature = Buffer.from(signature.toBytes(false))
 
     // Submit the delegated attestation (submitter pays the fees)
-    const tx = await protocolClient.attest_by_delegation({
+    const tx = await delegatedRequestClient.attest_by_delegation({
       submitter: transactionRelayerKp.publicKey(),
       request: delegatedRequest
     }, {
@@ -233,29 +242,25 @@ describe('Delegated Attestation Integration Tests', () => {
     })
 
     const needsSigningBy = tx.needsNonInvokerSigningBy()
+    console.log(`Needs signing by =========================: ${needsSigningBy}`)
+
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-        transaction.sign(transactionRelayerKp) // Submitter signs and pays fees
-        
-        for (const signer of needsSigningBy) {
-          if (signer === transactionRelayerKp.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-          
-        }
-
-        console.log(`Transaction Attestation: ${transaction.toXDR()}`)
-        
+        transaction.sign(transactionRelayerKp)
         return { signedTxXdr: transaction.toXDR() }
       }
     })
 
-    console.log(`========Sent Attestation=======: ${sent}`)
+    
+   
+    console.log(`========Tx=======:`, {tx: sent.result })
+    console.log(`========Sent Attestation=======:`, {sent})
 
     const res = sent.result as ProtocolContract.contract.Result<Buffer>
     expect(res.isOk()).toBe(true)
     attestationUid = res.unwrap()
-    console.log(`Delegated attestation created successfully with UID: ${attestationUid.toString('hex')}`)
+    console.log(`Delegated attestation created successfully with UID: ${attestationUid}`)
   }, 60000)
 
   it('should verify nonce incremented after delegated attestation', async () => {
@@ -271,10 +276,12 @@ describe('Delegated Attestation Integration Tests', () => {
   }, 30000)
 
   it('should create and submit a delegated revocation request', async () => {
-    if (!attestationUid) {
-      console.log('Skipping revocation test - no attestation UID available from direct attestation')
-      return
-    }
+    // if (!attestationUid) {
+    //   console.log('Skipping revocation test - no attestation UID available from direct attestation')
+    //   return
+    // }
+
+    const attestationUid = generateAttestationUid(schemaUid, attesterKp.publicKey(), BigInt(0))
 
     // Get current nonce
     const nonceTx = await protocolClient.get_attester_nonce({
@@ -329,89 +336,49 @@ describe('Delegated Attestation Integration Tests', () => {
     })
 
     const needsSigningBy = tx.needsNonInvokerSigningBy()
+
+    console.log(`========Needs Signing By=======: ${needsSigningBy}`)
+
+    for (const signerAddress of needsSigningBy) {
+      console.log(`Signing auth entries for: ${signerAddress}`);
+      let keypairToSignWith: Keypair | undefined;
+
+      if (signerAddress === attesterKp.publicKey()) {
+          keypairToSignWith = attesterKp;
+      } else if (signerAddress === subjectKp.publicKey()) {
+          keypairToSignWith = subjectKp;
+      } else if (signerAddress === transactionRelayerKp.publicKey()) {
+          keypairToSignWith = transactionRelayerKp;
+      }
+
+      if (keypairToSignWith) {
+        await tx.signAuthEntries({
+          signAuthEntry: async (hash: string) => {
+            const signature = keypairToSignWith!.sign(Buffer.from(hash, 'hex'));
+            return {
+              publicKey: keypairToSignWith!.publicKey(),
+              signature: signature,
+              signedAuthEntry: signature.toString('hex'), // Assuming hex encoding
+            }
+          },
+        });
+      } else {
+        console.warn(`Don't have the keypair for required signer: ${signerAddress}`);
+      }
+    }
+
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
         transaction.sign(transactionRelayerKp) // Relayer signs and pays fees
-        
-        for (const signer of needsSigningBy) {
-          if (signer === transactionRelayerKp.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-        }
-
-        console.log(`Transaction: ${transaction.toXDR()}`)
-        
         return { signedTxXdr: transaction.toXDR() }
       }
     })
 
     console.log(`Sent: ${sent}`)
 
-    const res = sent.result as ProtocolContract.contract.Result<void>
+    const res = sent.result as ProtocolContract.contract.Result<Buffer>
     expect(res.isOk()).toBe(true)
-    console.log('Delegated revocation submitted successfully')
+    console.log(`Delegated revocation created successfully with UID: ${attestationUid}`)
   }, 60000)
 })
-
-/**
- * Creates the message to sign for delegated attestations
- * Must match the exact format from delegation.rs create_attestation_message
- */
-function createAttestationMessage(request: ProtocolContract.DelegatedAttestationRequest, attestationDST: Buffer) {
-  // Match exact format from Rust contract: 
-  // Domain Separator + Schema UID + Nonce + Deadline + [Expiration Time] + Value Length
-  const components: Buffer[] = []
-  
-  // Domain separation (ATTEST_PROTOCOL_V1_DELEGATED)
-  components.push(attestationDST)
-  
-  // Schema UID (32 bytes)
-  components.push(Buffer.from(request.schema_uid))
-  
-  // Nonce (8 bytes, big-endian u64)
-  const nonceBuffer = Buffer.allocUnsafe(8)
-  nonceBuffer.writeBigUInt64BE(request.nonce, 0)
-  components.push(nonceBuffer)
-  
-  // Deadline (8 bytes, big-endian u64) 
-  const deadlineBuffer = Buffer.allocUnsafe(8)
-  deadlineBuffer.writeBigUInt64BE(request.deadline, 0)
-  components.push(deadlineBuffer)
-  
-  // Optional expiration time - skip since request doesn't have it
-  
-  // Value length (8 bytes, big-endian u64)
-  const valueLenBuffer = Buffer.allocUnsafe(8)
-  valueLenBuffer.writeBigUInt64BE(BigInt(request.value.length), 0)
-  components.push(valueLenBuffer)
-  
-  const message = Buffer.concat(components)
-  return bls12_381.shortSignatures.hash(sha256(message))
-}
-
-/**
- * Creates the message to sign for delegated revocations
- * Must match the exact format from delegation.rs create_revocation_message
- */
-function createRevocationMessage(request: ProtocolContract.DelegatedRevocationRequest, revocationDST: Buffer) {
-  const components: Buffer[] = []
-  
-  // Domain separation (REVOKE_PROTOCOL_V1_DELEGATED)
-  components.push(revocationDST)
-  
-  // Schema UID (32 bytes)
-  components.push(Buffer.from(request.schema_uid))
-  
-  // Nonce (8 bytes, big-endian u64)
-  const nonceBuffer = Buffer.allocUnsafe(8)
-  nonceBuffer.writeBigUInt64BE(request.nonce, 0)
-  components.push(nonceBuffer)
-  
-  // Deadline (8 bytes, big-endian u64)
-  const deadlineBuffer = Buffer.allocUnsafe(8)
-  deadlineBuffer.writeBigUInt64BE(request.deadline, 0)
-  components.push(deadlineBuffer)
-  
-  const message = Buffer.concat(components)
-  return bls12_381.shortSignatures.hash(message)
-}
