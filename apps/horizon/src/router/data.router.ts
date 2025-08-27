@@ -205,7 +205,7 @@ router.get('/operations', async (req: Request, res: Response) => {
     if (type) where.type = type as string
     if (sourceAccount) where.sourceAccount = sourceAccount as string
 
-    const operations = await db.horizonContractOperation.findMany({
+    const operations = await db.horizonOperation.findMany({
       where,
       include: {
         events: true,
@@ -215,7 +215,7 @@ router.get('/operations', async (req: Request, res: Response) => {
       skip: parseInt(offset as string),
     })
 
-    const total = await db.horizonContractOperation.count({ where })
+    const total = await db.horizonOperation.count({ where })
 
     res.json({
       success: true,

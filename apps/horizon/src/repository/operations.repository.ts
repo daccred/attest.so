@@ -98,12 +98,12 @@ export async function fetchOperationsFromHorizon(params: {
  * and maintains data integrity through foreign key constraints.
  *
  * @async
- * @function storeContractOperationsInDB
+ * @function storeOperationsInDB
  * @param {Array} operations - Operations with contract mapping
  * @param {string[]} [contractIds] - Associated contract identifiers
  * @returns {Promise<number>} Count of stored operations
  */
-export async function storeContractOperationsInDB(operations: any[], contractIds: string[] = []) {
+export async function storeOperationsInDB(operations: any[], contractIds: string[] = []) {
   const db = await getDB()
   if (!db || operations.length === 0) return 0
 
@@ -144,14 +144,14 @@ export async function storeContractOperationsInDB(operations: any[], contractIds
           }
 
           // Skip if already present
-          const existing = await db.horizonContractOperation.findUnique({
+          const existing = await db.horizonOperation.findUnique({
             where: { operationId: operation.id },
           })
           if (existing) {
             continue
           }
 
-          await db.horizonContractOperation.create({ data: operationData })
+          await db.horizonOperation.create({ data: operationData })
           totalCreated++
         } catch (opErr: any) {
           console.error('Error storing single contract operation:', opErr?.message || opErr)

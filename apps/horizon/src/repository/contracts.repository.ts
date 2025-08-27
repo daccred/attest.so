@@ -16,7 +16,7 @@
 
 import { CONTRACT_IDS, MAX_OPERATIONS_PER_FETCH } from '../common/constants'
 import { getDB } from '../common/db'
-import { fetchOperationsFromHorizon, storeContractOperationsInDB } from './operations.repository'
+import { fetchOperationsFromHorizon, storeOperationsInDB } from './operations.repository'
 import { fetchAndStoreEvents } from './events.repository'
 import { fetchTransactionDetails, storeTransactionsInDB } from './transactions.repository'
 
@@ -130,7 +130,7 @@ export async function fetchContractOperations(
         ) || contractIds[0],
     }))
 
-    const storedCount = await storeContractOperationsInDB(operationsWithContract, contractIds)
+    const storedCount = await storeOperationsInDB(operationsWithContract, contractIds)
     console.log(`✅ Stored ${storedCount} contract operations successfully`)
   }
 

@@ -159,9 +159,9 @@ router.get('/contracts', async (req: Request, res: Response) => {
       (targetContractIds as string[]).map(async (contractId: string) => {
         const [totalOperations, successfulOperations, uniqueUsers, recentEvents, failedOperations] =
           await Promise.all([
-            db.horizonContractOperation.count({ where: { contractId } }),
-            db.horizonContractOperation.count({ where: { contractId, successful: true } }),
-            db.horizonContractOperation
+            db.horizonOperation.count({ where: { contractId } }),
+            db.horizonOperation.count({ where: { contractId, successful: true } }),
+            db.horizonOperation
               .findMany({
                 where: { contractId },
                 select: { sourceAccount: true },
@@ -174,7 +174,7 @@ router.get('/contracts', async (req: Request, res: Response) => {
                 timestamp: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
               },
             }),
-            db.horizonContractOperation.count({ where: { contractId, successful: false } }),
+            db.horizonOperation.count({ where: { contractId, successful: false } }),
           ])
 
         return {

@@ -27,8 +27,8 @@ model HorizonEvent {
   
   // Relations
   transaction HorizonTransaction? @relation(fields: [txHash], references: [hash])
-  contractOperation HorizonContractOperation? @relation(fields: [contractOperationId], references: [id])
-  contractOperationId String?
+  operation HorizonOperation? @relation(fields: [operationId], references: [id])
+  operationId String?
   
   // Indexer metadata
   ingestedAt  DateTime @default(now())
@@ -129,7 +129,7 @@ model HorizonPayment {
 }
 
 // Enhanced model for contract-specific operations tracking
-model HorizonContractOperation {
+model HorizonOperation {
   id                String   @id @default(uuid())
   operationId       String   @unique
   transactionHash   String
@@ -155,7 +155,7 @@ model HorizonContractOperation {
   @@index([successful])
   @@index([sourceAccount])
   @@index([transactionHash])
-  @@map("horizon_contract_operations")
+  @@map("horizon_operations")
 }
 
 model HorizonIndexerState {
