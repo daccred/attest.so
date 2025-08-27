@@ -1,8 +1,5 @@
 mod testutils;
 
-use testutils::{
-    create_delegated_attestation_request, TEST_BLS_G2_PUBLIC_KEY, TEST_BLS_PRIVATE_KEY
-};
 use protocol::{
     errors::Error as ProtocolError,
     instructions::delegation::{create_attestation_message, create_revocation_message},
@@ -13,9 +10,8 @@ use soroban_sdk::{
     testutils::{Address as _, Ledger},
     Address, BytesN, Env, String as SorobanString,
 };
+use testutils::{create_delegated_attestation_request, TEST_BLS_G2_PUBLIC_KEY, TEST_BLS_PRIVATE_KEY};
 // No need for bls12_381 directly or rand_core since we use the test helpers
-
- 
 
 // --- The corrected test implementation ---
 
@@ -44,12 +40,7 @@ fn test_nonce_is_scoped_to_attester_not_subject() {
     let submitter = Address::generate(&env);
 
     client.initialize(&admin);
-    let schema_uid = client.register(
-        &admin,
-        &SorobanString::from_str(&env, "schema"),
-        &None,
-        &true,
-    );
+    let schema_uid = client.register(&admin, &SorobanString::from_str(&env, "schema"), &None, &true);
 
     // Register BLS key for the attester using the TEST_BLS_G2_PUBLIC_KEY
     let public_key = BytesN::from_array(&env, &TEST_BLS_G2_PUBLIC_KEY);
@@ -113,12 +104,7 @@ fn test_nonce_is_scoped_to_attester_not_submitter() {
     let submitter_2 = Address::generate(&env); // The "attacker"
 
     client.initialize(&admin);
-    let schema_uid = client.register(
-        &admin,
-        &SorobanString::from_str(&env, "schema"),
-        &None,
-        &true,
-    );
+    let schema_uid = client.register(&admin, &SorobanString::from_str(&env, "schema"), &None, &true);
 
     // Register the attester's public key so they can create delegated attestations
     let public_key = BytesN::from_array(&env, &TEST_BLS_G2_PUBLIC_KEY);
@@ -133,16 +119,16 @@ fn test_nonce_is_scoped_to_attester_not_submitter() {
         &schema_uid,
         &subject,
     );
-    
+
     // 2. Submitter 1 successfully submits the request.
     client.attest_by_delegation(&submitter_1, &signed_request);
 
     // Verify the attester's nonce was consumed and is now 1.
     assert_eq!(client.get_attester_nonce(&attester), 1);
-    
+
     // 3. Submitter 2 attempts to submit the *exact same* signed request.
     let result = client.try_attest_by_delegation(&submitter_2, &signed_request);
-    
+
     // 4. Assert that the second submission fails with an InvalidNonce error.
     assert_eq!(result, Err(Ok(ProtocolError::InvalidNonce.into())));
 
@@ -195,7 +181,7 @@ fn test_delegated_revocation_with_valid_signature() {
     client.attest_by_delegation(&submitter, &attestation_request);
 
     // Get the attestation UID that was created
-    // Since we can't get it directly from attest_by_delegation (returns ()), 
+    // Since we can't get it directly from attest_by_delegation (returns ()),
     // we need to use a different approach - use the nonce to predict the UID
     let attestation_uid = protocol::utils::generate_attestation_uid(
         &env,
@@ -209,9 +195,9 @@ fn test_delegated_revocation_with_valid_signature() {
     assert!(!attestation.revoked);
 
     // Now create a delegated revocation request using blst for signing
-    let private_key = blst::min_sig::SecretKey::from_bytes(&TEST_BLS_PRIVATE_KEY)
-        .expect("Failed to create private key");
-    
+    let private_key =
+        blst::min_sig::SecretKey::from_bytes(&TEST_BLS_PRIVATE_KEY).expect("Failed to create private key");
+
     let mut revocation_request = DelegatedRevocationRequest {
         attestation_uid: attestation_uid.clone(),
         schema_uid: schema_uid.clone(),
@@ -258,7 +244,7 @@ fn test_delegated_revocation_with_valid_signature() {
 fn test_delegated_action_with_expired_deadline() {
     let env = Env::default();
     env.mock_all_auths();
-    
+
     // Set ledger timestamp to a reasonable value
     env.ledger().with_mut(|li| {
         li.timestamp = 1000;
@@ -271,12 +257,7 @@ fn test_delegated_action_with_expired_deadline() {
     let submitter = Address::generate(&env);
 
     client.initialize(&admin);
-    let schema_uid = client.register(
-        &admin,
-        &SorobanString::from_str(&env, "schema"),
-        &None,
-        &true,
-    );
+    let schema_uid = client.register(&admin, &SorobanString::from_str(&env, "schema"), &None, &true);
 
     // Register the attester's public key
     let public_key = BytesN::from_array(&env, &TEST_BLS_G2_PUBLIC_KEY);
@@ -284,9 +265,9 @@ fn test_delegated_action_with_expired_deadline() {
 
     // Test 1: Expired delegated attestation
     {
-        let private_key = blst::min_sig::SecretKey::from_bytes(&TEST_BLS_PRIVATE_KEY)
-            .expect("Failed to create private key");
-        
+        let private_key =
+            blst::min_sig::SecretKey::from_bytes(&TEST_BLS_PRIVATE_KEY).expect("Failed to create private key");
+
         let mut attestation_request = DelegatedAttestationRequest {
             schema_uid: schema_uid.clone(),
             subject: subject.clone(),
@@ -311,7 +292,7 @@ fn test_delegated_action_with_expired_deadline() {
         // Attempt to submit the expired attestation request
         let result = client.try_attest_by_delegation(&submitter, &attestation_request);
         assert_eq!(result, Err(Ok(ProtocolError::ExpiredSignature.into())));
-        
+
         // Verify nonce was not consumed
         assert_eq!(client.get_attester_nonce(&attester), 0);
     }
@@ -325,7 +306,7 @@ fn test_delegated_action_with_expired_deadline() {
         &subject,
     );
     client.attest_by_delegation(&submitter, &valid_attestation_request);
-    
+
     // Get the attestation UID that was created
     let attestation_uid = protocol::utils::generate_attestation_uid(
         &env,
@@ -336,9 +317,9 @@ fn test_delegated_action_with_expired_deadline() {
 
     // Test 3: Expired delegated revocation
     {
-        let private_key = blst::min_sig::SecretKey::from_bytes(&TEST_BLS_PRIVATE_KEY)
-            .expect("Failed to create private key");
-        
+        let private_key =
+            blst::min_sig::SecretKey::from_bytes(&TEST_BLS_PRIVATE_KEY).expect("Failed to create private key");
+
         let mut revocation_request = DelegatedRevocationRequest {
             attestation_uid: attestation_uid.clone(),
             schema_uid: schema_uid.clone(),
@@ -362,7 +343,7 @@ fn test_delegated_action_with_expired_deadline() {
         // Attempt to submit the expired revocation request
         let result = client.try_revoke_by_delegation(&submitter, &revocation_request);
         assert_eq!(result, Err(Ok(ProtocolError::ExpiredSignature.into())));
-        
+
         // Verify the attestation is still not revoked
         let attestation = client.get_attestation(&attestation_uid);
         assert!(!attestation.revoked);

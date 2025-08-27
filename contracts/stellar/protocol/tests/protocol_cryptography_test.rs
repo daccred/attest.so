@@ -1,33 +1,33 @@
 //! # BLS Cryptography and Delegation Tests
-//! 
+//!
 //! This module contains comprehensive tests for the BLS12-381 cryptographic functionality
 //! and delegated attestation/revocation features of the Attest Protocol.
-//! 
+//!
 //! ## Test Categories
-//! 
+//!
 //! ### Cryptographic Constants Validation
 //! - Validates that hardcoded BLS12-381 curve points are valid and on-curve
 //! - Generates reference constants for G1 and G2 generators
-//! 
+//!
 //! ### Nonce Management
 //! - Tests sequential nonce incrementation for UID collision prevention
 //! - Validates attester-specific nonce isolation
 //! - Stress tests nonce sequence integrity at scale
-//! 
+//!
 //! ### BLS Key Registration
 //! - Tests BLS public key registration and event emission
 //! - Validates key storage and retrieval functionality
-//! 
+//!
 //! ### Delegated Actions Security
 //! - Tests signature verification for delegated attestations
 //! - Validates rejection of unregistered BLS keys
 //! - End-to-end signature verification with known key pairs
-//! 
+//!
 //! ### Message Hash Consistency
 //! - Cross-validates on-chain vs off-chain message construction
 //! - Ensures signature compatibility between environments
 //! - Tests both attestation and revocation message formats
-//! 
+//!
 //! ## Security Properties Tested
 //! - **Replay Attack Prevention**: Nonce-based protection mechanisms
 //! - **Signature Authenticity**: BLS signature verification integrity
@@ -36,10 +36,7 @@
 
 mod testutils;
 use testutils::{
-    group_one_generator, 
-    group_two_generator, 
-    TEST_BLS_G2_PUBLIC_KEY,
-    create_delegated_attestation_request, 
+    create_delegated_attestation_request, group_one_generator, group_two_generator, TEST_BLS_G2_PUBLIC_KEY,
 };
 
 use bls12_381::{G1Affine, G2Affine};
@@ -492,11 +489,7 @@ fn test_bls_key_registration_and_event() {
     let stored_key = client.try_get_bls_key(&attester);
     assert!(stored_key.is_ok(), "BLS key should be retrievable");
     let bls_key = stored_key.unwrap().unwrap(); // First unwrap for SDK result, second for contract result
-    assert_eq!(
-        bls_key.key,
-        public_key,
-        "Stored key should match registered key"
-    );
+    assert_eq!(bls_key.key, public_key, "Stored key should match registered key");
 
     dbg!(&bls_key, &event_attester, &event_pk, &event_timestamp);
 
@@ -565,11 +558,7 @@ fn test_delegated_attestation_with_valid_signature() {
     let bls_key_entry = client.try_get_bls_key(&attester);
     assert!(bls_key_entry.is_ok(), "BLS key should be registered");
     let bls_key = bls_key_entry.unwrap().unwrap(); // First unwrap for SDK result, second for contract result
-    assert_eq!(
-        bls_key.key,
-        public_key,
-        "Stored key should match registered key"
-    );
+    assert_eq!(bls_key.key, public_key, "Stored key should match registered key");
 
     let delegated_attestation_request = create_delegated_attestation_request(&env, &attester, 0, &schema_uid, &subject);
     client.attest_by_delegation(&attester, &delegated_attestation_request);

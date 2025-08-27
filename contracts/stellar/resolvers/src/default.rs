@@ -30,12 +30,9 @@ impl ResolverInterface for DefaultResolver {
 
     /// Allow revocations if attestation is revocable
     fn onrevoke(_env: Env, _attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
-        
         // Protocol handles revocability check
         Ok(true)
     }
-
- 
 
     fn metadata(env: Env) -> ResolverMetadata {
         ResolverMetadata {

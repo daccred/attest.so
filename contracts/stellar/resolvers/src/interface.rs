@@ -52,12 +52,12 @@ pub enum ResolverError {
 /// This provides a consistent interface for the protocol to interact with resolvers
 ///
 /// # Interface Overview
-/// 
+///
 /// The ResolverInterface defines the contract between the protocol and resolver implementations,
 /// enabling modular business logic for attestation validation, economic models, and post-processing.
 /// Each resolver can implement custom logic for:
 /// - Attestation validation (onattest)
-/// - Post-processing for both attestations and revocations (onresolve) 
+/// - Post-processing for both attestations and revocations (onresolve)
 /// - Revocation handling (onrevoke)
 /// - Metadata and type identification (metadata)
 ///
@@ -138,7 +138,7 @@ pub enum ResolverError {
 ///
 pub trait ResolverInterface {
     /// **ATTESTATION VALIDATION HOOK**
-    /// 
+    ///
     /// Called before an attestation is created to validate whether it should be allowed.
     /// This is the primary gate for implementing business logic, economic models,
     /// and access control patterns.

@@ -5,7 +5,9 @@ use protocol::{
     AttestationContract, AttestationContractClient,
 };
 use soroban_sdk::{
-    panic_with_error, symbol_short, testutils::{Address as _, Events, Ledger, LedgerInfo, MockAuth, MockAuthInvoke}, Address, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal
+    panic_with_error, symbol_short,
+    testutils::{Address as _, Events, Ledger, LedgerInfo, MockAuth, MockAuthInvoke},
+    Address, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal,
 };
 
 fn return_schema_definition(env: &Env) -> String {
@@ -42,34 +44,62 @@ fn return_schema_definition(env: &Env) -> String {
 #[test]
 fn test_generate_compatible_attestation_uid() {
     let env = Env::default();
- 
-    let schema_uid = BytesN::from_array(&env, &[
-        0xa8, 0xb1, 0x58, 0xf4, 0xf0, 0xaa, 0xdc, 0x90, 0x3c, 0xd5, 0x81, 0x11, 0x19, 0x9d, 0x8f, 0x71,
-        0xe7, 0x56, 0x14, 0xe6, 0x47, 0xd3, 0xc2, 0x8c, 0x39, 0x0c, 0x90, 0x40, 0x14, 0x28, 0x1f, 0x6d
-    ]);
+
+    let schema_uid = BytesN::from_array(
+        &env,
+        &[
+            0xa8, 0xb1, 0x58, 0xf4, 0xf0, 0xaa, 0xdc, 0x90, 0x3c, 0xd5, 0x81, 0x11, 0x19, 0x9d, 0x8f, 0x71, 0xe7, 0x56,
+            0x14, 0xe6, 0x47, 0xd3, 0xc2, 0x8c, 0x39, 0x0c, 0x90, 0x40, 0x14, 0x28, 0x1f, 0x6d,
+        ],
+    );
     let subject = Address::from_str(&env, "GD25F6Z56KYTB4I4EU7KHGLM43VRBNENAUQ3GP24FZIO6WNAAJMUA7P5");
     let nonce = 0;
- 
-    let expected_uid = BytesN::from_array(&env, &[
-        0xdc, 0x4f, 0x7c, 0x2b, 0xca, 0x79, 0x2f, 0xb8, 0x52, 0x88, 0xe5, 0x92, 0x8a, 0xf1, 0x4e, 0x4e,
-        0xbb, 0xc7, 0x6d, 0x98, 0xfd, 0x67, 0x2f, 0x6b, 0xb1, 0x5b, 0xd8, 0xf5, 0x2a, 0xb5, 0xaa, 0xa5
-    ]);
+
+    let expected_uid = BytesN::from_array(
+        &env,
+        &[
+            0xdc, 0x4f, 0x7c, 0x2b, 0xca, 0x79, 0x2f, 0xb8, 0x52, 0x88, 0xe5, 0x92, 0x8a, 0xf1, 0x4e, 0x4e, 0xbb, 0xc7,
+            0x6d, 0x98, 0xfd, 0x67, 0x2f, 0x6b, 0xb1, 0x5b, 0xd8, 0xf5, 0x2a, 0xb5, 0xaa, 0xa5,
+        ],
+    );
 
     let generated_uid = generate_attestation_uid(&env, &schema_uid, &subject, nonce);
     println!("=============================================================");
-    println!("      Running test case: {}", "test_generate_compatible_attestation_uid");
+    println!(
+        "      Running test case: {}",
+        "test_generate_compatible_attestation_uid"
+    );
     println!("=============================================================");
 
-    println!("generated_uid: {}", generated_uid.iter().map(|b| format!("{:02x}", b)).collect::<Vec<String>>().join(""));
-    println!("expected_uid: {}", expected_uid.iter().map(|b| format!("{:02x}", b)).collect::<Vec<String>>().join(""));
-    println!("schema_uid: {}", schema_uid.iter().map(|b| format!("{:02x}", b)).collect::<Vec<String>>().join(""));
+    println!(
+        "generated_uid: {}",
+        generated_uid
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect::<Vec<String>>()
+            .join("")
+    );
+    println!(
+        "expected_uid: {}",
+        expected_uid
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect::<Vec<String>>()
+            .join("")
+    );
+    println!(
+        "schema_uid: {}",
+        schema_uid
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect::<Vec<String>>()
+            .join("")
+    );
     println!("subject: {:?}", subject.to_string());
     println!("nonce: {}", nonce);
 
     assert_eq!(generated_uid, expected_uid);
 }
-
-
 
 /// **Test: Basic Attestation Creation and Retrieval**
 ///

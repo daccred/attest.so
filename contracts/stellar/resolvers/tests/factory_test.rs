@@ -17,13 +17,10 @@
 // resolvers, A/B testing, and feature rollouts.
 // ══════════════════════════════════════════════════════════════════════════════
 
-use resolvers::factory::{ResolverFactory, ResolverConfig, ResolverInstance};
 use resolvers::factory::ResolverFactoryClient;
+use resolvers::factory::{ResolverConfig, ResolverFactory, ResolverInstance};
 use resolvers::interface::{ResolverError, ResolverType};
-use soroban_sdk::{
-    testutils::{Address as _},
-    Address, Env, String,
-};
+use soroban_sdk::{testutils::Address as _, Address, Env, String};
 
 #[test]
 fn test_factory_initialization() {
@@ -31,12 +28,12 @@ fn test_factory_initialization() {
     env.mock_all_auths(); // Mock authentication for tests
     let factory_address = env.register(ResolverFactory, ());
     let factory = ResolverFactoryClient::new(&env, &factory_address);
-    
+
     let admin = Address::generate(&env);
-    
+
     // Initialize the factory
     factory.initialize(&admin);
-    
+
     // Verify initialization
     let instances = factory.get_resolver_instances();
     assert_eq!(instances.len(), 0); // No instances created yet
@@ -48,13 +45,13 @@ fn test_create_token_reward_resolver() {
     env.mock_all_auths(); // Mock authentication for tests
     let factory_address = env.register(ResolverFactory, ());
     let factory = ResolverFactoryClient::new(&env, &factory_address);
-    
+
     let admin = Address::generate(&env);
     let reward_token = Address::generate(&env);
-    
+
     // Initialize factory
     factory.initialize(&admin);
-    
+
     // Create a token reward resolver
     let resolver_address = factory.create_token_reward_resolver(
         &admin,
@@ -63,12 +60,12 @@ fn test_create_token_reward_resolver() {
         &String::from_str(&env, "USDC Rewards"),
         &String::from_str(&env, "USDC reward pool for KYC attestations"),
     );
-    
+
     // Verify resolver was created (Address is returned directly)
     // Get all instances
     let instances = factory.get_resolver_instances();
     assert_eq!(instances.len(), 1);
-    
+
     // Verify instance details
     let instance = instances.get(0).unwrap();
     assert_eq!(instance.address, resolver_address);
@@ -83,21 +80,21 @@ fn test_create_multiple_resolvers() {
     env.mock_all_auths(); // Mock authentication for tests
     let factory_address = env.register(ResolverFactory, ());
     let factory = ResolverFactoryClient::new(&env, &factory_address);
-    
+
     let admin = Address::generate(&env);
     let usdc_token = Address::generate(&env);
     let xlm_token = Address::generate(&env);
     let fee_token = Address::generate(&env);
     let fee_recipient = Address::generate(&env);
-    
+
     // Generate unique resolver addresses for testing
     let usdc_resolver_addr = Address::generate(&env);
     let xlm_resolver_addr = Address::generate(&env);
     let fee_resolver_addr = Address::generate(&env);
-    
+
     // Initialize factory
     factory.initialize(&admin);
-    
+
     // Create multiple resolvers with specific addresses
     let usdc_resolver = factory.create_token_reward_with_addr(
         &admin,
@@ -107,7 +104,7 @@ fn test_create_multiple_resolvers() {
         &String::from_str(&env, "USDC Rewards"),
         &String::from_str(&env, "USDC reward pool"),
     );
-    
+
     let xlm_resolver = factory.create_token_reward_with_addr(
         &admin,
         &Some(xlm_resolver_addr.clone()),
@@ -116,7 +113,7 @@ fn test_create_multiple_resolvers() {
         &String::from_str(&env, "XLM Rewards"),
         &String::from_str(&env, "XLM reward pool"),
     );
-    
+
     let fee_resolver = factory.create_fee_resolver_with_addr(
         &admin,
         &Some(fee_resolver_addr.clone()),
@@ -126,31 +123,31 @@ fn test_create_multiple_resolvers() {
         &String::from_str(&env, "XLM Fees"),
         &String::from_str(&env, "XLM fee collection"),
     );
-    
+
     // Verify we got the addresses we requested
     assert_eq!(usdc_resolver, usdc_resolver_addr);
     assert_eq!(xlm_resolver, xlm_resolver_addr);
     assert_eq!(fee_resolver, fee_resolver_addr);
-    
+
     // Verify they have different addresses
     assert_ne!(usdc_resolver, xlm_resolver);
     assert_ne!(xlm_resolver, fee_resolver);
     assert_ne!(usdc_resolver, fee_resolver);
-    
+
     // Get all instances
     let instances = factory.get_resolver_instances();
     assert_eq!(instances.len(), 3);
-    
+
     // Verify each instance has correct configuration
     for i in 0..instances.len() {
         let instance = instances.get(i).unwrap();
         match instance.config.resolver_type {
             ResolverType::TokenReward => {
                 assert!(instance.config.name.to_string().contains("Rewards"));
-            }
+            },
             ResolverType::FeeCollection => {
                 assert!(instance.config.name.to_string().contains("Fees"));
-            }
+            },
             _ => panic!("Unexpected resolver type"),
         }
     }
@@ -162,13 +159,13 @@ fn test_resolver_config_retrieval() {
     env.mock_all_auths(); // Mock authentication for tests
     let factory_address = env.register(ResolverFactory, ());
     let factory = ResolverFactoryClient::new(&env, &factory_address);
-    
+
     let admin = Address::generate(&env);
     let reward_token = Address::generate(&env);
-    
+
     // Initialize factory
     factory.initialize(&admin);
-    
+
     // Create a resolver
     let resolver_address = factory.create_token_reward_resolver(
         &admin,
@@ -177,16 +174,16 @@ fn test_resolver_config_retrieval() {
         &String::from_str(&env, "Test Rewards"),
         &String::from_str(&env, "Test description"),
     );
-    
+
     // Retrieve configuration
     let config = factory.get_resolver_config(&resolver_address);
     assert!(config.is_some());
-    
+
     let config = config.unwrap();
     assert_eq!(config.resolver_type, ResolverType::TokenReward);
     assert_eq!(config.name, String::from_str(&env, "Test Rewards"));
     assert_eq!(config.admin, admin);
-    
+
     // Verify config data contains reward information
     let reward_token_str = config.config_data.get(String::from_str(&env, "reward_token"));
     assert!(reward_token_str.is_some());
@@ -199,13 +196,13 @@ fn test_deactivate_resolver() {
     env.mock_all_auths(); // Mock authentication for tests
     let factory_address = env.register(ResolverFactory, ());
     let factory = ResolverFactoryClient::new(&env, &factory_address);
-    
+
     let admin = Address::generate(&env);
     let reward_token = Address::generate(&env);
-    
+
     // Initialize factory
     factory.initialize(&admin);
-    
+
     // Create a resolver
     let resolver_address = factory.create_token_reward_resolver(
         &admin,
@@ -214,15 +211,15 @@ fn test_deactivate_resolver() {
         &String::from_str(&env, "Test Rewards"),
         &String::from_str(&env, "Test description"),
     );
-    
+
     // Verify it's active
     let instances = factory.get_resolver_instances();
     assert_eq!(instances.len(), 1);
     assert!(instances.get(0).unwrap().is_active);
-    
+
     // Deactivate the resolver
     factory.deactivate_resolver(&admin, &resolver_address);
-    
+
     // Verify it's now inactive
     let instances = factory.get_resolver_instances();
     assert_eq!(instances.len(), 1);
@@ -235,14 +232,14 @@ fn test_unauthorized_access() {
     env.mock_all_auths(); // Mock authentication for tests
     let factory_address = env.register(ResolverFactory, ());
     let factory = ResolverFactoryClient::new(&env, &factory_address);
-    
+
     let admin = Address::generate(&env);
     let unauthorized_user = Address::generate(&env);
     let reward_token = Address::generate(&env);
-    
+
     // Initialize factory
     factory.initialize(&admin);
-    
+
     // Try to create resolver with unauthorized user
     // This should fail with an authorization error
     let result = factory.try_create_token_reward_resolver(
@@ -252,8 +249,7 @@ fn test_unauthorized_access() {
         &String::from_str(&env, "Test Rewards"),
         &String::from_str(&env, "Test description"),
     );
-    
+
     // Verify the operation failed (unauthorized)
     assert!(result.is_err());
 }
- 

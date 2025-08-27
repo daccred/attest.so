@@ -17,9 +17,7 @@
 // ► 5. Event Emission: Emits events for auditing and off-chain monitoring.
 // ══════════════════════════════════════════════════════════════════════════════
 use crate::interface::{ResolverError, ResolverType};
-use soroban_sdk::{
-    contract, contractimpl, contracttype, Address, Env, String, Vec, Map,
-};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Map, String, Vec};
 
 #[cfg(test)]
 use soroban_sdk::testutils::Address as TestAddress;
@@ -188,7 +186,10 @@ impl ResolverFactory {
 
         // STEP 5: Emit creation event
         env.events().publish(
-            (String::from_str(&env, "TOKEN_REWARD_RESOLVER_CREATED"), &resolver_address),
+            (
+                String::from_str(&env, "TOKEN_REWARD_RESOLVER_CREATED"),
+                &resolver_address,
+            ),
             (config.name, reward_amount),
         );
 
@@ -271,7 +272,10 @@ impl ResolverFactory {
 
         let mut config_data = Map::new(&env);
         config_data.set(String::from_str(&env, "fee_token"), fee_token.to_string());
-        config_data.set(String::from_str(&env, "fee_amount"), String::from_str(&env, "fee_amount"));
+        config_data.set(
+            String::from_str(&env, "fee_amount"),
+            String::from_str(&env, "fee_amount"),
+        );
         config_data.set(String::from_str(&env, "fee_recipient"), fee_recipient.to_string());
 
         let config = ResolverConfig {
@@ -290,7 +294,10 @@ impl ResolverFactory {
         Self::track_resolver_instance(&env, &resolver_address, &config)?;
 
         env.events().publish(
-            (String::from_str(&env, "FEE_COLLECTION_RESOLVER_CREATED"), &resolver_address),
+            (
+                String::from_str(&env, "FEE_COLLECTION_RESOLVER_CREATED"),
+                &resolver_address,
+            ),
             (config.name, fee_amount),
         );
 
@@ -345,18 +352,16 @@ impl ResolverFactory {
         Self::require_admin(&env, &admin)?;
 
         let count: u32 = env.storage().instance().get(&DataKey::ResolverCount).unwrap_or(0);
-        
+
         for i in 0..count {
             let key = (DataKey::ResolverInstances, i);
             if let Some(mut instance) = env.storage().persistent().get::<_, ResolverInstance>(&key) {
                 if instance.address == resolver_address {
                     instance.is_active = false;
                     env.storage().persistent().set(&key, &instance);
-                    
-                    env.events().publish(
-                        (String::from_str(&env, "RESOLVER_DEACTIVATED"), &resolver_address),
-                        (),
-                    );
+
+                    env.events()
+                        .publish((String::from_str(&env, "RESOLVER_DEACTIVATED"), &resolver_address), ());
                     return Ok(());
                 }
             }
@@ -370,10 +375,10 @@ impl ResolverFactory {
     // ============================================================================
 
     /// Generate a unique address for a new resolver
-    /// 
+    ///
     /// LEARNING: This implementation is adapted from Soroban SDK's testutils::Address::generate()
     /// found at soroban-sdk-22.0.8/src/address.rs:320-331
-    /// 
+    ///
     /// The testutils implementation uses:
     /// ```rust,ignore
     /// fn generate(env: &Env) -> Self {
@@ -384,17 +389,17 @@ impl ResolverFactory {
     ///     .unwrap()
     /// }
     /// ```
-    /// 
+    ///
     /// We adapt this pattern for production use by creating deterministic contract addresses
     /// using a counter-based approach, since env.with_generator is only available in test mode.
     /// In production, the actual contract deployment would provide the real address.
     fn generate_resolver_address(env: &Env) -> Result<Address, ResolverError> {
-        // Get current count to ensure uniqueness  
+        // Get current count to ensure uniqueness
         let count: u32 = env.storage().instance().get(&DataKey::ResolverCount).unwrap_or(0);
-        
+
         // LEARNING: Based on testutils::Address::generate() at soroban-sdk-22.0.8/src/address.rs:320-331
         // The testutils creates addresses using ScAddress::Contract(Hash(env.with_generator(...)))
-        // 
+        //
         // In production contracts, we cannot generate arbitrary addresses because:
         // 1. env.with_generator() is only available in test mode
         // 2. Addresses must correspond to actual deployed contracts
@@ -407,7 +412,7 @@ impl ResolverFactory {
         //
         // For test environments, we can generate unique mock addresses
         // For production, each resolver would have its own deployed address
-        
+
         // In tests, generate unique addresses using testutils
         // This allows tests to verify that different resolvers get different addresses
         #[cfg(test)]
@@ -415,7 +420,7 @@ impl ResolverFactory {
             // Generate a unique test address for each resolver
             return Ok(<Address as TestAddress>::generate(env));
         }
-        
+
         #[cfg(not(test))]
         {
             // In production, return the factory address as placeholder
@@ -426,7 +431,7 @@ impl ResolverFactory {
     }
 
     /// Track a new resolver instance
-    /// 
+    ///
     /// LEARNING: Factory maintains a registry of all created instances
     /// for management, discovery, and auditing purposes.
     fn track_resolver_instance(
@@ -435,7 +440,7 @@ impl ResolverFactory {
         config: &ResolverConfig,
     ) -> Result<(), ResolverError> {
         let count: u32 = env.storage().instance().get(&DataKey::ResolverCount).unwrap_or(0);
-        
+
         let instance = ResolverInstance {
             address: resolver_address.clone(),
             config: config.clone(),
@@ -446,7 +451,7 @@ impl ResolverFactory {
         // Store instance in persistent storage
         let instance_key = (DataKey::ResolverInstances, count);
         env.storage().persistent().set(&instance_key, &instance);
-        
+
         // Store configuration for quick lookup
         let config_key = (DataKey::ResolverConfigs, resolver_address.clone());
         env.storage().persistent().set(&config_key, config);
@@ -455,16 +460,12 @@ impl ResolverFactory {
         env.storage().instance().set(&DataKey::ResolverCount, &(count + 1));
 
         // Extend TTL for persistent data
-        env.storage().persistent().extend_ttl(
-            &instance_key,
-            env.storage().max_ttl() - 100,
-            env.storage().max_ttl(),
-        );
-        env.storage().persistent().extend_ttl(
-            &config_key,
-            env.storage().max_ttl() - 100,
-            env.storage().max_ttl(),
-        );
+        env.storage()
+            .persistent()
+            .extend_ttl(&instance_key, env.storage().max_ttl() - 100, env.storage().max_ttl());
+        env.storage()
+            .persistent()
+            .extend_ttl(&config_key, env.storage().max_ttl() - 100, env.storage().max_ttl());
 
         Ok(())
     }
@@ -484,4 +485,4 @@ impl ResolverFactory {
 
         Ok(())
     }
-} 
+}

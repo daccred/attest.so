@@ -308,7 +308,7 @@ impl ResolverInterface for TokenRewardResolver {
         // This is the core economic incentive - immediate token reward for attestation
         token_client.transfer(
             &env.current_contract_address(), // From: contract's reward pool
-            &attester,           // To: attestation creator
+            &attester,                       // To: attestation creator
             &reward_amount,                  // Amount: configured reward per attestation
         );
 

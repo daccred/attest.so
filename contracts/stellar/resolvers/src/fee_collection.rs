@@ -210,11 +210,13 @@ impl ResolverInterface for FeeCollectionResolver {
     }
 
     /// No validation needed for revocations
-    fn onresolve(_env: Env, _attestation_uid: BytesN<32>, _attester: Address) -> core::result::Result<(), ResolverError> {
+    fn onresolve(
+        _env: Env,
+        _attestation_uid: BytesN<32>,
+        _attester: Address,
+    ) -> core::result::Result<(), ResolverError> {
         Ok(())
     }
-
- 
 
     fn metadata(env: Env) -> ResolverMetadata {
         ResolverMetadata {
