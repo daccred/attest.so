@@ -103,7 +103,7 @@ export async function fetchOperationsFromHorizon(params: {
  * @param {string[]} [contractIds] - Associated contract identifiers
  * @returns {Promise<number>} Count of stored operations
  */
-export async function storeOperationsInDB(operations: any[], contractIds: string[] = []) {
+export async function storeOperationsInDB(operations: any[], contractIds: string[] = []): Promise<number> {
   const db = await getDB()
   if (!db || operations.length === 0) return 0
 

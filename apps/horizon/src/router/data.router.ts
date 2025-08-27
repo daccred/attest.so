@@ -13,6 +13,13 @@
 import { Router, Request, Response } from 'express'
 import { getDB } from '../common/db'
 
+// Route constants for data endpoints
+const DATA_EVENTS_ROUTE = '/events'
+const DATA_TRANSACTIONS_ROUTE = '/transactions'
+const DATA_OPERATIONS_ROUTE = '/operations'
+const DATA_ACCOUNTS_ROUTE = '/accounts'
+const DATA_PAYMENTS_ROUTE = '/payments'
+
 const router = Router()
 
 /**
@@ -42,7 +49,7 @@ const router = Router()
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/events', async (req: Request, res: Response) => {
+router.get(DATA_EVENTS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -112,7 +119,7 @@ router.get('/events', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/transactions', async (req: Request, res: Response) => {
+router.get(DATA_TRANSACTIONS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -183,7 +190,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/operations', async (req: Request, res: Response) => {
+router.get(DATA_OPERATIONS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -249,7 +256,7 @@ router.get('/operations', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/accounts', async (req: Request, res: Response) => {
+router.get(DATA_ACCOUNTS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -304,7 +311,7 @@ router.get('/accounts', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/payments', async (req: Request, res: Response) => {
+router.get(DATA_PAYMENTS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {

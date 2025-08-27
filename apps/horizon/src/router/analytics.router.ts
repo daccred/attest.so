@@ -15,6 +15,11 @@ import { Router, Request, Response } from 'express'
 import { getDB } from '../common/db'
 import { CONTRACT_IDS } from '../common/constants'
 
+// Route constants for analytics endpoints
+const ANALYTICS_OVERVIEW_ROUTE = '/'
+const ANALYTICS_CONTRACTS_ROUTE = '/contracts'
+const ANALYTICS_ACTIVITY_ROUTE = '/activity'
+
 const router = Router()
 
 /**
@@ -42,7 +47,7 @@ const router = Router()
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get(ANALYTICS_OVERVIEW_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -145,7 +150,7 @@ router.get('/', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/contracts', async (req: Request, res: Response) => {
+router.get(ANALYTICS_CONTRACTS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -247,7 +252,7 @@ router.get('/contracts', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/activity', async (req: Request, res: Response) => {
+router.get(ANALYTICS_ACTIVITY_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
