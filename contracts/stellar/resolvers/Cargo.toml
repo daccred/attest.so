@@ -18,9 +18,11 @@ doctest = false
 # By default (no features), no resolver contract exports are included in Wasm builds,
 # which avoids duplicate symbol errors when this crate is a dependency of other Wasm contracts.
 [features]
+default = []
 export-default-resolver = []
-export-fee-collection-resolver = []
 export-token-reward-resolver = []
+export-fee-collection-resolver = []
+export-factory = []
 
 [dependencies]
 soroban-sdk = { workspace = true }
