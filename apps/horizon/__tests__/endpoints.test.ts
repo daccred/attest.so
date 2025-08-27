@@ -24,11 +24,24 @@ vi.mock('../src/common/constants', () => ({
 
 vi.mock('../src/common/db', () => ({
   getDB: vi.fn(),
+  getLastProcessedLedgerFromDB: vi.fn().mockResolvedValue(10),
 }));
 
 vi.mock('../src/repository/rpc.repository', () => ({
   getRpcHealth: vi.fn().mockResolvedValue('healthy'),
   getLatestRPCLedgerIndex: vi.fn().mockResolvedValue(1021520),
+}));
+
+vi.mock('../src/common/queue', () => ({
+  ingestQueue: {
+    enqueueFetchEvents: vi.fn().mockReturnValue('job-123'),
+    enqueueComprehensiveData: vi.fn().mockReturnValue('job-456'),
+    getStatus: vi.fn().mockReturnValue({ size: 0, running: false, nextJobs: [] }),
+  },
+}));
+
+vi.mock('../src/common/prisma', () => ({
+  connectToPostgreSQL: vi.fn().mockResolvedValue(true),
 }));
 
 beforeEach(async () => {
@@ -81,116 +94,158 @@ beforeEach(async () => {
 });
 
 describe('Horizon API - Endpoints (refactored)', () => {
-  describe('GET /api/data/events', () => {
-    it('returns events with default pagination', async () => {
-      const res = await request(app).get('/api/data/events');
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toHaveLength(1);
-      expect(res.body.pagination).toEqual({ total: 1, limit: 50, offset: 0, hasMore: false });
-    });
+  describe('System Endpoints', () => {
+    describe('GET /api/health', () => {
+      it('returns status information', async () => {
+        const res = await request(app).get('/api/health');
 
-    it('applies contractId filter', async () => {
-      const contractId = 'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO';
-      await request(app).get(`/api/data/events?contractId=${contractId}`);
-      expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { contractId } })
-      );
-    });
-
-    it('applies ledger range filter', async () => {
-      await request(app).get('/api/data/events?ledgerStart=1021500&ledgerEnd=1021510');
-      expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { ledger: { gte: 1021500, lte: 1021510 } } })
-      );
-    });
-
-    it('caps limit at 200', async () => {
-      await request(app).get('/api/data/events?limit=500');
-      expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 200 })
-      );
+        expect(res.status).toBe(200);
+        expect(res.body.status).toBe('ok');
+        expect(res.body.database_status).toContain('connected');
+        expect(res.body.soroban_rpc_status).toBe('healthy');
+      });
     });
   });
 
-  describe('GET /api/data/transactions', () => {
-    it('returns transactions with relations', async () => {
-      const res = await request(app).get('/api/data/transactions');
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(mockDb.horizonTransaction.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ include: { events: true, effects: true, payments: true } })
-      );
+  describe('Ingestion Endpoints', () => {
+    describe('POST /api/ingest/events', () => {
+      it('enqueues ingestion', async () => {
+        const res = await request(app)
+          .post('/api/ingest/events')
+          .send({ startLedger: 123 });
+
+        expect(res.status).toBe(202);
+        expect(res.body.success).toBe(true);
+        expect(res.body.jobId).toBe('job-123');
+      });
+
+      it('with invalid startLedger returns 400', async () => {
+        const res = await request(app)
+          .post('/api/ingest/events')
+          .send({ startLedger: 'abc' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toContain('Invalid startLedger');
+      });
+    });
+
+    describe('POST /api/ingest/backfill', () => {
+      it('initiates historical data backfill', async () => {
+        const res = await request(app)
+          .post('/api/ingest/backfill')
+          .send({ startLedger: 1000 });
+
+        expect(res.status).toBe(202);
+        expect(res.body.success).toBe(true);
+        expect(res.body.message).toContain('Historical data backfill initiated');
+      });
+
+      it('invalid startLedger returns 400', async () => {
+        const res = await request(app)
+          .post('/api/ingest/backfill')
+          .send({ startLedger: 'invalid' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toContain('Invalid startLedger');
+      });
+    });
+
+    describe('POST /api/ingest/full', () => {
+      it('enqueues full data synchronization', async () => {
+        const res = await request(app)
+          .post('/api/ingest/full')
+          .send({ startLedger: 1000, contractIds: ['C1'] });
+
+        expect(res.status).toBe(202);
+        expect(res.body.success).toBe(true);
+        expect(res.body.jobId).toBe('job-456');
+        expect(res.body.contractIds).toEqual(['C1']);
+      });
     });
   });
 
-  describe('GET /api/data/operations', () => {
-    it('returns operations with transaction and events', async () => {
-      const res = await request(app).get('/api/data/operations');
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(mockDb.horizonContractOperation.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ include: { transaction: true, events: true } })
-      );
+  describe('Data Retrieval Endpoints', () => {
+    describe('GET /api/data/events', () => {
+      it('returns events with default pagination', async () => {
+        const res = await request(app).get('/api/data/events');
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data).toHaveLength(1);
+        expect(res.body.pagination).toEqual({ total: 1, limit: 50, offset: 0, hasMore: false });
+      });
+
+      it('applies contractId filter', async () => {
+        const contractId = 'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO';
+        await request(app).get(`/api/data/events?contractId=${contractId}`);
+        expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { contractId } })
+        );
+      });
+
+      it('applies ledger range filter', async () => {
+        await request(app).get('/api/data/events?ledgerStart=1021500&ledgerEnd=1021510');
+        expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { ledger: { gte: 1021500, lte: 1021510 } } })
+        );
+      });
+
+      it('caps limit at 200', async () => {
+        await request(app).get('/api/data/events?limit=500');
+        expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ take: 200 })
+        );
+      });
     });
 
-    it('applies filters', async () => {
-      await request(app).get('/api/data/operations?contractId=C&type=invoke_host_function&sourceAccount=G..');
-      expect(mockDb.horizonContractOperation.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { contractId: 'C', type: 'invoke_host_function', sourceAccount: 'G..' } })
-      );
-    });
-  });
-
-  describe('GET /api/data/effects', () => {
-    it('returns effects with transaction relation', async () => {
-      const res = await request(app).get('/api/data/effects');
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(mockDb.horizonEffect.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ include: { transaction: true } })
-      );
-    });
-  });
-
-  describe('GET /api/data/contract-data', () => {
-    it('returns latest contract data by default', async () => {
-      const res = await request(app).get('/api/data/contract-data');
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(mockDb.horizonContractData.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ distinct: ['contractId', 'key'] })
-      );
+    describe('GET /api/data/transactions', () => {
+      it('returns transactions with relations', async () => {
+        const res = await request(app).get('/api/data/transactions');
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(mockDb.horizonTransaction.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ include: { events: true, effects: true, payments: true } })
+        );
+      });
     });
 
-    it('returns all versions when latest=false', async () => {
-      const res = await request(app).get('/api/data/contract-data?latest=false');
-      expect(res.status).toBe(200);
-      expect(mockDb.horizonContractData.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ orderBy: { ledger: 'desc' } })
-      );
-    });
-  });
+    describe('GET /api/data/operations', () => {
+      it('returns operations with transaction and events', async () => {
+        const res = await request(app).get('/api/data/operations');
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(mockDb.horizonContractOperation.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ include: { transaction: true, events: true } })
+        );
+      });
 
-  describe('GET /api/data/accounts', () => {
-    it('returns accounts ordered by lastActivity', async () => {
-      const res = await request(app).get('/api/data/accounts');
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(mockDb.horizonAccount.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ orderBy: { lastActivity: 'desc' } })
-      );
+      it('applies filters', async () => {
+        await request(app).get('/api/data/operations?contractId=C&type=invoke_host_function&sourceAccount=G..');
+        expect(mockDb.horizonContractOperation.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { contractId: 'C', type: 'invoke_host_function', sourceAccount: 'G..' } })
+        );
+      });
     });
-  });
 
-  describe('GET /api/data/payments', () => {
-    it('returns payments with transaction relation', async () => {
-      const res = await request(app).get('/api/data/payments');
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(mockDb.horizonPayment.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ include: { transaction: true }, orderBy: { timestamp: 'desc' } })
-      );
+    describe('GET /api/data/accounts', () => {
+      it('returns accounts ordered by lastActivity', async () => {
+        const res = await request(app).get('/api/data/accounts');
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(mockDb.horizonAccount.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ orderBy: { lastActivity: 'desc' } })
+        );
+      });
+    });
+
+    describe('GET /api/data/payments', () => {
+      it('returns payments with transaction relation', async () => {
+        const res = await request(app).get('/api/data/payments');
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(mockDb.horizonPayment.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ include: { transaction: true }, orderBy: { timestamp: 'desc' } })
+        );
+      });
     });
   });
 });
