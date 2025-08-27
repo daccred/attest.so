@@ -18,7 +18,7 @@
  * real-world protocol behavior.
  */
 
-import { describe, it, expect, beforeAll, test } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
 import { bls12_381 } from '@noble/curves/bls12-381'
 import { sha256 } from '@noble/hashes/sha2'
@@ -121,7 +121,7 @@ describe('Delegated Attestation Integration Tests', () => {
     expect(res.isOk()).toBe(true)
   }, 60000)
 
-  test.todo('should retrieve the registered BLS public key', async () => {
+  it('should retrieve the registered BLS public key', async () => {
     const tx = await protocolClient.get_bls_key({
       attester: attesterKp.publicKey()
     })
@@ -276,25 +276,32 @@ describe('Delegated Attestation Integration Tests', () => {
   }, 30000)
 
   it('should create and submit a delegated revocation request', async () => {
-    // if (!attestationUid) {
-    //   console.log('Skipping revocation test - no attestation UID available from direct attestation')
-    //   return
-    // }
 
-    const attestationUid = generateAttestationUid(schemaUid, attesterKp.publicKey(), BigInt(0))
+    const delegatedRevokeClient = new ProtocolContract.Client({
+      contractId: config.protocolContractId,
+      networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
+      rpcUrl: config.rpcUrl,
+      allowHttp: true,
+      publicKey: transactionRelayerKp.publicKey()
+    })
+ 
 
     // Get current nonce
-    const nonceTx = await protocolClient.get_attester_nonce({
+    const nonceTx = await delegatedRevokeClient.get_attester_nonce({
       attester: attesterKp.publicKey()
     })
     await nonceTx.simulate()
     const nonce = nonceTx.result
+
+    const attestationUid = generateAttestationUid(schemaUid, subjectKp.publicKey(), BigInt(0))
 
     const attestationTx = await protocolClient.get_attestation({
       attestation_uid: attestationUid
     })
     await attestationTx.simulate()
     const attestationResult = attestationTx.result as ProtocolContract.contract.Result<ProtocolContract.Attestation>
+
+    console.log(`========Delegated Attestation To Revoke =======:`, {attestationResult})
     const attestation = attestationResult.unwrap()
 
     // Create deadline (1 hour from now)
@@ -308,7 +315,7 @@ describe('Delegated Attestation Integration Tests', () => {
         signature: Buffer.alloc(96),
         revoker: attestation.attester,
         schema_uid: attestation.schema_uid,
-        subject: ''
+        subject: attestation.subject
     }
 
     // Get the DST for revocation signing
@@ -327,7 +334,7 @@ describe('Delegated Attestation Integration Tests', () => {
     delegatedRequest.signature = Buffer.from(signature.toBytes(false))
 
     // Submit the delegated revocation
-    const tx = await protocolClient.revoke_by_delegation({
+    const tx = await delegatedRevokeClient.revoke_by_delegation({
       submitter: transactionRelayerKp.publicKey(),
       request: delegatedRequest
     }, {
@@ -336,41 +343,14 @@ describe('Delegated Attestation Integration Tests', () => {
     })
 
     const needsSigningBy = tx.needsNonInvokerSigningBy()
-
     console.log(`========Needs Signing By=======: ${needsSigningBy}`)
-
-    for (const signerAddress of needsSigningBy) {
-      console.log(`Signing auth entries for: ${signerAddress}`);
-      let keypairToSignWith: Keypair | undefined;
-
-      if (signerAddress === attesterKp.publicKey()) {
-          keypairToSignWith = attesterKp;
-      } else if (signerAddress === subjectKp.publicKey()) {
-          keypairToSignWith = subjectKp;
-      } else if (signerAddress === transactionRelayerKp.publicKey()) {
-          keypairToSignWith = transactionRelayerKp;
-      }
-
-      if (keypairToSignWith) {
-        await tx.signAuthEntries({
-          signAuthEntry: async (hash: string) => {
-            const signature = keypairToSignWith!.sign(Buffer.from(hash, 'hex'));
-            return {
-              publicKey: keypairToSignWith!.publicKey(),
-              signature: signature,
-              signedAuthEntry: signature.toString('hex'), // Assuming hex encoding
-            }
-          },
-        });
-      } else {
-        console.warn(`Don't have the keypair for required signer: ${signerAddress}`);
-      }
-    }
+ 
 
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-        transaction.sign(transactionRelayerKp) // Relayer signs and pays fees
+        // Relayer signs and pays fees
+        transaction.sign(transactionRelayerKp) 
         return { signedTxXdr: transaction.toXDR() }
       }
     })
