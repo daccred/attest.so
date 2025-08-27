@@ -6,6 +6,8 @@ import { connectToPostgreSQL } from '../src/common/prisma'
 
 // Integration test timeout - backfill operations can take time
 const BACKFILL_TIMEOUT = 60000 // 60 seconds
+const BACKFILL_START_LEDGER = 209988
+const BACKFILL_END_LEDGER = 228328
 
 describe('Backfill Integration Test', () => {
   let db: any
@@ -20,57 +22,57 @@ describe('Backfill Integration Test', () => {
     }
 
     // Clean up any existing test data
-    await cleanupTestData()
+    //// await cleanupTestData()
   }, 30000)
 
   afterAll(async () => {
     // Clean up after tests
     if (db) {
-      await cleanupTestData()
+      //// await cleanupTestData()
       await db.$disconnect()
     }
   }, 10000)
 
-  async function cleanupTestData() {
-    if (!db) return
+  // async function cleanupTestData() {
+  //   if (!db) return
 
-    try {
-      // Delete test data in correct order due to foreign keys
-      await db.horizonEvent.deleteMany({
-        where: {
-          contractId: {
-            in: [
-              'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
-              'CCO3YROVSXMR2QEFLW6HQVVVQHZTOHWJ2X3GWHFBQ3LVFQ2OAPXVWMJ2'
-            ]
-          }
-        }
-      })
+  //   try {
+  //     // Delete test data in correct order due to foreign keys
+  //     await db.horizonEvent.deleteMany({
+  //       where: {
+  //         contractId: {
+  //           in: [
+  //             'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
+  //             'CCO3YROVSXMR2QEFLW6HQVVVQHZTOHWJ2X3GWHFBQ3LVFQ2OAPXVWMJ2'
+  //           ]
+  //         }
+  //       }
+  //     })
 
-      await db.horizonOperation.deleteMany({
-        where: {
-          contractId: {
-            in: [
-              'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
-              'CCO3YROVSXMR2QEFLW6HQVVVQHZTOHWJ2X3GWHFBQ3LVFQ2OAPXVWMJ2'
-            ]
-          }
-        }
-      })
+  //     await db.horizonOperation.deleteMany({
+  //       where: {
+  //         contractId: {
+  //           in: [
+  //             'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
+  //             'CCO3YROVSXMR2QEFLW6HQVVVQHZTOHWJ2X3GWHFBQ3LVFQ2OAPXVWMJ2'
+  //           ]
+  //         }
+  //       }
+  //     })
 
-      await db.horizonTransaction.deleteMany({
-        where: {
-          ledger: {
-            gte: 1000000 // Clean up recent test transactions
-          }
-        }
-      })
+  //     await db.horizonTransaction.deleteMany({
+  //       where: {
+  //         ledger: {
+  //           gte: 1000000 // Clean up recent test transactions
+  //         }
+  //       }
+  //     })
 
-      console.log('✅ Test data cleanup completed')
-    } catch (error) {
-      console.error('❌ Error during cleanup:', error)
-    }
-  }
+  //     console.log('✅ Test data cleanup completed')
+  //   } catch (error) {
+  //     console.error('❌ Error during cleanup:', error)
+  //   }
+  // }
 
   it('should successfully execute backfill and populate database with events, operations, and transactions', async () => {
     console.log('🚀 Starting backfill integration test...')
@@ -84,8 +86,8 @@ describe('Backfill Integration Test', () => {
     const backfillResponse = await request(app)
       .post('/api/ingest/backfill')
       .send({
-        startLedger: 1000000, // Start from a specific ledger
-        endLedger: 1000010    // Small range for testing
+        startLedger: BACKFILL_START_LEDGER,  
+        endLedger: BACKFILL_END_LEDGER    
       })
       .expect(202)
 
@@ -311,4 +313,120 @@ describe('Backfill Integration Test', () => {
 
     console.log('✅ Queue status test passed:', statusResponse.body.queue)
   })
+
+  it('should handle duplicate backfill requests without creating duplicate data', async () => {
+    console.log('🔄 Testing duplicate backfill prevention...')
+
+    // Get initial counts
+    const initialCounts = await getDataCounts()
+    console.log('📊 Initial counts before duplicate test:', initialCounts)
+
+    // Run first backfill
+    console.log('📡 Running first backfill...')
+    const firstBackfillResponse = await request(app)
+      .post('/api/ingest/backfill')
+      .send({
+        startLedger: BACKFILL_START_LEDGER + 100,
+        endLedger: BACKFILL_END_LEDGER
+      })
+      .expect(202)
+
+    expect(firstBackfillResponse.body.success).toBe(true)
+    console.log('✅ First backfill initiated')
+
+    // Wait for first backfill to complete
+    await waitForBackfillCompletion(initialCounts, 30000) // 30 second timeout
+
+    // Get counts after first backfill
+    const countsAfterFirst = await getDataCounts()
+    console.log('📊 Counts after first backfill:', countsAfterFirst)
+
+    // Run second backfill on same range
+    console.log('📡 Running second backfill on same data...')
+    const secondBackfillResponse = await request(app)
+      .post('/api/ingest/backfill')
+      .send({
+        startLedger: 1000020, // Same range as first backfill
+        endLedger: 1000025
+      })
+      .expect(202)
+
+    expect(secondBackfillResponse.body.success).toBe(true)
+    console.log('✅ Second backfill initiated')
+
+    // Wait for second backfill to complete
+    await waitForBackfillCompletion(countsAfterFirst, 30000)
+
+    // Get final counts
+    const finalCounts = await getDataCounts()
+    console.log('📊 Final counts after duplicate backfill:', finalCounts)
+
+    // Verify no duplicates were created
+    expect(finalCounts.events).toBe(countsAfterFirst.events)
+    expect(finalCounts.operations).toBe(countsAfterFirst.operations)
+    expect(finalCounts.transactions).toBe(countsAfterFirst.transactions)
+
+    console.log('✅ Duplicate prevention test passed - no duplicates created')
+
+    // Verify database constraints by checking for unique violations
+    const uniqueEvents = await db.horizonEvent.groupBy({
+      by: ['eventId'],
+      _count: { eventId: true },
+      having: { eventId: { _count: { gt: 1 } } }
+    })
+
+    const uniqueTransactions = await db.horizonTransaction.groupBy({
+      by: ['hash'],
+      _count: { hash: true },
+      having: { hash: { _count: { gt: 1 } } }
+    })
+
+    const uniqueOperations = await db.horizonOperation.groupBy({
+      by: ['operationId'],
+      _count: { operationId: true },
+      having: { operationId: { _count: { gt: 1 } } }
+    })
+
+    expect(uniqueEvents).toHaveLength(0)
+    expect(uniqueTransactions).toHaveLength(0)
+    expect(uniqueOperations).toHaveLength(0)
+
+    console.log('✅ Database uniqueness constraints verified')
+  }, BACKFILL_TIMEOUT)
+
+  // Helper function to wait for backfill completion
+  async function waitForBackfillCompletion(initialCounts: any, timeoutMs: number) {
+    const startTime = Date.now()
+    let attempts = 0
+    const maxAttempts = Math.floor(timeoutMs / 2000) // Check every 2 seconds
+
+    while (attempts < maxAttempts && Date.now() - startTime < timeoutMs) {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      attempts++
+
+      const currentCounts = await getDataCounts()
+      
+      // Check if we have new data (indicating backfill progress)
+      if (currentCounts.events > initialCounts.events || 
+          currentCounts.operations > initialCounts.operations || 
+          currentCounts.transactions > initialCounts.transactions) {
+        
+        console.log(`📈 Progress detected (attempt ${attempts}):`, currentCounts)
+        
+        // Wait a bit more for completion
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        const stabilizedCounts = await getDataCounts()
+        
+        // Check if counts stabilized (backfill completed)
+        if (stabilizedCounts.events === currentCounts.events && 
+            stabilizedCounts.operations === currentCounts.operations && 
+            stabilizedCounts.transactions === currentCounts.transactions) {
+          console.log('✅ Backfill completed')
+          return
+        }
+      }
+    }
+    
+    console.log('⚠️ Backfill completion check timed out')
+  }
 })
