@@ -25,99 +25,93 @@ ROOT/
 
 ### 2. **Contracts Directory Structure**
 
-Within the `contracts/` directory, each blockchain platform has its own subdirectory. Each platform-specific directory contains the implementations for the protocols (e.g., attestation service, resolver, and schema registry) relevant to that platform.
+Within the `contracts/` directory, each blockchain platform has its own subdirectory. This directory contains the smart contract implementations for the core components of the attestation protocol.
 
-The general structure within each blockchain directory will include:
+For our Stellar implementation, the structure is organized as follows:
 
-- **`attestation-service/`**: Handles attestation-related functionality.
-- **`resolver/`**: Manages schema resolution logic.
-- **`schema-registry/`**: Handles schema registration and management.
+- **`authority/`**: Manages the registration, verification, and resolution of attestation authorities.
+- **`protocol/`**: Contains the core logic for creating, revoking, and managing attestations.
+- **`resolvers/`**: Provides on-chain mechanisms for resolving schemas and attestations.
 
-To avoid **redundant naming patterns**, **do not** repeat the platform name inside the subdirectory names. Since the blockchain platform is already defined by the parent directory, prefixing subdirectory names with the platform (e.g., `solana-attestation-service`) is unnecessary and creates redundancy.
+This modular structure is tailored for the Soroban environment and is our primary implementation. Other blockchain platforms should follow a similar modular approach, although the specific directory names may vary based on the platform's architecture.
 
-#### Contracts Structure Example
+#### Stellar Contracts Structure Example
 
 ```bash
 contracts/
-├── solana/
-│   ├── programs/
-│   │   ├── attestation-service/
-│   │   ├── resolver/
-│   │   └── schema-registry/
-│   ├── README.md
-│   ├── Cargo.toml
-│   └── Anchor.toml
-├── starknet/
-│   ├── programs/
-│   │   ├── attestation-service/
-│   │   ├── resolver/
-│   │   └── schema-registry/
-│   ├── README.md
-│   ├── Cairo.toml
-│   └── starknet-config.toml
-├── cosmos/
-│   ├── programs/
-│   │   ├── attestation-service/
-│   │   ├── resolver/
-│   │   └── schema-registry/
-│   ├── README.md
-│   └── cosmos-config.toml
+|-- stellar/
+|   |-- authority/
+|   |-- protocol/
+|   |-- resolvers/
+|   |-- Cargo.toml
+|   |-- README.md
+|-- solana/
+|   |-- programs/
+|   |   |-- attestation-service/
+|   |   |-- resolver/
+|   |   |-- schema-registry/
+|   |-- Anchor.toml
+|-- starknet/
+|   |-- ...
 ```
 
 ### 3. **Naming Conventions**
 
 #### a. **Platform-Specific Directory Names**
 
-Each blockchain platform (e.g., Solana, Starknet, Cosmos) will have its own subdirectory inside the `contracts/` directory. The name of this subdirectory will be the platform's name in lowercase (e.g., `solana/`, `starknet/`, `cosmos/`). This ensures that the monorepo remains organized by platform.
+Each blockchain platform (e.g., Stellar, Solana, Starknet) will have its own subdirectory inside the `contracts/` directory. The name of this subdirectory will be the platform's name in lowercase (e.g., `stellar/`, `solana/`).
 
 #### b. **Protocol-Specific Directory Names**
 
-Inside each platform-specific directory, use **concise protocol names** without repeating the platform name. The directory names should describe the protocol functionality:
+Inside each platform-specific directory, use **concise, descriptive names** for the different components of the protocol. Avoid repeating the platform name, as the context is already provided by the parent directory.
 
-- `attestation-service/`
-- `resolver/`
-- `schema-registry/`
+For our Stellar implementation, we use:
 
-This avoids redundancy. For example, instead of `solana-attestation-service/`, just use `attestation-service/` since it's already inside the `solana/` directory.
+- `authority/`
+- `protocol/`
+- `resolvers/`
 
-#### Example (Solana):
+This avoids redundancy. For example, instead of `stellar-authority/`, we just use `authority/` inside the `stellar/` directory.
+
+#### Example (Stellar):
 
 ```bash
-contracts/solana/programs/
-├── attestation-service/
-├── resolver/
-└── schema-registry/
+contracts/stellar/
+|-- authority/
+|-- protocol/
+|-- resolvers/
 ```
 
-By eliminating platform prefixes inside platform-specific directories, we reduce file path verbosity and avoid redundancy.
+By eliminating platform prefixes, we reduce file path verbosity and keep the structure clean and readable.
 
-### 4. **Packages for Shared Logic**
+### 4. **Packages for Shared and Specialized Logic**
 
-The `packages/` directory is used for shared logic and reusable modules across multiple platforms. These could include common logic for attestation services, resolvers, or schema registries, which can be imported into the platform-specific implementations.
+The `packages/` directory is used for shared logic, SDKs, and reusable modules.
 
-Each package should be named clearly to indicate its purpose, with no reference to a specific platform (e.g., `attestation-common/`, `resolver-common/`).
+- **`sdk/`**: A multi-chain TypeScript SDK providing a unified interface for interacting with the attestation protocol on any supported blockchain.
+- **`stellar-sdk/`**: A specialized package containing utilities, types, and helpers specifically for interacting with the Stellar/Soroban implementation. This allows for more granular control and access to Stellar-specific features.
+- **`common/`**: Shared utilities and types used across the monorepo.
 
 #### Packages Structure Example:
 
 ```bash
 packages/
-├── attestation-common/
-├── resolver-common/
-└── schema-registry-common/
+|-- sdk/
+|-- stellar-sdk/
+|-- cli/
+|-- common/
 ```
 
 ### 5. **Redundant Naming: Pitfall & Solution**
 
-#### **Pitfall:**
-
-Redundant naming patterns can occur when platform-specific prefixes (e.g., `solana-`, `starknet-`) are used in both the directory and subdirectory names. For example, having `solana/solana-attestation-service/` repeats the platform name unnecessarily, leading to longer and more verbose file paths.
+Redundant naming patterns occur when platform-specific prefixes (e.g., `stellar-`) are used in both the directory and subdirectory names. For example, `stellar/stellar-protocol/` repeats the platform name unnecessarily.
 
 #### **Solution:**
 
-To avoid redundant naming:
+To avoid this:
 
-- **Do not prefix subdirectories** inside platform-specific directories with the platform name.
-- **Use concise, protocol-specific names** (e.g., `attestation-service/`, `resolver/`, `schema-registry/`) inside the platform directory. The platform context is already provided by the parent folder.
+- **Do not prefix subdirectories** inside a platform-specific directory with the platform name.
+- **Use concise, protocol-specific names** (e.g., `authority/`, `protocol/`) inside the platform directory.
 
 #### Example of Avoiding Redundancy:
 
@@ -125,67 +119,63 @@ Instead of this redundant structure:
 
 ```bash
 contracts/
-├── solana/
-│   ├── programs/
-│   │   ├── solana-attestation-service/
-│   │   ├── solana-resolver/
-│   │   └── solana-schema-registry/
+|-- stellar/
+|   |-- stellar-authority/
+|   |-- stellar-protocol/
+|   |-- stellar-resolvers/
 ```
 
 Use this simplified, non-redundant structure:
 
 ```bash
 contracts/
-├── solana/
-│   ├── programs/
-│   │   ├── attestation-service/
-│   │   ├── resolver/
-│   │   └── schema-registry/
+|-- stellar/
+|   |-- authority/
+|   |-- protocol/
+|   |-- resolvers/
 ```
 
 ### 6. **Cross-Platform Consistency**
 
-While each blockchain platform may have unique requirements, it is important to maintain consistency across all platforms in terms of directory structure and naming conventions. This ensures that developers can quickly navigate the monorepo, regardless of the platform they are working on.
+While each blockchain platform has unique architectural patterns, we strive for conceptual consistency. The core components of `authority`, `protocol`, and `resolvers` found in our Stellar implementation should have logical equivalents on other platforms, even if the directory names differ.
 
-- **Use the same protocol names across platforms**: For example, always use `attestation-service/`, `resolver/`, and `schema-registry/` for those protocols, regardless of the blockchain platform.
+- **Maintain conceptual consistency**: The core ideas of authority management, attestation logic, and resolution should be present across all platforms.
+- **Adapt to platform conventions**: Use naming conventions and structures that are idiomatic for each specific blockchain (e.g., `programs/` for Solana/Anchor).
 
 #### Example:
 
 ```bash
 contracts/
-├── solana/
-│   ├── programs/
-│   │   ├── attestation-service/
-│   │   ├── resolver/
-│   │   └── schema-registry/
-├── starknet/
-│   ├── programs/
-│   │   ├── attestation-service/
-│   │   ├── resolver/
-│   │   └── schema-registry/
-├── cosmos/
-│   ├── programs/
-│   │   ├── attestation-service/
-│   │   ├── resolver/
-│   │   └── schema-registry/
+|-- stellar/
+|   |-- authority/
+|   |-- protocol/
+|   |-- resolvers/
+|-- solana/
+|   |-- programs/
+|   |   |-- attestation-service/  # Conceptual equivalent of protocol/
+|   |   |-- resolver/             # Conceptual equivalent of resolvers/
+|   |   |-- schema-registry/
+|-- starknet/
+|   |-- ... # Follow Starknet conventions
 ```
 
 ### 7. **Versioning and Package Management**
 
-For version control, ensure that changes in shared packages (inside `packages/`) are properly versioned. Use **semantic versioning** and **automated versioning tools** like **Lerna** or **changesets** to manage dependency updates across platform-specific directories and protocols.
+For version control, ensure that changes in shared packages (e.g., `sdk/`, `stellar-sdk/`) are properly versioned. We use **pnpm workspaces** and **changesets** to manage dependencies and publish updates.
 
-- **Use semantic versioning**: Follow the format `major.minor.patch` for updates.
-- **Selective builds**: Set up CI pipelines to handle selective builds and tests, ensuring that platform-specific updates are isolated where necessary.
+- **Use semantic versioning**: Follow `major.minor.patch` for all package updates.
+- **Isolate builds**: Our CI/CD pipeline is configured to run tests and builds specific to the packages that have changed, ensuring that updates to our Stellar contracts don't trigger unnecessary builds for Solana.
 
 ### Conclusion
 
-This naming convention is designed to reduce redundancy, enhance clarity, and ensure scalability across multiple blockchain platforms. By following these guidelines, contributors can maintain consistency, avoid verbose file paths, and create a modular, maintainable structure as the project grows.
+This naming convention, centered around our production-ready Stellar implementation, is designed to provide a clear, scalable, and non-redundant structure for our multi-chain monorepo. By following these guidelines, contributors can maintain consistency and easily navigate the project as it evolves.
 
 #### Key Points:
 
-- **Avoid platform-specific prefixes** inside platform directories to reduce redundancy.
-- **Keep protocol-specific directory names concise** and consistent across platforms.
-- Use the `packages/` directory for shared logic and utilities.
-- Maintain version consistency and set up selective builds for platform-specific changes.
+- **Stellar as the blueprint**: Our Stellar contract structure (`authority/`, `protocol/`, `resolvers/`) serves as the primary example of our modular approach.
+- **Avoid platform prefixes** inside platform-specific directories to reduce redundancy.
+- **Keep directory names concise** and consistent.
+- **Use the `packages/` directory for shared and specialized SDKs** and utilities.
+- **Maintain version consistency** with `pnpm` and `changesets`.
 
 Contributors should adhere to these conventions to ensure a well-organized and scalable project structure.
