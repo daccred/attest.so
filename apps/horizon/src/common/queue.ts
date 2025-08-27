@@ -95,7 +95,7 @@ class IngestQueue extends EventEmitter {
    * @method start
    * @returns {void}
    */
-  start() {
+  start(): void {
     if (this.isRunning) return
     this.isRunning = true
     this.intervalHandle = setInterval(() => this.tick(), this.pollIntervalMs)
@@ -115,7 +115,7 @@ class IngestQueue extends EventEmitter {
    * @method stop
    * @returns {void}
    */
-  stop() {
+  stop(): void {
     this.isRunning = false
     if (this.intervalHandle) clearInterval(this.intervalHandle)
     this.intervalHandle = null
@@ -140,7 +140,7 @@ class IngestQueue extends EventEmitter {
   enqueueFetchEvents(
     startLedger?: number,
     opts?: { maxAttempts?: number; delayMs?: number; endLedger?: number }
-  ) {
+  ): string {
     const job: IngestJob = {
       id: `fetch-events-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       type: 'fetch-events',
@@ -180,7 +180,7 @@ class IngestQueue extends EventEmitter {
     contractIds: string[],
     startLedger?: number,
     opts?: { maxAttempts?: number; delayMs?: number; includeFailedTx?: boolean }
-  ) {
+  ): string {
     const job: IngestJob = {
       id: `contract-ops-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       type: 'fetch-contract-operations',
@@ -219,7 +219,7 @@ class IngestQueue extends EventEmitter {
     contractIds: string[],
     startLedger?: number,
     opts?: { maxAttempts?: number; delayMs?: number; endLedger?: number }
-  ) {
+  ): string {
     const job: IngestJob = {
       id: `comprehensive-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       type: 'fetch-comprehensive-data',
@@ -251,7 +251,7 @@ class IngestQueue extends EventEmitter {
    * @returns {boolean} status.running - Whether queue is actively processing
    * @returns {Array} status.nextJobs - Array of up to 10 upcoming jobs with details
    */
-  getStatus() {
+  getStatus(): object {
     return {
       size: this.pendingJobs.length,
       running: this.isRunning,
@@ -276,7 +276,7 @@ class IngestQueue extends EventEmitter {
    * @method tick
    * @returns {Promise<void>} Completes when job processing cycle is done
    */
-  private async tick() {
+  private async tick(): Promise<void> {
     if (this.processing) return
     const now = Date.now()
     const idx = this.pendingJobs.findIndex((j) => j.nextRunAt <= now)
@@ -421,7 +421,7 @@ class IngestQueue extends EventEmitter {
    * @param {number} attemptIndexZeroBased - Zero-based attempt number for backoff calculation
    * @returns {number} Backoff delay in milliseconds
    */
-  private computeBackoffMs(attemptIndexZeroBased: number) {
+  private computeBackoffMs(attemptIndexZeroBased: number): number {
     // exponential backoff with jitter: base * 2^n +/- 20%
     const factor = Math.pow(2, attemptIndexZeroBased)
     const base = this.baseBackoffMs * factor

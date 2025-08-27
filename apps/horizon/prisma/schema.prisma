@@ -7,17 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model HorizonMetadata {
-  id    String @id @default(uuid())
-  key   String @unique
-  value String
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@map("horizon_metadata")
-}
-
 model HorizonEvent {
   id          String   @id @default(uuid())
   eventId     String   @unique
@@ -40,7 +29,6 @@ model HorizonEvent {
   transaction HorizonTransaction? @relation(fields: [txHash], references: [hash])
   contractOperation HorizonContractOperation? @relation(fields: [contractOperationId], references: [id])
   contractOperationId String?
-  effects     HorizonEffect[]
   
   // Indexer metadata
   ingestedAt  DateTime @default(now())
@@ -76,7 +64,6 @@ model HorizonTransaction {
   
   // Relations
   events            HorizonEvent[]
-  effects          HorizonEffect[]
   payments         HorizonPayment[]
   
   // Indexer metadata
@@ -87,56 +74,6 @@ model HorizonTransaction {
   @@index([sourceAccount])
   @@index([successful])
   @@map("horizon_transactions")
-}
-
-model HorizonEffect {
-  id              String   @id @default(uuid())
-  effectId        String   @unique
-  operationId     String
-  transactionHash String
-  type            String
-  typeI           Int
-  details         Json
-  account         String?
-  eventId         String?
-  
-  // Relations
-  transaction     HorizonTransaction @relation(fields: [transactionHash], references: [hash])
-  event           HorizonEvent? @relation(fields: [eventId], references: [id])
-  
-  // Indexer metadata
-  ingestedAt      DateTime @default(now())
-  
-  @@index([operationId])
-  @@index([transactionHash])
-  @@index([type])
-  @@index([account])
-  @@map("horizon_effects")
-}
-
-model HorizonContractData {
-  id            String   @id @default(uuid())
-  contractId    String
-  key           String
-  value         Json
-  durability    String   // "persistent" or "temporary"
-  ledger        Int
-  timestamp     DateTime
-  
-  // Track data evolution
-  previousValue Json?
-  isDeleted     Boolean  @default(false)
-  
-  // Indexer metadata
-  ingestedAt    DateTime @default(now())
-  lastUpdated   DateTime @updatedAt
-  
-  @@unique([contractId, key, ledger])
-  @@index([contractId])
-  @@index([ledger])
-  @@index([timestamp])
-  @@index([durability])
-  @@map("horizon_contract_data")
 }
 
 model HorizonAccount {
