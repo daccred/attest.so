@@ -5,14 +5,11 @@
       "semantic-release-plugin-update-version-in-files",
       {
         "files": [
-          "src/lib/version.ts",
-          "dist/main/lib/version.js",
-          "dist/main/lib/version.d.ts",
-          "dist/module/lib/version.js",
-          "dist/module/lib/version.d.ts",
-          "dist/umd/attestprotocol.js"
+          "dist/index.js",
+          "dist/index.mjs",
+          "dist/index.d.ts"
         ],
-        "placeholder": "0.0.15"
+        "placeholder": "2.1.0"
       }
     ],
     "@semantic-release/commit-analyzer",

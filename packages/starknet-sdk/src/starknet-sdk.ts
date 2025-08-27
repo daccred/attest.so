@@ -358,7 +358,7 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
 
       const { transaction_hash } = await this.account.execute({
         contractAddress: this.contractAddress,
-        entrypoint: 'revoke_attestation',
+        entrypoint: 'revoke',
         calldata
       })
 

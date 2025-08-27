@@ -22,4 +22,12 @@ pub enum Error {
     InvalidSchemaDefinition = 16,
     InvalidAttestationValue = 17,
     InvalidReference = 18,
-} 
+    InvalidNonce = 19,
+    ExpiredSignature = 20,
+    InvalidSignature = 21,
+    AttestationExpired = 22,
+    InvalidDeadline = 23,
+    ResolverCallFailed = 24,
+    InvalidSignaturePoint = 25,
+    BlsPubKeyNotRegistered = 26,
+}

@@ -14,8 +14,16 @@ pub enum Error {
     AttesterNotAuthority = 5,
     SchemaNotRegistered = 6,
     InvalidSchemaRules = 7,
-    InsufficientPayment = 8,   // For registration fee
+    InsufficientPayment = 8, // For registration fee
     NothingToWithdraw = 9,
-    TokenTransferFailed = 10,  // Deprecated/internal - transfer panics
-    WithdrawalFailed = 11,     // Deprecated/internal - transfer panics
-} 
+    TokenTransferFailed = 10, // Deprecated/internal - transfer panics
+    WithdrawalFailed = 11,    // Deprecated/internal - transfer panics
+
+    // Trusted Verifier Errors
+    UnauthorizedVerifier = 12,
+    VerifierInactive = 13,
+    ExceedsVerificationLevel = 14,
+    InvalidVerificationLevel = 15,
+    VerifierNotFound = 16,
+    InvalidAuthorityData = 17,
+}

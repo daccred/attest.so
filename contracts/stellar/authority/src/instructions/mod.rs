@@ -1,2 +1,2 @@
 pub mod admin;
-pub mod resolver; 
+pub mod resolver;

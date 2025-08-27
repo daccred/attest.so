@@ -1,7 +1,13 @@
+pub mod attestation;
+pub mod crypto;
+pub mod delegation;
 pub mod schema;
-pub mod attest;
-pub mod revoke;
 
-pub use schema::{register_schema};
-pub use attest::{attest, get_attest};
-pub use revoke::revoke_attest;
+// Pub use all functions from the submodules to make them accessible from the parent `instructions` module.
+pub use self::attestation::{attest, get_attestation_record, revoke_attestation};
+pub use self::crypto::{get_bls_public_key, register_bls_public_key, verify_bls_signature};
+pub use self::delegation::{
+    attest_by_delegation, create_attestation_message, create_revocation_message, get_attest_dst, get_revoke_dst,
+    revoke_by_delegation,
+};
+pub use self::schema::register_schema;

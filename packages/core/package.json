@@ -1,16 +1,16 @@
 {
   "name": "@attestprotocol/core",
   "description": "Core abstractions and interfaces for Attest Protocol SDKs",
-  "version": "0.1.0",
+  "version": "1.7.0",
   "author": "daccred",
-  "license": "MIT",
-  "repository": "daccred/attest.so.git",
   "bugs": "https://github.com/daccred/attest.so/issues",
-  "homepage": "https://github.com/daccred/attest.so#readme",
-  "keywords": ["attestation", "blockchain", "core", "sdk", "abstract"],
-  "main": "dist/index.js",
-  "module": "dist/esm/index.js",
-  "types": "dist/index.d.ts",
+  "devDependencies": {
+    "@types/node": "^24.2.1",
+    "prettier": "^3.2.5",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.2",
+    "vitest": "^3.2.4"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,7 +18,26 @@
       "require": "./dist/index.js"
     }
   },
-  "files": ["dist", "src"],
+  "files": [
+    "dist",
+    "src"
+  ],
+  "homepage": "https://github.com/daccred/attest.so#readme",
+  "keywords": [
+    "abstract",
+    "attestation",
+    "blockchain",
+    "core",
+    "sdk"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/esm/index.js",
+  "peerDependencies": {},
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": "daccred/attest.so.git",
   "scripts": {
     "build": "pnpm clean && pnpm build:cjs && pnpm build:esm && pnpm build:types",
     "build:cjs": "tsc -p tsconfig.json",
@@ -27,20 +46,8 @@
     "clean": "rimraf dist",
     "dev": "tsc --watch",
     "format": "prettier --write \"src/**/*.ts\"",
-    "lint": "eslint src --ext .ts",
     "test": "vitest",
     "test:coverage": "vitest --coverage"
   },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "eslint": "^8.0.0",
-    "prettier": "^3.0.0",
-    "rimraf": "^6.0.1",
-    "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
-  },
-  "peerDependencies": {},
-  "publishConfig": {
-    "access": "public"
-  }
+  "types": "dist/index.d.ts"
 }

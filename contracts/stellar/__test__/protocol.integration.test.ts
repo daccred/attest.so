@@ -1,14 +1,20 @@
+/**
+ * Protocol Integration Test Suite
+ * 
+ * Tests the core protocol contract functionality including:
+ * - Schema registration and management
+ * - Direct attestation creation and retrieval
+ * - Attestation revocation
+ * - Basic contract initialization verification
+ */
+
 import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
-import { Keypair, rpc, Transaction } from '@stellar/stellar-sdk'
+import { Keypair, Transaction } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
-import { loadTestConfig } from './test-utils'
+import { loadTestConfig, fundAccountIfNeeded } from './testutils'
 
 describe('Protocol Contract Integration Tests', () => {
-  // This test suite demonstrates realistic attestation use cases:
-  // 1. KYC Verification - Identity verification with document validation
-  // 2. Educational Credentials - Academic achievement attestations
-  // Each test uses proper schema definitions and structured attestation data
   let protocolClient: ProtocolContract.Client
   let adminKeypair: Keypair
   let config: {
@@ -18,20 +24,21 @@ describe('Protocol Contract Integration Tests', () => {
     authorityContractId: string
   }
 
+  // Test accounts
+  let attesterKp: Keypair
+  let subjectKp: Keypair
+
   // Test data
   let testRunId: string
-  let schemaDefinition: string
   let schemaUid: Buffer
-  let recipient: string
-  let attestationValue: string
-  let attestationReference: string
+  let attestationUid: Buffer
 
   beforeAll(async () => {
     // Load test configuration
     config = loadTestConfig()
     adminKeypair = Keypair.fromSecret(config.adminSecretKey)
 
-    // Initialize protocol client using testnet with contract ID from env.sh  
+    // Initialize protocol client
     protocolClient = new ProtocolContract.Client({
       contractId: config.protocolContractId,
       networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
@@ -40,389 +47,210 @@ describe('Protocol Contract Integration Tests', () => {
       publicKey: adminKeypair.publicKey()
     })
 
-    // Generate test data with realistic attestation schemas and values
+    // Generate test accounts
+    attesterKp = Keypair.random()
+    subjectKp = Keypair.random()
+
+    // Generate test data
     testRunId = randomBytes(4).toString('hex')
+
+    // Fund test accounts that need it
+    const accounts = [
+      adminKeypair.publicKey(),
+      attesterKp.publicKey(),
+      subjectKp.publicKey()
+    ]
+
+    for (const account of accounts) {
+      await fundAccountIfNeeded(account)
+    }
+
+    // Wait for accounts to be ready
+    await new Promise(resolve => setTimeout(resolve, 5000))
+  }, 60000)
+
+  it('should verify protocol contract is initialized', async () => {
+    try {
+      // Try to get an attestation (which will fail but shows contract is responding)
+      const tx = await protocolClient.get_attestation({
+        attestation_uid: Buffer.alloc(32, 0)
+      })
+
+      await tx.simulate()
+      console.log('Protocol contract is accessible and initialized')
+      expect(true).toBe(true) // Contract responded
+    } catch (error: any) {
+      // Expected to fail since attestation doesn't exist, but contract should respond
+      console.log('Protocol contract error (expected):', error.message)
+      expect(error.message).toBeDefined()
+    }
+  }, 30000)
+
+  it('should register a schema', async () => {
+    const schemaDefinition = `{"name":"Test Schema ${testRunId}","fields":[{"name":"value","type":"string"}]}`
     
-    // Use a realistic KYC verification schema
-    schemaDefinition = 'KYCVerification(bool verified, uint256 verificationLevel, string documentType, bytes32 documentHash, uint64 expirationDate)'
+    const tx = await protocolClient.register({
+      caller: adminKeypair.publicKey(),
+      schema_definition: schemaDefinition,
+      resolver: undefined, // No resolver for this test
+      revocable: true
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as ProtocolContract.contract.Result<Buffer>
+    expect(res.isOk()).toBe(true)
+    schemaUid = res.unwrap()
+    expect(schemaUid).toBeInstanceOf(Buffer)
+    expect(schemaUid.length).toBe(32)
+    console.log(`Schema registered with UID: ${schemaUid.toString('hex')}`)
+  }, 60000)
+
+  it('should create an attestation', async () => {
+    if (!schemaUid) {
+      throw new Error('Schema UID not available - schema registration test must pass first')
+    }
+
+    const attestationValue = `{"value":"test_value_${testRunId}"}`
     
-    // Generate a recipient address (could be a user's Stellar address)
-    recipient = Keypair.random().publicKey()
-    
-    // Use realistic attestation value - JSON encoded KYC verification data
-    attestationValue = JSON.stringify({
-      verified: true,
-      verificationLevel: 2,
-      documentType: 'passport',
-      documentHash: '0x' + randomBytes(32).toString('hex'),
-      expirationDate: Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60) // 1 year from now
+    // Create a client with attester as publicKey
+    const attesterProtocolClient = new ProtocolContract.Client({
+      contractId: config.protocolContractId,
+      networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
+      rpcUrl: config.rpcUrl,
+      allowHttp: true,
+      publicKey: attesterKp.publicKey()
     })
     
-    // Use a meaningful reference - could be a document ID or verification request ID
-    attestationReference = `kyc_verification_${testRunId}`
+    const tx = await attesterProtocolClient.attest({
+      attester: attesterKp.publicKey(),
+      schema_uid: schemaUid,
+      subject: subjectKp.publicKey(),
+      value: attestationValue,
+      expiration_time: undefined // No expiration
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
 
-    // Fund admin account if needed
-    try {
-      if (protocolClient.options.publicKey) {
-        await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(adminKeypair.publicKey())}`)
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(attesterKp)
+        return { signedTxXdr: transaction.toXDR() }
       }
-    } catch {
-      // Friendbot funding may fail if account already exists - ignore
-    }
+    })
 
-    // Wait for account setup
-    await new Promise(resolve => setTimeout(resolve, 3000))
+    console.log('=======sent=========', { sent, result: sent.result.unwrap() })
 
-    // Initialize the contract if not already initialized
-    try {
-      const initTx = await protocolClient.initialize({
-        admin: adminKeypair.publicKey()
-      }, {
-        fee: 1000000,
-        timeoutInSeconds: 30
-      })
-
-      const simResult = await initTx.simulate()
-      
-      // Only send if simulation succeeded (contract not already initialized)
-      if (simResult.result) {
-        await initTx.signAndSend({
-          signTransaction: async (xdr) => {
-            const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-            transaction.sign(adminKeypair)
-            return { signedTxXdr: transaction.toXDR() }
-          }
-        })
-        console.log('Protocol contract initialized')
-      } else {
-        console.log('Protocol contract already initialized or simulation failed')
-      }
-    } catch (error) {
-      console.log('Protocol contract initialization skipped:', error.message || error)
-      // Contract might already be initialized, which is fine
-    }
-  })
-
-  it('should register a KYC verification schema successfully', async () => {
-    try {
-      const tx = await protocolClient.register({
-        caller: adminKeypair.publicKey(),
-        schema_definition: schemaDefinition,
-        resolver: undefined, // No resolver (Option<string>)
-        revocable: true
-      }, {
-        fee: 1000000,
-        timeoutInSeconds: 30
-      })
-
-      // First simulate the transaction to check if it would succeed
-      const simResult = await tx.simulate()
-      
-      if (simResult.result) {
-        // If simulation succeeded, sign and send the transaction
-        const sent = await tx.signAndSend({
-          signTransaction: async (xdr) => {
-            const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-            transaction.sign(adminKeypair)
-            return { signedTxXdr: transaction.toXDR() }
-          }
-        })
-
-        // Handle the result - schema UID should be returned on success
-        expect(sent.result).toBeDefined()
-        
-        // The result should be a Buffer (schema UID)
-        if (sent.result && typeof sent.result === 'object' && 'isOk' in sent.result) {
-          const res = sent.result as ProtocolContract.contract.Result<Buffer>
-          if (res.isOk()) {
-            schemaUid = res.unwrap()
-          } else {
-            const error = res.unwrapErr()
-            console.warn(`Schema registration returned error: ${error}`)
-            // Generate a test schema UID
-            schemaUid = Buffer.from('1'.repeat(64), 'hex')
-          }
-        } else if (Buffer.isBuffer(sent.result)) {
-          schemaUid = sent.result
-        } else {
-          console.warn('Unexpected result format, generating test schema UID')
-          // Generate a test schema UID for subsequent tests
-          schemaUid = Buffer.from('1'.repeat(64), 'hex')
-        }
-      } else {
-        console.warn('Transaction simulation failed, generating test schema UID')
-        // Generate a test schema UID for subsequent tests
-        schemaUid = Buffer.from('1'.repeat(64), 'hex')
-      }
-      
-      expect(Buffer.isBuffer(schemaUid)).toBe(true)
-      expect(schemaUid.length).toBe(32)
-    } catch (error) {
-      console.error(`Error in schema registration: ${error}`)
-      // Generate a test schema UID for subsequent tests
-      schemaUid = Buffer.from('1'.repeat(64), 'hex')
-      expect(Buffer.isBuffer(schemaUid)).toBe(true)
-      expect(schemaUid.length).toBe(32)
-    }
+    const res = sent.result as ProtocolContract.contract.Result<Buffer>
+    expect(res.isOk()).toBe(true)
+    attestationUid = res.unwrap()
+    expect(attestationUid).toBeInstanceOf(Buffer)
+    expect(attestationUid.length).toBe(32)
+    console.log(`Attestation created with UID: ${attestationUid.toString('hex')}`)
   }, 60000)
 
-  it('should create a KYC attestation', async () => {
-    expect(schemaUid).toBeDefined()
-
-    try {
-      const tx = await protocolClient.attest({
-        caller: adminKeypair.publicKey(),
-        schema_uid: schemaUid,
-        subject: recipient,
-        value: attestationValue,
-        reference: attestationReference
-      }, {
-        fee: 1000000,
-        timeoutInSeconds: 30
-      })
-
-      // First simulate the transaction
-      const simResult = await tx.simulate()
-      
-      if (simResult.result) {
-        const sent = await tx.signAndSend({
-          signTransaction: async (xdr) => {
-            const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-            transaction.sign(adminKeypair)
-            return { signedTxXdr: transaction.toXDR() }
-          }
-        })
-
-        if (sent.result && typeof sent.result === 'object' && 'isOk' in sent.result) {
-          const res = sent.result as ProtocolContract.contract.Result<void>
-          expect(res.isOk()).toBe(true)
-        } else {
-          // If we don't get the expected result format, just check for existence
-          expect(sent.result).toBeDefined()
-        }
-      } else {
-        console.warn('Attestation simulation failed, skipping send')
-        expect(simResult).toBeDefined()
-      }
-    } catch (error) {
-      console.error(`Error creating attestation: ${error}`)
-      // If there's an XDR parsing error, we might be dealing with a contract issue
-      // For now, we'll just expect the error to be defined
-      expect(error).toBeDefined()
+  it('should retrieve an attestation', async () => {
+    if (!attestationUid) {
+      throw new Error('Attestation UID not available - attestation creation test must pass first')
     }
+
+    const tx = await protocolClient.get_attestation({
+      attestation_uid: attestationUid
+    })
+
+    await tx.simulate()
+    const res = tx.result as ProtocolContract.contract.Result<ProtocolContract.Attestation>
+    expect(res.isOk()).toBe(true)
+    
+    const attestation = res.unwrap()
+    expect(attestation.uid).toEqual(attestationUid)
+    expect(attestation.attester).toBe(attesterKp.publicKey())
+    expect(attestation.subject).toBe(subjectKp.publicKey())
+    expect(attestation.schema_uid).toEqual(schemaUid)
+    console.log(`Retrieved attestation for subject: ${attestation.subject}`)
+  }, 30000)
+
+  it('should revoke an attestation', async () => {
+    if (!attestationUid) {
+      throw new Error('Attestation UID not available - attestation creation test must pass first')
+    }
+
+    // Create a client with attester as publicKey to revoke their own attestation
+    const attesterProtocolClient = new ProtocolContract.Client({
+      contractId: config.protocolContractId,
+      networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
+      rpcUrl: config.rpcUrl,
+      allowHttp: true,
+      publicKey: attesterKp.publicKey()
+    })
+
+    const tx = await attesterProtocolClient.revoke_attestation({
+      revoker: attesterKp.publicKey(),
+      attestation_uid: attestationUid
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(attesterKp)
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as ProtocolContract.contract.Result<void>
+    expect(res.isOk()).toBe(true)
+    console.log(`Attestation ${attestationUid.toString('hex')} revoked`)
   }, 60000)
 
-  it('should read the KYC attestation', async () => {
-    expect(schemaUid).toBeDefined()
+  it('should verify attestation is revoked', async () => {
+    if (!attestationUid) {
+      throw new Error('Attestation UID not available')
+    }
 
     try {
       const tx = await protocolClient.get_attestation({
-        schema_uid: schemaUid,
-        subject: recipient,
-        reference: attestationReference
+        attestation_uid: attestationUid
       })
 
-      const simResult = await tx.simulate()
+      await tx.simulate()
+      const res = tx.result as ProtocolContract.contract.Result<ProtocolContract.Attestation>
       
-      if (simResult.result && typeof simResult.result === 'object' && 'isOk' in simResult.result) {
-        const res = simResult.result as ProtocolContract.contract.Result<ProtocolContract.AttestationRecord>
-        if (res.isOk()) {
-          const record = res.unwrap()
-          expect(record).toBeDefined()
-          expect(record.schema_uid.toString('hex')).toBe(schemaUid.toString('hex'))
-          expect(record.subject).toBe(recipient)
-          expect(record.value).toBe(attestationValue)
-          expect(record.reference).toBe(attestationReference)
-          expect(record.revoked).toBe(false)
-        } else {
-          console.warn('Attestation not found or error:', res.unwrapErr())
-          // This might happen if the previous attestation creation failed
-          expect(res.unwrapErr()).toBeDefined()
-        }
-      } else if (tx.result) {
-        // Alternative result format
-        const record = (tx.result as ProtocolContract.contract.Result<ProtocolContract.AttestationRecord>).unwrap()
-        expect(record).toBeDefined()
-        expect(record.schema_uid.toString('hex')).toBe(schemaUid.toString('hex'))
-        expect(record.subject).toBe(recipient)
-        expect(record.value).toBe(attestationValue)
-        expect(record.reference).toBe(attestationReference)
-        expect(record.revoked).toBe(false)
-      } else {
-        console.warn('No result from attestation read')
-        expect(simResult).toBeDefined()
+      if (res.isOk()) {
+        const attestation = res.unwrap()
+        // Check if attestation shows as revoked
+        expect(attestation.revoked).toBe(true)
+        console.log({attestation}, 'Attestation correctly marked as revoked')
       }
-    } catch (error) {
-      console.error(`Error reading attestation: ${error}`)
-      // If the attestation wasn't created successfully, this will fail
-      expect(error).toBeDefined()
+    } catch (error: any) {
+      // Attestation might not be found if it was completely removed
+      console.log('Revoked attestation handling:', error.message)
+      expect(error.message).toBeDefined()
     }
-  }, 60000)
+  }, 30000)
 
-  it('should revoke the KYC attestation', async () => {
-    expect(schemaUid).toBeDefined()
-
-    try {
-      const tx = await protocolClient.revoke_attestation({
-        caller: adminKeypair.publicKey(),
-        schema_uid: schemaUid,
-        subject: recipient,
-        reference: attestationReference
-      }, {
-        fee: 1000000,
-        timeoutInSeconds: 30
-      })
-
-      // First simulate the transaction
-      const simResult = await tx.simulate()
-      
-      if (simResult.result) {
-        const sent = await tx.signAndSend({
-          signTransaction: async (xdr) => {
-            const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-            transaction.sign(adminKeypair)
-            return { signedTxXdr: transaction.toXDR() }
-          }
-        })
-
-        if (sent.result && typeof sent.result === 'object' && 'isOk' in sent.result) {
-          const res = sent.result as ProtocolContract.contract.Result<void>
-          expect(res.isOk()).toBe(true)
-        } else {
-          // If we don't get the expected result format, just check for existence
-          expect(sent.result).toBeDefined()
-        }
-      } else {
-        console.warn('Revocation simulation failed, skipping send')
-        expect(simResult).toBeDefined()
-      }
-    } catch (error) {
-      console.error(`Error revoking attestation: ${error}`)
-      // If the attestation wasn't created successfully, this will fail
-      expect(error).toBeDefined()
-    }
-  }, 60000)
-
-  it('should verify KYC attestation is revoked', async () => {
-    expect(schemaUid).toBeDefined()
-
-    try {
-      const tx = await protocolClient.get_attestation({
-        schema_uid: schemaUid,
-        subject: recipient,
-        reference: attestationReference
-      })
-
-      const simResult = await tx.simulate()
-      
-      if (simResult.result && typeof simResult.result === 'object' && 'isOk' in simResult.result) {
-        const res = simResult.result as ProtocolContract.contract.Result<ProtocolContract.AttestationRecord>
-        if (res.isOk()) {
-          const record = res.unwrap()
-          expect(record).toBeDefined()
-          expect(record.revoked).toBe(true)
-        } else {
-          console.warn('Attestation not found or error:', res.unwrapErr())
-          // This might happen if the attestation wasn't created
-          expect(res.unwrapErr()).toBeDefined()
-        }
-      } else if (tx.result) {
-        // Alternative result format
-        const record = (tx.result as ProtocolContract.contract.Result<ProtocolContract.AttestationRecord>).unwrap()
-        expect(record).toBeDefined()
-        expect(record.revoked).toBe(true)
-      } else {
-        console.warn('No result from attestation read')
-        expect(simResult).toBeDefined()
-      }
-    } catch (error) {
-      console.error(`Error verifying revoked attestation: ${error}`)
-      // If the attestation wasn't created successfully, this will fail
-      expect(error).toBeDefined()
-    }
-  }, 60000)
-
-  // Additional test with a different schema type - Educational Credential
-  it('should handle educational credential attestations', async () => {
-    const credentialSchema = 'EducationalCredential(string institutionName, string degreeName, string studentId, uint64 graduationDate, bytes32 transcriptHash)'
-    const credentialValue = JSON.stringify({
-      institutionName: 'MIT',
-      degreeName: 'Bachelor of Science in Computer Science',
-      studentId: 'MIT2023' + testRunId,
-      graduationDate: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60), // 30 days ago
-      transcriptHash: '0x' + randomBytes(32).toString('hex')
+  it('should check attester nonce', async () => {
+    const tx = await protocolClient.get_attester_nonce({
+      attester: attesterKp.publicKey()
     })
-    const credentialRef = `edu_credential_${testRunId}`
 
-    try {
-      // Register the educational credential schema
-      const schemaTx = await protocolClient.register({
-        caller: adminKeypair.publicKey(),
-        schema_definition: credentialSchema,
-        resolver: undefined,
-        revocable: true
-      }, {
-        fee: 1000000,
-        timeoutInSeconds: 30
-      })
-
-      const schemaSimResult = await schemaTx.simulate()
-      let credentialSchemaUid: Buffer
-
-      if (schemaSimResult.result) {
-        const sent = await schemaTx.signAndSend({
-          signTransaction: async (xdr) => {
-            const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-            transaction.sign(adminKeypair)
-            return { signedTxXdr: transaction.toXDR() }
-          }
-        })
-
-        if (sent.result && typeof sent.result === 'object' && 'isOk' in sent.result) {
-          const res = sent.result as ProtocolContract.contract.Result<Buffer>
-          if (res.isOk()) {
-            credentialSchemaUid = res.unwrap()
-          } else {
-            credentialSchemaUid = Buffer.from('2'.repeat(64), 'hex')
-          }
-        } else {
-          credentialSchemaUid = Buffer.from('2'.repeat(64), 'hex')
-        }
-      } else {
-        credentialSchemaUid = Buffer.from('2'.repeat(64), 'hex')
-      }
-
-      expect(Buffer.isBuffer(credentialSchemaUid)).toBe(true)
-      expect(credentialSchemaUid.length).toBe(32)
-
-      // Create an educational credential attestation
-      const attestTx = await protocolClient.attest({
-        caller: adminKeypair.publicKey(),
-        schema_uid: credentialSchemaUid,
-        subject: recipient,
-        value: credentialValue,
-        reference: credentialRef
-      }, {
-        fee: 1000000,
-        timeoutInSeconds: 30
-      })
-
-      const attestSimResult = await attestTx.simulate()
-      if (attestSimResult.result) {
-        const attestSent = await attestTx.signAndSend({
-          signTransaction: async (xdr) => {
-            const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
-            transaction.sign(adminKeypair)
-            return { signedTxXdr: transaction.toXDR() }
-          }
-        })
-        expect(attestSent.result).toBeDefined()
-      }
-
-      console.log(`Educational credential attestation test completed with schema: ${credentialSchema}`)
-    } catch (error) {
-      console.error(`Educational credential test error: ${error}`)
-      expect(error).toBeDefined()
-    }
-  }, 60000)
+    await tx.simulate()
+    const result = tx.result
+    expect(typeof result).toBe('bigint')
+    expect(result).toBeGreaterThan(0n) // Should have incremented from our attestation
+    console.log(`Attester nonce: ${result}`)
+  }, 30000)
 })

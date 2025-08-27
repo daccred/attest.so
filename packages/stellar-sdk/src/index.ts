@@ -7,6 +7,21 @@
 // Export the main SDK class
 export { StellarAttestProtocol } from './stellar-sdk'
 
+// Export service classes for direct use
+export { StellarSchemaRegistry } from './schema'
+export { StellarAttestationService } from './attest'
+export { StellarAuthorityService } from './authority'
+
+// Export standardized schema encoder
+export {
+  StellarSchemaEncoder,
+  StellarDataType,
+  SchemaValidationError,
+  type StellarSchemaDefinition,
+  type SchemaField,
+  type EncodedAttestationData
+} from './common/schema-encoder'
+
 // Export Stellar-specific types
 export * from './types'
 
@@ -25,6 +40,27 @@ export {
   createErrorResponse,
   createAttestProtocolError
 } from '@attestprotocol/core'
+
+// Re-export contract bindings for advanced usage
+export { 
+  Client as ProtocolClient,
+  networks as ProtocolNetworks,
+  type ResolverAttestation,
+  type StoredAttestation,
+  type Schema as ProtocolSchema,
+  type Authority as ProtocolAuthority,
+  type Attestation as ProtocolAttestationRecord,
+} from '@attestprotocol/stellar/dist/protocol'
+
+export {
+  Client as AuthorityClient,
+  networks as AuthorityNetworks,
+  type Attestation as AuthorityAttestationRecord,
+  type RegisteredAuthorityData,
+} from '@attestprotocol/stellar/dist/authority'
+
+// Internal utilities (for advanced usage and testing)
+export * as common from './common'
 
 // Default export for convenience
 import { StellarAttestProtocol } from './stellar-sdk'

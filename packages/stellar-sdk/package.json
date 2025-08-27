@@ -1,26 +1,29 @@
 {
   "name": "@attestprotocol/stellar-sdk",
   "description": "Stellar implementation of the Attest Protocol SDK",
-  "version": "0.1.0",
+  "version": "1.7.0",
   "author": "daccred",
-  "license": "MIT",
-  "repository": "daccred/attest.so.git",
   "bugs": "https://github.com/daccred/attest.so/issues",
-  "homepage": "https://github.com/daccred/attest.so#readme",
-  "keywords": [
-    "attestation",
-    "blockchain",
-    "stellar",
-    "soroban",
-    "sdk"
-  ],
-  "main": "dist/index.js",
-  "module": "dist/esm/index.js",
-  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@attestprotocol/core": "1.7.0",
+    "@attestprotocol/stellar": "1.7.0"
+  },
+  "peerDependencies": {
+    "@stellar/stellar-sdk": ">=14.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.1",
+    "prettier": "^3.2.5",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.4.0",
+    "typescript": "^5.6.2",
+    "vitest": "^3.2.4"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/esm/index.js",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
   },
@@ -28,32 +31,29 @@
     "dist",
     "src"
   ],
+  "homepage": "https://github.com/daccred/attest.so#readme",
+  "keywords": [
+    "attestation",
+    "blockchain",
+    "sdk",
+    "soroban",
+    "stellar"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": "daccred/attest.so.git",
   "scripts": {
-    "build": "pnpm clean && pnpm build:cjs && pnpm build:esm && pnpm build:types",
-    "build:cjs": "tsc -p tsconfig.json",
-    "build:esm": "tsc -p tsconfig.esm.json",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build": "tsup",
     "clean": "rimraf dist",
-    "dev": "tsc --watch",
+    "dev": "tsup --watch",
     "format": "prettier --write \"src/**/*.ts\"",
-    "lint": "eslint src --ext .ts",
+    "lint:ts": "tsc --noEmit --pretty",
     "test": "vitest",
     "test:coverage": "vitest --coverage"
   },
-  "dependencies": {
-    "@attestprotocol/core": "workspace:*",
-    "@stellar/stellar-sdk": "14.0.0-rc.3"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "eslint": "^8.0.0",
-    "prettier": "^3.0.0",
-    "rimraf": "^6.0.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
+  "types": "dist/index.d.ts"
 }

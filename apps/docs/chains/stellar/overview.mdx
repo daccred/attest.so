@@ -42,7 +42,7 @@ impl AttestationContract {
     
     // Core attestation operations
     pub fn attest(env: Env, caller: Address, schema_uid: BytesN<32>, subject: Address, value: String, reference: Option<String>) -> Result<(), Error>
-    pub fn revoke_attestation(env: Env, caller: Address, schema_uid: BytesN<32>, subject: Address, reference: Option<String>) -> Result<(), Error>
+    pub fn revoke(env: Env, caller: Address, schema_uid: BytesN<32>, subject: Address, reference: Option<String>) -> Result<(), Error>
     pub fn get_attestation(env: Env, schema_uid: BytesN<32>, subject: Address, reference: Option<String>) -> Result<AttestationRecord, Error>
 }
 ```
@@ -183,7 +183,7 @@ pub fn get_attestation(
 Invalidate existing attestations with access control:
 
 ```rust
-pub fn revoke_attestation(
+pub fn revoke(
     env: Env,
     caller: Address,                      // Revoker (must be original attester)
     schema_uid: BytesN<32>,              // Schema identifier

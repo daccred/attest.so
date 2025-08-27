@@ -209,6 +209,7 @@ router.get('/operations', async (req: Request, res: Response) => {
     const operations = await db.horizonContractOperation.findMany({
       where,
       include: {
+        transaction: true,
         events: true,
       },
       orderBy: { ingestedAt: 'desc' },

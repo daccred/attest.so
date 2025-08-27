@@ -1,6 +1,6 @@
 {
   "name": "@attestprotocol/docs",
-  "version": "1.0.0",
+  "version": "1.7.0",
   "private": true,
   "description": "AttestProtocol documentation site built with Mintlify",
   "scripts": {

@@ -17,7 +17,7 @@ Key functions:
 - `initialize(env, admin)`: Initialize the contract with an admin
 - `register(env, caller, schema_definition, resolver, revocable)`: Register a new schema
 - `attest(env, caller, schema_uid, subject, value, reference)`: Create an attestation
-- `revoke_attestation(env, caller, schema_uid, subject, reference)`: Revoke an attestation
+- `revoke(env, caller, schema_uid, subject, reference)`: Revoke an attestation
 - `get_attestation(env, schema_uid, subject, reference)`: Retrieve attestation data
 
 ### 2. Authority Resolver Contract (`authority/src/lib.rs`)
@@ -86,7 +86,7 @@ The `deploy.sh` script provides flexible options for deploying the Attestation P
 ========================================
 STEP: Deploying authority Contract
 ========================================
-Deploying target/wasm32-unknown-unknown/release/authority.wasm...
+Deploying target/wasm32v1-none/release/authority.wasm...
 ℹ️  Skipping install because wasm already installed
 ℹ️  Using wasm hash 2b08d2cafae3367418070c75715f1e18d3682b071e7d84f151add56fb5881d67
 ℹ️  Simulating deploy transaction…
@@ -106,7 +106,7 @@ deployments.json updated successfully.
 ========================================
 STEP: Deploying protocol Contract
 ========================================
-Deploying target/wasm32-unknown-unknown/release/protocol.wasm...
+Deploying target/wasm32v1-none/release/protocol.wasm...
 ℹ️  Simulating install transaction…
 ℹ️  Signing transaction: 09f20429b075ebfb90920de126d855efe88c493290c85bc5c1b3b6f7c9be3439
 🌎 Submitting install transaction…
@@ -141,22 +141,30 @@ stellar contract bindings typescript \
   --output-dir ./bindings/protocol
 
 
-### invoke the initialize function on the Authority Resolver Contract
-stellar contract invoke \
-    --id CCJDGGA754NBRTV63VBNEON6NKDJ3H7TRVELR6WX5KEJY7S7UANRT22H \
-    --source SDRNJOIMKSA6N4MZ5PQJ6GDBZZSLBFGU65D6435SMTCQFMKRSPSWFI5S \
-    --network testnet \
-    -- \
-    initialize \
-    --admin GDATIARGDERUBYRHBOLXFKFWXXTJ4EF7LL4FJTB3R7JBGA275MC5VRHW \
-    --token_contract_id CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+### Resolvers: Build & Deploy Model (Features + Target)
 
+- Wasm builds (wasm32) export no resolver by default to avoid duplicate symbols. Enable exactly one feature to export the desired resolver:
+  - `export-default-resolver`
+  - `export-token-reward-resolver`
+  - `export-fee-collection-resolver`
+- Native test builds (non-wasm) include all resolvers so tests can import and use them directly.
 
-#### invoke the initialize function on the Protocol Contract
-stellar contract invoke \
-    --id CCJDGGA754NBRTV63VBNEON6NKDJ3H7TRVELR6WX5KEJY7S7UANRT22H \
-    --source SDRNJOIMKSA6N4MZ5PQJ6GDBZZSLBFGU65D6435SMTCQFMKRSPSWFI5S \
-    --network testnet \
-    -- \
-    initialize \
-    --admin GDATIARGDERUBYRHBOLXFKFWXXTJ4EF7LL4FJTB3R7JBGA275MC5VRHW
+Build examples:
+```bash
+# Default Resolver
+cargo build --target wasm32v1-none --release --features export-default-resolver
+
+# Token Reward Resolver
+cargo build --target wasm32v1-none --release --features export-token-reward-resolver
+
+# Fee Collection Resolver
+cargo build --target wasm32v1-none --release --features export-fee-collection-resolver
+```
+
+Deploy example (Fee Collection Resolver):
+```bash
+stellar contract deploy \
+  --wasm contracts/stellar/resolvers/target/wasm32v1-none/release/resolvers.wasm \
+  --source YOUR_IDENTITY \
+  --network testnet
+```

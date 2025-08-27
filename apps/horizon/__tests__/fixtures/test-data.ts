@@ -60,29 +60,6 @@ export const mockHorizonTransaction = {
   ingestedAt: new Date('2025-05-17T21:36:05Z')
 };
 
-export const mockHorizonOperation = {
-  id: 'op-uuid-1',
-  operationId: '0004387339157639168-0000000001',
-  transactionHash: '12069247060c6f1a0f4244555a841dd76d5acb2194ead69da5a99fb4c5327478',
-  operationIndex: 0,
-  type: 'invoke_host_function',
-  typeI: 24,
-  details: {
-    function: 'HostFunctionTypeInvokeContract',
-    parameters: [/* contract parameters */],
-    sourceAccount: 'GDAQ7GDVA4KJYYK6S7QKQFLMHQFNMJ3M4Q7I3J3FZHXLNXGP4IXMRJMC',
-    contract: 'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO'
-  },
-  sourceAccount: 'GDAQ7GDVA4KJYYK6S7QKQFLMHQFNMJ3M4Q7I3J3FZHXLNXGP4IXMRJMC',
-  contractId: 'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
-  function: 'create_attestation',
-  parameters: {
-    schema_id: 'test_schema_id',
-    subject: 'GBCD...',
-    data: 'test_attestation_data'
-  },
-  ingestedAt: new Date('2025-05-17T21:36:05Z')
-};
 
 export const mockHorizonContractOperation = {
   id: 'contract-op-uuid-1',
@@ -207,15 +184,6 @@ export const createMockDb = () => ({
       _avg: { fee: '100000' },
       _sum: { fee: '3200000' }
     })
-  },
-  horizonOperation: {
-    findMany: vi.fn().mockResolvedValue([mockHorizonOperation]),
-    count: vi.fn().mockResolvedValue(1),
-    upsert: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    deleteMany: vi.fn()
   },
   horizonContractOperation: {
     findMany: vi.fn().mockResolvedValue([mockHorizonContractOperation]),

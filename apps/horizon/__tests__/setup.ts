@@ -53,7 +53,6 @@ beforeEach(async () => {
       await prisma.horizonAccount.deleteMany();
       await prisma.horizonContractData.deleteMany();
       await prisma.horizonEffect.deleteMany();
-      await prisma.horizonOperation.deleteMany();
       await prisma.horizonEvent.deleteMany();
       await prisma.horizonTransaction.deleteMany();
       await prisma.horizonMetadata.deleteMany();
