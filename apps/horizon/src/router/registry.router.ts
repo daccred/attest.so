@@ -1,0 +1,350 @@
+/**
+ * Registry API router for managing attestations and schemas.
+ *
+ * Provides endpoints for querying attestations and schemas stored in the
+ * database. Supports filtering, pagination, and detailed metadata access
+ * for both attestation and schema objects.
+ *
+ * @module router/registry
+ * @requires express
+ * @requires repository/attestations
+ * @requires repository/schemas
+ */
+
+import { Router, Request, Response } from 'express'
+import {
+  getAttestations,
+  getAttestationByUid,
+  Attestation,
+} from '../repository/attestations.repository'
+import {
+  getSchemas,
+  getSchemaByUid,
+  Schema,
+} from '../repository/schemas.repository'
+
+// Route constants for registry endpoints
+const ATTESTATIONS_LIST_ROUTE = '/attestations'
+const ATTESTATIONS_BY_UID_ROUTE = '/attestations/:uid'
+const SCHEMAS_LIST_ROUTE = '/schemas'
+const SCHEMAS_BY_UID_ROUTE = '/schemas/:uid'
+
+const router = Router()
+
+// Re-export interfaces from repositories (source of truth)
+export type { Attestation } from '../repository/attestations.repository'
+export type { Schema } from '../repository/schemas.repository'
+
+/**
+ * Helper function to transform attestation for API response
+ */
+function transformAttestationForAPI(attestation: any) {
+  return {
+    attestation_uid: attestation.attestationUid,
+    ledger: attestation.ledger,
+    schema_uid: attestation.schemaUid,
+    attesterAddress: attestation.attesterAddress,
+    subjectAddress: attestation.subjectAddress,
+    transaction_hash: attestation.transactionHash,
+    schema_encoding: attestation.schemaEncoding,
+    message: attestation.message,
+    value: attestation.value,
+    createdAt: attestation.createdAt?.toISOString(),
+    revokedAt: attestation.revokedAt?.toISOString(),
+    revoked: attestation.revoked,
+    schema: attestation.schema ? transformSchemaForAPI(attestation.schema) : undefined,
+  }
+}
+
+/**
+ * Helper function to transform schema for API response
+ */
+function transformSchemaForAPI(schema: any) {
+  return {
+    uid: schema.uid,
+    ledger: schema.ledger,
+    schema_definition: schema.schemaDefinition,
+    parsed_schema_definition: schema.parsedSchemaDefinition,
+    resolverAddress: schema.resolverAddress,
+    revocable: schema.revocable,
+    deployerAddress: schema.deployerAddress,
+    createdAt: schema.createdAt?.toISOString(),
+    type: schema.type,
+    transaction_hash: schema.transactionHash,
+    attestation_count: schema._count?.attestations,
+    recent_attestations: schema.attestations?.map(transformAttestationForAPI),
+  }
+}
+
+/**
+ * GET /registry/attestations - Fetch a list of attestations.
+ *
+ * Retrieves attestations from the database with support for filtering
+ * by ledger, schema, and attester. Results are paginated and include
+ * comprehensive attestation metadata.
+ *
+ * @route GET /registry/attestations
+ * @param {number} [by_ledger] - Filter attestations by ledger number
+ * @param {number} [limit=50] - Number of results to return (max: 200)
+ * @param {number} [offset=0] - Pagination offset
+ * @param {string} [schema_uid] - Filter by schema UID
+ * @param {string} [attester] - Filter by attester address
+ * @param {string} [subject] - Filter by subject address
+ * @param {boolean} [revoked] - Filter by revocation status
+ * @returns {Object} Paginated attestations response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {Array} response.data - Array of attestation objects
+ * @returns {Object} response.pagination - Pagination metadata
+ * @status 200 - Success with attestation data
+ * @status 400 - Invalid parameters
+ * @status 500 - Internal server error
+ */
+router.get(ATTESTATIONS_LIST_ROUTE, async (req: Request, res: Response) => {
+  try {
+    const {
+      by_ledger,
+      limit = '50',
+      offset = '0',
+      schema_uid,
+      attester,
+      subject,
+      revoked,
+    } = req.query
+
+    // Input validation
+    const limitNum = Math.min(parseInt(limit as string) || 50, 200)
+    const offsetNum = parseInt(offset as string) || 0
+    
+    if (limitNum < 1 || offsetNum < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid limit or offset parameters'
+      })
+    }
+
+    // Build filters object
+    const filters: any = {
+      limit: limitNum,
+      offset: offsetNum,
+    }
+
+    if (by_ledger) {
+      const ledgerNum = parseInt(by_ledger as string)
+      if (isNaN(ledgerNum)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid by_ledger parameter. Must be a number.'
+        })
+      }
+      filters.ledger = ledgerNum
+    }
+
+    if (schema_uid) filters.schemaUid = schema_uid as string
+    if (attester) filters.attesterAddress = attester as string
+    if (subject) filters.subjectAddress = subject as string
+    if (revoked !== undefined) filters.revoked = revoked === 'true'
+
+    // Get attestations from repository
+    const { attestations, total } = await getAttestations(filters)
+
+    // Transform for API response
+    const transformedAttestations = attestations.map(transformAttestationForAPI)
+
+    res.json({
+      success: true,
+      data: transformedAttestations,
+      pagination: {
+        total,
+        limit: limitNum,
+        offset: offsetNum,
+        hasMore: total > offsetNum + transformedAttestations.length,
+      },
+    })
+  } catch (error: any) {
+    console.error('Error fetching attestations:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to fetch attestations' 
+    })
+  }
+})
+
+/**
+ * GET /registry/attestations/:uid - Fetch a single attestation by UID.
+ *
+ * Retrieves a specific attestation by its unique identifier with full
+ * metadata including schema details and current status.
+ *
+ * @route GET /registry/attestations/:uid
+ * @param {string} uid - Attestation UID
+ * @returns {Object} Attestation response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {Object} response.data - Single attestation object
+ * @status 200 - Success with attestation data
+ * @status 404 - Attestation not found
+ * @status 500 - Internal server error
+ */
+router.get(ATTESTATIONS_BY_UID_ROUTE, async (req: Request, res: Response) => {
+  try {
+    const { uid } = req.params
+
+    const attestation = await getAttestationByUid(uid)
+
+    if (!attestation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Attestation not found'
+      })
+    }
+
+    const transformedAttestation = transformAttestationForAPI(attestation)
+
+    res.json({
+      success: true,
+      data: transformedAttestation,
+    })
+  } catch (error: any) {
+    console.error('Error fetching attestation:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to fetch attestation' 
+    })
+  }
+})
+
+/**
+ * GET /registry/schemas - Fetch a list of schemas.
+ *
+ * Retrieves schema definitions from the database with support for
+ * filtering by ledger, deployer, and schema type. Results include
+ * parsed schema definitions and related attestation counts.
+ *
+ * @route GET /registry/schemas
+ * @param {number} [by_ledger] - Filter schemas by ledger number
+ * @param {number} [limit=50] - Number of results to return (max: 200)
+ * @param {number} [offset=0] - Pagination offset
+ * @param {string} [deployer] - Filter by deployer address
+ * @param {string} [type] - Filter by schema type
+ * @param {boolean} [revocable] - Filter by revocable status
+ * @returns {Object} Paginated schemas response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {Array} response.data - Array of schema objects
+ * @returns {Object} response.pagination - Pagination metadata
+ * @status 200 - Success with schema data
+ * @status 400 - Invalid parameters
+ * @status 500 - Internal server error
+ */
+router.get(SCHEMAS_LIST_ROUTE, async (req: Request, res: Response) => {
+  try {
+    const {
+      by_ledger,
+      limit = '50',
+      offset = '0',
+      deployer,
+      type,
+      revocable,
+    } = req.query
+
+    // Input validation
+    const limitNum = Math.min(parseInt(limit as string) || 50, 200)
+    const offsetNum = parseInt(offset as string) || 0
+    
+    if (limitNum < 1 || offsetNum < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid limit or offset parameters'
+      })
+    }
+
+    // Build filters object (search functionality removed as not needed)
+    const filters: any = {
+      limit: limitNum,
+      offset: offsetNum,
+    }
+
+    if (by_ledger) {
+      const ledgerNum = parseInt(by_ledger as string)
+      if (isNaN(ledgerNum)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid by_ledger parameter. Must be a number.'
+        })
+      }
+      filters.ledger = ledgerNum
+    }
+
+    if (deployer) filters.deployerAddress = deployer as string
+    if (type) filters.type = type as string
+    if (revocable !== undefined) filters.revocable = revocable === 'true'
+
+    const result = await getSchemas(filters)
+
+    // Transform for API response
+    const transformedSchemas = result.schemas.map(transformSchemaForAPI)
+
+    res.json({
+      success: true,
+      data: transformedSchemas,
+      pagination: {
+        total: result.total,
+        limit: limitNum,
+        offset: offsetNum,
+        hasMore: result.total > offsetNum + transformedSchemas.length,
+      },
+    })
+  } catch (error: any) {
+    console.error('Error fetching schemas:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to fetch schemas' 
+    })
+  }
+})
+
+/**
+ * GET /registry/schemas/:uid - Fetch a single schema by UID.
+ *
+ * Retrieves a specific schema by its unique identifier with full
+ * definition, parsed fields, deployment metadata, and related attestations.
+ *
+ * @route GET /registry/schemas/:uid
+ * @param {string} uid - Schema UID
+ * @param {boolean} [include_attestations=false] - Include full attestation data
+ * @returns {Object} Schema response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {Object} response.data - Single schema object
+ * @status 200 - Success with schema data
+ * @status 404 - Schema not found
+ * @status 500 - Internal server error
+ */
+router.get(SCHEMAS_BY_UID_ROUTE, async (req: Request, res: Response) => {
+  try {
+    const { uid } = req.params
+    const { include_attestations } = req.query
+
+    const includeAttestations = include_attestations === 'true'
+    const schema = await getSchemaByUid(uid, includeAttestations)
+
+    if (!schema) {
+      return res.status(404).json({
+        success: false,
+        error: 'Schema not found'
+      })
+    }
+
+    const transformedSchema = transformSchemaForAPI(schema)
+
+    res.json({
+      success: true,
+      data: transformedSchema,
+    })
+  } catch (error: any) {
+    console.error('Error fetching schema:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to fetch schema' 
+    })
+  }
+})
+
+export default router
