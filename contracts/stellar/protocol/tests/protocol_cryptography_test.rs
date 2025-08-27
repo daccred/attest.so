@@ -489,14 +489,16 @@ fn test_bls_key_registration_and_event() {
         "Event should contain current timestamp"
     );
 
-    let stored_key = client.get_bls_key(&attester);
+    let stored_key = client.try_get_bls_key(&attester);
+    assert!(stored_key.is_ok(), "BLS key should be retrievable");
+    let bls_key = stored_key.unwrap().unwrap(); // First unwrap for SDK result, second for contract result
     assert_eq!(
-        stored_key.clone().unwrap().key,
+        bls_key.key,
         public_key,
         "Stored key should match registered key"
     );
 
-    dbg!(&stored_key, &event_attester, &event_pk, &event_timestamp);
+    dbg!(&bls_key, &event_attester, &event_pk, &event_timestamp);
 
     println!("=============================================================");
     println!("      Finished: {}", "test_bls_key_registration_and_event");
@@ -560,10 +562,11 @@ fn test_delegated_attestation_with_valid_signature() {
     let public_key = BytesN::from_array(&env, &TEST_BLS_G2_PUBLIC_KEY);
     client.register_bls_key(&attester, &public_key);
 
-    let bls_key_entry = client.get_bls_key(&attester);
-    assert!(bls_key_entry.is_some(), "BLS key should be registered");
+    let bls_key_entry = client.try_get_bls_key(&attester);
+    assert!(bls_key_entry.is_ok(), "BLS key should be registered");
+    let bls_key = bls_key_entry.unwrap().unwrap(); // First unwrap for SDK result, second for contract result
     assert_eq!(
-        bls_key_entry.unwrap().key,
+        bls_key.key,
         public_key,
         "Stored key should match registered key"
     );

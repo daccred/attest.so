@@ -532,7 +532,7 @@ export interface Client {
      * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
      */
     simulate?: boolean;
-  }) => Promise<AssembledTransaction<Option<BlsPublicKey>>>
+  }) => Promise<AssembledTransaction<BlsPublicKey>>
 
   /**
    * Construct and simulate a get_dst_for_attestation transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.

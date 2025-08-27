@@ -162,9 +162,12 @@ pub fn register_bls_public_key(env: &Env, attester: Address, public_key: BytesN<
 ///
 /// # Returns
 /// * `Option<BlsPublicKey>` - The public key if registered
-pub fn get_bls_public_key(env: &Env, attester: &Address) -> Option<BlsPublicKey> {
+pub fn get_bls_public_key(env: &Env, attester: &Address) -> Result<BlsPublicKey, Error> {
     let pk_key = DataKey::AttesterPublicKey(attester.clone());
-    env.storage().persistent().get(&pk_key)
+    env.storage()
+        .persistent()
+        .get::<DataKey, BlsPublicKey>(&pk_key)
+        .ok_or(Error::BlsPubKeyNotRegistered)
 }
 
 /// **CRITICAL CRYPTOGRAPHIC FUNCTION**: Verifies a BLS12-381 signature using a pairing check.

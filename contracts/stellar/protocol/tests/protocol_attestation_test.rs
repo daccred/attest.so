@@ -5,7 +5,7 @@ use protocol::{
     AttestationContract, AttestationContractClient,
 };
 use soroban_sdk::{
-    panic_with_error, symbol_short, testutils::{Address as _, Events, Ledger, LedgerInfo, MockAuth, MockAuthInvoke}, Address, Bytes, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal
+    panic_with_error, symbol_short, testutils::{Address as _, Events, Ledger, LedgerInfo, MockAuth, MockAuthInvoke}, Address, BytesN, Env, IntoVal, String as SorobanString, TryIntoVal
 };
 
 fn return_schema_definition(env: &Env) -> String {

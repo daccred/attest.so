@@ -93,7 +93,7 @@ impl AttestationContract {
     }
 
     /// Gets the BLS public key for an attester
-    pub fn get_bls_key(env: Env, attester: Address) -> Option<BlsPublicKey> {
+    pub fn get_bls_key(env: Env, attester: Address) -> Result<BlsPublicKey, errors::Error> {
         get_bls_public_key(&env, &attester)
     }
 
