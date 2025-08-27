@@ -129,21 +129,13 @@ function _parseEnvFile(content: string): Record<string, string> {
  * This function takes the same inputs as the Rust `generate_attestation_uid` function,
  * serializes them in the specific way Soroban expects, concatenates them, and then
  * computes the Keccak-256 hash to produce a unique 32-byte identifier.
- * @example
- * const exampleSchemaUid = Buffer.from('11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff', 'hex');
-const exampleSubject = 'GA7QYNF7SOWQ3GLR2BGMZEP2PQBH3INKC4DRG343CX5FD2FNU3M4B4K4';
-const exampleNonce = 12345n; // Use the 'n' suffix for BigInt literals
-
-// Generate the UID
-const attestationUid = generateAttestationUid(exampleSchemaUid, exampleSubject, exampleNonce);
-
  *
  * @param {Buffer} schemaUid - A 32-byte buffer representing the schema UID.
  * @param {string} subject - The public key string of the subject (e.g., "G...").
  * @param {bigint} nonce - The nonce as a BigInt, which corresponds to a Rust `u64`.
  * @returns {Buffer} A 32-byte buffer representing the calculated attestation UID.
  */
-export function generateAttestationUid(schemaUid: Buffer, subject: string, nonce: bigint) {
+export function generateAttestationUid(schemaUid: Buffer, subject: string, nonce: bigint): Buffer {
   if (!(schemaUid instanceof Buffer) || schemaUid.length !== 32) {
     throw new Error('schemaUid must be a 32-byte Buffer.');
   }
@@ -182,6 +174,8 @@ export function generateAttestationUid(schemaUid: Buffer, subject: string, nonce
   // 5. Compute the Keccak-256 hash of the concatenated buffer.
   // In Rust: env.crypto().keccak256(&hash_input).into()
   const hash = keccak256(hashInput);
+
+  console.log(`========Hash=======:`, {uid: hash, uidBytes: Buffer.from(hash, 'hex'), schemaUid: schemaUid.toString('hex'), subject: subject, nonce: nonce})
 
   // 6. Return the resulting hash as a Buffer.
   return Buffer.from(hash, 'hex');
@@ -249,7 +243,7 @@ export function createRevocationMessage(request: ProtocolContract.DelegatedRevoc
   components.push(deadlineBuffer)
   
   const message = Buffer.concat(components)
-  return bls12_381.shortSignatures.hash(message)
+  return bls12_381.shortSignatures.hash(sha256(message))
 }
 
 
