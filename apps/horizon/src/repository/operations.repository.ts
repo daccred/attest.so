@@ -143,15 +143,11 @@ export async function storeOperationsInDB(operations: any[], contractIds: string
             parameters: operation.parameters || null,
           }
 
-          // Skip if already present
-          const existing = await db.horizonOperation.findUnique({
+          await db.horizonOperation.upsert({
             where: { operationId: operation.id },
+            update: operationData,
+            create: operationData,
           })
-          if (existing) {
-            continue
-          }
-
-          await db.horizonOperation.create({ data: operationData })
           totalCreated++
         } catch (opErr: any) {
           console.error('Error storing single contract operation:', opErr?.message || opErr)

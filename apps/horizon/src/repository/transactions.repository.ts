@@ -129,12 +129,11 @@ async function storeTransactionsInDB(transactions: any[]): Promise<number> {
             sorobanResourceUsage: tx.sorobanResourceUsage || null,
           } as any
 
-          const existing = await db.horizonTransaction.findUnique({ where: { hash } })
-          if (existing) {
-            continue
-          } else {
-            await db.horizonTransaction.create({ data: incoming })
-          }
+          await db.horizonTransaction.upsert({
+            where: { hash },
+            update: incoming,
+            create: incoming,
+          })
           totalStored++
         } catch (perr: any) {
           console.error('Error storing single transaction:', perr?.message || perr)
