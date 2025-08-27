@@ -98,55 +98,31 @@ export const mockHorizonContractData = {
   durability: 'persistent',
   ledger: 1021507,
   timestamp: new Date('2025-05-17T21:36:01Z'),
-  previousValue: {
-    type: 'ScValType',
-    value: '41'
-  },
-  isDeleted: false,
-  ingestedAt: new Date('2025-05-17T21:36:05Z'),
-  lastUpdated: new Date('2025-05-17T21:36:05Z')
+  ingestedAt: new Date('2025-05-17T21:36:05Z')
 };
 
 export const mockHorizonAccount = {
   id: 'account-uuid-1',
-  accountId: 'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
-  sequence: '4387339157639168',
-  balances: [
-    {
-      balance: '1000.0000000',
-      asset_type: 'native'
-    }
-  ],
-  signers: [
-    {
-      weight: 1,
-      key: 'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
-      type: 'ed25519_public_key'
-    }
-  ],
-  data: {},
-  flags: 0,
-  homeDomain: null,
-  thresholds: {
-    low_threshold: 0,
-    med_threshold: 0,
-    high_threshold: 0
-  },
+  accountId: 'GDAQ7GDVA4KJYYK6S7QKQFLMHQFNMJ3M4Q7I3J3FZHXLNXGP4IXMRJMC',
   isContract: true,
-  contractCode: 'WASM_HASH_HERE',
-  operationCount: 25,
   lastActivity: new Date('2025-05-17T21:36:01Z'),
-  ingestedAt: new Date('2025-05-17T21:36:05Z'),
-  lastUpdated: new Date('2025-05-17T21:36:05Z')
+  balance: '1000.0000000',
+  asset: {
+    type: 'native',
+    code: null,
+    issuer: null
+  },
+  amount: '100.0000000',
+  timestamp: new Date('2025-05-17T21:36:01Z'),
+  ingestedAt: new Date('2025-05-17T21:36:05Z')
 };
 
 export const mockHorizonPayment = {
   id: 'payment-uuid-1',
-  paymentId: '0004387339157639168-0000000002',
-  transactionHash: '12069247060c6f1a0f4244555a841dd76d5acb2194ead69da5a99fb4c5327478',
-  operationId: '0004387339157639168-0000000002',
   from: 'GDAQ7GDVA4KJYYK6S7QKQFLMHQFNMJ3M4Q7I3J3FZHXLNXGP4IXMRJMC',
-  to: 'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
+  to: 'GDBQB2KBQG7S6Z4B7B7B7B7B7B7B7B7B7B7B7B7B7B7B7B7B7B7B7B7B',
+  amount: '100.0000000',
+  transactionHash: '12069247060c6f1a0f4244555a841dd76d5acb2194ead69da5a99fb4c5327478',
   asset: {
     type: 'native',
     code: null,
@@ -161,6 +137,8 @@ export const mockHorizonPayment = {
 export const createMockDb = () => ({
   horizonEvent: {
     findMany: vi.fn().mockResolvedValue([mockHorizonEvent]),
+    findFirst: vi.fn().mockResolvedValue(mockHorizonEvent),
+    findUnique: vi.fn().mockResolvedValue(mockHorizonEvent),
     count: vi.fn().mockResolvedValue(1),
     upsert: vi.fn(),
     create: vi.fn(),
@@ -174,6 +152,8 @@ export const createMockDb = () => ({
   },
   horizonTransaction: {
     findMany: vi.fn().mockResolvedValue([mockHorizonTransaction]),
+    findFirst: vi.fn().mockResolvedValue(mockHorizonTransaction),
+    findUnique: vi.fn().mockResolvedValue(mockHorizonTransaction),
     count: vi.fn().mockResolvedValue(1),
     upsert: vi.fn(),
     create: vi.fn(),
@@ -187,6 +167,8 @@ export const createMockDb = () => ({
   },
   horizonContractOperation: {
     findMany: vi.fn().mockResolvedValue([mockHorizonContractOperation]),
+    findFirst: vi.fn().mockResolvedValue(mockHorizonContractOperation),
+    findUnique: vi.fn().mockResolvedValue(mockHorizonContractOperation),
     count: vi.fn().mockResolvedValue(1),
     upsert: vi.fn(),
     create: vi.fn(),
@@ -196,6 +178,8 @@ export const createMockDb = () => ({
   },
   horizonEffect: {
     findMany: vi.fn().mockResolvedValue([mockHorizonEffect]),
+    findFirst: vi.fn().mockResolvedValue(mockHorizonEffect),
+    findUnique: vi.fn().mockResolvedValue(mockHorizonEffect),
     count: vi.fn().mockResolvedValue(1),
     upsert: vi.fn(),
     create: vi.fn(),
@@ -205,6 +189,8 @@ export const createMockDb = () => ({
   },
   horizonContractData: {
     findMany: vi.fn().mockResolvedValue([mockHorizonContractData]),
+    findFirst: vi.fn().mockResolvedValue(mockHorizonContractData),
+    findUnique: vi.fn().mockResolvedValue(mockHorizonContractData),
     count: vi.fn().mockResolvedValue(1),
     upsert: vi.fn(),
     create: vi.fn(),
@@ -214,6 +200,8 @@ export const createMockDb = () => ({
   },
   horizonAccount: {
     findMany: vi.fn().mockResolvedValue([mockHorizonAccount]),
+    findFirst: vi.fn().mockResolvedValue(mockHorizonAccount),
+    findUnique: vi.fn().mockResolvedValue(mockHorizonAccount),
     count: vi.fn().mockResolvedValue(1),
     upsert: vi.fn(),
     create: vi.fn(),
@@ -223,6 +211,8 @@ export const createMockDb = () => ({
   },
   horizonPayment: {
     findMany: vi.fn().mockResolvedValue([mockHorizonPayment]),
+    findFirst: vi.fn().mockResolvedValue(mockHorizonPayment),
+    findUnique: vi.fn().mockResolvedValue(mockHorizonPayment),
     count: vi.fn().mockResolvedValue(1),
     upsert: vi.fn(),
     create: vi.fn(),
@@ -230,8 +220,41 @@ export const createMockDb = () => ({
     delete: vi.fn(),
     deleteMany: vi.fn()
   },
-  horizonMetadata: {
-    findUnique: vi.fn().mockResolvedValue({ key: 'lastProcessedLedgerMeta', value: '1021500' }),
+  horizonIndexerState: {
+    findFirst: vi.fn().mockResolvedValue({ 
+      id: 'indexer-state-1',
+      lastProcessedLedger: 1021500,
+      lastProcessedAt: new Date(),
+      syncStatus: 'synced'
+    }),
+    findUnique: vi.fn().mockResolvedValue({ 
+      id: 'indexer-state-1',
+      lastProcessedLedger: 1021500,
+      lastProcessedAt: new Date(),
+      syncStatus: 'synced'
+    }),
+    create: vi.fn(),
+    update: vi.fn(),
+    upsert: vi.fn(),
+    delete: vi.fn(),
+    deleteMany: vi.fn()
+  },
+  attestation: {
+    findMany: vi.fn().mockResolvedValue([]),
+    findFirst: vi.fn().mockResolvedValue(null),
+    findUnique: vi.fn().mockResolvedValue(null),
+    count: vi.fn().mockResolvedValue(0),
+    upsert: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    deleteMany: vi.fn()
+  },
+  schema: {
+    findMany: vi.fn().mockResolvedValue([]),
+    findFirst: vi.fn().mockResolvedValue(null),
+    findUnique: vi.fn().mockResolvedValue(null),
+    count: vi.fn().mockResolvedValue(0),
     upsert: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
