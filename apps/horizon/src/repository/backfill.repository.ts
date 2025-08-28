@@ -556,29 +556,44 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     // ATTEST revoke
     if (type === 'ATTEST:REVOKE' && Array.isArray(val)) {
       console.log('🧩 [Projection] ATTEST revoke event', { eventId: eventData.eventId, type })
+      
+      // Extract data directly from event value array
+      // Based on the event data: [attestationUid, schemaUid, attester, subject, revokedFlag, timestamp]
       const attestationUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0])
+      const schemaUidBuffer = val[1]  // This is a Buffer
+      const attesterAddress = val[2]  // Address string
+      const subjectAddress = val[3]   // Address string
       const revokedFlag = val[4] === true
       const revokedAtRaw = val[5]
+      
+      // Convert schema UID Buffer to hex string
+      const schemaUid = bufferToHex(schemaUidBuffer)
+      
       let revokedAt: Date | undefined = undefined
-      if (typeof revokedAtRaw === 'string' || typeof revokedAtRaw === 'number') {
+      if (typeof revokedAtRaw === 'bigint') {
+        revokedAt = new Date(Number(revokedAtRaw) * 1000)
+      } else if (typeof revokedAtRaw === 'string' || typeof revokedAtRaw === 'number') {
         const num = typeof revokedAtRaw === 'number' ? revokedAtRaw : parseInt(revokedAtRaw, 10)
         if (!Number.isNaN(num)) revokedAt = new Date(num * 1000)
       }
       if (!revokedAt) revokedAt = new Date(eventData.timestamp)
-      if (attestationUid) {
-        // Pull schema/attester/subject from parameters (decoded Map)
-        const p = await getDecodedOpParamsForTx()
-        const m = p.find((pp) => pp.type === 'Map')?.decoded || {}
-        const schemaUidFromParams = toBase64(m?.schema_uid) || ''
-        const attesterFromParams = m?.attester || ''
-        const subjectFromParams = m?.subject || undefined
-
+      
+      console.log('📋 [Debug] ATTEST:REVOKE data:', {
+        attestationUid,
+        schemaUid,
+        attesterAddress,
+        subjectAddress,
+        revoked: revokedFlag,
+        revokedAt
+      })
+      
+      if (attestationUid && schemaUid && attesterAddress) {
         await singleUpsertAttestation({
           attestationUid,
           ledger: eventData.ledger,
-          schemaUid: schemaUidFromParams,
-          attesterAddress: attesterFromParams,
-          subjectAddress: subjectFromParams,
+          schemaUid,
+          attesterAddress,
+          subjectAddress: subjectAddress || undefined,
           transactionHash: eventData.transactionHash,
           schemaEncoding: 'JSON',
           message: '',
@@ -587,7 +602,11 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
           revokedAt,
         })
       } else {
-        console.log('⚠️ [Projection] ATTEST revoke missing attestationUid', { u0: typeof val[0] })
+        console.log('⚠️ [Projection] ATTEST revoke missing required fields', { 
+          attestationUid: !!attestationUid, 
+          schemaUid: !!schemaUid, 
+          attester: !!attesterAddress 
+        })
       }
     }
   } catch (projErr: any) {
