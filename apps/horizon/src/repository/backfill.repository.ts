@@ -297,6 +297,48 @@ function parseEventData(rawEvent: any): EventData {
   console.log({rawEvent})
   console.log('=============== Raw event ===============')
  
+  // Helper function to convert Buffers to hex in eventData
+  const convertBuffersToHex = (obj: any): any => {
+    if (obj === null || obj === undefined) {
+      return obj
+    }
+    
+    // Handle Buffer-like objects with type and data properties
+    if (obj?.type === 'Buffer' && Array.isArray(obj.data)) {
+      return Buffer.from(obj.data).toString('hex')
+    }
+    
+    // Handle native Buffer objects
+    if (Buffer.isBuffer(obj)) {
+      return obj.toString('hex')
+    }
+    
+    // Handle Uint8Array
+    if (obj instanceof Uint8Array) {
+      return Buffer.from(obj).toString('hex')
+    }
+    
+    // Handle arrays recursively
+    if (Array.isArray(obj)) {
+      return obj.map(convertBuffersToHex)
+    }
+    
+    // Handle objects recursively
+    if (typeof obj === 'object') {
+      const result: any = {}
+      for (const [key, value] of Object.entries(obj)) {
+        result[key] = convertBuffersToHex(value)
+      }
+      return result
+    }
+    
+    // Return primitives as-is
+    return obj
+  }
+
+  const rawEventData = scValToNative(xdr.ScVal.fromXDR(rawEvent.value, 'base64'))
+  const eventDataWithHex = convertBuffersToHex(rawEventData)
+
   return {
     eventId: rawEvent.id,
     ledger: rawEvent.ledger,
@@ -305,7 +347,7 @@ function parseEventData(rawEvent: any): EventData {
     eventType: Array.from(rawEvent.topic).map((t: any) => scValToNative(xdr.ScVal.fromXDR(t, 'base64'))).join(':'),
     // eventTopic: rawEvent.topic?.[0] || 'unknown',
     inSuccessfulContractCall: rawEvent.inSuccessfulContractCall,
-    eventData: scValToNative(xdr.ScVal.fromXDR(rawEvent.value, 'base64')),
+    eventData: eventDataWithHex,
     timestamp: rawEvent.ledgerClosedAt,
     transactionHash: rawEvent.txHash,
   }
