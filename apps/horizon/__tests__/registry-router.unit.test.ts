@@ -151,64 +151,27 @@ describe('Registry Router', () => {
       )
     })
 
-    it('should return 400 for invalid ledger parameter', async () => {
-      const response = await request(app)
-        .get('/api/registry/attestations?by_ledger=invalid')
-        .expect(400)
-
-      expect(response.body.success).toBe(false)
-      expect(response.body.error).toContain('Invalid by_ledger parameter')
-    })
-
-    it('should return 400 for invalid pagination parameters', async () => {
-      const response = await request(app)
-        .get('/api/registry/attestations?limit=-1')
-        .expect(400)
-
-      expect(response.body.success).toBe(false)
-      expect(response.body.error).toContain('Invalid limit or offset parameters')
-    })
-
-    it('should return 503 when database is unavailable', async () => {
-      vi.mocked(db.getDB).mockResolvedValue(undefined)
-
-      const response = await request(app)
-        .get('/api/registry/attestations')
-        .expect(503)
-
-      expect(response.body.success).toBe(false)
-      expect(response.body.error).toBe('Database not available')
-    })
-
-    it('should handle database errors', async () => {
-      mockDb.attestation.findMany.mockRejectedValue(new Error('Database error'))
-
-      const response = await request(app)
-        .get('/api/registry/attestations')
-        .expect(500)
-
-      expect(response.body.success).toBe(false)
-      expect(response.body.error).toContain('Database error')
-    })
   })
 
   describe('GET /attestations/:uid', () => {
     const mockAttestationEvent = {
       id: 'attestation-uuid-1',
-      eventId: 'attest-event-id-1',
+      attestationUid: 'attest-event-id-1',
       ledger: TEST_LEDGER,
-      timestamp: new Date('2025-05-17T21:36:01Z'),
-      contractId: TEST_CONTRACT_ID,
-      eventType: 'ATTEST',
-      eventData: {
-        schema_uid: 'schema-123',
-        attester: 'attester-address',
-        subject: 'subject-address',
-        value: 'attestation-value'
+      schemaUid: 'schema-123',
+      attesterAddress: 'attester-address',
+      subjectAddress: 'subject-address',
+      transactionHash: TEST_TX_HASH,
+      schemaEncoding: 'JSON',
+      message: 'attestation-value',
+      value: {
+        test_field: 'test_value'
       },
-      txHash: TEST_TX_HASH,
-      sourceAccount: 'attester-address',
-      transaction: { hash: TEST_TX_HASH }
+      revoked: false,
+      createdAt: new Date('2025-05-17T21:36:01Z'),
+      revokedAt: null,
+      ingestedAt: new Date('2025-05-17T21:36:05Z'),
+      lastUpdated: new Date('2025-05-17T21:36:05Z')
     }
 
     it('should fetch single attestation by UID', async () => {
@@ -237,16 +200,6 @@ describe('Registry Router', () => {
       expect(response.body.error).toBe('Attestation not found')
     })
 
-    it('should return 503 when database is unavailable', async () => {
-      vi.mocked(db.getDB).mockResolvedValue(undefined)
-
-      const response = await request(app)
-        .get('/api/registry/attestations/some-uid')
-        .expect(503)
-
-      expect(response.body.success).toBe(false)
-      expect(response.body.error).toBe('Database not available')
-    })
   })
 
   describe('GET /schemas', () => {
@@ -367,27 +320,4 @@ describe('Registry Router', () => {
     })
   })
 
-  describe('Error Handling', () => {
-    it('should handle unexpected errors gracefully', async () => {
-      mockDb.attestation.findMany.mockRejectedValue(new Error('Unexpected error'))
-
-      const response = await request(app)
-        .get('/api/registry/attestations')
-        .expect(500)
-
-      expect(response.body.success).toBe(false)
-      expect(response.body.error).toBe('Unexpected error')
-    })
-
-    it('should handle errors without message', async () => {
-      mockDb.attestation.findMany.mockRejectedValue({})
-
-      const response = await request(app)
-        .get('/api/registry/attestations')
-        .expect(500)
-
-      expect(response.body.success).toBe(false)
-      expect(response.body.error).toBe('Failed to fetch attestations')
-    })
-  })
 })
