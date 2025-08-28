@@ -12,7 +12,7 @@
  * @requires common/db
  */
 
-import { rpc, scValToNative, xdr } from '@stellar/stellar-sdk'
+import { rpc, scValToNative, xdr, StrKey } from '@stellar/stellar-sdk'
 import {
   sorobanRpcUrl,
   CONTRACT_IDS_TO_INDEX,
@@ -208,20 +208,27 @@ export async function performBackfill(
           console.log({eventData})
           console.log(`=============== Event data ===============`)
           
-          // 1. Fetch and upsert transaction FIRST (required for foreign key)
+          // 1. Fetch and upsert operations for this transaction FIRST to get operationId
+          const opsCount = await processOperationsForEvent(db, eventData.transactionHash)
+          operationsProcessed += opsCount
+          
+          // Get the operationId for this event
+          const operations = await db.horizonOperation.findMany({
+            where: { transactionHash: eventData.transactionHash },
+            orderBy: { operationIndex: 'asc' },
+            take: 1,
+          })
+          const operationId = operations[0]?.operationId || null
+
+          // 2. Fetch and upsert transaction with operationId reference
           if (eventData.transactionHash) {
             const success = await processTransactionForEvent(db, eventData.transactionHash)
             if (success) transactionsProcessed++
           }
-
    
-          // 2. Upsert event after transaction exists
-          await upsertEventIndividually(db, eventData)
+          // 3. Upsert event with operationId reference
+          await upsertEventIndividually(db, eventData, operationId)
           eventsProcessed++
-
-          // 3. Fetch and upsert operations for this transaction
-          const opsCount = await processOperationsForEvent(db, eventData.transactionHash)
-          operationsProcessed += opsCount
 
           // Update processed ledger checkpoint
           if (eventData.ledger > processedUpToLedger) {
@@ -307,12 +314,16 @@ function parseEventData(rawEvent: any): EventData {
 /**
  * Upsert individual event to database with transaction details.
  */
-async function upsertEventIndividually(db: any, eventData: EventData): Promise<void> {
+async function upsertEventIndividually(db: any, eventData: EventData, operationId?: string | null): Promise<void> {
   // Fetch transaction details to get envelope data
   let txDetails: any = null
   try {
     if (eventData.transactionHash) {
       txDetails = await fetchTransactionDetails(eventData.transactionHash)
+      // Debug: Transaction details structure (reduced logging)
+      if (!txDetails?.sourceAccount) {
+        console.log('🔍 [Debug] No direct sourceAccount in tx details, will use operations or XDR fallback')
+      }
     }
   } catch (error: any) {
     console.warn(`Failed to fetch tx details for ${eventData.transactionHash}:`, error.message)
@@ -328,6 +339,7 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     eventData: eventData.eventData,
     timestamp: new Date(eventData.timestamp),
     txHash: eventData.transactionHash,
+    operationId: operationId || null,  // Add operationId reference
     txEnvelope: txDetails?.envelope_xdr || txDetails?.envelopeXdr || txDetails?.envelope || '',
     txResult: txDetails?.result_xdr || txDetails?.resultXdr || txDetails?.result || '',
     txMeta: txDetails?.result_meta_xdr || txDetails?.resultMetaXdr || txDetails?.meta || '',
@@ -346,6 +358,7 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
       eventData: eventRecord.eventData,
       timestamp: eventRecord.timestamp,
       txHash: eventRecord.txHash,
+      operationId: eventRecord.operationId,  // Add operationId to update
       txEnvelope: eventRecord.txEnvelope,
       txResult: eventRecord.txResult,
       txMeta: eventRecord.txMeta,
@@ -361,6 +374,7 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
       eventData: eventRecord.eventData,
       timestamp: eventRecord.timestamp,
       txHash: eventRecord.txHash,
+      operationId: eventRecord.operationId,  // Add operationId to create
       txEnvelope: eventRecord.txEnvelope,
       txResult: eventRecord.txResult,
       txMeta: eventRecord.txMeta,
@@ -384,8 +398,42 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
         take: 1,
       })
       
-      const sourceAccount = operations[0]?.sourceAccount || txDetails?.sourceAccount || ''
+      // Try to extract source account from transaction envelope XDR if not available directly
+      let sourceAccount = operations[0]?.sourceAccount || txDetails?.sourceAccount || ''
+      
+      if (!sourceAccount && txDetails?.envelopeXdr) {
+        try {
+          console.log('🔍 [Debug] Extracting sourceAccount from envelope XDR as fallback')
+          const envelope = xdr.TransactionEnvelope.fromXDR(txDetails.envelopeXdr, 'base64')
+          let tx: any = null
+          
+          if (envelope.v1()) {
+            tx = envelope.v1().tx()
+          } else if (envelope.v0()) {
+            tx = envelope.v0().tx()
+          }
+          
+          if (tx) {
+            const sourceAccountKey = tx.sourceAccount()
+            if (sourceAccountKey && sourceAccountKey.ed25519) {
+              sourceAccount = StrKey.encodeEd25519PublicKey(sourceAccountKey.ed25519())
+              console.log('✅ Successfully extracted sourceAccount from XDR:', sourceAccount)
+            }
+          }
+        } catch (envError: any) {
+          console.warn('❌ Failed to extract source account from envelope XDR:', envError.message)
+        }
+      }
       const operationId = operations[0]?.operationId || null
+
+      // Log only if sourceAccount resolution failed for debugging
+      if (!sourceAccount) {
+        console.warn('⚠️ Could not resolve sourceAccount for transaction:', eventData.transactionHash, {
+          operationsCount: operations.length,
+          hasTxDetails: !!txDetails,
+          hasEnvelopeXdr: !!txDetails?.envelopeXdr
+        })
+      }
 
       // Create ContractTransaction rollup entry using the repository function
       await upsertContractTransaction({
