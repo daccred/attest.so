@@ -171,14 +171,36 @@ export async function performBackfill(
       console.log(`📦 Processing ${events.length} events...`)
 
       // Process each event individually, but in correct order
-      // First, separate events by type to process schemas before attestations
-      const parsedEvents = events.map(event => parseEventData(event))
-      const schemaEvents = parsedEvents.filter(e => e.eventType.includes('SCHEMA'))
-      const attestationEvents = parsedEvents.filter(e => e.eventType.includes('ATTEST'))
-      const otherEvents = parsedEvents.filter(e => !e.eventType.includes('SCHEMA') && !e.eventType.includes('ATTEST'))
+      // Priority events we want to track: schemas first, then attestations, then BLS keys, then others
+      const parsedEvents = events.map((event: any) => parseEventData(event))
+      
+      // Debug: Log all event types found
+      const eventTypeCounts: Record<string, number> = {}
+      parsedEvents.forEach((e: any) => {
+        eventTypeCounts[e.eventType] = (eventTypeCounts[e.eventType] || 0) + 1
+      })
+      console.log('📊 Event types found:', eventTypeCounts)
+      
+      // Specific event types in priority order
+      const schemaEvents = parsedEvents.filter((e: any) => 
+        e.eventType === 'SCHEMA:REGISTER' || e.eventType === 'SCHEMA:CREATE'
+      )
+      const attestationEvents = parsedEvents.filter((e: any) => 
+        e.eventType === 'ATTEST:CREATE' || e.eventType === 'ATTEST:REVOKE'
+      )
+      const blsKeyEvents = parsedEvents.filter((e: any) => 
+        e.eventType === 'BLS_KEY:REGISTER' || e.eventType.includes('BLS_KEY')
+      )
+      const otherEvents = parsedEvents.filter((e: any) => 
+        e.eventType !== 'SCHEMA:REGISTER' && e.eventType !== 'SCHEMA:CREATE' &&
+        e.eventType !== 'ATTEST:CREATE' && e.eventType !== 'ATTEST:REVOKE' &&
+        !e.eventType.includes('BLS_KEY')
+      )
 
-      // Process in order: schemas first, then attestations, then others
-      const orderedEvents = [...schemaEvents, ...attestationEvents, ...otherEvents]
+      console.log(`📋 Event filtering results: schemas=${schemaEvents.length}, attestations=${attestationEvents.length}, blsKeys=${blsKeyEvents.length}, others=${otherEvents.length}`)
+
+      // Process in order: schemas first, then attestations, then BLS keys, then others
+      const orderedEvents = [...schemaEvents, ...attestationEvents, ...blsKeyEvents, ...otherEvents]
 
       for (const eventData of orderedEvents) {
         try {
@@ -263,6 +285,10 @@ export async function performBackfill(
  * Parse raw event data from RPC response into structured format.
  */
 function parseEventData(rawEvent: any): EventData {
+
+  console.log('=============== Raw event ===============')
+  console.log({rawEvent})
+  console.log('=============== Raw event ===============')
  
   return {
     eventId: rawEvent.id,
@@ -292,8 +318,6 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     console.warn(`Failed to fetch tx details for ${eventData.transactionHash}:`, error.message)
   }
 
-         /** @debug Add a timeout to delay the next event */
-         await new Promise(resolve => setTimeout(resolve, 300))
 
 
   const eventRecord = {
@@ -471,17 +495,34 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     // ATTEST create
     if (type === 'ATTEST:CREATE' && Array.isArray(val)) {
       console.log('🧩 [Projection] ATTEST create event', { eventId: eventData.eventId, type })
-      // Prefer decoding from operation parameters (single invoke_host_function)
+      // Get operation parameters - they're individual typed parameters, not a Map
       const params = await getDecodedOpParamsForTx()
       console.log('📋 [Debug] Operation parameters:', JSON.stringify(params, null, 2))
-      const mapParam = params.find((p) => p.type === 'Map')?.decoded || {}
-      console.log('📋 [Debug] Map parameter:', JSON.stringify(mapParam, null, 2))
+
+      // Helper to convert Buffer to hex string for schema UID
+      const bufferToHex = (buffer: any): string => {
+        if (buffer?.type === 'Buffer' && Array.isArray(buffer.data)) {
+          return Buffer.from(buffer.data).toString('hex')
+        }
+        if (Buffer.isBuffer(buffer)) {
+          return buffer.toString('hex')
+        }
+        return buffer
+      }
+
+      // Extract data from individual parameters based on contract call structure
+      // Based on the debug output: [contractId, function, attester, schemaUid, subject, message, ...]
+      const schemaUidParam = params[3]?.decoded // Bytes parameter containing schema UID
+      const attesterParam = params[2]?.decoded  // Address parameter for attester
+      const subjectParam = params[4]?.decoded   // Address parameter for subject
+      const messageParam = params[5]?.decoded   // String parameter for message
+
       const attestationUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0]) // event contains UID
-      const schemaUid = toBase64(mapParam?.schema_uid)
-      const attesterAddress = mapParam?.attester || undefined
-      const subjectAddress = mapParam?.subject || undefined
-      const message = typeof mapParam?.value === 'string' ? mapParam.value : (mapParam?.value ? JSON.stringify(mapParam.value) : '')
-      const value = (() => { try { return typeof mapParam?.value === 'string' ? JSON.parse(mapParam.value) : mapParam?.value } catch { return undefined } })()
+      const schemaUid = bufferToHex(schemaUidParam)
+      const attesterAddress = attesterParam
+      const subjectAddress = subjectParam
+      const message = messageParam || ''
+      const value = (() => { try { return typeof messageParam === 'string' ? JSON.parse(messageParam) : undefined } catch { return undefined } })()
       
       console.log('📋 [Debug] Attestation record being processed:', {
         attestationUid,

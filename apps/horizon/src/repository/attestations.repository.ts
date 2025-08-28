@@ -85,9 +85,7 @@ export async function singleUpsertAttestation(attestationData: AttestationData) 
         revoked: attestationData.revoked || false,
         revokedAt: attestationData.revokedAt,
       },
-      include: {
-        schema: true,
-      },
+      // Removed schema include due to removed foreign key constraint
     })
 
     console.log(`✅ Upserted attestation: ${attestation.attestationUid}`)
@@ -135,9 +133,7 @@ export async function getAttestations(filters: AttestationFilters = {}) {
     const [attestations, total] = await Promise.all([
       db.attestation.findMany({
         where,
-        include: {
-          schema: true,
-        },
+        // Removed schema include due to removed foreign key constraint
         orderBy: { createdAt: 'desc' },
         take: Math.min(limit, 200), // Enforce max limit
         skip: offset,
@@ -168,9 +164,7 @@ export async function getAttestationByUid(attestationUid: string) {
   try {
     const attestation = await db.attestation.findUnique({
       where: { attestationUid },
-      include: {
-        schema: true,
-      },
+      // Removed schema include due to removed foreign key constraint
     })
 
     if (attestation) {

@@ -190,8 +190,8 @@ model Attestation {
   createdAt         DateTime @default(now())
   revokedAt         DateTime?
   
-  // Relations
-  schema            Schema?  @relation(fields: [schemaUid], references: [uid])
+  // Relations - keeping schemaUid as regular field without foreign key constraint
+  // This allows attestations to reference schemas by UID without database-level enforcement
   
   // Indexer metadata
   ingestedAt        DateTime @default(now())
@@ -221,8 +221,8 @@ model Schema {
   // Timestamps
   createdAt                 DateTime @default(now())
   
-  // Relations
-  attestations              Attestation[]
+  // Relations - removed to eliminate foreign key constraints
+  // attestations can still reference schemas via schemaUid field
   
   // Indexer metadata
   ingestedAt                DateTime @default(now())

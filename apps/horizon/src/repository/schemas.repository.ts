@@ -78,12 +78,7 @@ export async function singleUpsertSchema(schemaData: SchemaData) {
         type: schemaData.type || 'default',
         transactionHash: schemaData.transactionHash,
       },
-      include: {
-        attestations: {
-          take: 5, // Include first 5 attestations for context
-          orderBy: { createdAt: 'desc' },
-        },
-      },
+      // Removed attestations include due to removed foreign key constraint
     })
 
     console.log(`✅ Upserted schema: ${schema.uid}`)
@@ -129,21 +124,7 @@ export async function getSchemas(filters: SchemaFilters = {}) {
     const [schemas, total] = await Promise.all([
       db.schema.findMany({
         where,
-        include: {
-          _count: {
-            select: { attestations: true },
-          },
-          attestations: {
-            take: 3, // Include a few recent attestations for context
-            orderBy: { createdAt: 'desc' },
-            select: {
-              attestationUid: true,
-              attesterAddress: true,
-              createdAt: true,
-              revoked: true,
-            },
-          },
-        },
+        // Removed attestations include due to removed foreign key constraint
         orderBy: { createdAt: 'desc' },
         take: Math.min(limit, 200), // Enforce max limit
         skip: offset,
@@ -174,23 +155,7 @@ export async function getSchemaByUid(uid: string, includeAttestations: boolean =
   try {
     const schema = await db.schema.findUnique({
       where: { uid },
-      include: {
-        _count: {
-          select: { attestations: true },
-        },
-        attestations: includeAttestations ? {
-          orderBy: { createdAt: 'desc' },
-        } : {
-          take: 5, // Limited set for basic context
-          orderBy: { createdAt: 'desc' },
-          select: {
-            attestationUid: true,
-            attesterAddress: true,
-            createdAt: true,
-            revoked: true,
-          },
-        },
-      },
+      // Removed attestations include due to removed foreign key constraint
     })
 
     if (schema) {
