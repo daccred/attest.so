@@ -28,9 +28,14 @@ beforeEach(async () => {
   });
   
   try {
-    await prisma.horizonPayment.deleteMany();
+    /** ignore this for now and only delete payment, accounts, indexer state */
+    // await prisma.horizonEvent.deleteMany();
+    // await prisma.horizonTransaction.deleteMany();
+    // await prisma.horizonOperation.deleteMany();
     await prisma.horizonAccount.deleteMany();
-    // await prisma.horizonIndexerState.deleteMany();
+    await prisma.horizonPayment.deleteMany();
+    await prisma.horizonIndexerState.deleteMany();
+    
   } catch (error) {
     console.warn('Database cleanup failed:', error);
   } finally {

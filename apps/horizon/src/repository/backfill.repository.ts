@@ -22,6 +22,8 @@ import {
 import { getDB, updateLastProcessedLedgerInDB } from '../common/db'
 import { fetchTransactionDetails } from './transactions.repository'
 import { fetchOperationsFromHorizon } from './operations.repository'
+import { singleUpsertSchema } from './schemas.repository'
+import { singleUpsertAttestation } from './attestations.repository'
 
 const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://'),
@@ -257,7 +259,8 @@ function parseEventData(rawEvent: any): EventData {
     eventId: rawEvent.id,
     ledger: rawEvent.ledger,
     contractId: rawEvent.contractId,
-    eventType: rawEvent.topic?.[0] || 'unknown',
+    // xdr convert each topic to a string
+    eventType: Array.from(rawEvent.topic).map((t: any) => scValToNative(xdr.ScVal.fromXDR(t, 'base64'))).join('_0x0_'),
     // eventTopic: rawEvent.topic?.[0] || 'unknown',
     // inSuccessfulContractCall: rawEvent.inSuccessfulContractCall,
     eventData: scValToNative(xdr.ScVal.fromXDR(rawEvent.value, 'base64')),
@@ -329,6 +332,99 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
       txCreatedAt: eventRecord.txCreatedAt,
     },
   })
+
+  // Registry projection based on decoded eventType and eventData
+  try {
+    const type = eventData.eventType || ''
+    const val = eventData.eventData
+
+    // SCHEMA register
+    if (type === 'SCHEMA_0x0_REGISTER' && Array.isArray(val)) {
+      console.log('🧩 [Projection] SCHEMA register event', { eventId: eventData.eventId, type, sample: typeof val[0], hasObj: typeof val[1] })
+      const schemaUid = typeof val[0] === 'string' ? val[0] : undefined
+      const schemaObj = typeof val[1] === 'object' ? val[1] : undefined
+      if (schemaUid && schemaObj) {
+        const defString = typeof schemaObj.definition === 'string'
+          ? schemaObj.definition
+          : JSON.stringify(schemaObj.definition ?? {})
+        await singleUpsertSchema({
+          uid: schemaUid,
+          ledger: eventData.ledger,
+          schemaDefinition: defString,
+          parsedSchemaDefinition: (() => { try { return JSON.parse(defString) } catch { return undefined } })(),
+          resolverAddress: schemaObj.resolver ?? null,
+          revocable: schemaObj.revocable !== false,
+          deployerAddress: schemaObj.authority || txDetails?.sourceAccount || '',
+          type: 'default',
+          transactionHash: eventData.transactionHash,
+        })
+      } else {
+        console.log('⚠️ [Projection] SCHEMA missing expected fields', { schemaUidType: typeof val[0], objType: typeof val[1] })
+      }
+    }
+
+    // ATTEST create
+    if (type === 'ATTEST_0x0_CREATE' && Array.isArray(val)) {
+      console.log('🧩 [Projection] ATTEST create event', { eventId: eventData.eventId, type })
+      const attestationUid = typeof val[0] === 'string' ? val[0] : undefined
+      const schemaUid = typeof val[1] === 'string' ? val[1] : undefined
+      const attesterAddress = typeof val[2] === 'string' ? val[2] : undefined
+      const subjectAddress = typeof val[3] === 'string' ? val[3] : undefined
+      const messageRaw = val[4]
+      let message = typeof messageRaw === 'string' ? messageRaw : typeof messageRaw === 'object' ? JSON.stringify(messageRaw) : String(messageRaw ?? '')
+      let value: any = undefined
+      try { if (typeof messageRaw === 'string' && messageRaw.trim().startsWith('{')) value = JSON.parse(messageRaw) } catch {}
+      if (attestationUid && schemaUid && attesterAddress) {
+        await singleUpsertAttestation({
+          attestationUid,
+          ledger: eventData.ledger,
+          schemaUid,
+          attesterAddress,
+          subjectAddress: subjectAddress || undefined,
+          transactionHash: eventData.transactionHash,
+          schemaEncoding: 'JSON',
+          message,
+          value,
+          revoked: false,
+        })
+      } else {
+        console.log('⚠️ [Projection] ATTEST create missing ids', { u0: typeof val[0], u1: typeof val[1], u2: typeof val[2] })
+      }
+    }
+
+    // ATTEST revoke
+    if (type.toUpperCase().includes('ATTEST') && type.toUpperCase().includes('REVOKE') && Array.isArray(val)) {
+      console.log('🧩 [Projection] ATTEST revoke event', { eventId: eventData.eventId, type })
+      const attestationUid = typeof val[0] === 'string' ? val[0] : undefined
+      const revokedFlag = val[4] === true
+      const revokedAtRaw = val[5]
+      let revokedAt: Date | undefined = undefined
+      if (typeof revokedAtRaw === 'string' || typeof revokedAtRaw === 'number') {
+        const num = typeof revokedAtRaw === 'number' ? revokedAtRaw : parseInt(revokedAtRaw, 10)
+        if (!Number.isNaN(num)) revokedAt = new Date(num * 1000)
+      }
+      if (!revokedAt) revokedAt = new Date(eventData.timestamp)
+      if (attestationUid) {
+        await singleUpsertAttestation({
+          attestationUid,
+          ledger: eventData.ledger,
+          schemaUid: typeof val[1] === 'string' ? val[1] : '',
+          attesterAddress: typeof val[2] === 'string' ? val[2] : '',
+          subjectAddress: (typeof val[3] === 'string' ? val[3] : undefined) || undefined,
+          transactionHash: eventData.transactionHash,
+          schemaEncoding: 'JSON',
+          message: '',
+          value: undefined,
+          revoked: revokedFlag === true,
+          revokedAt,
+        })
+      } else {
+        console.log('⚠️ [Projection] ATTEST revoke missing attestationUid', { u0: typeof val[0] })
+      }
+    }
+  } catch (projErr: any) {
+    console.warn('Registry projection warning for event', eventData?.eventId, '-', projErr?.message || projErr)
+  }
 }
 
 /**
@@ -454,7 +550,6 @@ async function processOperationsForEvent(db: any, transactionHash: string): Prom
         
         count++
         console.log(`✅ Stored operation ${operation.id} for contract ${contractId}`)
-        
       } catch (error: any) {
         console.error(`❌ Error processing operation ${operation.id}:`, error.message)
       }
@@ -584,7 +679,6 @@ function determineContractId(operation: any): string | null {
   }
   
   // If we can't determine, return the first contract ID as fallback
-  // This ensures we don't lose operations, but they'll be associated with the primary contract
   return CONTRACT_IDS_TO_INDEX[0] || null
 }
 
@@ -596,8 +690,6 @@ function extractFunctionName(operation: any): string | null {
     if (operation.type_i === 24) { // invoke_host_function
       return operation.function || operation.details?.function || null
     }
-    
-    // For other operation types, return the operation type name
     return operation.type || `operation_${operation.type_i}` || null
   } catch (error) {
     console.warn('Error extracting function name:', error)
@@ -613,25 +705,20 @@ function extractParameters(operation: any): any | null {
     if (operation.type_i === 24) { // invoke_host_function
       return operation.parameters || operation.details?.parameters || null
     }
-    
-    // For other operation types, extract relevant parameters
     const params: any = {}
-    
-    // Common fields that might contain parameters
     const paramFields = ['amount', 'asset', 'from', 'to', 'account', 'trustor', 'trustee']
     for (const field of paramFields) {
       if (operation[field] !== undefined) {
         params[field] = operation[field]
       }
     }
-    
     return Object.keys(params).length > 0 ? params : null
   } catch (error) {
     console.warn('Error extracting parameters:', error)
     return null
   }
 }
- 
+
 /**
  * Fetch operations for a specific transaction and contract combination.
  * This is the most optimized approach when you know both transaction and contract.
