@@ -203,7 +203,7 @@ describe('Horizon API - Endpoints (refactored)', () => {
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
         expect(mockDb.horizonTransaction.findMany).toHaveBeenCalledWith(
-          expect.objectContaining({ include: { events: true, effects: true, payments: true } })
+          expect.objectContaining({ include: { events: true, payments: true } })
         );
       });
     });
@@ -213,15 +213,15 @@ describe('Horizon API - Endpoints (refactored)', () => {
         const res = await request(app).get('/api/data/operations');
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
-        expect(mockDb.horizonContractOperation.findMany).toHaveBeenCalledWith(
-          expect.objectContaining({ include: { transaction: true, events: true } })
+        expect(mockDb.horizonOperation.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ include: { events: true } })
         );
       });
 
       it('applies filters', async () => {
         await request(app).get('/api/data/operations?contractId=C&type=invoke_host_function&sourceAccount=G..');
-        expect(mockDb.horizonContractOperation.findMany).toHaveBeenCalledWith(
-          expect.objectContaining({ where: { contractId: 'C', type: 'invoke_host_function', sourceAccount: 'G..' } })
+        expect(mockDb.horizonOperation.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { contractId: 'C', operationType: 'invoke_host_function', sourceAccount: 'G..' } })
         );
       });
     });
