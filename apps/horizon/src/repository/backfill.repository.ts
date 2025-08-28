@@ -425,15 +425,35 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
       try { return scValToNative(xdr.ScVal.fromXDR(b64, 'base64')) } catch { return null }
     }
 
-    // Helper to convert Buffer to hex string for schema UID
+    // Helper to convert Buffer to hex string for UIDs
     const bufferToHex = (buffer: any): string => {
+      if (!buffer) return ''
+      
+      // Handle Buffer-like objects with type and data properties
       if (buffer?.type === 'Buffer' && Array.isArray(buffer.data)) {
         return Buffer.from(buffer.data).toString('hex')
       }
+      
+      // Handle native Buffer objects
       if (Buffer.isBuffer(buffer)) {
         return buffer.toString('hex')
       }
-      return buffer
+      
+      // Handle base64 strings - convert to hex
+      if (typeof buffer === 'string') {
+        try {
+          // Check if it's already hex (all hex chars and even length)
+          if (/^[0-9a-fA-F]+$/.test(buffer) && buffer.length % 2 === 0) {
+            return buffer.toLowerCase()
+          }
+          // Otherwise assume base64 and convert to hex
+          return Buffer.from(buffer, 'base64').toString('hex')
+        } catch {
+          return buffer
+        }
+      }
+      
+      return String(buffer)
     }
 
     // Helper: fetch and decode operation parameters for this tx
@@ -471,8 +491,8 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     // SCHEMA register
     if (type === 'SCHEMA:REGISTER' && Array.isArray(val)) {
       console.log('🧩 [Projection] SCHEMA register event', { eventId: eventData.eventId, type, sample: typeof val[0], hasObj: typeof val[1] })
-      // schemaUid is published in event value (first element). It may be a base64 XDR bytes or Buffer-like
-      let schemaUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0])
+      // schemaUid is published in event value (first element) - convert to hex for consistency
+      let schemaUid = bufferToHex(val[0])
       const schemaObj = typeof val[1] === 'object' ? val[1] : undefined
       if (!schemaUid) {
         // Fallback: derive from op params if present
@@ -480,7 +500,7 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
         // For schema register, the Str definition is in params[3], authority in params[2]
         // Some chains may include schema_uid in params Map; ignore unless present
         const mapParam = params.find((p) => p.type === 'Map')
-        const maybeUid = toBase64(mapParam?.decoded?.schema_uid)
+        const maybeUid = bufferToHex(mapParam?.decoded?.schema_uid)
         if (maybeUid) schemaUid = maybeUid
       }
       if (schemaUid && schemaObj) {
@@ -517,7 +537,8 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
       const subjectParam = params[4]?.decoded   // Address parameter for subject
       const messageParam = params[5]?.decoded   // String parameter for message
 
-      const attestationUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0]) // event contains UID
+      // Convert attestation UID to hex format (consistent with schema UID)
+      const attestationUid = bufferToHex(val[0]) // event contains UID as Buffer
       const schemaUid = bufferToHex(schemaUidParam)
       const attesterAddress = attesterParam
       const subjectAddress = subjectParam
@@ -559,14 +580,15 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
       
       // Extract data directly from event value array
       // Based on the event data: [attestationUid, schemaUid, attester, subject, revokedFlag, timestamp]
-      const attestationUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0])
-      const schemaUidBuffer = val[1]  // This is a Buffer
-      const attesterAddress = val[2]  // Address string
-      const subjectAddress = val[3]   // Address string
+      const attestationUidBuffer = val[0]  // This is a Buffer
+      const schemaUidBuffer = val[1]      // This is a Buffer
+      const attesterAddress = val[2]      // Address string
+      const subjectAddress = val[3]       // Address string
       const revokedFlag = val[4] === true
       const revokedAtRaw = val[5]
       
-      // Convert schema UID Buffer to hex string
+      // Convert both UIDs from Buffer to hex string for consistent storage
+      const attestationUid = bufferToHex(attestationUidBuffer)
       const schemaUid = bufferToHex(schemaUidBuffer)
       
       let revokedAt: Date | undefined = undefined
