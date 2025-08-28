@@ -11,3 +11,4 @@ pub use self::delegation::{
     revoke_by_delegation,
 };
 pub use self::schema::register_schema;
+pub use self::schema::get_schema_or_fail;

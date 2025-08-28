@@ -16,7 +16,7 @@ use soroban_sdk::{Address, BytesN, Env, String};
 ///
 /// # Errors
 /// * `Error::SchemaNotFound` - If no schema with the given UID exists in storage.
-fn _get_schema_or_fail(env: &Env, schema_uid: &BytesN<32>) -> Result<Schema, Error> {
+pub fn get_schema_or_fail(env: &Env, schema_uid: &BytesN<32>) -> Result<Schema, Error> {
     let schema_key = DataKey::Schema(schema_uid.clone());
     env.storage()
         .instance()

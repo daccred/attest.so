@@ -81,7 +81,7 @@ impl AttestationContract {
         get_schema_or_fail(&env, &schema_uid)
     }
 
-    /// Creates an attestation for a given subject.
+    /// Creates an attestation where the attester is also the subject.
     ///
     /// This function creates a new attestation based on a specified schema. The `attester`
     /// must authorize this operation by signing the transaction, and they will also be the subject of the attestation.
