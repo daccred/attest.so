@@ -28,13 +28,9 @@ beforeEach(async () => {
   });
   
   try {
-    // Clean up all Horizon data tables in correct order due to foreign keys
-    await prisma.horizonEvent.deleteMany();
     await prisma.horizonPayment.deleteMany();
     await prisma.horizonAccount.deleteMany();
-    await prisma.horizonOperation.deleteMany();
-    await prisma.horizonTransaction.deleteMany();
-    await prisma.horizonIndexerState.deleteMany();
+    // await prisma.horizonIndexerState.deleteMany();
   } catch (error) {
     console.warn('Database cleanup failed:', error);
   } finally {

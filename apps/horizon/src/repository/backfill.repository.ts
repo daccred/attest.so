@@ -17,6 +17,7 @@ import {
   sorobanRpcUrl,
   CONTRACT_IDS_TO_INDEX,
   MAX_EVENTS_PER_FETCH,
+  getHorizonBaseUrl,
 } from '../common/constants'
 import { getDB, updateLastProcessedLedgerInDB } from '../common/db'
 import { fetchTransactionDetails } from './transactions.repository'
@@ -339,7 +340,7 @@ async function processTransactionForEvent(db: any, transactionHash: string): Pro
     if (!txDetails) return false
 
     console.log(`=============== Processing transaction ===============`)
-    console.log({txDetails})
+    // console.log({txDetails})
     console.log(`=============== Processing transaction ===============`)
 
     // The hash might not be in the response, use the one we passed in
@@ -368,7 +369,7 @@ async function processTransactionForEvent(db: any, transactionHash: string): Pro
         sourceAccount: sourceAccount,
         fee: fee,
         operationCount: operationCount,
-        envelope: "envelope.toJSON(),",
+        envelope: envelope,
         result: result,
         meta: meta,
         successful: successful,
@@ -397,55 +398,260 @@ async function processTransactionForEvent(db: any, transactionHash: string): Pro
 
 /**
  * Process and upsert operations for a transaction.
+ * Optimized to make direct Horizon API calls for specific transaction hash and contract ID.
  */
 async function processOperationsForEvent(db: any, transactionHash: string): Promise<number> {
   let count = 0
   
   try {
-    // Note: We could optimize this by getting operations directly from transaction details
-    // For now, using existing operation fetching logic
+    console.log(`🔍 Fetching operations for transaction: ${transactionHash}`)
     
-    for (const contractId of CONTRACT_IDS_TO_INDEX) {
+    // Make direct Horizon API call for this specific transaction
+    const operations = await fetchOperationsForTransaction(transactionHash)
+    
+    if (operations.length === 0) {
+      console.log(`📭 No operations found for transaction: ${transactionHash}`)
+      return 0
+    }
+    
+    console.log(`📋 Found ${operations.length} operations for transaction: ${transactionHash}`)
+    
+    // Process each operation and associate with relevant contracts
+    for (const operation of operations) {
       try {
-        const operations = await fetchOperationsFromHorizon({
-          accountId: contractId,
-
-          limit: 50, // Smaller batch size
-        })
-
-        // Filter operations for this specific transaction
-        const txOperations = operations.filter(op => op.transaction_hash === transactionHash)
-
-        for (const operation of txOperations) {
-          await db.horizonOperation.upsert({
-            where: { operationId: operation.id },
-            update: {
-              contractId: contractId,
-              operationType: operation.type_i,
-              transactionHash: operation.transaction_hash,
-              sourceAccount: operation.source_account,
-              updatedAt: new Date(),
-            },
-            create: {
-              operationId: operation.id,
-              contractId: contractId,
-              operationType: operation.type_i,
-              transactionHash: operation.transaction_hash,
-              sourceAccount: operation.source_account,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-          })
-          count++
+        // Determine which contract this operation belongs to
+        const contractId = determineContractId(operation)
+        
+        if (!contractId) {
+          console.log(`⚠️ Could not determine contract ID for operation ${operation.id}`)
+          continue
         }
+        
+        // Extract operation details
+        const operationData = {
+          operationId: operation.id,
+          transactionHash: operation.transaction_hash,
+          contractId: contractId,
+          operationType: operation.type_i?.toString() || 'unknown',
+          successful: operation.successful !== false,
+          sourceAccount: operation.source_account || '',
+          operationIndex: operation.index || 0,
+          function: extractFunctionName(operation),
+          parameters: extractParameters(operation),
+          details: operation, // Store full operation details
+        }
+        
+        // Upsert operation
+        await db.horizonOperation.upsert({
+          where: { operationId: operation.id },
+          update: {
+            ...operationData,
+          },
+          create: {
+            ...operationData,
+          },
+        })
+        
+        count++
+        console.log(`✅ Stored operation ${operation.id} for contract ${contractId}`)
+        
       } catch (error: any) {
-        console.error(`❌ Error processing operations for contract ${contractId}:`, error.message)
+        console.error(`❌ Error processing operation ${operation.id}:`, error.message)
       }
     }
-
+    
+    console.log(`🎯 Successfully processed ${count} operations for transaction: ${transactionHash}`)
     return count
+    
   } catch (error: any) {
     console.error(`❌ Error processing operations for transaction ${transactionHash}:`, error.message)
     return count
+  }
+}
+
+/**
+ * Fetch operations for a specific transaction from Horizon API.
+ * Optimized to use transaction-specific query for better performance.
+ */
+async function fetchOperationsForTransaction(transactionHash: string): Promise<any[]> {
+  try {
+    const horizonUrl = getHorizonBaseUrl()
+    const url = `${horizonUrl}/transactions/${transactionHash}/operations?limit=200&order=asc`
+    
+    console.log(`🌐 Fetching operations from: ${url}`)
+    
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    })
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log(`Transaction ${transactionHash} not found in Horizon`)
+        return []
+      }
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+    }
+    
+    const data = await response.json()
+    const operations = data._embedded?.records || []
+    
+    console.log(`📊 Fetched ${operations.length} operations for transaction ${transactionHash}`)
+    return operations
+    
+  } catch (error: any) {
+    console.error(`❌ Error fetching operations for transaction ${transactionHash}:`, error.message)
+    return []
+  }
+}
+
+/**
+ * Determine which contract an operation belongs to based on operation details.
+ * This is a heuristic approach since Horizon doesn't directly associate operations with contracts.
+ */
+function determineContractId(operation: any): string | null {
+  // Check if operation involves any of our target contracts
+  for (const contractId of CONTRACT_IDS_TO_INDEX) {
+    // Check various fields where contract ID might appear
+    if (
+      operation.to === contractId ||
+      operation.from === contractId ||
+      operation.account === contractId ||
+      operation.contract_id === contractId ||
+      (operation.function && operation.function.includes(contractId)) ||
+      (operation.parameters && JSON.stringify(operation.parameters).includes(contractId))
+    ) {
+      return contractId
+    }
+  }
+  
+  // For invoke_host_function operations (type 24), check the function details
+  if (operation.type_i === 24) { // invoke_host_function
+    try {
+      const functionDetails = operation.function || operation.details?.function
+      if (functionDetails) {
+        // Check if any of our contract IDs are mentioned in the function details
+        for (const contractId of CONTRACT_IDS_TO_INDEX) {
+          if (functionDetails.includes(contractId)) {
+            return contractId
+          }
+        }
+      }
+      
+      // Check host function details for contract invocation
+      const hostFunction = operation.host_function
+      if (hostFunction) {
+        // For contract invocation, check the contract address
+        if (hostFunction.type === 'invoke_contract') {
+          const contractAddress = hostFunction.invoke_contract?.contract_address
+          if (contractAddress && CONTRACT_IDS_TO_INDEX.includes(contractAddress)) {
+            return contractAddress
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Error parsing function details:', error)
+    }
+  }
+  
+  // For restore_footprint operations (type 25), check the contract address
+  if (operation.type_i === 25) { // restore_footprint
+    try {
+      const contractAddress = operation.contract_id || operation.contract_address
+      if (contractAddress && CONTRACT_IDS_TO_INDEX.includes(contractAddress)) {
+        return contractAddress
+      }
+    } catch (error) {
+      console.warn('Error parsing restore_footprint details:', error)
+    }
+  }
+  
+  // Check operation effects for contract interactions
+  if (operation.effects) {
+    for (const effect of operation.effects) {
+      if (effect.type === 'contract_credited' || effect.type === 'contract_debited') {
+        const contractAddress = effect.contract
+        if (contractAddress && CONTRACT_IDS_TO_INDEX.includes(contractAddress)) {
+          return contractAddress
+        }
+      }
+    }
+  }
+  
+  // If we can't determine, return the first contract ID as fallback
+  // This ensures we don't lose operations, but they'll be associated with the primary contract
+  return CONTRACT_IDS_TO_INDEX[0] || null
+}
+
+/**
+ * Extract function name from operation details.
+ */
+function extractFunctionName(operation: any): string | null {
+  try {
+    if (operation.type_i === 24) { // invoke_host_function
+      return operation.function || operation.details?.function || null
+    }
+    
+    // For other operation types, return the operation type name
+    return operation.type || `operation_${operation.type_i}` || null
+  } catch (error) {
+    console.warn('Error extracting function name:', error)
+    return null
+  }
+}
+
+/**
+ * Extract parameters from operation details.
+ */
+function extractParameters(operation: any): any | null {
+  try {
+    if (operation.type_i === 24) { // invoke_host_function
+      return operation.parameters || operation.details?.parameters || null
+    }
+    
+    // For other operation types, extract relevant parameters
+    const params: any = {}
+    
+    // Common fields that might contain parameters
+    const paramFields = ['amount', 'asset', 'from', 'to', 'account', 'trustor', 'trustee']
+    for (const field of paramFields) {
+      if (operation[field] !== undefined) {
+        params[field] = operation[field]
+      }
+    }
+    
+    return Object.keys(params).length > 0 ? params : null
+  } catch (error) {
+    console.warn('Error extracting parameters:', error)
+    return null
+  }
+}
+ 
+/**
+ * Fetch operations for a specific transaction and contract combination.
+ * This is the most optimized approach when you know both transaction and contract.
+ */
+export async function fetchOperationsForTransactionAndContract(transactionHash: string, contractId: string): Promise<any[]> {
+  try {
+    // First get all operations for the transaction
+    const allOperations = await fetchOperationsForTransaction(transactionHash)
+    
+    // Then filter for operations related to the specific contract
+    const contractOperations = allOperations.filter(operation => {
+      const operationContractId = determineContractId(operation)
+      return operationContractId === contractId
+    })
+    
+    console.log(`🎯 Found ${contractOperations.length} operations for transaction ${transactionHash} and contract ${contractId}`)
+    return contractOperations
+    
+  } catch (error: any) {
+    console.error(`❌ Error fetching operations for transaction ${transactionHash} and contract ${contractId}:`, error.message)
+    return []
   }
 }
