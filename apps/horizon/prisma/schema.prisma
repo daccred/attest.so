@@ -26,7 +26,7 @@ model HorizonEvent {
   
   // Relations
   transaction HorizonTransaction? @relation(fields: [txHash], references: [hash])
-  operation HorizonOperation? @relation(fields: [operationId], references: [id])
+  operation HorizonOperation? @relation(fields: [operationId], references: [operationId])
   operationId String?
   
   // Indexer metadata
