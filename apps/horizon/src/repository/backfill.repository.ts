@@ -425,6 +425,17 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
       try { return scValToNative(xdr.ScVal.fromXDR(b64, 'base64')) } catch { return null }
     }
 
+    // Helper to convert Buffer to hex string for schema UID
+    const bufferToHex = (buffer: any): string => {
+      if (buffer?.type === 'Buffer' && Array.isArray(buffer.data)) {
+        return Buffer.from(buffer.data).toString('hex')
+      }
+      if (Buffer.isBuffer(buffer)) {
+        return buffer.toString('hex')
+      }
+      return buffer
+    }
+
     // Helper: fetch and decode operation parameters for this tx
     const getDecodedOpParamsForTx = async () => {
       const ops = await db.horizonOperation.findMany({
@@ -498,17 +509,6 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
       // Get operation parameters - they're individual typed parameters, not a Map
       const params = await getDecodedOpParamsForTx()
       console.log('📋 [Debug] Operation parameters:', JSON.stringify(params, null, 2))
-
-      // Helper to convert Buffer to hex string for schema UID
-      const bufferToHex = (buffer: any): string => {
-        if (buffer?.type === 'Buffer' && Array.isArray(buffer.data)) {
-          return Buffer.from(buffer.data).toString('hex')
-        }
-        if (Buffer.isBuffer(buffer)) {
-          return buffer.toString('hex')
-        }
-        return buffer
-      }
 
       // Extract data from individual parameters based on contract call structure
       // Based on the debug output: [contractId, function, attester, schemaUid, subject, message, ...]
