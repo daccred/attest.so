@@ -15,11 +15,13 @@
 import { rpc } from '@stellar/stellar-sdk'
 import {
   sorobanRpcUrl,
-  CONTRACT_ID_TO_INDEX,
+  CONTRACT_IDS_TO_INDEX,
   MAX_EVENTS_PER_FETCH,
   LEDGER_HISTORY_LIMIT_DAYS,
 } from '../common/constants'
 import { getDB, getLastProcessedLedgerFromDB, updateLastProcessedLedgerInDB } from '../common/db'
+import { singleUpsertSchema } from './schemas.repository'
+import { singleUpsertAttestation } from './attestations.repository'
 
 const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://'),
@@ -73,8 +75,8 @@ export async function fetchAndStoreEvents(
     console.log(`------------------------------------------------------`)
     throw new Error(errMsg)
   }
-  if (!CONTRACT_ID_TO_INDEX) {
-    const errMsg = 'CONTRACT_ID_TO_INDEX is not defined. Aborting event fetch.'
+  if (!CONTRACT_IDS_TO_INDEX || CONTRACT_IDS_TO_INDEX.length === 0) {
+    const errMsg = 'CONTRACT_IDS_TO_INDEX is empty or not defined. Aborting event fetch.'
     console.error(errMsg)
     console.log(`------------------------------------------------------`)
     throw new Error(errMsg)
@@ -154,7 +156,7 @@ export async function fetchAndStoreEvents(
       )
 
       const eventsRequestParams: any = {
-        filters: [{ type: 'contract', contractIds: [CONTRACT_ID_TO_INDEX!], topics: [] }],
+        filters: [{ type: 'contract', contractIds: CONTRACT_IDS_TO_INDEX, topics: [] }],
         pagination: {
           limit: MAX_EVENTS_PER_FETCH,
         },
@@ -389,7 +391,7 @@ export async function fetchAndStoreEvents(
  * @param {Array} eventsWithTransactions - Events with transaction details
  * @returns {Promise<void>} Completes when storage successful
  */
-async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]) {
+async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]): Promise<void> {
   const db = await getDB()
   if (!db) {
     console.error('Cannot store events, database not initialized.')
@@ -439,7 +441,7 @@ async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]) {
           }
 
           // Store event AFTER transaction exists
-          const eventData = {
+          const horizonEventData = {
             eventId: ev.id,
             ledger: Number.isFinite(ledgerNumber) ? ledgerNumber : 0,
             timestamp: eventTimestamp ? new Date(eventTimestamp) : new Date(),
@@ -464,8 +466,8 @@ async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]) {
 
           return prismaTx.horizonEvent.upsert({
             where: { eventId: ev.id },
-            update: eventData,
-            create: eventData,
+            update: horizonEventData,
+            create: horizonEventData,
           })
         })
 
@@ -477,6 +479,110 @@ async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]) {
     )
 
     console.log(`Stored ${results.length} event-transaction pairs.`)
+
+    // After storing, project registry entities (schemas, attestations) using individual operations
+    for (const item of eventsWithTransactions) {
+      const ev: any = item.event || {}
+      const txDetails: any = item.transactionDetails || item.transaction || {}
+      const eventType: string = ev.type || ev.eventType || 'unknown'
+      const evData: any = Array.isArray(ev.data)
+        ? ev.data
+        : Array.isArray(ev.value)
+        ? ev.value
+        : undefined
+
+      try {
+        // SCHEMA register events
+        if (eventType === 'SCHEMA:REGISTER' && Array.isArray(evData)) {
+          const schemaUid: string | undefined = typeof evData[0] === 'string' ? evData[0] : undefined
+          const schemaObj: any = typeof evData[1] === 'object' ? evData[1] : undefined
+          if (schemaUid && schemaObj) {
+            const defString = typeof schemaObj.definition === 'string'
+              ? schemaObj.definition
+              : JSON.stringify(schemaObj.definition ?? {})
+
+            await singleUpsertSchema({
+              uid: schemaUid,
+              ledger: typeof ev.ledger === 'number' ? ev.ledger : parseInt(ev.ledger || '0', 10) || 0,
+              schemaDefinition: defString,
+              parsedSchemaDefinition: (() => { try { return JSON.parse(defString) } catch { return undefined } })(),
+              resolverAddress: schemaObj.resolver ?? null,
+              revocable: schemaObj.revocable !== false,
+              deployerAddress: schemaObj.authority || txDetails.sourceAccount || '',
+              type: 'default',
+              transactionHash: ev.txHash || txDetails.hash || txDetails.txHash || '',
+            })
+          }
+        }
+
+        // ATTEST create events
+        if (eventType === 'ATTEST:CREATE' && Array.isArray(evData)) {
+          const attestationUid: string | undefined = typeof evData[0] === 'string' ? evData[0] : undefined
+          const schemaUid: string | undefined = typeof evData[1] === 'string' ? evData[1] : undefined
+          const attesterAddress: string | undefined = typeof evData[2] === 'string' ? evData[2] : undefined
+          const subjectAddress: string | undefined = typeof evData[3] === 'string' ? evData[3] : undefined
+          const messageRaw: any = evData[4]
+
+          let message: string = typeof messageRaw === 'string' ? messageRaw : typeof messageRaw === 'object' ? JSON.stringify(messageRaw) : String(messageRaw ?? '')
+          let value: any = undefined
+          try {
+            if (typeof messageRaw === 'string' && messageRaw.trim().startsWith('{')) {
+              value = JSON.parse(messageRaw)
+            }
+          } catch {}
+
+          if (attestationUid && schemaUid && attesterAddress) {
+            await singleUpsertAttestation({
+              attestationUid,
+              ledger: typeof ev.ledger === 'number' ? ev.ledger : parseInt(ev.ledger || '0', 10) || 0,
+              schemaUid,
+              attesterAddress,
+              subjectAddress: subjectAddress || undefined,
+              transactionHash: ev.txHash || txDetails.hash || txDetails.txHash || '',
+              schemaEncoding: 'JSON',
+              message,
+              value,
+              revoked: false,
+            })
+          }
+        }
+
+        // ATTEST revoke events
+        if (eventType && eventType.toUpperCase().includes('ATTEST') && eventType.toUpperCase().includes('REVOKE') && Array.isArray(evData)) {
+          const attestationUid: string | undefined = typeof evData[0] === 'string' ? evData[0] : undefined
+          const revokedFlag = evData[4] === true
+          const revokedAtRaw = evData[5]
+          let revokedAt: Date | null = null
+          if (typeof revokedAtRaw === 'string' || typeof revokedAtRaw === 'number') {
+            const num = typeof revokedAtRaw === 'number' ? revokedAtRaw : parseInt(revokedAtRaw, 10)
+            if (!Number.isNaN(num)) {
+              // seconds epoch
+              revokedAt = new Date(num * 1000)
+            }
+          }
+          if (!revokedAt) {
+            revokedAt = ev.timestamp ? new Date(ev.timestamp) : new Date()
+          }
+          if (attestationUid) {
+            await singleUpsertAttestation({
+              attestationUid,
+              ledger: typeof ev.ledger === 'number' ? ev.ledger : parseInt(ev.ledger || '0', 10) || 0,
+              schemaUid: (typeof evData[1] === 'string' ? evData[1] : '') || '',
+              attesterAddress: (typeof evData[2] === 'string' ? evData[2] : '') || '',
+              subjectAddress: (typeof evData[3] === 'string' ? evData[3] : undefined) || undefined,
+              transactionHash: ev.txHash || txDetails.hash || txDetails.txHash || '',
+              schemaEncoding: 'JSON',
+              message: '',
+              value: undefined,
+              revoked: true,
+              revokedAt: revokedAt ?? undefined,
+            })
+          }
+        }
+      } catch (projErr: any) {
+        console.warn('Registry projection warning for event', ev?.id, '-', projErr?.message || projErr)
+      }
+    }
   } catch (error) {
     console.error('Error storing event-transaction pairs in PostgreSQL:', error)
   }

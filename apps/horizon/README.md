@@ -133,7 +133,8 @@ curl "https://horizon.attest.so/api/health"
    ```bash
    DATABASE_URL=postgresql://username:password@host:port/database
    STELLAR_NETWORK=testnet  # or 'mainnet'
-   CONTRACT_ID_TO_INDEX=CADB73DZ7QP5BG5ZG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM
+   # Note: Contract IDs are now configured in src/common/constants.ts as CONTRACT_IDS_TO_INDEX array
+   # CONTRACT_ID_TO_INDEX is deprecated - configure contracts in constants.ts instead
    ```
 3. Run database migrations:
    ```bash

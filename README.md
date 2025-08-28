@@ -27,11 +27,11 @@ Our framework addresses critical challenges in Web3:
 
 ### Core Concepts
 
-- **Attestations**: Verifiable claims made by authorities about subjects
-- **Schemas**: Structured templates defining attestation data formats
-- **Authorities**: Entities with permission to issue and manage attestations
-- **Subjects**: Entities about which attestations are made
-- **Resolvers**: Contract interfaces that locate and verify attestation data
+- **Attestations**: Verifiable, cryptographically signed claims made by an `Authority` about a `Subject`. They are structured according to a `Schema` and recorded on-chain.
+- **Schemas**: Structured templates that define the format and data types for an attestation. They act as a blueprint, ensuring that attestations are consistent and machine-readable.
+- **Authorities**: Trusted entities with the permission to issue, manage, and revoke attestations. Authorities are registered on-chain, and their integrity is verifiable.
+- **Subjects**: The entities (e.g., users, smart contracts, organizations) about which attestations are made.
+- **Resolvers**: On-chain programs responsible for interpreting and verifying attestations. They provide a standardized interface to locate, decode, and validate attestation data, and can be designed to handle complex logic such as dynamic schema resolution, revocation checks, and integration with off-chain data sources.
 
 ### Multi-Chain Support
 
@@ -41,8 +41,9 @@ attest.so is designed with cross-chain compatibility as a primary goal:
 | ---------- | ----------------- | ----------- | ------------------------------------------------------- |
 | Stellar    | Soroban (Rust)    | Active      | Fee management, levy collection, verifiable authorities |
 | Solana     | Anchor (Rust)     | Development | High throughput, scalable attestation storage           |
-| Starknet   | Cairo             | Planned     | ZK-friendly proofs, privacy-preserving attestations     |
-| Aptos      | Move              | Research    | Resource-oriented attestation model                     |
+| Starknet   | Cairo             | Development | ZK-friendly proofs, privacy-preserving attestations     |
+| Sui        | Move              | Planned     | Object-oriented attestation model                       |
+| Aptos      | Move              | Planned     | Resource-oriented attestation model                     |
 
 ## 🧩 Key Components
 
@@ -52,23 +53,23 @@ The repository contains modular smart contract implementations for multiple bloc
 
 #### Stellar/Soroban Implementation
 
+Our Stellar implementation, built with Soroban, provides a robust framework for on-chain attestations. It leverages Rust for performance and safety, and is designed to integrate seamlessly with the Stellar ecosystem, including Horizon and the Stellar SDK.
+
 ```
 contracts/stellar/
-├── authority/        # Authority resolver contract
-│   ├── src/          # Contract implementation
-│   └── Cargo.toml    # Dependencies and configuration
-└── protocol/         # Core attestation protocol
-    ├── src/          # Contract implementation
-    └── Cargo.toml    # Dependencies and configuration
+├── authority/        # Manages and resolves authorities
+├── protocol/         # Core attestation protocol logic
+├── resolvers/        # Schema and attestation resolvers
+└── ...               # Other configuration and build files
 ```
 
 **Key Features:**
 
-- Authority registration and verification
-- Schema definition and validation
-- Attestation issuance and verification
-- Optional fee collection through levy system
-- Comprehensive event logging
+- **Authority Management**: Contracts for registering, verifying, and managing attestation authorities.
+- **Core Protocol**: The central logic for creating, revoking, and managing attestations.
+- **Resolvers**: Efficient on-chain logic to resolve schemas and attestations.
+- **Soroban Integration**: Fully leverages Soroban's features for storage, authorization, and events.
+- **Fee and Levy System**: Optional fee collection mechanism for monetizing attestation services.
 
 #### Additional Blockchain Implementations
 
@@ -76,24 +77,27 @@ Implementation details for Solana (Anchor), Starknet (Cairo), and Aptos (Move) w
 
 ### 2. SDK (Software Development Kit)
 
-A TypeScript SDK that provides a unified interface for interacting with attestation infrastructure:
+A TypeScript SDK that provides a unified interface for interacting with our attestation infrastructure across different blockchains.
 
 ```typescript
-// Example SDK usage
-import { AttestClient } from '@attest.so/sdk'
+// Example: Interacting with Stellar contracts via the SDK
+import { AttestClient } from '@attestprotocol/sdk';
+import { Keypair } from '@stellar/stellar-sdk';
 
-// Initialize client
+// Initialize client for Stellar
+const keypair = Keypair.fromSecret('YOUR_STELLAR_SECRET_KEY');
 const client = new AttestClient({
   chain: 'stellar',
   network: 'testnet',
-})
+  secretKey: keypair.secret(),
+});
 
-// Create attestation
-const attestation = await client.createAttestation({
+// Create an attestation on Stellar
+const attestation = await client.attest({
   schema: 'did:attest:identity',
-  subject: 'G...', // Subject address
-  claims: { verified: true, level: 2 },
-})
+  subject: 'G...', // Subject's Stellar public key
+  claims: { verified: true, level: 'premium' },
+});
 ```
 
 **Core Functionality:**
@@ -102,17 +106,17 @@ const attestation = await client.createAttestation({
 - Schema creation and registration
 - Attestation lifecycle management
 - Cross-chain verification utilities
-- Typescript-first development experience
+- TypeScript-first for a better developer experience
 
 ### 3. CLI (Command Line Interface)
 
-A powerful command-line tool for interacting with the protocol:
+A powerful command-line tool for developers and administrators to interact with the protocol directly from the terminal.
 
 ```bash
 # Install CLI
-npm install -g @attest.so/cli
+npm install -g @attestprotocol/cli
 
-# Create a new attestation
+# Create a new attestation on the Stellar testnet
 attest create \
   --schema did:attest:identity \
   --subject G... \
@@ -136,18 +140,23 @@ The repository follows a monorepo structure using pnpm workspaces:
 
 ```
 attest.so/
-├── apps/               # Front-end applications
-│   ├── docs/           # Documentation website (Next.js)
-│   └── explorer/       # Attestation explorer
-├── contracts/          # Smart contract implementations
-│   ├── stellar/        # Soroban contracts
-│   ├── solana/         # Anchor contracts
-│   └── starknet/       # Cairo contracts
-├── packages/           # SDK, CLI, and utilities
-│   ├── sdk/            # TypeScript SDK
-│   ├── cli/            # Command-line interface
-│   └── common/         # Shared utilities and types
-└── examples/           # Example applications
+├── apps/
+│   ├── docs/
+│   └── explorer/
+├── contracts/
+│   ├── stellar/
+│   ├── solana/
+│   ├── starknet/
+│   ├── sui/
+│   └── aptos/
+├── packages/
+│   ├── sdk/
+│   ├── stellar-sdk/
+│   ├── solana-sdk/
+│   ├── starknet-sdk/
+│   ├── cli/
+│   └── core/
+└── examples/
     ├── identity-verification/
     └── reputation-system/
 ```
@@ -157,14 +166,15 @@ See [NAMING.md](./NAMING.md) for detailed information about naming conventions a
 ## 🛠️ Technical Stack
 
 - **Frontend**: Next.js, React, Tailwind CSS
-- **SDK/CLI**: TypeScript, Node.js
+- **SDK/CLI**: TypeScript, Node.js, Stellar SDK, Horizon Client
 - **Smart Contracts**:
-  - Rust/Soroban (Stellar)
-  - Rust/Anchor (Solana)
-  - Cairo (Starknet)
-  - Move (Aptos)
+  - **Stellar**: Rust with Soroban
+  - **Solana**: Rust with Anchor
+  - **Starknet**: Cairo
+  - **Sui**: Move
+  - **Aptos**: Move
 - **Developer Experience**:
-  - pnpm workspaces
+  - pnpm workspaces for monorepo management
   - TypeScript
   - ESLint/Prettier
   - Jest for testing
@@ -203,10 +213,13 @@ pnpm run deploy:local
 ```bash
 # Build Soroban contracts
 cd contracts/stellar
-stellar contract build
+soroban contract build
 
 # Deploy to Stellar testnet
-stellar contract deploy --wasm target/wasm32-unknown-unknown/release/authority.wasm --network testnet --source <source>
+soroban contract deploy \
+  --wasm target/wasm32-unknown-unknown/release/authority.wasm \
+  --network testnet \
+  --source <YOUR_ACCOUNT>
 ```
 
 ## 🤝 Contributing
@@ -223,43 +236,24 @@ Contributions are welcome! Please see our [CONTRIBUTING.md](./CONTRIBUTING.md) f
 
 ## Setting up Rust Analyzer
 
-Rust Analyzer is an official language server for Rust that provides features like code completion, inline type hints, and much more.
+With Rust Analyzer installed, you can configure it to recognize all our Rust-based contract projects. This is essential for a smooth development experience, providing features like auto-completion and type-checking.
 
-### Installation
-
-1. Install Rust Analyzer in one of the following ways:
-
-   - **Cursor**: Install the “Rust Analyzer” extension through Cursor’s Extensions panel (or equivalent).
-   - **VS Code**: Install it from the [vsmarketplace](https://marketplace.visualstudio.com/items?itemName=matklad.rust-analyzer) or the built-in VS Code Extensions marketplace.
-
-2. Ensure you have a working Rust toolchain installed via [rustup](https://rustup.rs/). This includes the `cargo`, `rustc`, and `rustfmt` tools.
-
-### Configuring Linked Projects
-
-With Rust Analyzer installed, add the following configuration to your settings so that it recognizes the additional contract projects (for example, `contracts/stellar` and `contracts/solana`). Adjust these paths if your project structure differs.
-
-#### VS Code or Cursor
-
-1. Open the **Preference & Settings** (`Cmd + ,` on macOS or `Ctrl + ,` on Windows/Linux).
-2. Type "rust-analyzer" and press Enter.
-3. Add or update the `rust-analyzer.linkedProjects` setting in the JSON file with the following snippet:
+Add the following to your `.vscode/settings.json` file:
 
 ```json
 {
   "rust-analyzer.linkedProjects": [
     "contracts/stellar/Cargo.toml",
-    "contracts/solana/Cargo.toml",
-    "contracts/starknet/Cargo.toml",
-    "contracts/sui/Cargo.toml"
+    "contracts/solana/Cargo.toml"
   ]
 }
 ```
 
-Optionally you can create a `.vscode/settings.json` file in the root of the project to automatically configure Rust Analyzer for VS Code with the above configuration.
+This configuration ensures that Rust Analyzer can correctly interpret the dependencies and structure of each contract crate within our monorepo.
 
 ---
 
-## 📚 Resources & Links
+## �� Resources & Links
 
 - [Product Development Log](https://daccred.notion.site/We-re-building-https-on-the-blockchain-df20b05cb5a04e379a165714aab024fb?pvs=4)
 - [Technical Documentation](https://attest.so) (Coming Soon)

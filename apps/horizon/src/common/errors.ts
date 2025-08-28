@@ -10,7 +10,7 @@ export interface IndexerError {
   severity: 'low' | 'medium' | 'high' | 'critical'
 }
 
-export class IndexerErrorHandler {
+export class IndexerHostError {
   private static logError(error: IndexerError) {
     const logMessage = `[${error.severity.toUpperCase()}] ${error.code}: ${error.message}`
 
@@ -144,7 +144,7 @@ export class PerformanceMonitor {
     try {
       const result = await fn()
       const duration = this.endTimer(operation)
-      IndexerErrorHandler.logSuccess(`${operation} completed in ${duration}ms`)
+      IndexerHostError.logSuccess(`${operation} completed in ${duration}ms`)
       return result
     } catch (error) {
       this.endTimer(operation)
@@ -167,7 +167,7 @@ export class RateLimiter {
     const validRequests = requests.filter((time) => now - time < windowMs)
 
     if (validRequests.length >= maxRequests) {
-      IndexerErrorHandler.logWarning(`Rate limit exceeded for ${key}`)
+      IndexerHostError.logWarning(`Rate limit exceeded for ${key}`)
       return false
     }
 

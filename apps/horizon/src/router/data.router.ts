@@ -13,6 +13,13 @@
 import { Router, Request, Response } from 'express'
 import { getDB } from '../common/db'
 
+// Route constants for data endpoints
+const DATA_EVENTS_ROUTE = '/events'
+const DATA_TRANSACTIONS_ROUTE = '/transactions'
+const DATA_OPERATIONS_ROUTE = '/operations'
+const DATA_ACCOUNTS_ROUTE = '/accounts'
+const DATA_PAYMENTS_ROUTE = '/payments'
+
 const router = Router()
 
 /**
@@ -42,7 +49,7 @@ const router = Router()
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/events', async (req: Request, res: Response) => {
+router.get(DATA_EVENTS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -112,7 +119,7 @@ router.get('/events', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/transactions', async (req: Request, res: Response) => {
+router.get(DATA_TRANSACTIONS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -140,7 +147,6 @@ router.get('/transactions', async (req: Request, res: Response) => {
       where,
       include: {
         events: true,
-        effects: true,
         payments: true,
       },
       orderBy: { timestamp: 'desc' },
@@ -184,7 +190,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/operations', async (req: Request, res: Response) => {
+router.get(DATA_OPERATIONS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -203,13 +209,12 @@ router.get('/operations', async (req: Request, res: Response) => {
     const where: any = {}
     if (transactionHash) where.transactionHash = transactionHash as string
     if (contractId) where.contractId = contractId as string
-    if (type) where.type = type as string
+    if (type) where.operationType = type as string
     if (sourceAccount) where.sourceAccount = sourceAccount as string
 
-    const operations = await db.horizonContractOperation.findMany({
+    const operations = await db.horizonOperation.findMany({
       where,
       include: {
-        transaction: true,
         events: true,
       },
       orderBy: { ingestedAt: 'desc' },
@@ -217,7 +222,7 @@ router.get('/operations', async (req: Request, res: Response) => {
       skip: parseInt(offset as string),
     })
 
-    const total = await db.horizonContractOperation.count({ where })
+    const total = await db.horizonOperation.count({ where })
 
     res.json({
       success: true,
@@ -227,138 +232,6 @@ router.get('/operations', async (req: Request, res: Response) => {
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
         hasMore: total > parseInt(offset as string) + operations.length,
-      },
-    })
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
-  }
-})
-
-/**
- * GET /data/effects - Query operation effects.
- *
- * Retrieves operation effects representing state changes from blockchain
- * operations. Includes balance changes, trustline modifications, and
- * other ledger state transitions with transaction context.
- *
- * @route GET /data/effects
- * @param {string} [operationId] - Filter by parent operation
- * @param {string} [transactionHash] - Filter by transaction
- * @param {string} [account] - Filter by affected account
- * @param {string} [type] - Filter by effect type
- * @param {string} [limit='50'] - Results per page (max: 200)
- * @param {string} [offset='0'] - Pagination offset
- * @returns {Object} Paginated effects response
- * @status 200 - Success with effect data
- * @status 503 - Database unavailable
- * @status 500 - Internal server error
- */
-router.get('/effects', async (req: Request, res: Response) => {
-  try {
-    const db = await getDB()
-    if (!db) {
-      return res.status(503).json({ error: 'Database not available' })
-    }
-
-    const { operationId, transactionHash, account, type, limit = '50', offset = '0' } = req.query
-
-    const where: any = {}
-    if (operationId) where.operationId = operationId as string
-    if (transactionHash) where.transactionHash = transactionHash as string
-    if (account) where.account = account as string
-    if (type) where.type = type as string
-
-    const effects = await db.horizonEffect.findMany({
-      where,
-      include: {
-        transaction: true,
-      },
-      orderBy: { ingestedAt: 'desc' },
-      take: Math.min(parseInt(limit as string), 200),
-      skip: parseInt(offset as string),
-    })
-
-    const total = await db.horizonEffect.count({ where })
-
-    res.json({
-      success: true,
-      data: effects,
-      pagination: {
-        total,
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string),
-        hasMore: total > parseInt(offset as string) + effects.length,
-      },
-    })
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
-  }
-})
-
-/**
- * GET /data/contract-data - Query contract storage data.
- *
- * Accesses contract storage entries with support for key-based queries,
- * durability filtering, and historical data retrieval. Can return either
- * the latest state or full historical versions of contract data.
- *
- * @route GET /data/contract-data
- * @param {string} [contractId] - Filter by contract ID
- * @param {string} [key] - Filter by storage key
- * @param {string} [durability] - Filter by durability type
- * @param {string} [latest='true'] - Return only latest values
- * @param {string} [limit='50'] - Results per page (max: 200)
- * @param {string} [offset='0'] - Pagination offset
- * @returns {Object} Contract data response with storage entries
- * @status 200 - Success with contract data
- * @status 503 - Database unavailable
- * @status 500 - Internal server error
- */
-router.get('/contract-data', async (req: Request, res: Response) => {
-  try {
-    const db = await getDB()
-    if (!db) {
-      return res.status(503).json({ error: 'Database not available' })
-    }
-
-    const { contractId, key, durability, latest = 'true', limit = '50', offset = '0' } = req.query
-
-    const where: any = {}
-    if (contractId) where.contractId = contractId as string
-    if (key) where.key = key as string
-    if (durability) where.durability = durability as string
-    if (latest === 'true') where.isDeleted = false
-
-    let contractData
-    if (latest === 'true') {
-      // Get latest version of each key
-      contractData = await db.horizonContractData.findMany({
-        where,
-        orderBy: { ledger: 'asc' as const },
-        take: Math.min(parseInt(limit as string), 200),
-        skip: parseInt(offset as string),
-        distinct: ['contractId', 'key'],
-      })
-    } else {
-      // Get all historical versions
-      contractData = await db.horizonContractData.findMany({
-        where,
-        orderBy: { ledger: 'desc' },
-        take: Math.min(parseInt(limit as string), 200),
-        skip: parseInt(offset as string),
-      })
-    }
-
-    const total = await db.horizonContractData.count({ where })
-
-    res.json({
-      success: true,
-      data: contractData,
-      pagination: {
-        total,
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string),
-        hasMore: total > parseInt(offset as string) + contractData.length,
       },
     })
   } catch (error: any) {
@@ -383,7 +256,7 @@ router.get('/contract-data', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/accounts', async (req: Request, res: Response) => {
+router.get(DATA_ACCOUNTS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -438,7 +311,7 @@ router.get('/accounts', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/payments', async (req: Request, res: Response) => {
+router.get(DATA_PAYMENTS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {

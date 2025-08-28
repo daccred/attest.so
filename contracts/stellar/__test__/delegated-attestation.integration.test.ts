@@ -21,7 +21,7 @@
 import { describe, it, expect, beforeAll, test } from 'vitest'
 import { randomBytes } from 'crypto'
 import { bls12_381 } from '@noble/curves/bls12-381'
-import { Keypair, xdr, Transaction } from '@stellar/stellar-sdk'
+import { Keypair, Transaction } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
 import { TransactionSimulationPayload } from '../bindings/src/types'
 import { loadTestConfig, fundAccountIfNeeded, generateAttestationUid, createAttestationMessage, createRevocationMessage } from './testutils'

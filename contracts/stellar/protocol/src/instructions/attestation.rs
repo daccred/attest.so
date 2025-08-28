@@ -96,9 +96,8 @@ fn create_resolver_attestation(
 ///
 /// # Arguments
 /// * `env` - The Soroban environment
-/// * `attester` - The address creating the attestation
+/// * `attester` - The address creating the attestation. This address will also be the subject of the attestation.
 /// * `schema_uid` - The unique identifier of the schema
-/// * `subject` - The address that is the subject of the attestation
 /// * `value` - The attestation data
 /// * `expiration_time` - Optional expiration timestamp
 ///
@@ -108,7 +107,6 @@ pub fn attest(
     env: &Env,
     attester: Address,
     schema_uid: BytesN<32>,
-    subject: Address,
     value: String,
     expiration_time: Option<u64>,
 ) -> Result<BytesN<32>, Error> {
@@ -129,12 +127,13 @@ pub fn attest(
             return Err(Error::InvalidDeadline);
         }
     }
+    let subject = attester.clone();
     let attestation_uid = generate_attestation_uid(env, &schema_uid, &subject, nonce);
 
     let attestation = Attestation {
         uid: attestation_uid.clone(),
         schema_uid: schema_uid.clone(),
-        subject: subject.clone(),
+        subject,
         attester: attester.clone(),
         value: value.clone(),
         nonce,

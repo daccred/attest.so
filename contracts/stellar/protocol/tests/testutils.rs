@@ -57,11 +57,11 @@ pub const _TEST_BLS_SIGNATURE_BYTES: [u8; 96] = [
 ///
 /// =======================================================================================
 
-/// Helper function to get the G1 generator point
+#[allow(unused_variables)]
 pub fn group_one_generator() -> G1Affine {
     G1Affine::generator()
 }
-/// Helper function to get the G2 generator point  
+#[allow(unused_variables)]
 pub fn group_two_generator() -> G2Affine {
     G2Affine::generator()
 }
@@ -106,9 +106,7 @@ pub fn create_delegated_attestation_request(
 //                                DUMMY RESOLVER FOR TESTING
 //
 // =======================================================================================
-use resolvers::interface::{
-    ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType,
-};
+use resolvers::interface::{ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
 use soroban_sdk::{contract, contractimpl, symbol_short, Bytes};
 
 #[contract]
@@ -135,7 +133,11 @@ impl ResolverInterface for DummyResolver {
 
         // Default to allowing the attestation.
         // A test can change this value to simulate a rejection.
-        let should_allow = env.storage().instance().get(&symbol_short!("ALLOW_ATT")).unwrap_or(true);
+        let should_allow = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("ALLOW_ATT"))
+            .unwrap_or(true);
         Ok(should_allow)
     }
 
@@ -144,7 +146,11 @@ impl ResolverInterface for DummyResolver {
         env.storage().instance().set(&symbol_short!("LASTONREV"), &attestation);
 
         // Default to allowing the revocation.
-        let should_allow = env.storage().instance().get(&symbol_short!("ALLOW_REV")).unwrap_or(true);
+        let should_allow = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("ALLOW_REV"))
+            .unwrap_or(true);
         Ok(should_allow)
     }
 
@@ -153,7 +159,9 @@ impl ResolverInterface for DummyResolver {
     /// Post-processing callback. This dummy resolver just records the UID and attester
     /// that were passed to it, so tests can verify it was called.
     fn onresolve(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError> {
-        env.storage().instance().set(&symbol_short!("ONRES_UID"), &attestation_uid);
+        env.storage()
+            .instance()
+            .set(&symbol_short!("ONRES_UID"), &attestation_uid);
         env.storage().instance().set(&symbol_short!("ONRES_ATT"), &attester);
         Ok(())
     }

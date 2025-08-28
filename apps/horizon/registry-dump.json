@@ -1,0 +1,399 @@
+{
+  "timestamp": "2025-08-28T17:15:52.833Z",
+  "eventTypes": [
+    {
+      "raw": "SCHEMA:REGISTER",
+      "decoded": null,
+      "count": 37
+    }
+  ],
+  "types": [
+    {
+      "eventTypeRaw": "SCHEMA:REGISTER",
+      "eventTypeDecoded": null,
+      "samples": [
+        {
+          "eventId": "0000905821487640576-0000000000",
+          "ledger": 210903,
+          "contractId": "CCVXRP5PUMR6RQWXEM2G766JHBWBGLG4YLFE3MFDIPYHTHX667CVK3FN",
+          "txHash": "a0e4a58aebd2fa4b371ffe094548f47ff08a45e6aea95e887ba7dccbbd14a8d7",
+          "timestamp": "2025-08-26T22:41:39.000Z",
+          "rawEventData": [
+            "xwE2Onu9GlbT1Gs7b00FOi57e4yBWxRc4UnI2GJjoMY=",
+            {
+              "resolver": null,
+              "authority": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ",
+              "revocable": true,
+              "definition": "{\"name\":\"Delegated Test Schema 41812b54\",\"fields\":[{\"name\":\"claim\",\"type\":\"string\"}]}"
+            },
+            "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ"
+          ],
+          "decodedEventData": [
+            null,
+            {
+              "resolver": null,
+              "authority": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ",
+              "revocable": true,
+              "definition": "{\"name\":\"Delegated Test Schema 41812b54\",\"fields\":[{\"name\":\"claim\",\"type\":\"string\"}]}"
+            },
+            null
+          ],
+          "decodedTxEnvelope": {
+            "envelopeType": "[object Object]",
+            "sourceAccount": "v1",
+            "operations": [
+              {
+                "type": "[object Object]"
+              }
+            ]
+          },
+          "opsByTxHash": [
+            {
+              "id": "905821487640577",
+              "type_i": 24,
+              "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+              "parametersRaw": [
+                {
+                  "value": "AAAAEgAAAAGreL+voyPowtcjNG/7yThsEyzcwspNsKND8Hme/vfFVQ==",
+                  "type": "Address"
+                },
+                {
+                  "value": "AAAADwAAAAhyZWdpc3Rlcg==",
+                  "type": "Sym"
+                },
+                {
+                  "value": "AAAAEgAAAAAAAAAAEGS/44P7Zr8u23mqvOvWa9dbGP77RcyCxpPIb9ZSjtM=",
+                  "type": "Address"
+                },
+                {
+                  "value": "AAAADgAAAFV7Im5hbWUiOiJEZWxlZ2F0ZWQgVGVzdCBTY2hlbWEgNDE4MTJiNTQiLCJmaWVsZHMiOlt7Im5hbWUiOiJjbGFpbSIsInR5cGUiOiJzdHJpbmcifV19AAAA",
+                  "type": "Str"
+                },
+                {
+                  "value": "AAAAAQ==",
+                  "type": ""
+                },
+                {
+                  "value": "AAAAAAAAAAE=",
+                  "type": "B"
+                }
+              ],
+              "parametersDecoded": [
+                {
+                  "type": "Address",
+                  "raw": "AAAAEgAAAAGreL+voyPowtcjNG/7yThsEyzcwspNsKND8Hme/vfFVQ==",
+                  "decoded": "CCVXRP5PUMR6RQWXEM2G766JHBWBGLG4YLFE3MFDIPYHTHX667CVK3FN"
+                },
+                {
+                  "type": "Sym",
+                  "raw": "AAAADwAAAAhyZWdpc3Rlcg==",
+                  "decoded": "register"
+                },
+                {
+                  "type": "Address",
+                  "raw": "AAAAEgAAAAAAAAAAEGS/44P7Zr8u23mqvOvWa9dbGP77RcyCxpPIb9ZSjtM=",
+                  "decoded": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ"
+                },
+                {
+                  "type": "Str",
+                  "raw": "AAAADgAAAFV7Im5hbWUiOiJEZWxlZ2F0ZWQgVGVzdCBTY2hlbWEgNDE4MTJiNTQiLCJmaWVsZHMiOlt7Im5hbWUiOiJjbGFpbSIsInR5cGUiOiJzdHJpbmcifV19AAAA",
+                  "decoded": "{\"name\":\"Delegated Test Schema 41812b54\",\"fields\":[{\"name\":\"claim\",\"type\":\"string\"}]}"
+                },
+                {
+                  "type": "",
+                  "raw": "AAAAAQ==",
+                  "decoded": null
+                },
+                {
+                  "type": "B",
+                  "raw": "AAAAAAAAAAE=",
+                  "decoded": true
+                }
+              ],
+              "source_account": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ",
+              "transaction_hash": "a0e4a58aebd2fa4b371ffe094548f47ff08a45e6aea95e887ba7dccbbd14a8d7"
+            }
+          ],
+          "transaction": {
+            "hash": "a0e4a58aebd2fa4b371ffe094548f47ff08a45e6aea95e887ba7dccbbd14a8d7",
+            "successful": true
+          },
+          "operation": null
+        },
+        {
+          "eventId": "0000905812897697792-0000000000",
+          "ledger": 210901,
+          "contractId": "CCVXRP5PUMR6RQWXEM2G766JHBWBGLG4YLFE3MFDIPYHTHX667CVK3FN",
+          "txHash": "edb97edd649a58e9d2610d3c52e68d540e7a3e9d9d6d512a480883a18a958704",
+          "timestamp": "2025-08-26T22:41:29.000Z",
+          "rawEventData": [
+            "wnIwsWwL5zKJDkzb7TIpq9x4A6gX/0GKPwa78flqt8k=",
+            {
+              "resolver": null,
+              "authority": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ",
+              "revocable": true,
+              "definition": "{\"name\":\"Delegated Test Schema 85680944\",\"fields\":[{\"name\":\"claim\",\"type\":\"string\"}]}"
+            },
+            "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ"
+          ],
+          "decodedEventData": [
+            null,
+            {
+              "resolver": null,
+              "authority": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ",
+              "revocable": true,
+              "definition": "{\"name\":\"Delegated Test Schema 85680944\",\"fields\":[{\"name\":\"claim\",\"type\":\"string\"}]}"
+            },
+            null
+          ],
+          "decodedTxEnvelope": {
+            "envelopeType": "[object Object]",
+            "sourceAccount": "v1",
+            "operations": [
+              {
+                "type": "[object Object]"
+              }
+            ]
+          },
+          "opsByTxHash": [
+            {
+              "id": "1198b289-c588-400c-ad98-d189dcbe4c41",
+              "type_i": 24,
+              "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+              "parametersRaw": [
+                {
+                  "type": "Address",
+                  "value": "AAAAEgAAAAGreL+voyPowtcjNG/7yThsEyzcwspNsKND8Hme/vfFVQ=="
+                },
+                {
+                  "type": "Sym",
+                  "value": "AAAADwAAAAhyZWdpc3Rlcg=="
+                },
+                {
+                  "type": "Address",
+                  "value": "AAAAEgAAAAAAAAAAEGS/44P7Zr8u23mqvOvWa9dbGP77RcyCxpPIb9ZSjtM="
+                },
+                {
+                  "type": "Str",
+                  "value": "AAAADgAAAFV7Im5hbWUiOiJEZWxlZ2F0ZWQgVGVzdCBTY2hlbWEgODU2ODA5NDQiLCJmaWVsZHMiOlt7Im5hbWUiOiJjbGFpbSIsInR5cGUiOiJzdHJpbmcifV19AAAA"
+                },
+                {
+                  "type": "",
+                  "value": "AAAAAQ=="
+                },
+                {
+                  "type": "B",
+                  "value": "AAAAAAAAAAE="
+                }
+              ],
+              "parametersDecoded": [
+                {
+                  "type": "Address",
+                  "raw": "AAAAEgAAAAGreL+voyPowtcjNG/7yThsEyzcwspNsKND8Hme/vfFVQ==",
+                  "decoded": "CCVXRP5PUMR6RQWXEM2G766JHBWBGLG4YLFE3MFDIPYHTHX667CVK3FN"
+                },
+                {
+                  "type": "Sym",
+                  "raw": "AAAADwAAAAhyZWdpc3Rlcg==",
+                  "decoded": "register"
+                },
+                {
+                  "type": "Address",
+                  "raw": "AAAAEgAAAAAAAAAAEGS/44P7Zr8u23mqvOvWa9dbGP77RcyCxpPIb9ZSjtM=",
+                  "decoded": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ"
+                },
+                {
+                  "type": "Str",
+                  "raw": "AAAADgAAAFV7Im5hbWUiOiJEZWxlZ2F0ZWQgVGVzdCBTY2hlbWEgODU2ODA5NDQiLCJmaWVsZHMiOlt7Im5hbWUiOiJjbGFpbSIsInR5cGUiOiJzdHJpbmcifV19AAAA",
+                  "decoded": "{\"name\":\"Delegated Test Schema 85680944\",\"fields\":[{\"name\":\"claim\",\"type\":\"string\"}]}"
+                },
+                {
+                  "type": "",
+                  "raw": "AAAAAQ==",
+                  "decoded": null
+                },
+                {
+                  "type": "B",
+                  "raw": "AAAAAAAAAAE=",
+                  "decoded": true
+                }
+              ],
+              "source_account": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ",
+              "transaction_hash": "edb97edd649a58e9d2610d3c52e68d540e7a3e9d9d6d512a480883a18a958704"
+            }
+          ],
+          "transaction": {
+            "hash": "edb97edd649a58e9d2610d3c52e68d540e7a3e9d9d6d512a480883a18a958704",
+            "successful": true
+          },
+          "operation": null
+        },
+        {
+          "eventId": "0000905787127894016-0000000000",
+          "ledger": 210895,
+          "contractId": "CCVXRP5PUMR6RQWXEM2G766JHBWBGLG4YLFE3MFDIPYHTHX667CVK3FN",
+          "txHash": "f4c2313c0bdcf7f34e151bb13cb463c12a8af9caa8fbeaab07446791cfa3f367",
+          "timestamp": "2025-08-26T22:40:59.000Z",
+          "rawEventData": [
+            "4CGJGVou94I7tl540VJYVquEmS8vqrldB7I/bADnUcY=",
+            {
+              "resolver": null,
+              "authority": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ",
+              "revocable": true,
+              "definition": "{\"name\":\"Delegated Test Schema 8ba1ec76\",\"fields\":[{\"name\":\"claim\",\"type\":\"string\"}]}"
+            },
+            "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ"
+          ],
+          "decodedEventData": [
+            null,
+            {
+              "resolver": null,
+              "authority": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ",
+              "revocable": true,
+              "definition": "{\"name\":\"Delegated Test Schema 8ba1ec76\",\"fields\":[{\"name\":\"claim\",\"type\":\"string\"}]}"
+            },
+            null
+          ],
+          "decodedTxEnvelope": {
+            "envelopeType": "[object Object]",
+            "sourceAccount": "v1",
+            "operations": [
+              {
+                "type": "[object Object]"
+              }
+            ]
+          },
+          "opsByTxHash": [
+            {
+              "id": "b3b79e44-d223-459b-97c3-6cc32c058e2c",
+              "type_i": 24,
+              "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+              "parametersRaw": [
+                {
+                  "type": "Address",
+                  "value": "AAAAEgAAAAGreL+voyPowtcjNG/7yThsEyzcwspNsKND8Hme/vfFVQ=="
+                },
+                {
+                  "type": "Sym",
+                  "value": "AAAADwAAAAhyZWdpc3Rlcg=="
+                },
+                {
+                  "type": "Address",
+                  "value": "AAAAEgAAAAAAAAAAEGS/44P7Zr8u23mqvOvWa9dbGP77RcyCxpPIb9ZSjtM="
+                },
+                {
+                  "type": "Str",
+                  "value": "AAAADgAAAFV7Im5hbWUiOiJEZWxlZ2F0ZWQgVGVzdCBTY2hlbWEgOGJhMWVjNzYiLCJmaWVsZHMiOlt7Im5hbWUiOiJjbGFpbSIsInR5cGUiOiJzdHJpbmcifV19AAAA"
+                },
+                {
+                  "type": "",
+                  "value": "AAAAAQ=="
+                },
+                {
+                  "type": "B",
+                  "value": "AAAAAAAAAAE="
+                }
+              ],
+              "parametersDecoded": [
+                {
+                  "type": "Address",
+                  "raw": "AAAAEgAAAAGreL+voyPowtcjNG/7yThsEyzcwspNsKND8Hme/vfFVQ==",
+                  "decoded": "CCVXRP5PUMR6RQWXEM2G766JHBWBGLG4YLFE3MFDIPYHTHX667CVK3FN"
+                },
+                {
+                  "type": "Sym",
+                  "raw": "AAAADwAAAAhyZWdpc3Rlcg==",
+                  "decoded": "register"
+                },
+                {
+                  "type": "Address",
+                  "raw": "AAAAEgAAAAAAAAAAEGS/44P7Zr8u23mqvOvWa9dbGP77RcyCxpPIb9ZSjtM=",
+                  "decoded": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ"
+                },
+                {
+                  "type": "Str",
+                  "raw": "AAAADgAAAFV7Im5hbWUiOiJEZWxlZ2F0ZWQgVGVzdCBTY2hlbWEgOGJhMWVjNzYiLCJmaWVsZHMiOlt7Im5hbWUiOiJjbGFpbSIsInR5cGUiOiJzdHJpbmcifV19AAAA",
+                  "decoded": "{\"name\":\"Delegated Test Schema 8ba1ec76\",\"fields\":[{\"name\":\"claim\",\"type\":\"string\"}]}"
+                },
+                {
+                  "type": "",
+                  "raw": "AAAAAQ==",
+                  "decoded": null
+                },
+                {
+                  "type": "B",
+                  "raw": "AAAAAAAAAAE=",
+                  "decoded": true
+                }
+              ],
+              "source_account": "GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ",
+              "transaction_hash": "f4c2313c0bdcf7f34e151bb13cb463c12a8af9caa8fbeaab07446791cfa3f367"
+            }
+          ],
+          "transaction": {
+            "hash": "f4c2313c0bdcf7f34e151bb13cb463c12a8af9caa8fbeaab07446791cfa3f367",
+            "successful": true
+          },
+          "operation": null
+        }
+      ]
+    }
+  ],
+  "transactionsSampleShape": {
+    "id": "string",
+    "hash": "string",
+    "ledger": "number",
+    "timestamp": {},
+    "sourceAccount": "string",
+    "fee": "string",
+    "operationCount": "number",
+    "envelope": "string",
+    "result": "string",
+    "meta": "string",
+    "feeBump": "boolean",
+    "successful": "boolean",
+    "memo": "null",
+    "memoType": "null",
+    "inclusionFee": "null",
+    "resourceFee": "null",
+    "sorobanResourceUsage": "null",
+    "ingestedAt": {},
+    "events": [
+      "array<object>",
+      "object"
+    ]
+  },
+  "operationsSampleShape": {
+    "id": "string",
+    "operationId": "string",
+    "transactionHash": "string",
+    "contractId": "string",
+    "operationType": "string",
+    "successful": "boolean",
+    "sourceAccount": "string",
+    "operationIndex": "number",
+    "function": "string",
+    "parameters": [
+      "array<object>",
+      "object"
+    ],
+    "details": {
+      "id": "string",
+      "salt": "string",
+      "type": "string",
+      "_links": "object",
+      "type_i": "number",
+      "address": "string",
+      "function": "string",
+      "created_at": "string",
+      "parameters": "array",
+      "paging_token": "string",
+      "source_account": "string",
+      "transaction_hash": "string",
+      "asset_balance_changes": "null",
+      "transaction_successful": "boolean"
+    },
+    "ingestedAt": {},
+    "events": "array<empty>"
+  }
+}

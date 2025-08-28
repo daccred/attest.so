@@ -8,136 +8,15 @@
  *
  * @module repository/contracts
  * @requires common/constants
- * @requires common/db
  * @requires repository/operations
  * @requires repository/events
  * @requires repository/transactions
  */
 
-import { sorobanRpcUrl, CONTRACT_IDS, MAX_OPERATIONS_PER_FETCH } from '../common/constants'
-import { getDB } from '../common/db'
-import { fetchOperationsFromHorizon, storeContractOperationsInDB } from './operations.repository'
+import { CONTRACT_IDS_TO_INDEX, MAX_OPERATIONS_PER_FETCH } from '../common/constants'
+import { fetchOperationsFromHorizon, storeOperationsInDB } from './operations.repository'
 import { fetchAndStoreEvents } from './events.repository'
 import { fetchTransactionDetails, storeTransactionsInDB } from './transactions.repository'
-
-/**
- * Fetches contract storage data directly from Soroban RPC.
- *
- * Retrieves specific contract data entries using the Soroban RPC
- * getLedgerEntries method. Supports both persistent and temporary
- * storage durability types. Returns null if data not found or on error.
- *
- * @async
- * @function fetchContractDataFromSoroban
- * @param {Object} params - Query parameters
- * @param {string} params.contractId - Target contract ID
- * @param {string} params.key - Storage key to retrieve
- * @param {string} [params.durability='persistent'] - Storage durability type
- * @returns {Promise<Object|null>} Contract data entry or null
- */
-export async function fetchContractDataFromSoroban(params: {
-  contractId: string
-  key: string
-  durability?: 'persistent' | 'temporary'
-}): Promise<any | null> {
-  const { contractId, key, durability = 'persistent' } = params
-
-  try {
-    const rpcPayload = {
-      jsonrpc: '2.0',
-      id: `getContractData-${Date.now()}`,
-      method: 'getLedgerEntries',
-      params: {
-        keys: [
-          {
-            type: 'contractData',
-            contractId,
-            key,
-            durability,
-          },
-        ],
-      },
-    }
-
-    console.log(
-      `Fetching contract data for ${contractId}/${key}:`,
-      JSON.stringify(rpcPayload, null, 2)
-    )
-
-    const response = await fetch(sorobanRpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(rpcPayload),
-    })
-
-    if (!response.ok) {
-      throw new Error(`Contract data request failed: ${response.status}`)
-    }
-
-    const data = await response.json()
-    if (data.error) {
-      console.error('RPC error fetching contract data:', data.error)
-      return null
-    }
-
-    return data.result?.entries?.[0] || null
-  } catch (error: any) {
-    console.error(`Error fetching contract data for ${contractId}/${key}:`, error.message)
-    return null
-  }
-}
-
-/**
- * Stores contract data entries in the database.
- *
- * Persists contract storage data with support for versioning and
- * change tracking. Uses database transactions for consistency and
- * handles updates for existing entries.
- *
- * @async
- * @function storeContractDataInDB
- * @param {Array} contractData - Array of contract data entries
- * @returns {Promise<void>} Completes when storage is done
- */
-export async function storeContractDataInDB(contractData: any[]) {
-  const db = await getDB()
-  if (!db || contractData.length === 0) return
-
-  try {
-    const results = await db.$transaction(async (prismaTx) => {
-      const data = contractData.map(async (item) => {
-        const dataEntry = {
-          contractId: item.contract_id,
-          key: item.key,
-          value: item.val,
-          durability: item.durability || 'persistent',
-          ledger: item.ledger || 0,
-          timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
-          previousValue: item.previous_val || null,
-          isDeleted: Boolean(item.deleted),
-        }
-
-        return prismaTx.horizonContractData.upsert({
-          where: {
-            contractId_key_ledger: {
-              contractId: item.contract_id,
-              key: item.key,
-              ledger: item.ledger || 0,
-            },
-          },
-          update: dataEntry,
-          create: dataEntry,
-        })
-      })
-
-      return Promise.all(data)
-    })
-
-    console.log(`Stored ${results.length} contract data entries.`)
-  } catch (error) {
-    console.error('Error storing contract data:', error)
-  }
-}
 
 /**
  * Fetches and stores contract operations from Horizon.
@@ -161,7 +40,7 @@ export async function storeContractDataInDB(contractData: any[]) {
  * @returns {number} result.transactionsFetched - Total transactions count
  */
 export async function fetchContractOperations(
-  contractIds: string[] = CONTRACT_IDS,
+  contractIds: string[] = CONTRACT_IDS_TO_INDEX,
   startLedger?: number,
   includeFailedTx?: boolean
 ): Promise<{
@@ -249,7 +128,7 @@ export async function fetchContractOperations(
         ) || contractIds[0],
     }))
 
-    const storedCount = await storeContractOperationsInDB(operationsWithContract, contractIds)
+    const storedCount = await storeOperationsInDB(operationsWithContract, contractIds)
     console.log(`✅ Stored ${storedCount} contract operations successfully`)
   }
 
@@ -294,7 +173,7 @@ export async function fetchContractOperations(
  */
 export async function fetchContractComprehensiveData(
   startLedger?: number,
-  contractIds: string[] = CONTRACT_IDS
+  contractIds: string[] = CONTRACT_IDS_TO_INDEX
 ): Promise<{
   events: any[]
   operations: any[]
@@ -315,10 +194,13 @@ export async function fetchContractComprehensiveData(
   )
   console.log(`📋 Contracts: ${contractIds.join(', ')}`)
 
-  // 1. Fetch events using existing event-based approach (for events with data)
+  // 1. Fetch events using existing event-based approach (stores events and returns metadata)
   console.log('📅 Step 1: Fetching contract events...')
   const eventsResult = await fetchAndStoreEvents(startLedger)
-  const events: any[] = [] // We'll need to query the DB for events to get them in the right format
+  
+  // For the backfill response, we need to know how many events were fetched
+  // The actual events are now stored in the database
+  const events: any[] = [] // Will be populated with event count for summary
 
   // 2. Fetch all contract operations (including those without events)
   console.log('⚙️ Step 2: Fetching contract operations...')

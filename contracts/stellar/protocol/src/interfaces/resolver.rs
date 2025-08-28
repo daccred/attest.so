@@ -37,7 +37,7 @@ pub struct ResolverAttestation {
 /// - onattest/onrevoke return boolean values that gate protocol actions
 /// - onresolve failures are logged but don't revert transactions
 /// - Resolvers implement access control, economic barriers, and business logic
-/// 
+///
 #[contractclient(name = "ResolverClient")]
 pub trait Resolver {
     /// Called before an attestation is created - CRITICAL for access control

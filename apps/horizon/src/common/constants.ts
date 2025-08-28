@@ -25,23 +25,23 @@ export const DATABASE_URL = process.env.DATABASE_URL as string
 export const STELLAR_NETWORK = process.env.STELLAR_NETWORK || 'testnet'
 
 /**
- * CONTRACT_ID_TO_INDEX
+ * CONTRACT_IDS_TO_INDEX
  *
- * Legacy single-contract identifier primarily used for event filters.
- * Prefer the enhanced CONTRACT_IDS for multi-contract indexing.
+ * Array of contract IDs that the indexer will track for events, operations, and transactions.
+ * This replaces the legacy CONTRACT_ID_TO_INDEX environment variable approach.
  */
-export const CONTRACT_ID_TO_INDEX = process.env.CONTRACT_ID_TO_INDEX
+export const CONTRACT_IDS_TO_INDEX = [
+  'CCVXRP5PUMR6RQWXEM2G766JHBWBGLG4YLFE3MFDIPYHTHX667CVK3FN',
+  'CC7X7SLETAUAPGKKGRSGUPRLFRVAXSY5SRELF2OAHBUOQ6GIBLRHX5FO',
+]
 
 /**
- * CONTRACT_IDS
+ * CONTRACT_ID_TO_INDEX
  *
- * Enhanced multi-contract configuration.
- * Provide one or more contract IDs you want the indexer to track.
+ * Legacy compatibility - points to the first contract in the array.
+ * @deprecated Use CONTRACT_IDS_TO_INDEX directly for multi-contract support.
  */
-export const CONTRACT_IDS = [
-  'CADB73DZ7QP5BG6MRRL3J3X4WWHBCJ7PMCVZXYG7ZGCPIO2XCDBOM',
-  'CAD6YMZCO4Q3L5XZT2FD3MDHP3ZHFMYL24RZYG4YQAL4XQKVGVXYPSQQ',
-]
+export const CONTRACT_ID_TO_INDEX = CONTRACT_IDS_TO_INDEX[0]
 
 /**
  * MAX_EVENTS_PER_FETCH
@@ -94,12 +94,10 @@ export function getHorizonBaseUrl(): string {
 console.log(`---------------- HORIZON CONSTANTS INIT (constants.ts) ----------------`)
 console.log(`STELLAR_NETWORK: ${STELLAR_NETWORK}`)
 console.log(`Soroban RPC URL: ${sorobanRpcUrl}`)
-console.log(`Contract ID to Index (legacy): ${CONTRACT_ID_TO_INDEX}`)
-console.log(`Contract IDs (enhanced): ${CONTRACT_IDS.join(', ')}`)
-if (!CONTRACT_ID_TO_INDEX && process.env.NODE_ENV !== 'test') {
-  console.warn('Warning: CONTRACT_ID_TO_INDEX is not set. Please set this environment variable.')
-} else if (CONTRACT_ID_TO_INDEX === 'YOUR_CONTRACT_ID_HERE' && process.env.NODE_ENV !== 'test') {
-  console.warn("Warning: CONTRACT_ID_TO_INDEX is set to placeholder 'YOUR_CONTRACT_ID_HERE'")
+console.log(`Contract IDs to Index: ${CONTRACT_IDS_TO_INDEX.join(', ')}`)
+console.log(`Contract ID (legacy): ${CONTRACT_ID_TO_INDEX}`)
+if (CONTRACT_IDS_TO_INDEX.length === 0 && process.env.NODE_ENV !== 'test') {
+  console.warn('Warning: CONTRACT_IDS_TO_INDEX array is empty. Please add contract IDs to track.')
 }
 console.log(
   `Database URL (first 5 chars): ${DATABASE_URL ? DATABASE_URL.substring(0, 5) : 'NOT SET'}...`
