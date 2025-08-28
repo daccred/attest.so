@@ -15,8 +15,7 @@
 import { rpc } from '@stellar/stellar-sdk'
 import {
   sorobanRpcUrl,
-  CONTRACT_ID_TO_INDEX,
-  CONTRACT_IDS,
+  CONTRACT_IDS_TO_INDEX,
   MAX_EVENTS_PER_FETCH,
   LEDGER_HISTORY_LIMIT_DAYS,
 } from '../common/constants'
@@ -74,8 +73,8 @@ export async function fetchAndStoreEvents(
     console.log(`------------------------------------------------------`)
     throw new Error(errMsg)
   }
-  if (!CONTRACT_ID_TO_INDEX) {
-    const errMsg = 'CONTRACT_ID_TO_INDEX is not defined. Aborting event fetch.'
+  if (!CONTRACT_IDS_TO_INDEX || CONTRACT_IDS_TO_INDEX.length === 0) {
+    const errMsg = 'CONTRACT_IDS_TO_INDEX is empty or not defined. Aborting event fetch.'
     console.error(errMsg)
     console.log(`------------------------------------------------------`)
     throw new Error(errMsg)
@@ -155,7 +154,7 @@ export async function fetchAndStoreEvents(
       )
 
       const eventsRequestParams: any = {
-        filters: [{ type: 'contract', contractIds: CONTRACT_IDS, topics: [] }],
+        filters: [{ type: 'contract', contractIds: CONTRACT_IDS_TO_INDEX, topics: [] }],
         pagination: {
           limit: MAX_EVENTS_PER_FETCH,
         },

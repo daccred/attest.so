@@ -16,7 +16,7 @@
 import { Router, Request, Response } from 'express'
 import { ingestQueue } from '../common/queue'
 import { fetchContractComprehensiveData } from '../repository/contracts.repository'
-import { CONTRACT_IDS } from '../common/constants'
+import { CONTRACT_IDS_TO_INDEX } from '../common/constants'
 
 // Route constants for ingest endpoints
 const INGEST_EVENTS_ROUTE = '/events'
@@ -177,7 +177,7 @@ router.post(INGEST_FULL_ROUTE, async (req: Request, res: Response) => {
   try {
     const { startLedger, contractIds } = req.body
 
-    const targetContractIds = contractIds || CONTRACT_IDS
+    const targetContractIds = contractIds || CONTRACT_IDS_TO_INDEX
     let startLedgerFromRequest: number | undefined = undefined
 
     if (startLedger !== undefined) {

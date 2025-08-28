@@ -19,7 +19,7 @@ import { ingestQueue } from '../common/queue'
 import { getRpcHealth, getLatestRPCLedgerIndex } from '../repository/rpc.repository'
 import { getLastProcessedLedgerFromDB, getDB } from '../common/db'
 import { connectToPostgreSQL } from '../common/prisma'
-import { STELLAR_NETWORK, CONTRACT_ID_TO_INDEX } from '../common/constants'
+import { STELLAR_NETWORK, CONTRACT_IDS_TO_INDEX, CONTRACT_ID_TO_INDEX } from '../common/constants'
 
 // Route constants for system endpoints
 const SYSTEM_QUEUE_STATUS_ROUTE = '/queue/status'
@@ -130,7 +130,8 @@ router.get(SYSTEM_HEALTH_ROUTE, async (req: Request, res: Response) => {
       soroban_rpc_status: rpcStatus,
       network: STELLAR_NETWORK,
       latest_rpc_ledger: latestRPCLedger || 'Not Available',
-      indexing_contract: CONTRACT_ID_TO_INDEX || 'Not Set',
+      indexing_contracts: CONTRACT_IDS_TO_INDEX,
+      indexing_contract_legacy: CONTRACT_ID_TO_INDEX || 'Not Set',
       last_processed_ledger_in_db: lastLedgerDb,
       db_connection_explicitly_attempted_in_health_check: dbConnectionAttempted,
     })

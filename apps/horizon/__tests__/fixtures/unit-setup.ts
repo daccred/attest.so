@@ -33,7 +33,7 @@ beforeAll(async () => {
   // Set test database URL
   process.env.DATABASE_URL = TEST_DATABASE_URL;
   process.env.STELLAR_NETWORK = 'testnet'; // Consistent test network
-  process.env.CONTRACT_ID_TO_INDEX = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM'; // Valid example contract ID
+  // Legacy environment variable for backward compatibility - tests should use CONTRACT_IDS_TO_INDEX directly
   
   console.log(`Test Database URL: ${TEST_DATABASE_URL}`);
 });

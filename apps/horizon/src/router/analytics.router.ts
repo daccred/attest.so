@@ -13,7 +13,7 @@
 
 import { Router, Request, Response } from 'express'
 import { getDB } from '../common/db'
-import { CONTRACT_IDS } from '../common/constants'
+import { CONTRACT_IDS_TO_INDEX } from '../common/constants'
 
 // Route constants for analytics endpoints
 const ANALYTICS_OVERVIEW_ROUTE = '/'
@@ -157,7 +157,7 @@ router.get(ANALYTICS_CONTRACTS_ROUTE, async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'Database not available' })
     }
 
-    const { contractIds = CONTRACT_IDS } = req.query
+    const { contractIds = CONTRACT_IDS_TO_INDEX } = req.query
     const targetContractIds = Array.isArray(contractIds) ? contractIds : [contractIds]
 
     const analytics = await Promise.all(

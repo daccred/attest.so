@@ -14,7 +14,7 @@
  * @requires repository/transactions
  */
 
-import { CONTRACT_IDS, MAX_OPERATIONS_PER_FETCH } from '../common/constants'
+import { CONTRACT_IDS_TO_INDEX, MAX_OPERATIONS_PER_FETCH } from '../common/constants'
 import { getDB } from '../common/db'
 import { fetchOperationsFromHorizon, storeOperationsInDB } from './operations.repository'
 import { fetchAndStoreEvents } from './events.repository'
@@ -42,7 +42,7 @@ import { fetchTransactionDetails, storeTransactionsInDB } from './transactions.r
  * @returns {number} result.transactionsFetched - Total transactions count
  */
 export async function fetchContractOperations(
-  contractIds: string[] = CONTRACT_IDS,
+  contractIds: string[] = CONTRACT_IDS_TO_INDEX,
   startLedger?: number,
   includeFailedTx?: boolean
 ): Promise<{
@@ -175,7 +175,7 @@ export async function fetchContractOperations(
  */
 export async function fetchContractComprehensiveData(
   startLedger?: number,
-  contractIds: string[] = CONTRACT_IDS
+  contractIds: string[] = CONTRACT_IDS_TO_INDEX
 ): Promise<{
   events: any[]
   operations: any[]

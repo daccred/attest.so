@@ -17,8 +17,8 @@ const mockDb: any = {
 
 vi.mock('../src/common/constants', () => ({
   STELLAR_NETWORK: 'testnet',
-  CONTRACT_ID_TO_INDEX: 'CAAAAA',
-  CONTRACT_IDS: ['CAAAAA', 'CBBBBB'],
+  CONTRACT_IDS_TO_INDEX: ['CAAAAA', 'CBBBBB'],
+  CONTRACT_ID_TO_INDEX: 'CAAAAA', // Legacy compatibility
   sorobanRpcUrl: 'http://localhost:1337'
 }));
 
