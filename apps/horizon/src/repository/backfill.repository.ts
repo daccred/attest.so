@@ -169,12 +169,18 @@ export async function performBackfill(
 
       console.log(`📦 Processing ${events.length} events...`)
 
-      // Process each event individually
-      for (const event of events) {
+      // Process each event individually, but in correct order
+      // First, separate events by type to process schemas before attestations
+      const parsedEvents = events.map(event=> parseEventData(event))
+      const schemaEvents = parsedEvents.filter(e => e.eventType.includes('SCHEMA'))
+      const attestationEvents = parsedEvents.filter(e => e.eventType.includes('ATTEST'))
+      const otherEvents = parsedEvents.filter(e => !e.eventType.includes('SCHEMA') && !e.eventType.includes('ATTEST'))
 
+      // Process in order: schemas first, then attestations, then others
+      const orderedEvents = [...schemaEvents, ...attestationEvents, ...otherEvents]
+
+      for (const eventData of orderedEvents) {
         try {
-          const eventData = parseEventData(event)
-
           console.log(`=============== Event data ===============`)
           console.log({eventData})
           console.log(`=============== Event data ===============`)
@@ -184,6 +190,9 @@ export async function performBackfill(
             const success = await processTransactionForEvent(db, eventData.transactionHash)
             if (success) transactionsProcessed++
           }
+
+          /** @debug Add a timeout to delay the next event */
+          await new Promise(resolve => setTimeout(resolve, 3000))
 
           // 2. Upsert event after transaction exists
           await upsertEventIndividually(db, eventData)
@@ -199,7 +208,7 @@ export async function performBackfill(
           }
 
         } catch (error: any) {
-          errors.push(`Error processing event ${event.id}: ${error.message}`)
+          errors.push(`Error processing event ${eventData.eventId}: ${error.message}`)
           console.error(`❌ Error processing event:`, error.message)
         }
       }
@@ -461,13 +470,27 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
       console.log('🧩 [Projection] ATTEST create event', { eventId: eventData.eventId, type })
       // Prefer decoding from operation parameters (single invoke_host_function)
       const params = await getDecodedOpParamsForTx()
+      console.log('📋 [Debug] Operation parameters:', JSON.stringify(params, null, 2))
       const mapParam = params.find((p) => p.type === 'Map')?.decoded || {}
+      console.log('📋 [Debug] Map parameter:', JSON.stringify(mapParam, null, 2))
       const attestationUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0]) // event contains UID
       const schemaUid = toBase64(mapParam?.schema_uid)
       const attesterAddress = mapParam?.attester || undefined
       const subjectAddress = mapParam?.subject || undefined
       const message = typeof mapParam?.value === 'string' ? mapParam.value : (mapParam?.value ? JSON.stringify(mapParam.value) : '')
       const value = (() => { try { return typeof mapParam?.value === 'string' ? JSON.parse(mapParam.value) : mapParam?.value } catch { return undefined } })()
+      
+      console.log('📋 [Debug] Attestation record being processed:', {
+        attestationUid,
+        schemaUid,
+        attesterAddress,
+        subjectAddress,
+        message,
+        value,
+        ledger: eventData.ledger,
+        transactionHash: eventData.transactionHash
+      })
+      
       if (attestationUid && schemaUid && attesterAddress) {
         await singleUpsertAttestation({
           attestationUid,
