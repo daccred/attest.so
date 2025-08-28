@@ -156,7 +156,6 @@ fn test_nonce_incrementation() {
     client.attest(
         &attester,
         &schema_uid,
-        &subject,
         &SorobanString::from_str(&env, "value1"),
         &None,
     );
@@ -165,7 +164,6 @@ fn test_nonce_incrementation() {
     client.attest(
         &attester,
         &schema_uid,
-        &subject,
         &SorobanString::from_str(&env, "value2"),
         &None,
     );
@@ -174,7 +172,6 @@ fn test_nonce_incrementation() {
     client.attest(
         &attester,
         &schema_uid,
-        &subject,
         &SorobanString::from_str(&env, "value3"),
         &None,
     );
@@ -247,7 +244,6 @@ fn test_nonce_is_attester_specific() {
     client.attest(
         &attester_a,
         &schema_uid,
-        &subject,
         &SorobanString::from_str(&env, "valueA"),
         &None,
     );
@@ -256,7 +252,6 @@ fn test_nonce_is_attester_specific() {
     client.attest(
         &attester_b,
         &schema_uid,
-        &subject,
         &SorobanString::from_str(&env, "valueB"),
         &None,
     );
@@ -265,7 +260,6 @@ fn test_nonce_is_attester_specific() {
     client.attest(
         &attester_a,
         &schema_uid,
-        &subject,
         &SorobanString::from_str(&env, "valueA2"),
         &None,
     );
@@ -364,7 +358,6 @@ fn test_nonce_replay_future_nonce_rejection() {
         client.attest(
             &attester,
             &schema_uid,
-            &subject,
             &SorobanString::from_str(&env, value),
             &None,
         );
@@ -403,7 +396,6 @@ fn test_nonce_replay_future_nonce_rejection() {
     client.attest(
         &attester,
         &schema_uid,
-        &subject,
         &SorobanString::from_str(&env, "final_value"),
         &None,
     );

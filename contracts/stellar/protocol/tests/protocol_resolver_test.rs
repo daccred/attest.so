@@ -1,3 +1,4 @@
+// THIS IS A TEST COMMENT
 use protocol::{interfaces::resolver::ResolverAttestation, AttestationContract, AttestationContractClient};
 use soroban_sdk::{
     contract, contractimpl,
@@ -66,7 +67,6 @@ fn test_schema_with_resolver_allows_attestation() {
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     let attester = Address::generate(&env);
-    let subject = Address::generate(&env);
 
     // Deploy the always-approve resolver
     let resolver_address = env.register(always_approve_resolver::AlwaysApproveResolver, ());
@@ -83,11 +83,11 @@ fn test_schema_with_resolver_allows_attestation() {
     // Create attestation - should succeed as resolver approves
     let value = SorobanString::from_str(&env, "{\"test\":\"data\"}");
     let expiration_time = None;
-    let attestation_uid = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+    let attestation_uid = client.attest(&attester, &schema_uid, &value, &expiration_time);
 
     // Verify attestation was created
     let attestation = client.get_attestation(&attestation_uid);
-    assert_eq!(attestation.subject, subject);
+    assert_eq!(attestation.subject, attester.clone());
     assert_eq!(attestation.attester, attester);
     assert!(!attestation.revoked);
 }
@@ -110,7 +110,6 @@ fn test_resolver_rejection_of_revocation() {
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     let attester = Address::generate(&env);
-    let subject = Address::generate(&env);
 
     // Deploy the no-revoke resolver
     let resolver_address = env.register(no_revoke_resolver::NoRevokeResolver, ());
@@ -127,7 +126,7 @@ fn test_resolver_rejection_of_revocation() {
     // Create attestation - should succeed
     let value = SorobanString::from_str(&env, "{\"test\":\"data\"}");
     let expiration_time = None;
-    let attestation_uid = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+    let attestation_uid = client.attest(&attester, &schema_uid, &value, &expiration_time);
 
     // Verify attestation was created
     let attestation = client.get_attestation(&attestation_uid);
@@ -162,7 +161,6 @@ fn test_schema_without_resolver() {
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     let attester = Address::generate(&env);
-    let subject = Address::generate(&env);
 
     // Initialize protocol
     client.initialize(&admin);
@@ -176,11 +174,11 @@ fn test_schema_without_resolver() {
     // Create attestation - should succeed without resolver
     let value = SorobanString::from_str(&env, "{\"test\":\"data\"}");
     let expiration_time = None;
-    let attestation_uid = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+    let attestation_uid = client.attest(&attester, &schema_uid, &value, &expiration_time);
 
     // Verify attestation was created
     let attestation = client.get_attestation(&attestation_uid);
-    assert_eq!(attestation.subject, subject);
+    assert_eq!(attestation.subject, attester.clone());
     assert_eq!(attestation.attester, attester);
     assert!(!attestation.revoked);
 
@@ -210,7 +208,6 @@ fn test_multiple_schemas_with_different_resolvers() {
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     let attester = Address::generate(&env);
-    let subject = Address::generate(&env);
 
     // Deploy two different resolvers
     let approve_resolver = env.register(always_approve_resolver::AlwaysApproveResolver, ());
@@ -237,8 +234,8 @@ fn test_multiple_schemas_with_different_resolvers() {
 
     // Create attestations for both schemas
     let value = SorobanString::from_str(&env, "{\"test\":\"data\"}");
-    let attestation_uid_1 = client.attest(&attester, &schema_uid_1, &subject, &value, &None);
-    let attestation_uid_2 = client.attest(&attester, &schema_uid_2, &subject, &value, &None);
+    let attestation_uid_1 = client.attest(&attester, &schema_uid_1, &value, &None);
+    let attestation_uid_2 = client.attest(&attester, &schema_uid_2, &value, &None);
 
     // Revoke first attestation - should succeed (approve resolver)
     client.revoke(&attester, &attestation_uid_1);

@@ -15,7 +15,6 @@ fn revoke_by_nonce() {
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     let attester = Address::generate(&env);
-    let subject = Address::generate(&env);
 
     println!("=============================================================");
     println!("      Running TC: {}", "revoke_by_nonce");
@@ -63,7 +62,6 @@ fn revoke_by_nonce() {
             args: (
                 attester.clone(),
                 schema_uid.clone(),
-                subject.clone(),
                 value.clone(),
                 expiration_time.clone(),
             )
@@ -71,7 +69,7 @@ fn revoke_by_nonce() {
             sub_invokes: &[],
         },
     }]);
-    let attestation_uid: BytesN<32> = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+    let attestation_uid: BytesN<32> = client.attest(&attester, &schema_uid, &value, &expiration_time);
 
     // revoke by attester
     env.mock_auths(&[MockAuth {
@@ -99,7 +97,7 @@ fn revoke_by_nonce() {
         bool,
         Option<u64>,
     ) = last.2.try_into_val(&env).unwrap();
-    assert_eq!(subject_ev, subject);
+    assert_eq!(subject_ev, attester);
     assert_eq!(attester_ev, attester);
     assert_eq!(attestation_uid_ev, attestation_uid);
     assert_eq!(revoked_ev, true);
@@ -127,7 +125,6 @@ fn test_revocation_by_unauthorized_parties() {
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     let attester = Address::generate(&env);
-    let subject = Address::generate(&env);
     let unauthorized_user = Address::generate(&env);
 
     println!("=============================================================");
@@ -175,7 +172,6 @@ fn test_revocation_by_unauthorized_parties() {
             args: (
                 attester.clone(),
                 schema_uid.clone(),
-                subject.clone(),
                 value.clone(),
                 expiration_time.clone(),
             )
@@ -183,7 +179,7 @@ fn test_revocation_by_unauthorized_parties() {
             sub_invokes: &[],
         },
     }]);
-    let attestation_uid: BytesN<32> = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+    let attestation_uid: BytesN<32> = client.attest(&attester, &schema_uid, &value, &expiration_time);
 
     // 1. Attempt revocation by an unauthorized user
     env.mock_auths(&[MockAuth {
@@ -200,18 +196,20 @@ fn test_revocation_by_unauthorized_parties() {
     assert_eq!(result_unauthorized, Err(Ok(Error::NotAuthorized.into())));
     assert!(env.events().all().is_empty());
 
+    // 2. Attempt revocation by the subject (who is not the attester)
+    // This should fail because only the attester can revoke.
+    let subject_as_revoker = Address::generate(&env);
     env.mock_auths(&[MockAuth {
-        address: &subject,
+        address: &subject_as_revoker,
         invoke: &MockAuthInvoke {
             contract: &contract_id,
             fn_name: "revoke",
-            args: (subject.clone(), attestation_uid.clone()).into_val(&env),
+            args: (subject_as_revoker.clone(), attestation_uid.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
-    let result_subject = client.try_revoke(&subject, &attestation_uid);
+    let result_subject = client.try_revoke(&subject_as_revoker, &attestation_uid);
     assert_eq!(result_subject, Err(Ok(Error::NotAuthorized.into())));
-    assert!(env.events().all().is_empty());
 
     // 3. Attempt revocation by the admin
     env.mock_auths(&[MockAuth {
@@ -248,7 +246,6 @@ fn test_cannot_revoke_from_non_revocable_schema() {
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     let attester = Address::generate(&env);
-    let subject = Address::generate(&env);
 
     println!("=============================================================");
     println!(" Running test case: {}", "____attestation_from_non_revo____");
@@ -292,7 +289,6 @@ fn test_cannot_revoke_from_non_revocable_schema() {
             args: (
                 attester.clone(),
                 schema_uid.clone(),
-                subject.clone(),
                 value.clone(),
                 expiration_time.clone(),
             )
@@ -300,7 +296,7 @@ fn test_cannot_revoke_from_non_revocable_schema() {
             sub_invokes: &[],
         },
     }]);
-    let attestation_uid = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+    let attestation_uid = client.attest(&attester, &schema_uid, &value, &expiration_time);
 
     let _initial_events_count = env.events().all().len();
 
@@ -339,7 +335,6 @@ fn test_double_revocation_fails() {
     let client = AttestationContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     let attester = Address::generate(&env);
-    let subject = Address::generate(&env);
 
     println!("=============================================================");
     println!(" Running test case: {}", "test_double_revocation_fails");
@@ -385,7 +380,6 @@ fn test_double_revocation_fails() {
             args: (
                 attester.clone(),
                 schema_uid.clone(),
-                subject.clone(),
                 value.clone(),
                 expiration_time.clone(),
             )
@@ -393,7 +387,7 @@ fn test_double_revocation_fails() {
             sub_invokes: &[],
         },
     }]);
-    let attestation_uid: BytesN<32> = client.attest(&attester, &schema_uid, &subject, &value, &expiration_time);
+    let attestation_uid: BytesN<32> = client.attest(&attester, &schema_uid, &value, &expiration_time);
 
     // revoke for the first time
     env.mock_auths(&[MockAuth {
