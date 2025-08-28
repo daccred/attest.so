@@ -338,11 +338,58 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     const type = eventData.eventType || ''
     const val = eventData.eventData
 
+    // Helper: normalize bytes (Buffer | Uint8Array | JSON {type:'Buffer',data:number[]}| string) to base64 string
+    const toBase64 = (input: any): string | undefined => {
+      try {
+        if (!input) return undefined
+        if (typeof input === 'string') return input
+        if (typeof Buffer !== 'undefined') {
+          if (Buffer.isBuffer(input)) return Buffer.from(input).toString('base64')
+          if (input?.type === 'Buffer' && Array.isArray(input?.data)) {
+            return Buffer.from(input.data).toString('base64')
+          }
+          if (input instanceof Uint8Array) return Buffer.from(input).toString('base64')
+        }
+      } catch {}
+      return undefined
+    }
+
+    // Helper: decode a base64 XDR ScVal to native
+    const decodeScVal = (b64: string): any => {
+      try { return scValToNative(xdr.ScVal.fromXDR(b64, 'base64')) } catch { return null }
+    }
+
+    // Helper: fetch and decode operation parameters for this tx
+    const getDecodedOpParamsForTx = async () => {
+      const ops = await db.horizonOperation.findMany({
+        where: { transactionHash: eventData.transactionHash },
+        orderBy: { operationIndex: 'asc' },
+      })
+      if (!ops || ops.length === 0) return [] as any[]
+      const first = ops[0]
+      const params: any[] = Array.isArray(first.parameters) ? first.parameters as any[] : []
+      return params.map((p: any) => ({
+        type: p?.type,
+        raw: p?.value,
+        decoded: typeof p?.value === 'string' ? decodeScVal(p.value) : p?.value,
+      }))
+    }
+
     // SCHEMA register
     if (type === 'SCHEMA_0x0_REGISTER' && Array.isArray(val)) {
       console.log('🧩 [Projection] SCHEMA register event', { eventId: eventData.eventId, type, sample: typeof val[0], hasObj: typeof val[1] })
-      const schemaUid = typeof val[0] === 'string' ? val[0] : undefined
+      // schemaUid is published in event value (first element). It may be a base64 XDR bytes or Buffer-like
+      let schemaUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0])
       const schemaObj = typeof val[1] === 'object' ? val[1] : undefined
+      if (!schemaUid) {
+        // Fallback: derive from op params if present
+        const params = await getDecodedOpParamsForTx()
+        // For schema register, the Str definition is in params[3], authority in params[2]
+        // Some chains may include schema_uid in params Map; ignore unless present
+        const mapParam = params.find((p) => p.type === 'Map')
+        const maybeUid = toBase64(mapParam?.decoded?.schema_uid)
+        if (maybeUid) schemaUid = maybeUid
+      }
       if (schemaUid && schemaObj) {
         const defString = typeof schemaObj.definition === 'string'
           ? schemaObj.definition
@@ -366,14 +413,15 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     // ATTEST create
     if (type === 'ATTEST_0x0_CREATE' && Array.isArray(val)) {
       console.log('🧩 [Projection] ATTEST create event', { eventId: eventData.eventId, type })
-      const attestationUid = typeof val[0] === 'string' ? val[0] : undefined
-      const schemaUid = typeof val[1] === 'string' ? val[1] : undefined
-      const attesterAddress = typeof val[2] === 'string' ? val[2] : undefined
-      const subjectAddress = typeof val[3] === 'string' ? val[3] : undefined
-      const messageRaw = val[4]
-      let message = typeof messageRaw === 'string' ? messageRaw : typeof messageRaw === 'object' ? JSON.stringify(messageRaw) : String(messageRaw ?? '')
-      let value: any = undefined
-      try { if (typeof messageRaw === 'string' && messageRaw.trim().startsWith('{')) value = JSON.parse(messageRaw) } catch {}
+      // Prefer decoding from operation parameters (single invoke_host_function)
+      const params = await getDecodedOpParamsForTx()
+      const mapParam = params.find((p) => p.type === 'Map')?.decoded || {}
+      const attestationUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0]) // event contains UID
+      const schemaUid = toBase64(mapParam?.schema_uid)
+      const attesterAddress = mapParam?.attester || undefined
+      const subjectAddress = mapParam?.subject || undefined
+      const message = typeof mapParam?.value === 'string' ? mapParam.value : (mapParam?.value ? JSON.stringify(mapParam.value) : '')
+      const value = (() => { try { return typeof mapParam?.value === 'string' ? JSON.parse(mapParam.value) : mapParam?.value } catch { return undefined } })()
       if (attestationUid && schemaUid && attesterAddress) {
         await singleUpsertAttestation({
           attestationUid,
@@ -388,7 +436,7 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
           revoked: false,
         })
       } else {
-        console.log('⚠️ [Projection] ATTEST create missing ids', { u0: typeof val[0], u1: typeof val[1], u2: typeof val[2] })
+        console.log('⚠️ [Projection] ATTEST create missing ids', { attestationUid: !!attestationUid, schemaUid: !!schemaUid, attester: !!attesterAddress })
       }
     }
 
@@ -405,12 +453,19 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
       }
       if (!revokedAt) revokedAt = new Date(eventData.timestamp)
       if (attestationUid) {
+        // Pull schema/attester/subject from parameters (decoded Map)
+        const p = await getDecodedOpParamsForTx()
+        const m = p.find((pp) => pp.type === 'Map')?.decoded || {}
+        const schemaUidFromParams = toBase64(m?.schema_uid) || ''
+        const attesterFromParams = m?.attester || ''
+        const subjectFromParams = m?.subject || undefined
+
         await singleUpsertAttestation({
           attestationUid,
           ledger: eventData.ledger,
-          schemaUid: typeof val[1] === 'string' ? val[1] : '',
-          attesterAddress: typeof val[2] === 'string' ? val[2] : '',
-          subjectAddress: (typeof val[3] === 'string' ? val[3] : undefined) || undefined,
+          schemaUid: schemaUidFromParams,
+          attesterAddress: attesterFromParams,
+          subjectAddress: subjectFromParams,
           transactionHash: eventData.transactionHash,
           schemaEncoding: 'JSON',
           message: '',

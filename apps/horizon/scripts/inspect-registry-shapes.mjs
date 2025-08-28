@@ -9,6 +9,11 @@ function getType(value) {
   return typeof value
 }
 
+function jsonSafeStringify(obj) {
+  const replacer = (_k, v) => (typeof v === 'bigint' ? v.toString() : v)
+  return JSON.stringify(obj, replacer, 2)
+}
+
 function summarizeObjectShape(value, maxDepth = 2, depth = 0) {
   if (depth >= maxDepth) {
     return getType(value)
@@ -137,6 +142,22 @@ function decodeTxEnvelope(b64) {
   }
 }
 
+function decodeParamValue(param) {
+  // Expect shape: { type: 'Address'|'Sym'|'Str'|..., value: base64XdrString | other }
+  if (!param || typeof param !== 'object') return { raw: param, decoded: param }
+  const rawValue = param.value
+  if (typeof rawValue === 'string') {
+    const decoded = tryDecodeScValBase64(rawValue)
+    return { raw: rawValue, decoded }
+  }
+  return { raw: rawValue, decoded: rawValue }
+}
+
+function decodeOperationParamsArray(params) {
+  if (!Array.isArray(params)) return []
+  return params.map((p) => ({ type: p.type, ...decodeParamValue(p) }))
+}
+
 function getHorizonBaseUrl() {
   return process.env.HORIZON_URL || process.env.STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org'
 }
@@ -162,7 +183,8 @@ function normalizeOperationRecord(op) {
     id: op.id,
     type_i: op.type_i,
     function: op.function || op.details?.function,
-    parameters: op.parameters || op.details?.parameters || [],
+    parametersRaw: op.parameters || op.details?.parameters || [],
+    parametersDecoded: decodeOperationParamsArray(op.parameters || op.details?.parameters || []),
     source_account: op.source_account,
     transaction_hash: op.transaction_hash,
   }
@@ -261,6 +283,17 @@ async function main() {
         if (!ops || ops.length === 0) {
           const httpOps = await fetchOperationsHttp(e.txHash)
           ops = httpOps.map(normalizeOperationRecord)
+        } else {
+          // Decode parameters from DB ops
+          ops = ops.map((dbop) => ({
+            id: dbop.id,
+            type_i: parseInt(dbop.operationType || '0', 10),
+            function: dbop.function,
+            parametersRaw: dbop.parameters || [],
+            parametersDecoded: decodeOperationParamsArray(dbop.parameters || []),
+            source_account: dbop.sourceAccount,
+            transaction_hash: dbop.transactionHash,
+          }))
         }
 
         console.log('\n• event id:', e.eventId)
@@ -268,7 +301,7 @@ async function main() {
         console.log('raw eventData:', full ? e.eventData : summarizeObjectShape(e.eventData))
         console.log('decoded eventData:', full ? decodedData.decoded : summarizeObjectShape(decodedData.decoded))
         console.log('decoded txEnvelope:', full ? decodedEnvelope : summarizeObjectShape(decodedEnvelope))
-        console.log('ops (by txHash):', full ? ops : summarizeObjectShape(ops))
+        console.log('ops (by txHash, decoded params):', full ? ops : summarizeObjectShape(ops))
 
         const txMin = e.transaction ? { hash: e.transaction.hash, successful: e.transaction.successful } : null
         const opMin = e.operation ? { id: e.operation.id, type: e.operation.operationType } : null
@@ -328,7 +361,7 @@ async function main() {
     console.log('\nHints: use --full to print entire raw/decoded payloads for eventData.')
 
     if (outFile) {
-      await writeFile(outFile, JSON.stringify(dump, null, 2), 'utf-8')
+      await writeFile(outFile, jsonSafeStringify(dump), 'utf-8')
       console.log(`\n✅ Wrote dump to ${outFile}`)
     }
   } finally {
