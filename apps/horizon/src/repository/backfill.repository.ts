@@ -52,6 +52,7 @@ interface EventData {
   contractId: string
   eventType: string
   eventData: any
+  inSuccessfulContractCall?: string
   timestamp: string
   transactionHash: string
 }
@@ -171,7 +172,7 @@ export async function performBackfill(
 
       // Process each event individually, but in correct order
       // First, separate events by type to process schemas before attestations
-      const parsedEvents = events.map(event=> parseEventData(event))
+      const parsedEvents = events.map(event => parseEventData(event))
       const schemaEvents = parsedEvents.filter(e => e.eventType.includes('SCHEMA'))
       const attestationEvents = parsedEvents.filter(e => e.eventType.includes('ATTEST'))
       const otherEvents = parsedEvents.filter(e => !e.eventType.includes('SCHEMA') && !e.eventType.includes('ATTEST'))
@@ -191,9 +192,7 @@ export async function performBackfill(
             if (success) transactionsProcessed++
           }
 
-          /** @debug Add a timeout to delay the next event */
-          await new Promise(resolve => setTimeout(resolve, 3000))
-
+   
           // 2. Upsert event after transaction exists
           await upsertEventIndividually(db, eventData)
           eventsProcessed++
@@ -269,10 +268,10 @@ function parseEventData(rawEvent: any): EventData {
     eventId: rawEvent.id,
     ledger: rawEvent.ledger,
     contractId: rawEvent.contractId,
-    // xdr convert each topic to a string
-    eventType: Array.from(rawEvent.topic).map((t: any) => scValToNative(xdr.ScVal.fromXDR(t, 'base64'))).join('_0x0_'),
+    /** @example ATTEST:CREATE we are using the colon as a separator for the event type */
+    eventType: Array.from(rawEvent.topic).map((t: any) => scValToNative(xdr.ScVal.fromXDR(t, 'base64'))).join(':'),
     // eventTopic: rawEvent.topic?.[0] || 'unknown',
-    // inSuccessfulContractCall: rawEvent.inSuccessfulContractCall,
+    inSuccessfulContractCall: rawEvent.inSuccessfulContractCall,
     eventData: scValToNative(xdr.ScVal.fromXDR(rawEvent.value, 'base64')),
     timestamp: rawEvent.ledgerClosedAt,
     transactionHash: rawEvent.txHash,
@@ -292,6 +291,10 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
   } catch (error: any) {
     console.warn(`Failed to fetch tx details for ${eventData.transactionHash}:`, error.message)
   }
+
+         /** @debug Add a timeout to delay the next event */
+         await new Promise(resolve => setTimeout(resolve, 300))
+
 
   const eventRecord = {
     eventId: eventData.eventId,
@@ -431,7 +434,7 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     }
 
     // SCHEMA register
-    if (type === 'SCHEMA_0x0_REGISTER' && Array.isArray(val)) {
+    if (type === 'SCHEMA:REGISTER' && Array.isArray(val)) {
       console.log('🧩 [Projection] SCHEMA register event', { eventId: eventData.eventId, type, sample: typeof val[0], hasObj: typeof val[1] })
       // schemaUid is published in event value (first element). It may be a base64 XDR bytes or Buffer-like
       let schemaUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0])
@@ -466,7 +469,7 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     }
 
     // ATTEST create
-    if (type === 'ATTEST_0x0_CREATE' && Array.isArray(val)) {
+    if (type === 'ATTEST:CREATE' && Array.isArray(val)) {
       console.log('🧩 [Projection] ATTEST create event', { eventId: eventData.eventId, type })
       // Prefer decoding from operation parameters (single invoke_host_function)
       const params = await getDecodedOpParamsForTx()
@@ -510,7 +513,7 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     }
 
     // ATTEST revoke
-    if (type.toUpperCase().includes('ATTEST') && type.toUpperCase().includes('REVOKE') && Array.isArray(val)) {
+    if (type === 'ATTEST:REVOKE' && Array.isArray(val)) {
       console.log('🧩 [Projection] ATTEST revoke event', { eventId: eventData.eventId, type })
       const attestationUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0])
       const revokedFlag = val[4] === true

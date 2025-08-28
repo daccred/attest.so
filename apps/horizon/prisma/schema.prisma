@@ -22,6 +22,7 @@ model HorizonEvent {
   txFeeBump   Boolean  @default(false)
   txStatus    String
   txCreatedAt DateTime
+  inSuccessfulContractCall String?
   
   // Relations
   transaction HorizonTransaction? @relation(fields: [txHash], references: [hash])
@@ -236,7 +237,7 @@ model Schema {
 
 model Transaction {
   id                String   @id @default(uuid())
-  action            String   // eventType (SCHEMA_0x0_REGISTER, ATTEST_0x0_CREATE, ATTEST_0x0_REVOKE, BLS_KEY_0x0_REGISTER)
+  action            String   // eventType (SCHEMA:REGISTER, ATTEST:CREATE, ATTEST:REVOKE, BLS_KEY_0x0_REGISTER)
   transactionHash   String   // Transaction hash from blockchain
   timestamp         DateTime // When the event occurred
   sourceAccount     String   // Account that initiated the transaction

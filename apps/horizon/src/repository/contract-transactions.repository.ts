@@ -134,7 +134,7 @@ export async function getContractTransactionByEventId(eventId: string) {
 /**
  * Retrieves contract transactions by action type.
  *
- * Gets all transactions of a specific action type (e.g., SCHEMA_0x0_REGISTER).
+ * Gets all transactions of a specific action type (e.g., SCHEMA:REGISTER).
  */
 export async function getContractTransactionsByAction(action: string, limit: number = 100) {
   const db = await getDB()

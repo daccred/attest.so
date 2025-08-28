@@ -493,7 +493,7 @@ async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]): Pr
 
       try {
         // SCHEMA register events
-        if (eventType === 'SCHEMA_0x0_REGISTER' && Array.isArray(evData)) {
+        if (eventType === 'SCHEMA:REGISTER' && Array.isArray(evData)) {
           const schemaUid: string | undefined = typeof evData[0] === 'string' ? evData[0] : undefined
           const schemaObj: any = typeof evData[1] === 'object' ? evData[1] : undefined
           if (schemaUid && schemaObj) {
@@ -516,7 +516,7 @@ async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]): Pr
         }
 
         // ATTEST create events
-        if (eventType === 'ATTEST_0x0_CREATE' && Array.isArray(evData)) {
+        if (eventType === 'ATTEST:CREATE' && Array.isArray(evData)) {
           const attestationUid: string | undefined = typeof evData[0] === 'string' ? evData[0] : undefined
           const schemaUid: string | undefined = typeof evData[1] === 'string' ? evData[1] : undefined
           const attesterAddress: string | undefined = typeof evData[2] === 'string' ? evData[2] : undefined

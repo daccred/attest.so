@@ -2,7 +2,7 @@
   "timestamp": "2025-08-28T05:51:36.424Z",
   "eventTypes": [
     {
-      "raw": "SCHEMA_0x0_REGISTER",
+      "raw": "SCHEMA:REGISTER",
       "decoded": null,
       "count": 52
     },
@@ -12,7 +12,7 @@
       "count": 41
     },
     {
-      "raw": "ATTEST_0x0_CREATE",
+      "raw": "ATTEST:CREATE",
       "decoded": null,
       "count": 16
     },
@@ -22,14 +22,14 @@
       "count": 8
     },
     {
-      "raw": "ATTEST_0x0_REVOKE",
+      "raw": "ATTEST:REVOKE",
       "decoded": null,
       "count": 8
     }
   ],
   "types": [
     {
-      "eventTypeRaw": "SCHEMA_0x0_REGISTER",
+      "eventTypeRaw": "SCHEMA:REGISTER",
       "eventTypeDecoded": null,
       "samples": [
         {
@@ -1193,7 +1193,7 @@
       ]
     },
     {
-      "eventTypeRaw": "ATTEST_0x0_CREATE",
+      "eventTypeRaw": "ATTEST:CREATE",
       "eventTypeDecoded": null,
       "samples": [
         {
