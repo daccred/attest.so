@@ -8,14 +8,12 @@
  *
  * @module repository/contracts
  * @requires common/constants
- * @requires common/db
  * @requires repository/operations
  * @requires repository/events
  * @requires repository/transactions
  */
 
 import { CONTRACT_IDS_TO_INDEX, MAX_OPERATIONS_PER_FETCH } from '../common/constants'
-import { getDB } from '../common/db'
 import { fetchOperationsFromHorizon, storeOperationsInDB } from './operations.repository'
 import { fetchAndStoreEvents } from './events.repository'
 import { fetchTransactionDetails, storeTransactionsInDB } from './transactions.repository'

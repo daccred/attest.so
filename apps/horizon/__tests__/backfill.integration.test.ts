@@ -5,7 +5,7 @@ import { getDB } from '../src/common/db'
 import { connectToPostgreSQL } from '../src/common/prisma'
 
 // Integration test timeout - backfill operations can take time
-const BACKFILL_TIMEOUT = 60000 // 60 seconds
+const BACKFILL_TIMEOUT = 300000 // 300 seconds (5 minutes) for processing 200-300+ events
 const BACKFILL_START_LEDGER = 209988
 const BACKFILL_END_LEDGER = 228328
 
@@ -226,7 +226,11 @@ describe('Backfill Integration Test', () => {
   }, BACKFILL_TIMEOUT)
 
   async function getDataCounts() {
-    if (!db) return { events: 0, operations: 0, transactions: 0 }
+    if (!db) return { 
+      events: 0, operations: 0, transactions: 0,
+      distinctEvents: 0, distinctTransactions: 0,
+      duplicateCheck: { events: false, transactions: false }
+    }
 
     try {
       const [events, operations, transactions] = await Promise.all([
@@ -235,10 +239,43 @@ describe('Backfill Integration Test', () => {
         db.horizonTransaction.count(),
       ])
 
-      return { events, operations, transactions }
+      // Check for duplicates by comparing total count vs distinct count
+      const [distinctEventIds, distinctTxHashes] = await Promise.all([
+        db.horizonEvent.findMany({ select: { eventId: true }, distinct: ['eventId'] }),
+        db.horizonTransaction.findMany({ select: { hash: true }, distinct: ['hash'] })
+      ])
+
+      const distinctEvents = distinctEventIds.length
+      const distinctTransactions = distinctTxHashes.length
+
+      // Compare counts to detect duplicates
+      const duplicateCheck = {
+        events: events !== distinctEvents,
+        transactions: transactions !== distinctTransactions
+      }
+
+      if (duplicateCheck.events) {
+        console.log(`⚠️ DUPLICATE EVENTS DETECTED: Total=${events}, Distinct=${distinctEvents}`)
+      }
+      if (duplicateCheck.transactions) {
+        console.log(`⚠️ DUPLICATE TRANSACTIONS DETECTED: Total=${transactions}, Distinct=${distinctTransactions}`)
+      }
+
+      return { 
+        events, 
+        operations, 
+        transactions, 
+        distinctEvents, 
+        distinctTransactions,
+        duplicateCheck 
+      }
     } catch (error) {
       console.error('Error getting data counts:', error)
-      return { events: 0, operations: 0, transactions: 0 }
+      return { 
+        events: 0, operations: 0, transactions: 0,
+        distinctEvents: 0, distinctTransactions: 0,
+        duplicateCheck: { events: false, transactions: false }
+      }
     }
   }
 

@@ -15,7 +15,7 @@
 
 import { Router, Request, Response } from 'express'
 import { ingestQueue } from '../common/queue'
-import { fetchContractComprehensiveData } from '../repository/contracts.repository'
+import { performBackfill } from '../repository/backfill.repository'
 import { CONTRACT_IDS_TO_INDEX } from '../common/constants'
 
 // Route constants for ingest endpoints
@@ -109,7 +109,7 @@ router.post(INGEST_BACKFILL_ROUTE, async (req: Request, res: Response) => {
     if (startLedgerParam !== undefined) {
       startLedgerFromRequest = parseInt(startLedgerParam)
       if (isNaN(startLedgerFromRequest)) {
-        return res.status(400).json({ error: 'Invalid startLedger parameter. Must be a number.' })
+        return res.status(400).json({ success: false, error: 'Invalid startLedger parameter. Must be a number.' })
       }
     }
 
@@ -117,22 +117,26 @@ router.post(INGEST_BACKFILL_ROUTE, async (req: Request, res: Response) => {
     if (req.body.endLedger !== undefined) {
       endLedgerFromRequest = parseInt(req.body.endLedger)
       if (isNaN(endLedgerFromRequest)) {
-        return res.status(400).json({ error: 'Invalid endLedger parameter. Must be a number.' })
+        return res.status(400).json({ success: false, error: 'Invalid endLedger parameter. Must be a number.' })
       }
     }
 
-    // Non-blocking: Trigger comprehensive data ingestion
-    fetchContractComprehensiveData(startLedgerFromRequest)
-      .then(async (result: any) => {
-        console.log('Comprehensive data ingestion completed:', {
-          events: result.events.length,
-          operations: result.operations.length,
-          transactions: result.transactions.length,
-          accounts: result.accounts.size,
-          failedOperations: result.failedOperations.length,
+    // Non-blocking: Trigger isolated backfill process
+    performBackfill(startLedgerFromRequest, endLedgerFromRequest)
+      .then(async (result) => {
+        console.log('Isolated backfill completed:', {
+          success: result.success,
+          eventsProcessed: result.eventsProcessed,
+          transactionsProcessed: result.transactionsProcessed,
+          operationsProcessed: result.operationsProcessed,
+          processedUpToLedger: result.processedUpToLedger,
+          errorCount: result.errors.length,
         })
+        if (result.errors.length > 0) {
+          console.warn('Backfill errors:', result.errors)
+        }
       })
-      .catch((err: Error) => console.error('Comprehensive data ingestion failed:', err.message))
+      .catch((err: Error) => console.error('Isolated backfill failed:', err.message))
 
     res.status(202).json({
       success: true,

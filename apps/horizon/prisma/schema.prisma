@@ -15,8 +15,6 @@ model HorizonEvent {
   contractId  String
   eventType   String
   eventData   Json
-  
-  // Transaction details
   txHash      String?
   txEnvelope  String
   txResult    String
@@ -63,7 +61,7 @@ model HorizonTransaction {
   sorobanResourceUsage Json?
   
   // Relations
-  events            HorizonEvent[]
+  events           HorizonEvent[]
   payments         HorizonPayment[]
   
   // Indexer metadata

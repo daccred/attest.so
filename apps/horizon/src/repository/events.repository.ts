@@ -389,7 +389,7 @@ export async function fetchAndStoreEvents(
  * @param {Array} eventsWithTransactions - Events with transaction details
  * @returns {Promise<void>} Completes when storage successful
  */
-async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]) {
+async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]): Promise<void> {
   const db = await getDB()
   if (!db) {
     console.error('Cannot store events, database not initialized.')

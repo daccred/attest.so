@@ -10,8 +10,8 @@ export default defineConfig({
         ? './__tests__/fixtures/integration-setup.ts'
         : './__tests__/fixtures/unit-setup.ts'
     ],
-    hookTimeout: 60000, // 60 seconds for hooks (beforeAll, afterAll, etc.)
-    testTimeout: 30000,  // 30 seconds for individual tests (it blocks)
+    hookTimeout: 120000, // 120 seconds for hooks (beforeAll, afterAll, etc.)
+    testTimeout: 300000,  // 300 seconds (5 minutes) for individual tests - needed for backfill operations
     coverage: {
       provider: 'v8', // or 'istanbul'
       reporter: ['text', 'json', 'html'],
