@@ -1,5 +1,16 @@
 # @attestprotocol/sdk
 
+## 1.7.1
+
+### Patch Changes
+
+- 8f14c2c: update sdk, standardize contract api and graph data
+- Updated dependencies [8f14c2c]
+  - @attestprotocol/starknet-sdk@1.7.1
+  - @attestprotocol/stellar-sdk@1.7.1
+  - @attestprotocol/core@1.7.1
+  - @attestprotocol/solana-sdk@1.7.1
+
 ## 1.7.0
 
 ### Minor Changes
