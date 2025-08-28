@@ -27,7 +27,7 @@ export const STELLAR_NETWORK = process.env.STELLAR_NETWORK || 'testnet'
 /**
  * CONTRACT_ID_TO_INDEX
  *
- * Legacy single-contract identifier primarily used for event filters.
+ * Legacy process.env.CONTRACT_ID_TO_INDEX identifier primarily used for event filters.
  * Prefer the enhanced CONTRACT_IDS for multi-contract indexing.
  */
 export const CONTRACT_ID_TO_INDEX = process.env.CONTRACT_ID_TO_INDEX

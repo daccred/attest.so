@@ -16,6 +16,7 @@ import { rpc } from '@stellar/stellar-sdk'
 import {
   sorobanRpcUrl,
   CONTRACT_ID_TO_INDEX,
+  CONTRACT_IDS,
   MAX_EVENTS_PER_FETCH,
   LEDGER_HISTORY_LIMIT_DAYS,
 } from '../common/constants'
@@ -154,7 +155,7 @@ export async function fetchAndStoreEvents(
       )
 
       const eventsRequestParams: any = {
-        filters: [{ type: 'contract', contractIds: [CONTRACT_ID_TO_INDEX!], topics: [] }],
+        filters: [{ type: 'contract', contractIds: CONTRACT_IDS, topics: [] }],
         pagination: {
           limit: MAX_EVENTS_PER_FETCH,
         },

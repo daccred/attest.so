@@ -14,7 +14,7 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "coverage": "vitest run --coverage",
-    "test:integration": "tsx __tests__/integration/api.integration.test.ts",
+    "test:integration": "VITEST_MODE=integration pnpm test __tests__/*.integration.test.ts",
     "test:ci": "vitest run --coverage --reporter=verbose",
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",

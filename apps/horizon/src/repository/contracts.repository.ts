@@ -196,10 +196,13 @@ export async function fetchContractComprehensiveData(
   )
   console.log(`📋 Contracts: ${contractIds.join(', ')}`)
 
-  // 1. Fetch events using existing event-based approach (for events with data)
+  // 1. Fetch events using existing event-based approach (stores events and returns metadata)
   console.log('📅 Step 1: Fetching contract events...')
   const eventsResult = await fetchAndStoreEvents(startLedger)
-  const events: any[] = [] // We'll need to query the DB for events to get them in the right format
+  
+  // For the backfill response, we need to know how many events were fetched
+  // The actual events are now stored in the database
+  const events: any[] = [] // Will be populated with event count for summary
 
   // 2. Fetch all contract operations (including those without events)
   console.log('⚙️ Step 2: Fetching contract operations...')

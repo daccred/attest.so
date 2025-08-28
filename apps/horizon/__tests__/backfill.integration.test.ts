@@ -21,8 +21,6 @@ describe('Backfill Integration Test', () => {
       throw new Error('Failed to connect to test database')
     }
 
-    // Clean up any existing test data
-    //// await cleanupTestData()
   }, 30000)
 
   afterAll(async () => {
@@ -32,47 +30,7 @@ describe('Backfill Integration Test', () => {
       await db.$disconnect()
     }
   }, 10000)
-
-  // async function cleanupTestData() {
-  //   if (!db) return
-
-  //   try {
-  //     // Delete test data in correct order due to foreign keys
-  //     await db.horizonEvent.deleteMany({
-  //       where: {
-  //         contractId: {
-  //           in: [
-  //             'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
-  //             'CCO3YROVSXMR2QEFLW6HQVVVQHZTOHWJ2X3GWHFBQ3LVFQ2OAPXVWMJ2'
-  //           ]
-  //         }
-  //       }
-  //     })
-
-  //     await db.horizonOperation.deleteMany({
-  //       where: {
-  //         contractId: {
-  //           in: [
-  //             'CDDRYX6CX4DLYTKXJFHX5BPHSQUCIPUFTEN74XJNK5YFFENYUBKYCITO',
-  //             'CCO3YROVSXMR2QEFLW6HQVVVQHZTOHWJ2X3GWHFBQ3LVFQ2OAPXVWMJ2'
-  //           ]
-  //         }
-  //       }
-  //     })
-
-  //     await db.horizonTransaction.deleteMany({
-  //       where: {
-  //         ledger: {
-  //           gte: 1000000 // Clean up recent test transactions
-  //         }
-  //       }
-  //     })
-
-  //     console.log('✅ Test data cleanup completed')
-  //   } catch (error) {
-  //     console.error('❌ Error during cleanup:', error)
-  //   }
-  // }
+ 
 
   it('should successfully execute backfill and populate database with events, operations, and transactions', async () => {
     console.log('🚀 Starting backfill integration test...')
