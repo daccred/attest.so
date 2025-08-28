@@ -209,7 +209,7 @@ router.get(DATA_OPERATIONS_ROUTE, async (req: Request, res: Response) => {
     const where: any = {}
     if (transactionHash) where.transactionHash = transactionHash as string
     if (contractId) where.contractId = contractId as string
-    if (type) where.type = type as string
+    if (type) where.operationType = type as string
     if (sourceAccount) where.sourceAccount = sourceAccount as string
 
     const operations = await db.horizonOperation.findMany({
