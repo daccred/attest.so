@@ -10,7 +10,7 @@
     "start:ts": "ts-node src/index.ts",
     "lint": "eslint --fix src __tests__",
     "lint:ts": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "VITEST_MODE=integration vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "coverage": "vitest run --coverage",

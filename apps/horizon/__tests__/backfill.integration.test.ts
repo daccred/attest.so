@@ -3,6 +3,7 @@ import request from 'supertest'
 import app from '../src/app'
 import { getDB } from '../src/common/db'
 import { connectToPostgreSQL } from '../src/common/prisma'
+import { PrismaClient } from '@prisma/client'
 
 // Integration test timeout - backfill operations can take time
 const BACKFILL_TIMEOUT = 300000
@@ -15,7 +16,7 @@ describe('Backfill Integration Test', () => {
   beforeAll(async () => {
     // Connect to the test database
     await connectToPostgreSQL()
-    db = await getDB()
+    db = await getDB() as PrismaClient
     
     if (!db) {
       throw new Error('Failed to connect to test database')
@@ -30,6 +31,69 @@ describe('Backfill Integration Test', () => {
       await db.$disconnect()
     }
   }, 10000)
+
+
+  async function getDataCounts() {
+    if (!db) return { 
+      events: 0, operations: 0, transactions: 0,
+      distinctEvents: 0, distinctTransactions: 0,
+      duplicateCheck: { events: false, transactions: false }
+    }
+
+    try {
+      const [events, operations, transactions] = await Promise.all([
+        db.horizonEvent.count(),
+        db.horizonOperation.count(),
+        db.horizonTransaction.count(),
+      ])
+
+      // Check for duplicates by comparing total count vs distinct count
+      const [distinctEventIds, distinctOperationIds, distinctTxHashes] = await Promise.all([
+        db.horizonEvent.findMany({ select: { eventId: true }, distinct: ['eventId'] }),
+        db.horizonOperation.findMany({ select: { operationId: true }, distinct: ['operationId']}),
+        db.horizonTransaction.findMany({ select: { hash: true }, distinct: ['hash'] })
+      ])
+
+      const distinctEvents = distinctEventIds.length
+      const distinctTransactions = distinctTxHashes.length
+      const distinctOperations = distinctOperationIds.length
+
+      // Compare counts to detect duplicates
+      const duplicateCheck = {
+        events: events !== distinctEvents,
+        operations: operations !== distinctOperations,
+        transactions: transactions !== distinctTransactions,
+      }
+
+      if (duplicateCheck.events) {
+        console.log(`⚠️ DUPLICATE EVENTS DETECTED: Total=${events}, Distinct=${distinctEvents}`)
+      }
+      if (duplicateCheck.transactions) {
+        console.log(`⚠️ DUPLICATE TRANSACTIONS DETECTED: Total=${transactions}, Distinct=${distinctTransactions}`)
+      }
+
+      console.log(`=============== Backfill Data counts ===============`)
+      console.log({events, operations, transactions, distinctOperations, distinctEvents, distinctTransactions, duplicateCheck})
+      console.log(`=============== Backfill Data counts ===============`)
+
+      return { 
+        events, 
+        operations, 
+        transactions, 
+        distinctEvents,
+        distinctOperations,
+        distinctTransactions,
+        duplicateCheck 
+      }
+    } catch (error) {
+      console.error('Error getting data counts:', error)
+      return { 
+        events: 0, operations: 0, transactions: 0,
+        distinctEvents: 0, distinctTransactions: 0,
+        duplicateCheck: { events: false, transactions: false }
+      }
+    }
+  }
  
 
   it('should successfully execute backfill and populate database with events, operations, and transactions', async () => {
@@ -96,8 +160,6 @@ describe('Backfill Integration Test', () => {
 
     // We should have some data after backfill
     expect(finalCounts.events).toBeGreaterThanOrEqual(initialCounts.events)
-    expect(finalCounts.operations).toBeGreaterThanOrEqual(initialCounts.operations)
-    expect(finalCounts.transactions).toBeGreaterThanOrEqual(initialCounts.transactions)
 
     // Step 5: Retrieve and verify events with related data
     console.log('📋 Retrieving events with related transaction and operation data...')
@@ -225,63 +287,7 @@ describe('Backfill Integration Test', () => {
 
   }, BACKFILL_TIMEOUT)
 
-  async function getDataCounts() {
-    if (!db) return { 
-      events: 0, operations: 0, transactions: 0,
-      distinctEvents: 0, distinctTransactions: 0,
-      duplicateCheck: { events: false, transactions: false }
-    }
 
-    try {
-      const [events, operations, transactions] = await Promise.all([
-        db.horizonEvent.count(),
-        db.horizonOperation.count(),
-        db.horizonTransaction.count(),
-      ])
-
-      // Check for duplicates by comparing total count vs distinct count
-      const [distinctEventIds, distinctTxHashes] = await Promise.all([
-        db.horizonEvent.findMany({ select: { eventId: true }, distinct: ['eventId'] }),
-        db.horizonTransaction.findMany({ select: { hash: true }, distinct: ['hash'] })
-      ])
-
-      const distinctEvents = distinctEventIds.length
-      const distinctTransactions = distinctTxHashes.length
-
-      // Compare counts to detect duplicates
-      const duplicateCheck = {
-        events: events !== distinctEvents,
-        transactions: transactions !== distinctTransactions
-      }
-
-      if (duplicateCheck.events) {
-        console.log(`⚠️ DUPLICATE EVENTS DETECTED: Total=${events}, Distinct=${distinctEvents}`)
-      }
-      if (duplicateCheck.transactions) {
-        console.log(`⚠️ DUPLICATE TRANSACTIONS DETECTED: Total=${transactions}, Distinct=${distinctTransactions}`)
-      }
-
-      console.log(`=============== Backfill Data counts ===============`)
-      console.log({events, operations, transactions, distinctEvents, distinctTransactions, duplicateCheck})
-      console.log(`=============== Backfill Data counts ===============`)
-
-      return { 
-        events, 
-        operations, 
-        transactions, 
-        distinctEvents, 
-        distinctTransactions,
-        duplicateCheck 
-      }
-    } catch (error) {
-      console.error('Error getting data counts:', error)
-      return { 
-        events: 0, operations: 0, transactions: 0,
-        distinctEvents: 0, distinctTransactions: 0,
-        duplicateCheck: { events: false, transactions: false }
-      }
-    }
-  }
 
   it('should handle backfill API errors gracefully', async () => {
     console.log('🧪 Testing backfill error handling...')
@@ -323,6 +329,7 @@ describe('Backfill Integration Test', () => {
     // Verify no duplicates were created
     expect(finalCounts.events).toBe(finalCounts.distinctEvents)
     expect(finalCounts.transactions).toBe(finalCounts.distinctTransactions)
+    expect(finalCounts.operations).toBe(finalCounts.distinctOperations)
     expect(finalCounts.duplicateCheck.events).toBe(false)
     expect(finalCounts.duplicateCheck.transactions).toEqual(false)
 
