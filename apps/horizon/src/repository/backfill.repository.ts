@@ -24,6 +24,7 @@ import { fetchTransactionDetails } from './transactions.repository'
 import { fetchOperationsFromHorizon } from './operations.repository'
 import { singleUpsertSchema } from './schemas.repository'
 import { singleUpsertAttestation } from './attestations.repository'
+import { upsertContractTransaction } from './contract-transactions.repository'
 
 const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://'),
@@ -338,6 +339,35 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     const type = eventData.eventType || ''
     const val = eventData.eventData
 
+    // Create ContractTransaction entry for tracking registry actions
+    try {
+      // Get operation details for source account
+      const operations = await db.horizonOperation.findMany({
+        where: { transactionHash: eventData.transactionHash },
+        orderBy: { operationIndex: 'asc' },
+        take: 1,
+      })
+      
+      const sourceAccount = operations[0]?.sourceAccount || txDetails?.sourceAccount || ''
+      const operationId = operations[0]?.operationId || null
+
+      // Create ContractTransaction rollup entry using the repository function
+      await upsertContractTransaction({
+        eventId: eventData.eventId,
+        action: type,
+        transactionHash: eventData.transactionHash,
+        timestamp: new Date(eventData.timestamp),
+        sourceAccount,
+        contractId: eventData.contractId,
+        operationId,
+        ledger: eventData.ledger,
+        metadata: val,
+      })
+      console.log(`📊 Created ContractTransaction for ${type} - ${eventData.eventId}`)
+    } catch (txnError: any) {
+      console.warn(`Warning: Could not create ContractTransaction for ${eventData.eventId}:`, txnError.message)
+    }
+
     // Helper: normalize bytes (Buffer | Uint8Array | JSON {type:'Buffer',data:number[]}| string) to base64 string
     const toBase64 = (input: any): string | undefined => {
       try {
@@ -365,14 +395,30 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
         where: { transactionHash: eventData.transactionHash },
         orderBy: { operationIndex: 'asc' },
       })
-      if (!ops || ops.length === 0) return [] as any[]
-      const first = ops[0]
-      const params: any[] = Array.isArray(first.parameters) ? first.parameters as any[] : []
-      return params.map((p: any) => ({
-        type: p?.type,
-        raw: p?.value,
-        decoded: typeof p?.value === 'string' ? decodeScVal(p.value) : p?.value,
-      }))
+      let params: any[] = []
+      if (ops && ops.length > 0) {
+        const first = ops[0]
+        params = Array.isArray(first.parameters) ? (first.parameters as any[]) : []
+        return params.map((p: any) => ({
+          type: p?.type,
+          raw: p?.value,
+          decoded: typeof p?.value === 'string' ? decodeScVal(p.value) : p?.value,
+        }))
+      }
+      // Fallback to Horizon HTTP
+      try {
+        const httpOps = await fetchOperationsForTransaction(eventData.transactionHash)
+        if (httpOps && httpOps.length > 0) {
+          const firstHttp = httpOps[0]
+          params = Array.isArray(firstHttp.parameters) ? firstHttp.parameters : []
+          return params.map((p: any) => ({
+            type: p?.type,
+            raw: p?.value,
+            decoded: typeof p?.value === 'string' ? decodeScVal(p.value) : p?.value,
+          }))
+        }
+      } catch {}
+      return [] as any[]
     }
 
     // SCHEMA register
@@ -443,7 +489,7 @@ async function upsertEventIndividually(db: any, eventData: EventData): Promise<v
     // ATTEST revoke
     if (type.toUpperCase().includes('ATTEST') && type.toUpperCase().includes('REVOKE') && Array.isArray(val)) {
       console.log('🧩 [Projection] ATTEST revoke event', { eventId: eventData.eventId, type })
-      const attestationUid = typeof val[0] === 'string' ? val[0] : undefined
+      const attestationUid = typeof val[0] === 'string' ? val[0] : toBase64(val[0])
       const revokedFlag = val[4] === true
       const revokedAtRaw = val[5]
       let revokedAt: Date | undefined = undefined

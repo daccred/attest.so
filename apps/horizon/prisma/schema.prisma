@@ -233,3 +233,30 @@ model Schema {
   @@index([createdAt])
   @@map("schemas")
 }
+
+model Transaction {
+  id                String   @id @default(uuid())
+  action            String   // eventType (SCHEMA_0x0_REGISTER, ATTEST_0x0_CREATE, ATTEST_0x0_REVOKE, BLS_KEY_0x0_REGISTER)
+  transactionHash   String   // Transaction hash from blockchain
+  timestamp         DateTime // When the event occurred
+  sourceAccount     String   // Account that initiated the transaction
+  contractId        String   // Contract that emitted the event
+  operationId       String?  // Related operation ID if available
+  
+  // Additional metadata
+  ledger            Int?     // Ledger number
+  eventId           String?  @unique // Reference to HorizonEvent if needed
+  metadata          Json?    // Additional event-specific data
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([action])
+  @@index([transactionHash])
+  @@index([sourceAccount])
+  @@index([contractId])
+  @@index([timestamp])
+  @@index([ledger])
+  @@map("transactions")
+}
