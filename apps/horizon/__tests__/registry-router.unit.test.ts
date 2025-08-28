@@ -27,33 +27,27 @@ describe('Registry Router', () => {
   describe('GET /attestations', () => {
     const mockAttestationEvent = {
       id: 'attestation-uuid-1',
-      eventId: 'attest-event-id-1',
+      attestationUid: 'attest-event-id-1',
       ledger: TEST_LEDGER,
-      timestamp: new Date('2025-05-17T21:36:01Z'),
-      contractId: TEST_CONTRACT_ID,
-      eventType: 'ATTEST',
-      eventData: {
-        schema_uid: 'schema-123',
-        attester: 'attester-address',
-        subject: 'subject-address',
-        value: 'attestation-value',
-        encoding: 'JSON'
+      schemaUid: 'schema-123',
+      attesterAddress: 'attester-address',
+      subjectAddress: 'subject-address',
+      transactionHash: TEST_TX_HASH,
+      schemaEncoding: 'JSON',
+      message: 'attestation-value',
+      value: {
+        test_field: 'test_value'
       },
-      txHash: TEST_TX_HASH,
-      txEnvelope: 'envelope-data',
-      txResult: 'SUCCESS',
-      txMeta: 'meta-data',
-      txFeeBump: false,
-      txStatus: 'SUCCESS',
-      txCreatedAt: new Date('2025-05-17T21:36:01Z'),
-      sourceAccount: 'attester-address',
+      revoked: false,
+      createdAt: new Date('2025-05-17T21:36:01Z'),
+      revokedAt: null,
       ingestedAt: new Date('2025-05-17T21:36:05Z'),
-      transaction: { hash: TEST_TX_HASH }
+      lastUpdated: new Date('2025-05-17T21:36:05Z')
     }
 
     it('should fetch attestations successfully', async () => {
-      mockDb.horizonEvent.findMany.mockResolvedValue([mockAttestationEvent])
-      mockDb.horizonEvent.count.mockResolvedValue(1)
+      mockDb.attestation.findMany.mockResolvedValue([mockAttestationEvent])
+      mockDb.attestation.count.mockResolvedValue(1)
 
       const response = await request(app)
         .get('/api/registry/attestations')
@@ -76,14 +70,14 @@ describe('Registry Router', () => {
     })
 
     it('should filter by ledger', async () => {
-      mockDb.horizonEvent.findMany.mockResolvedValue([mockAttestationEvent])
-      mockDb.horizonEvent.count.mockResolvedValue(1)
+      mockDb.attestation.findMany.mockResolvedValue([mockAttestationEvent])
+      mockDb.attestation.count.mockResolvedValue(1)
 
       await request(app)
         .get('/api/registry/attestations?by_ledger=1021507')
         .expect(200)
 
-      expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
+      expect(mockDb.attestation.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             ledger: 1021507
@@ -93,59 +87,48 @@ describe('Registry Router', () => {
     })
 
     it('should filter by schema_uid', async () => {
-      mockDb.horizonEvent.findMany.mockResolvedValue([])
-      mockDb.horizonEvent.count.mockResolvedValue(0)
+      mockDb.attestation.findMany.mockResolvedValue([])
+      mockDb.attestation.count.mockResolvedValue(0)
 
       await request(app)
         .get('/api/registry/attestations?schema_uid=schema-123')
         .expect(200)
 
-      expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
+      expect(mockDb.attestation.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            eventData: {
-              path: ['schema_uid'],
-              equals: 'schema-123'
-            }
+            schemaUid: 'schema-123'
           })
         })
       )
     })
 
     it('should filter by attester', async () => {
-      mockDb.horizonEvent.findMany.mockResolvedValue([])
-      mockDb.horizonEvent.count.mockResolvedValue(0)
+      mockDb.attestation.findMany.mockResolvedValue([])
+      mockDb.attestation.count.mockResolvedValue(0)
 
       await request(app)
         .get('/api/registry/attestations?attester=attester-address')
         .expect(200)
 
-      expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
+      expect(mockDb.attestation.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            OR: [
-              { sourceAccount: 'attester-address' },
-              {
-                eventData: {
-                  path: ['attester'],
-                  equals: 'attester-address'
-                }
-              }
-            ]
+            attesterAddress: 'attester-address'
           })
         })
       )
     })
 
     it('should handle pagination parameters', async () => {
-      mockDb.horizonEvent.findMany.mockResolvedValue([])
-      mockDb.horizonEvent.count.mockResolvedValue(0)
+      mockDb.attestation.findMany.mockResolvedValue([])
+      mockDb.attestation.count.mockResolvedValue(0)
 
       await request(app)
         .get('/api/registry/attestations?limit=10&offset=20')
         .expect(200)
 
-      expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
+      expect(mockDb.attestation.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 10,
           skip: 20
@@ -154,14 +137,14 @@ describe('Registry Router', () => {
     })
 
     it('should enforce maximum limit', async () => {
-      mockDb.horizonEvent.findMany.mockResolvedValue([])
-      mockDb.horizonEvent.count.mockResolvedValue(0)
+      mockDb.attestation.findMany.mockResolvedValue([])
+      mockDb.attestation.count.mockResolvedValue(0)
 
       await request(app)
         .get('/api/registry/attestations?limit=500')
         .expect(200)
 
-      expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
+      expect(mockDb.attestation.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 200 // Should be capped at 200
         })
@@ -198,7 +181,7 @@ describe('Registry Router', () => {
     })
 
     it('should handle database errors', async () => {
-      mockDb.horizonEvent.findMany.mockRejectedValue(new Error('Database error'))
+      mockDb.attestation.findMany.mockRejectedValue(new Error('Database error'))
 
       const response = await request(app)
         .get('/api/registry/attestations')
@@ -229,7 +212,7 @@ describe('Registry Router', () => {
     }
 
     it('should fetch single attestation by UID', async () => {
-      mockDb.horizonEvent.findFirst.mockResolvedValue(mockAttestationEvent)
+      mockDb.attestation.findUnique.mockResolvedValue(mockAttestationEvent)
 
       const response = await request(app)
         .get('/api/registry/attestations/attest-event-id-1')
@@ -244,7 +227,7 @@ describe('Registry Router', () => {
     })
 
     it('should return 404 when attestation not found', async () => {
-      mockDb.horizonEvent.findFirst.mockResolvedValue(null)
+      mockDb.attestation.findUnique.mockResolvedValue(null)
 
       const response = await request(app)
         .get('/api/registry/attestations/non-existent')
@@ -269,25 +252,25 @@ describe('Registry Router', () => {
   describe('GET /schemas', () => {
     const mockSchemaEvent = {
       id: 'schema-uuid-1',
-      eventId: 'schema-event-id-1',
+      uid: 'schema-event-id-1',
       ledger: TEST_LEDGER,
-      timestamp: new Date('2025-05-17T21:36:01Z'),
-      contractId: TEST_CONTRACT_ID,
-      eventType: 'SCHEMA',
-      eventData: {
-        definition: 'schema-definition',
-        type: 'identity',
-        deployer: 'deployer-address',
-        revocable: true
+      schemaDefinition: 'schema-definition',
+      parsedSchemaDefinition: {
+        fields: [{ name: 'test_field', type: 'string' }]
       },
-      txHash: TEST_TX_HASH,
-      sourceAccount: 'deployer-address',
-      transaction: { hash: TEST_TX_HASH }
+      resolverAddress: null,
+      revocable: true,
+      deployerAddress: 'deployer-address',
+      type: 'identity',
+      transactionHash: TEST_TX_HASH,
+      createdAt: new Date('2025-05-17T21:36:01Z'),
+      ingestedAt: new Date('2025-05-17T21:36:05Z'),
+      lastUpdated: new Date('2025-05-17T21:36:05Z')
     }
 
     it('should fetch schemas successfully', async () => {
-      mockDb.horizonEvent.findMany.mockResolvedValue([mockSchemaEvent])
-      mockDb.horizonEvent.count.mockResolvedValue(1)
+      mockDb.schema.findMany.mockResolvedValue([mockSchemaEvent])
+      mockDb.schema.count.mockResolvedValue(1)
 
       const response = await request(app)
         .get('/api/registry/schemas')
@@ -304,45 +287,34 @@ describe('Registry Router', () => {
     })
 
     it('should filter by deployer', async () => {
-      mockDb.horizonEvent.findMany.mockResolvedValue([])
-      mockDb.horizonEvent.count.mockResolvedValue(0)
+      mockDb.schema.findMany.mockResolvedValue([])
+      mockDb.schema.count.mockResolvedValue(0)
 
       await request(app)
         .get('/api/registry/schemas?deployer=deployer-address')
         .expect(200)
 
-      expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
+      expect(mockDb.schema.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            OR: [
-              { sourceAccount: 'deployer-address' },
-              {
-                eventData: {
-                  path: ['deployer'],
-                  equals: 'deployer-address'
-                }
-              }
-            ]
+            deployerAddress: 'deployer-address'
           })
         })
       )
     })
 
     it('should filter by type', async () => {
-      mockDb.horizonEvent.findMany.mockResolvedValue([])
-      mockDb.horizonEvent.count.mockResolvedValue(0)
+      mockDb.schema.findMany.mockResolvedValue([])
+      mockDb.schema.count.mockResolvedValue(0)
 
       await request(app)
         .get('/api/registry/schemas?type=identity')
         .expect(200)
 
-      expect(mockDb.horizonEvent.findMany).toHaveBeenCalledWith(
+      expect(mockDb.schema.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            eventData: {
-              path: ['type'],
-              equals: 'identity'
-            }
+            type: 'identity'
           })
         })
       )
@@ -352,23 +324,24 @@ describe('Registry Router', () => {
   describe('GET /schemas/:uid', () => {
     const mockSchemaEvent = {
       id: 'schema-uuid-1',
-      eventId: 'schema-event-id-1',
+      uid: 'schema-event-id-1',
       ledger: TEST_LEDGER,
-      timestamp: new Date('2025-05-17T21:36:01Z'),
-      contractId: TEST_CONTRACT_ID,
-      eventType: 'SCHEMA',
-      eventData: {
-        definition: 'schema-definition',
-        type: 'identity',
-        deployer: 'deployer-address'
+      schemaDefinition: 'schema-definition',
+      parsedSchemaDefinition: {
+        fields: [{ name: 'test_field', type: 'string' }]
       },
-      txHash: TEST_TX_HASH,
-      sourceAccount: 'deployer-address',
-      transaction: { hash: TEST_TX_HASH }
+      resolverAddress: null,
+      revocable: true,
+      deployerAddress: 'deployer-address',
+      type: 'identity',
+      transactionHash: TEST_TX_HASH,
+      createdAt: new Date('2025-05-17T21:36:01Z'),
+      ingestedAt: new Date('2025-05-17T21:36:05Z'),
+      lastUpdated: new Date('2025-05-17T21:36:05Z')
     }
 
     it('should fetch single schema by UID', async () => {
-      mockDb.horizonEvent.findFirst.mockResolvedValue(mockSchemaEvent)
+      mockDb.schema.findUnique.mockResolvedValue(mockSchemaEvent)
 
       const response = await request(app)
         .get('/api/registry/schemas/schema-event-id-1')
@@ -383,7 +356,7 @@ describe('Registry Router', () => {
     })
 
     it('should return 404 when schema not found', async () => {
-      mockDb.horizonEvent.findFirst.mockResolvedValue(null)
+      mockDb.schema.findUnique.mockResolvedValue(null)
 
       const response = await request(app)
         .get('/api/registry/schemas/non-existent')
@@ -396,7 +369,7 @@ describe('Registry Router', () => {
 
   describe('Error Handling', () => {
     it('should handle unexpected errors gracefully', async () => {
-      mockDb.horizonEvent.findMany.mockRejectedValue(new Error('Unexpected error'))
+      mockDb.attestation.findMany.mockRejectedValue(new Error('Unexpected error'))
 
       const response = await request(app)
         .get('/api/registry/attestations')
@@ -407,7 +380,7 @@ describe('Registry Router', () => {
     })
 
     it('should handle errors without message', async () => {
-      mockDb.horizonEvent.findMany.mockRejectedValue({})
+      mockDb.attestation.findMany.mockRejectedValue({})
 
       const response = await request(app)
         .get('/api/registry/attestations')

@@ -133,6 +133,48 @@ export const mockHorizonPayment = {
   ingestedAt: new Date('2025-05-17T21:36:05Z')
 };
 
+export const mockAttestation = {
+  id: 'attestation-uuid-1',
+  attestationUid: 'attest-event-id-1',
+  ledger: 1021507,
+  schemaUid: 'schema-event-id-1',
+  attesterAddress: 'GDAQ7GDVA4KJYYK6S7QKQFLMHQFNMJ3M4Q7I3J3FZHXLNXGP4IXMRJMC',
+  subjectAddress: 'GBXGQJWVLWOYHFLVTKWV5VDK3TGRHHAOXJMHRHKR24GLG3UDAXFGL2YK',
+  transactionHash: '12069247060c6f1a0f4244555a841dd76d5acb2194ead69da5a99fb4c5327478',
+  schemaEncoding: 'XDR',
+  message: 'Test attestation message',
+  value: { 
+    test_field: 'test_value',
+    score: 85
+  },
+  revoked: false,
+  createdAt: new Date('2025-05-17T21:36:01Z'),
+  revokedAt: null,
+  ingestedAt: new Date('2025-05-17T21:36:05Z'),
+  lastUpdated: new Date('2025-05-17T21:36:05Z')
+};
+
+export const mockSchema = {
+  id: 'schema-uuid-1',
+  uid: 'schema-event-id-1',
+  ledger: 1021507,
+  schemaDefinition: 'test_field:string,score:uint256',
+  parsedSchemaDefinition: {
+    fields: [
+      { name: 'test_field', type: 'string' },
+      { name: 'score', type: 'uint256' }
+    ]
+  },
+  resolverAddress: null,
+  revocable: true,
+  deployerAddress: 'GDAQ7GDVA4KJYYK6S7QKQFLMHQFNMJ3M4Q7I3J3FZHXLNXGP4IXMRJMC',
+  type: 'default',
+  transactionHash: '12069247060c6f1a0f4244555a841dd76d5acb2194ead69da5a99fb4c5327478',
+  createdAt: new Date('2025-05-17T21:36:01Z'),
+  ingestedAt: new Date('2025-05-17T21:36:05Z'),
+  lastUpdated: new Date('2025-05-17T21:36:05Z')
+};
+
 // Mock database instance with all required methods
 export const createMockDb = () => ({
   horizonEvent: {
@@ -240,10 +282,10 @@ export const createMockDb = () => ({
     deleteMany: vi.fn()
   },
   attestation: {
-    findMany: vi.fn().mockResolvedValue([]),
-    findFirst: vi.fn().mockResolvedValue(null),
-    findUnique: vi.fn().mockResolvedValue(null),
-    count: vi.fn().mockResolvedValue(0),
+    findMany: vi.fn().mockResolvedValue([mockAttestation]),
+    findFirst: vi.fn().mockResolvedValue(mockAttestation),
+    findUnique: vi.fn().mockResolvedValue(mockAttestation),
+    count: vi.fn().mockResolvedValue(1),
     upsert: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -251,10 +293,10 @@ export const createMockDb = () => ({
     deleteMany: vi.fn()
   },
   schema: {
-    findMany: vi.fn().mockResolvedValue([]),
-    findFirst: vi.fn().mockResolvedValue(null),
-    findUnique: vi.fn().mockResolvedValue(null),
-    count: vi.fn().mockResolvedValue(0),
+    findMany: vi.fn().mockResolvedValue([mockSchema]),
+    findFirst: vi.fn().mockResolvedValue(mockSchema),
+    findUnique: vi.fn().mockResolvedValue(mockSchema),
+    count: vi.fn().mockResolvedValue(1),
     upsert: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),

@@ -5,6 +5,7 @@ import app from '../src/app';
 const mockDb: any = {
   horizonEvent: { findMany: vi.fn(), count: vi.fn() },
   horizonTransaction: { findMany: vi.fn(), count: vi.fn() },
+  horizonOperation: { findMany: vi.fn(), count: vi.fn() },
   horizonContractOperation: { findMany: vi.fn(), count: vi.fn() },
   horizonEffect: { findMany: vi.fn(), count: vi.fn() },
   horizonContractData: { findMany: vi.fn(), count: vi.fn() },
@@ -71,6 +72,10 @@ beforeEach(async () => {
     },
   ]);
   mockDb.horizonTransaction.count.mockResolvedValue(1);
+  mockDb.horizonOperation.findMany.mockResolvedValue([
+    { id: 'op1', operationType: 'invoke_host_function', contractId: 'C', events: [] },
+  ]);
+  mockDb.horizonOperation.count.mockResolvedValue(1);
   mockDb.horizonContractOperation.findMany.mockResolvedValue([
     { id: 'op1', type: 'invoke_host_function', contractId: 'C', transaction: {}, events: [] },
   ]);
