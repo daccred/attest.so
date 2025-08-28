@@ -147,9 +147,9 @@ describe('Backfill Integration Test', () => {
         await new Promise(resolve => setTimeout(resolve, 3000))
         const finalCounts = await getDataCounts()
 
-        if (finalCounts.events === currentCounts.events &&
-          finalCounts.operations === currentCounts.operations &&
-          finalCounts.transactions === currentCounts.transactions) {
+        if (finalCounts.horizonEvents === currentCounts.horizonEvents &&
+          finalCounts.horizonOperations === currentCounts.horizonOperations &&
+          finalCounts.horizonTransactions === currentCounts.horizonTransactions) {
           backfillCompleted = true
           console.log('✅ Backfill appears to be completed')
         }
