@@ -217,8 +217,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
         definition: config.content,
         authority: this.wallet.publicKey.toBase58(),
         revocable: config.revocable ?? true,
-        resolver: config.resolver || null,
-        levy: config.levy || null
+        resolver: config.resolver || null
       }
     })
   }

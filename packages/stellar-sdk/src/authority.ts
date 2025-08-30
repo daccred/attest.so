@@ -30,11 +30,12 @@ export class StellarAuthorityService {
   /**
    * Initialize the authority contract
    */
-  async initialize(admin: string, tokenContractId: string): Promise<AttestProtocolResponse<void>> {
+  async initialize(admin: string, tokenContractId: string, tokenWasmHash: Buffer): Promise<AttestProtocolResponse<void>> {
     try {
       const tx = await this.authorityClient.initialize({
         admin,
-        token_contract_id: tokenContractId
+        token_contract_id: tokenContractId,
+        token_wasm_hash: tokenWasmHash
       })
 
       await tx.signAndSend()
@@ -133,35 +134,24 @@ export class StellarAuthorityService {
 
   /**
    * Set registration fee (admin function)
+   * @deprecated This method is no longer available in the contract
    */
   async adminSetRegistrationFee(
-    feeAmount: bigint,
-    tokenId: string
+    _feeAmount: bigint,
+    _tokenId: string
   ): Promise<AttestProtocolResponse<void>> {
-    try {
-      const tx = await this.authorityClient.admin_set_registration_fee({
-        admin: this.publicKey,
-        fee_amount: feeAmount,
-        token_id: tokenId
-      })
-
-      await tx.signAndSend()
-
-      return createSuccessResponse(undefined)
-    } catch (error: any) {
-      return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to set registration fee'
-        )
+    return createErrorResponse(
+      createAttestProtocolError(
+        AttestProtocolErrorType.NOT_FOUND_ERROR,
+        'Setting registration fee is no longer supported in the contract'
       )
-    }
+    )
   }
 
   /**
    * Process attestation through authority contract
    */
-  async attest(attestation: AttestationRecord): Promise<AttestProtocolResponse<boolean>> {
+  async attest(attestation: Attestation): Promise<AttestProtocolResponse<boolean>> {
     try {
       const tx = await this.authorityClient.attest({ attestation })
       const result = await tx.signAndSend()
@@ -185,7 +175,7 @@ export class StellarAuthorityService {
   /**
    * Process revocation through authority contract
    */
-  async revoke(attestation: AttestationRecord): Promise<AttestProtocolResponse<boolean>> {
+  async revoke(attestation: Attestation): Promise<AttestProtocolResponse<boolean>> {
     try {
       const tx = await this.authorityClient.revoke({ attestation })
       const result = await tx.signAndSend()

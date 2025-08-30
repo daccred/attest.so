@@ -193,8 +193,7 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
         definition: config.content,
         authority: this.account.address,
         revocable: config.revocable ?? true,
-        resolver: config.resolver || null,
-        levy: config.levy || null
+        resolver: config.resolver || null
       }
     })
   }
@@ -368,7 +367,7 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
 
   // Delegation
 
-  async attestByDelegation(config: DelegatedAttestationDefinition): Promise<AttestProtocolResponse<Attestation>> {
+  async attestByDelegation(_config: DelegatedAttestationDefinition): Promise<AttestProtocolResponse<Attestation>> {
     const initError = this.ensureInitialized()
     if (initError) return createErrorResponse(initError)
 
@@ -381,7 +380,7 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
     })
   }
 
-  async revokeByDelegation(config: DelegatedRevocationDefinition): Promise<AttestProtocolResponse<void>> {
+  async revokeByDelegation(_config: DelegatedRevocationDefinition): Promise<AttestProtocolResponse<void>> {
     const initError = this.ensureInitialized()
     if (initError) return createErrorResponse(initError)
 

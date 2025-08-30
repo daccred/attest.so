@@ -10,10 +10,15 @@
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
-import { Keypair, Transaction } from '@stellar/stellar-sdk'
+import { Keypair, Transaction, xdr } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
-import { loadTestConfig, fundAccountIfNeeded } from './testutils'
+import { loadTestConfig, fundAccountIfNeeded, createTestXDRSchema, parseXDRSchema } from './testutils'
 
+// Pre-generated XDR schema string for testing
+// This represents a simple schema with one field: { name: "value", type: "string" }
+const TEST_XDR_SCHEMA = "XDR:AAAAAQAAAA5UZXN0IFNjaGVtYSB4eHh4AAAAAQAAAAZ2YWx1ZQAAAAZzdHJpbmcAAAAAAA=="
+
+ 
 describe('Protocol Contract Integration Tests', () => {
   let protocolClient: ProtocolContract.Client
   let adminKeypair: Keypair
@@ -26,7 +31,6 @@ describe('Protocol Contract Integration Tests', () => {
 
   // Test accounts
   let attesterKp: Keypair
-  let subjectKp: Keypair
 
   // Test data
   let testRunId: string
@@ -49,7 +53,6 @@ describe('Protocol Contract Integration Tests', () => {
 
     // Generate test accounts
     attesterKp = Keypair.random()
-    subjectKp = Keypair.random()
 
     // Generate test data
     testRunId = randomBytes(4).toString('hex')
@@ -58,7 +61,6 @@ describe('Protocol Contract Integration Tests', () => {
     const accounts = [
       adminKeypair.publicKey(),
       attesterKp.publicKey(),
-      subjectKp.publicKey()
     ]
 
     for (const account of accounts) {
@@ -115,6 +117,98 @@ describe('Protocol Contract Integration Tests', () => {
     console.log(`Schema registered with UID: ${schemaUid.toString('hex')}`)
   }, 60000)
 
+  it('should register an XDR schema', async () => {
+    // Use the pre-generated XDR schema
+    const xdrSchema = TEST_XDR_SCHEMA
+    
+    const tx = await protocolClient.register({
+      caller: adminKeypair.publicKey(),
+      schema_definition: xdrSchema,
+      resolver: undefined, // No resolver for this test
+      revocable: true
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as ProtocolContract.contract.Result<Buffer>
+    expect(res.isOk()).toBe(true)
+    const xdrSchemaUid = res.unwrap()
+    expect(xdrSchemaUid).toBeInstanceOf(Buffer)
+    expect(xdrSchemaUid.length).toBe(32)
+    console.log(`XDR Schema registered with UID: ${xdrSchemaUid.toString('hex')}`)
+  }, 60000)
+
+  it('should register a Schema Encoded XDR from JSON', async () => {
+    // Use the createTestXDRSchema function from testutils
+    const XDRSchema = createTestXDRSchema(`KYC Schema ${testRunId}`, [
+      { name: 'verified', type: 'bool' },
+      { name: 'score', type: 'u64' },
+      { name: 'metadata', type: 'string' }
+    ])
+    
+    const tx = await protocolClient.register({
+      caller: adminKeypair.publicKey(),
+      schema_definition: XDRSchema,
+      resolver: undefined, 
+      revocable: true
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as ProtocolContract.contract.Result<Buffer>
+    expect(res.isOk()).toBe(true)
+    const XDRSchemaUid = res.unwrap()
+    expect(XDRSchemaUid).toBeInstanceOf(Buffer)
+    expect(XDRSchemaUid.length).toBe(32)
+    console.log(`XDR XDR Schema registered with UID: ${XDRSchemaUid.toString('hex')}`)
+
+
+    const getSchemaTx = await protocolClient.get_schema({
+      schema_uid: XDRSchemaUid
+    })
+
+    getSchemaTx.simulate();
+    const schema = getSchemaTx.result as ProtocolContract.contract.Result<ProtocolContract.Schema>
+
+    const xdrSchema = schema.unwrap().definition.toString();
+    console.log('========xdrSchema=========', xdrSchema);
+
+    // Parse the XDR schema back to an object
+    const parsedSchema = parseXDRSchema(xdrSchema);
+    console.log('========parsedSchema=========', parsedSchema);
+
+    // Verify the parsed schema matches what we created
+    expect(parsedSchema.name).toBe(`KYC Schema ${testRunId}`);
+    expect(parsedSchema.fields).toHaveLength(3);
+    expect(parsedSchema.fields[0].name).toBe('verified');
+    expect(parsedSchema.fields[0].type).toBe('bool');
+    expect(parsedSchema.fields[1].name).toBe('score');
+    expect(parsedSchema.fields[1].type).toBe('u64');
+    expect(parsedSchema.fields[2].name).toBe('metadata');
+    expect(parsedSchema.fields[2].type).toBe('string');
+
+  }, 60000)
+
+ 
+
   it('should create an attestation', async () => {
     if (!schemaUid) {
       throw new Error('Schema UID not available - schema registration test must pass first')
@@ -134,7 +228,6 @@ describe('Protocol Contract Integration Tests', () => {
     const tx = await attesterProtocolClient.attest({
       attester: attesterKp.publicKey(),
       schema_uid: schemaUid,
-      subject: subjectKp.publicKey(),
       value: attestationValue,
       expiration_time: undefined // No expiration
     }, {
@@ -176,7 +269,8 @@ describe('Protocol Contract Integration Tests', () => {
     const attestation = res.unwrap()
     expect(attestation.uid).toEqual(attestationUid)
     expect(attestation.attester).toBe(attesterKp.publicKey())
-    expect(attestation.subject).toBe(subjectKp.publicKey())
+    // In the new contract API, subject is the same as attester when not specified
+    expect(attestation.subject).toBe(attesterKp.publicKey())
     expect(attestation.schema_uid).toEqual(schemaUid)
     console.log(`Retrieved attestation for subject: ${attestation.subject}`)
   }, 30000)
@@ -195,7 +289,7 @@ describe('Protocol Contract Integration Tests', () => {
       publicKey: attesterKp.publicKey()
     })
 
-    const tx = await attesterProtocolClient.revoke_attestation({
+    const tx = await attesterProtocolClient.revoke({
       revoker: attesterKp.publicKey(),
       attestation_uid: attestationUid
     }, {

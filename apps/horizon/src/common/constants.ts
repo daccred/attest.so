@@ -31,17 +31,9 @@ export const STELLAR_NETWORK = process.env.STELLAR_NETWORK || 'testnet'
  * This replaces the legacy CONTRACT_ID_TO_INDEX environment variable approach.
  */
 export const CONTRACT_IDS_TO_INDEX = [
-  'CCVXRP5PUMR6RQWXEM2G766JHBWBGLG4YLFE3MFDIPYHTHX667CVK3FN',
-  'CC7X7SLETAUAPGKKGRSGUPRLFRVAXSY5SRELF2OAHBUOQ6GIBLRHX5FO',
+  'CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5',
+  'CBLCL256WVODZVVGGC3TRV5ZSVLZXQFGX4OHE2YM2P4WUQIT2OFAOUQQ',
 ]
-
-/**
- * CONTRACT_ID_TO_INDEX
- *
- * Legacy compatibility - points to the first contract in the array.
- * @deprecated Use CONTRACT_IDS_TO_INDEX directly for multi-contract support.
- */
-export const CONTRACT_ID_TO_INDEX = CONTRACT_IDS_TO_INDEX[0]
 
 /**
  * MAX_EVENTS_PER_FETCH
@@ -95,7 +87,6 @@ console.log(`---------------- HORIZON CONSTANTS INIT (constants.ts) ------------
 console.log(`STELLAR_NETWORK: ${STELLAR_NETWORK}`)
 console.log(`Soroban RPC URL: ${sorobanRpcUrl}`)
 console.log(`Contract IDs to Index: ${CONTRACT_IDS_TO_INDEX.join(', ')}`)
-console.log(`Contract ID (legacy): ${CONTRACT_ID_TO_INDEX}`)
 if (CONTRACT_IDS_TO_INDEX.length === 0 && process.env.NODE_ENV !== 'test') {
   console.warn('Warning: CONTRACT_IDS_TO_INDEX array is empty. Please add contract IDs to track.')
 }
