@@ -46,7 +46,6 @@ export {
   Client as ProtocolClient,
   networks as ProtocolNetworks,
   type ResolverAttestation,
-  type StoredAttestation,
   type Schema as ProtocolSchema,
   type Authority as ProtocolAuthority,
   type Attestation as ProtocolAttestationRecord,
