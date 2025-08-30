@@ -134,7 +134,6 @@ describe('Protocol Contract Integration Tests', () => {
     const tx = await attesterProtocolClient.attest({
       attester: attesterKp.publicKey(),
       schema_uid: schemaUid,
-      subject: subjectKp.publicKey(),
       value: attestationValue,
       expiration_time: undefined // No expiration
     }, {
@@ -195,7 +194,7 @@ describe('Protocol Contract Integration Tests', () => {
       publicKey: attesterKp.publicKey()
     })
 
-    const tx = await attesterProtocolClient.revoke_attestation({
+    const tx = await attesterProtocolClient.revoke({
       revoker: attesterKp.publicKey(),
       attestation_uid: attestationUid
     }, {
