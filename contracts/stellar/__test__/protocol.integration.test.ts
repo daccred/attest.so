@@ -23,6 +23,8 @@ const TEST_XDR_SCHEMA = "XDR:AAAAAQAAAA5UZXN0IFNjaGVtYSB4eHh4AAAAAQAAAAZ2YWx1ZQA
  */
 function xdrToString(xdrValue: xdr.ScVal): string {
   // Convert XDR to base64 string
+
+  console.log('========xdrValue=========', ProtocolContract.scValToNative(xdrValue))
   return xdrValue.toXDR('base64')
 }
 
@@ -159,7 +161,7 @@ describe('Protocol Contract Integration Tests', () => {
     console.log(`XDR Schema registered with UID: ${xdrSchemaUid.toString('hex')}`)
   }, 60000)
 
-  it('should register a dynamic XDR schema', async () => {
+  it('should register a Schema Encoded XDR from JSON', async () => {
     // Use the createTestXDRSchema function from testutils
     const dynamicSchema = createTestXDRSchema(`Dynamic Schema ${testRunId}`, [
       { name: 'verified', type: 'bool' },
@@ -206,8 +208,11 @@ describe('Protocol Contract Integration Tests', () => {
     const backToXdr = stringToXDR(xdrAsString)
     console.log('Back to XDR:', backToXdr)
     
-    // Verify they're equivalent
-    expect(backToXdr).toEqual(stringXdr)
+    // Verify they produce the same base64 representation
+    expect(backToXdr.toXDR('base64')).toEqual(stringXdr.toXDR('base64'))
+    
+    // Also verify the actual string value is preserved
+    expect(backToXdr.str().toString()).toEqual(testString)
   })
 
   it('should create an attestation', async () => {
