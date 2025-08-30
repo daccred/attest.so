@@ -10,9 +10,26 @@
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
-import { Keypair, Transaction } from '@stellar/stellar-sdk'
+import { Keypair, Transaction, xdr } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
-import { loadTestConfig, fundAccountIfNeeded } from './testutils'
+import { loadTestConfig, fundAccountIfNeeded, createTestXDRSchema } from './testutils'
+
+// Pre-generated XDR schema string for testing
+// This represents a simple schema with one field: { name: "value", type: "string" }
+const TEST_XDR_SCHEMA = "XDR:AAAAAQAAAA5UZXN0IFNjaGVtYSB4eHh4AAAAAQAAAAZ2YWx1ZQAAAAZzdHJpbmcAAAAAAA=="
+
+/**
+ * Utility functions for XDR conversion
+ */
+function xdrToString(xdrValue: xdr.ScVal): string {
+  // Convert XDR to base64 string
+  return xdrValue.toXDR('base64')
+}
+
+function stringToXDR(base64String: string): xdr.ScVal {
+  // Convert base64 string back to XDR
+  return xdr.ScVal.fromXDR(base64String, 'base64')
+}
 
 describe('Protocol Contract Integration Tests', () => {
   let protocolClient: ProtocolContract.Client
@@ -26,7 +43,6 @@ describe('Protocol Contract Integration Tests', () => {
 
   // Test accounts
   let attesterKp: Keypair
-  let subjectKp: Keypair
 
   // Test data
   let testRunId: string
@@ -49,7 +65,6 @@ describe('Protocol Contract Integration Tests', () => {
 
     // Generate test accounts
     attesterKp = Keypair.random()
-    subjectKp = Keypair.random()
 
     // Generate test data
     testRunId = randomBytes(4).toString('hex')
@@ -58,7 +73,6 @@ describe('Protocol Contract Integration Tests', () => {
     const accounts = [
       adminKeypair.publicKey(),
       attesterKp.publicKey(),
-      subjectKp.publicKey()
     ]
 
     for (const account of accounts) {
@@ -114,6 +128,87 @@ describe('Protocol Contract Integration Tests', () => {
     expect(schemaUid.length).toBe(32)
     console.log(`Schema registered with UID: ${schemaUid.toString('hex')}`)
   }, 60000)
+
+  it('should register an XDR schema', async () => {
+    // Use the pre-generated XDR schema
+    const xdrSchema = TEST_XDR_SCHEMA
+    
+    const tx = await protocolClient.register({
+      caller: adminKeypair.publicKey(),
+      schema_definition: xdrSchema,
+      resolver: undefined, // No resolver for this test
+      revocable: true
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as ProtocolContract.contract.Result<Buffer>
+    expect(res.isOk()).toBe(true)
+    const xdrSchemaUid = res.unwrap()
+    expect(xdrSchemaUid).toBeInstanceOf(Buffer)
+    expect(xdrSchemaUid.length).toBe(32)
+    console.log(`XDR Schema registered with UID: ${xdrSchemaUid.toString('hex')}`)
+  }, 60000)
+
+  it('should register a dynamic XDR schema', async () => {
+    // Use the createTestXDRSchema function from testutils
+    const dynamicSchema = createTestXDRSchema(`Dynamic Schema ${testRunId}`, [
+      { name: 'verified', type: 'bool' },
+      { name: 'score', type: 'u64' },
+      { name: 'metadata', type: 'string' }
+    ])
+    
+    const tx = await protocolClient.register({
+      caller: adminKeypair.publicKey(),
+      schema_definition: dynamicSchema,
+      resolver: undefined, // No resolver for this test
+      revocable: true
+    }, {
+      fee: 1000000,
+      timeoutInSeconds: 30
+    })
+
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as ProtocolContract.contract.Result<Buffer>
+    expect(res.isOk()).toBe(true)
+    const dynamicSchemaUid = res.unwrap()
+    expect(dynamicSchemaUid).toBeInstanceOf(Buffer)
+    expect(dynamicSchemaUid.length).toBe(32)
+    console.log(`Dynamic XDR Schema registered with UID: ${dynamicSchemaUid.toString('hex')}`)
+  }, 60000)
+
+  it('should demonstrate XDR to string conversion', async () => {
+    // Example: Convert XDR to string and back
+    const testString = "Hello World"
+    const stringXdr = xdr.ScVal.scvString(testString)
+    
+    // XDR to string (base64)
+    const xdrAsString = xdrToString(stringXdr)
+    console.log('XDR as base64 string:', xdrAsString)
+    
+    // String back to XDR
+    const backToXdr = stringToXDR(xdrAsString)
+    console.log('Back to XDR:', backToXdr)
+    
+    // Verify they're equivalent
+    expect(backToXdr).toEqual(stringXdr)
+  })
 
   it('should create an attestation', async () => {
     if (!schemaUid) {
@@ -175,7 +270,8 @@ describe('Protocol Contract Integration Tests', () => {
     const attestation = res.unwrap()
     expect(attestation.uid).toEqual(attestationUid)
     expect(attestation.attester).toBe(attesterKp.publicKey())
-    expect(attestation.subject).toBe(subjectKp.publicKey())
+    // In the new contract API, subject is the same as attester when not specified
+    expect(attestation.subject).toBe(attesterKp.publicKey())
     expect(attestation.schema_uid).toEqual(schemaUid)
     console.log(`Retrieved attestation for subject: ${attestation.subject}`)
   }, 30000)

@@ -91,36 +91,58 @@ export function loadTestConfig(): TestConfig {
   }
 }
 
+
+
 /**
- * Parse environment file content into key-value pairs
+ * Utility function to create a simple XDR schema string for testing
  */
-function _parseEnvFile(content: string): Record<string, string> {
-  const envMap: Record<string, string> = {}
-  
-  for (const line of content.split('\n')) {
-    // Skip comments and empty lines
-    if (line.trim() && !line.trim().startsWith('#')) {
-      // Remove potential 'export ' prefix
-      const trimmedLine = line.replace(/^\s*export\s+/, '')
-      const [key, ...valueParts] = trimmedLine.split('=')
-      
-      if (key && valueParts.length > 0) {
-        // Remove potential quotes around the value
-        let value = valueParts.join('=').trim()
-        if ((value.startsWith('"') && value.endsWith('"')) || 
-            (value.startsWith("'") && value.endsWith("'"))) {
-          value = value.substring(1, value.length - 1)
-        }
-        envMap[key.trim()] = value
-      }
-    }
+export function createTestXDRSchema(name: string, fields: Array<{name: string, type: string}>): string {
+  try {
+    // Create field definitions in XDR format
+    const fieldsXdr = fields.map(field => {
+      return ProtocolContract.xdr.ScVal.scvMap([
+        new ProtocolContract.xdr.ScMapEntry({
+          key: ProtocolContract.xdr.ScVal.scvSymbol('name'),
+          val: ProtocolContract.xdr.ScVal.scvString(field.name)
+        }),
+        new ProtocolContract.xdr.ScMapEntry({
+          key: ProtocolContract.xdr.ScVal.scvSymbol('type'),
+          val: ProtocolContract.xdr.ScVal.scvString(field.type)
+        }),
+        new ProtocolContract.xdr.ScMapEntry({
+          key: ProtocolContract.xdr.ScVal.scvSymbol('optional'),
+          val: ProtocolContract.xdr.ScVal.scvBool(false)
+        })
+      ])
+    })
+
+    // Create main schema XDR structure
+    const schemaXdr = ProtocolContract.xdr.ScVal.scvMap([
+      new ProtocolContract.xdr.ScMapEntry({
+        key: ProtocolContract.xdr.ScVal.scvSymbol('name'),
+        val: ProtocolContract.xdr.ScVal.scvString(name)
+      }),
+      new ProtocolContract.xdr.ScMapEntry({
+        key: ProtocolContract.xdr.ScVal.scvSymbol('version'),
+        val: ProtocolContract.xdr.ScVal.scvString('1.0')
+      }),
+      new ProtocolContract.xdr.ScMapEntry({
+        key: ProtocolContract.xdr.ScVal.scvSymbol('description'),
+        val: ProtocolContract.xdr.ScVal.scvString('Test schema for integration testing')
+      }),
+      new ProtocolContract.xdr.ScMapEntry({
+        key: ProtocolContract.xdr.ScVal.scvSymbol('fields'),
+        val: ProtocolContract.xdr.ScVal.scvVec(fieldsXdr)
+      })
+    ])
+
+    // Convert to XDR string with prefix
+    const xdrString = schemaXdr.toXDR('base64')
+    return `XDR:${xdrString}`
+  } catch (error) {
+    throw new Error(`Failed to create XDR schema: ${error}`)
   }
-  
-  return envMap
 }
-
-
-
 
 
 /**
