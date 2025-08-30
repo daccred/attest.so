@@ -362,8 +362,6 @@ describe('Delegated Attestation Integration Tests', () => {
       }
     })
 
-    console.log(`Sent: ${sent}`)
-
     const res = sent.result as ProtocolContract.contract.Result<Buffer>
     expect(res.isOk()).toBe(true)
     console.log(`Delegated revocation created successfully with UID: ${attestationUid}`)

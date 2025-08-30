@@ -6,6 +6,10 @@ import { keccak256 } from 'js-sha3';
 import { bls12_381 } from '@noble/curves/bls12-381';
 import { sha256 } from '@noble/hashes/sha2';
 
+/**
+ * Defines the configuration required for running integration tests.
+ * This includes contract IDs, RPC URL, and the admin's secret key.
+ */
 export interface TestConfig {
   adminSecretKey: string
   rpcUrl: string
@@ -76,8 +80,8 @@ export function loadTestConfig(): TestConfig {
       throw new Error('Authority contract ID not found in deployments.json')
     }
     
-    // Use default testnet values - this matches the 'drew' identity used in deployment
-    const adminSecretKey = process.env.ADMIN_SECRET_KEY || 'SBHSWGCYESJSH2JHJGZGYWYP7Z7KQVOCFGO5MZMVDIYXEA7NXGWO2XGC'
+    /** MUST COME from .env file */
+    const adminSecretKey = process.env.ADMIN_SECRET_KEY as string;
     const rpcUrl = 'https://soroban-testnet.stellar.org'
     
     return {
@@ -94,7 +98,13 @@ export function loadTestConfig(): TestConfig {
 
 
 /**
- * Utility function to create a simple XDR schema string for testing
+ * Utility function to create a simple XDR schema string for testing.
+ * This function constructs a schema with metadata and a list of fields,
+ * then serializes it to a base64 XDR string with the "XDR:" prefix.
+ *
+ * @param name - The name of the schema.
+ * @param fields - An array of field objects, each with a name and type.
+ * @returns A string representing the XDR schema, e.g., "XDR:AAAA...".
  */
 export function createTestXDRSchema(name: string, fields: Array<{name: string, type: string}>): string {
   try {
@@ -142,6 +152,113 @@ export function createTestXDRSchema(name: string, fields: Array<{name: string, t
   } catch (error) {
     throw new Error(`Failed to create XDR schema: ${error}`)
   }
+}
+
+/**
+ * Utility function to parse an XDR schema string back into a JavaScript object.
+ * It handles base64 decoding and parsing of the Soroban `ScVal` map structure.
+ *
+ * @param xdrSchemaString - A string containing the base64-encoded XDR schema, with or without the "XDR:" prefix.
+ * @returns A JavaScript object representing the schema.
+ */
+export function parseXDRSchema(xdrSchemaString: string): {
+  name: string
+  version: string
+  description: string
+  fields: Array<{name: string, type: string, optional: boolean}>
+} {
+  try {
+    // Remove XDR: prefix if present
+    const xdrData = xdrSchemaString.startsWith('XDR:') 
+      ? xdrSchemaString.substring(4) 
+      : xdrSchemaString
+
+    // Parse XDR back to ScVal
+    const schemaScVal = ProtocolContract.xdr.ScVal.fromXDR(xdrData, 'base64')
+    
+    if (schemaScVal.switch() !== ProtocolContract.xdr.ScValType.scvMap()) {
+      throw new Error('XDR data is not a map')
+    }
+
+    const schemaMap = schemaScVal.map()
+    if (!schemaMap) {
+      throw new Error('Invalid XDR schema map')
+    }
+
+    const result: any = {}
+
+    // Extract schema properties from XDR map
+    for (const entry of schemaMap) {
+      const key = entry.key().sym().toString()
+      const value = entry.val()
+
+      switch (key) {
+        case 'name':
+        case 'version':
+        case 'description':
+          if (value.switch() === ProtocolContract.xdr.ScValType.scvString()) {
+            result[key] = value.str().toString()
+          }
+          break
+        case 'fields':
+          if (value.switch() === ProtocolContract.xdr.ScValType.scvVec()) {
+            const vec = value.vec()
+            if (vec) {
+              result.fields = parseFieldsFromXdr(vec)
+            } else {
+              result.fields = []
+            }
+          }
+          break
+      }
+    }
+
+    return result
+  } catch (error) {
+    throw new Error(`Failed to parse XDR schema: ${error}`)
+  }
+}
+
+/**
+ * Helper function to parse a vector of `ScVal` field maps into an array of JavaScript field objects.
+ *
+ * @param fieldsXdr - An array of `ScVal`s, where each element is a map representing a schema field.
+ * @returns An array of field objects.
+ */
+function parseFieldsFromXdr(fieldsXdr: ProtocolContract.xdr.ScVal[]): Array<{name: string, type: string, optional: boolean}> {
+  return fieldsXdr.map(fieldXdr => {
+    if (fieldXdr.switch() !== ProtocolContract.xdr.ScValType.scvMap()) {
+      throw new Error('Field is not a map')
+    }
+
+    const fieldMap = fieldXdr.map()
+    if (!fieldMap) {
+      throw new Error('Invalid field map')
+    }
+
+    const field: any = {}
+
+    for (const entry of fieldMap) {
+      const key = entry.key().sym().toString()
+      const value = entry.val()
+
+      switch (key) {
+        case 'name':
+        case 'type':
+          if (value.switch() === ProtocolContract.xdr.ScValType.scvString()) {
+            field[key] = value.str().toString()
+          }
+          break
+        case 'optional':
+          if (value.switch() === ProtocolContract.xdr.ScValType.scvBool()) {
+            field.optional = value.b()
+          }
+          break
+      }
+    }
+
+    return field
+  })
 }
 
 
@@ -206,8 +323,14 @@ export function generateAttestationUid(schemaUid: Buffer, subject: string, nonce
 
 
 /**
- * Creates the message to sign for delegated attestations
- * Must match the exact format from delegation.rs create_attestation_message
+ * Creates the message to sign for delegated attestations.
+ * Must match the exact format from `delegation.rs::create_attestation_message`.
+ * The message is a concatenation of domain separator, schema UID, nonce, deadline,
+ * and value length, which is then hashed.
+ *
+ * @param request - The delegated attestation request object from the contract bindings.
+ * @param attestationDST - The domain separation tag for attestations.
+ * @returns A hash of the message, ready to be signed.
  */
 export function createAttestationMessage(request: ProtocolContract.DelegatedAttestationRequest, attestationDST: Buffer) {
   // Match exact format from Rust contract: 
@@ -242,8 +365,14 @@ export function createAttestationMessage(request: ProtocolContract.DelegatedAtte
 }
 
 /**
- * Creates the message to sign for delegated revocations
- * Must match the exact format from delegation.rs create_revocation_message
+ * Creates the message to sign for delegated revocations.
+ * Must match the exact format from `delegation.rs::create_revocation_message`.
+ * The message is a concatenation of domain separator, schema UID, nonce, and deadline,
+ * which is then hashed.
+ *
+ * @param request - The delegated revocation request object from the contract bindings.
+ * @param revocationDST - The domain separation tag for revocations.
+ * @returns A hash of the message, ready to be signed.
  */
 export function createRevocationMessage(request: ProtocolContract.DelegatedRevocationRequest, revocationDST: Buffer) {
   const components: Buffer[] = []

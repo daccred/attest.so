@@ -12,27 +12,13 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
 import { Keypair, Transaction, xdr } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
-import { loadTestConfig, fundAccountIfNeeded, createTestXDRSchema } from './testutils'
+import { loadTestConfig, fundAccountIfNeeded, createTestXDRSchema, parseXDRSchema } from './testutils'
 
 // Pre-generated XDR schema string for testing
 // This represents a simple schema with one field: { name: "value", type: "string" }
 const TEST_XDR_SCHEMA = "XDR:AAAAAQAAAA5UZXN0IFNjaGVtYSB4eHh4AAAAAQAAAAZ2YWx1ZQAAAAZzdHJpbmcAAAAAAA=="
 
-/**
- * Utility functions for XDR conversion
- */
-function xdrToString(xdrValue: xdr.ScVal): string {
-  // Convert XDR to base64 string
-
-  console.log('========xdrValue=========', ProtocolContract.scValToNative(xdrValue))
-  return xdrValue.toXDR('base64')
-}
-
-function stringToXDR(base64String: string): xdr.ScVal {
-  // Convert base64 string back to XDR
-  return xdr.ScVal.fromXDR(base64String, 'base64')
-}
-
+ 
 describe('Protocol Contract Integration Tests', () => {
   let protocolClient: ProtocolContract.Client
   let adminKeypair: Keypair
@@ -163,7 +149,7 @@ describe('Protocol Contract Integration Tests', () => {
 
   it('should register a Schema Encoded XDR from JSON', async () => {
     // Use the createTestXDRSchema function from testutils
-    const dynamicSchema = createTestXDRSchema(`Dynamic Schema ${testRunId}`, [
+    const XDRSchema = createTestXDRSchema(`KYC Schema ${testRunId}`, [
       { name: 'verified', type: 'bool' },
       { name: 'score', type: 'u64' },
       { name: 'metadata', type: 'string' }
@@ -171,8 +157,8 @@ describe('Protocol Contract Integration Tests', () => {
     
     const tx = await protocolClient.register({
       caller: adminKeypair.publicKey(),
-      schema_definition: dynamicSchema,
-      resolver: undefined, // No resolver for this test
+      schema_definition: XDRSchema,
+      resolver: undefined, 
       revocable: true
     }, {
       fee: 1000000,
@@ -189,31 +175,39 @@ describe('Protocol Contract Integration Tests', () => {
 
     const res = sent.result as ProtocolContract.contract.Result<Buffer>
     expect(res.isOk()).toBe(true)
-    const dynamicSchemaUid = res.unwrap()
-    expect(dynamicSchemaUid).toBeInstanceOf(Buffer)
-    expect(dynamicSchemaUid.length).toBe(32)
-    console.log(`Dynamic XDR Schema registered with UID: ${dynamicSchemaUid.toString('hex')}`)
+    const XDRSchemaUid = res.unwrap()
+    expect(XDRSchemaUid).toBeInstanceOf(Buffer)
+    expect(XDRSchemaUid.length).toBe(32)
+    console.log(`XDR XDR Schema registered with UID: ${XDRSchemaUid.toString('hex')}`)
+
+
+    const getSchemaTx = await protocolClient.get_schema({
+      schema_uid: XDRSchemaUid
+    })
+
+    getSchemaTx.simulate();
+    const schema = getSchemaTx.result as ProtocolContract.contract.Result<ProtocolContract.Schema>
+
+    const xdrSchema = schema.unwrap().definition.toString();
+    console.log('========xdrSchema=========', xdrSchema);
+
+    // Parse the XDR schema back to an object
+    const parsedSchema = parseXDRSchema(xdrSchema);
+    console.log('========parsedSchema=========', parsedSchema);
+
+    // Verify the parsed schema matches what we created
+    expect(parsedSchema.name).toBe(`KYC Schema ${testRunId}`);
+    expect(parsedSchema.fields).toHaveLength(3);
+    expect(parsedSchema.fields[0].name).toBe('verified');
+    expect(parsedSchema.fields[0].type).toBe('bool');
+    expect(parsedSchema.fields[1].name).toBe('score');
+    expect(parsedSchema.fields[1].type).toBe('u64');
+    expect(parsedSchema.fields[2].name).toBe('metadata');
+    expect(parsedSchema.fields[2].type).toBe('string');
+
   }, 60000)
 
-  it('should demonstrate XDR to string conversion', async () => {
-    // Example: Convert XDR to string and back
-    const testString = "Hello World"
-    const stringXdr = xdr.ScVal.scvString(testString)
-    
-    // XDR to string (base64)
-    const xdrAsString = xdrToString(stringXdr)
-    console.log('XDR as base64 string:', xdrAsString)
-    
-    // String back to XDR
-    const backToXdr = stringToXDR(xdrAsString)
-    console.log('Back to XDR:', backToXdr)
-    
-    // Verify they produce the same base64 representation
-    expect(backToXdr.toXDR('base64')).toEqual(stringXdr.toXDR('base64'))
-    
-    // Also verify the actual string value is preserved
-    expect(backToXdr.str().toString()).toEqual(testString)
-  })
+ 
 
   it('should create an attestation', async () => {
     if (!schemaUid) {
