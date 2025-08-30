@@ -7,8 +7,8 @@ import { PrismaClient } from '@prisma/client'
 
 // Integration test timeout - backfill operations can take time
 const BACKFILL_TIMEOUT = 300000
-const BACKFILL_START_LEDGER = 245199
-const BACKFILL_END_LEDGER = 266127
+const BACKFILL_START_LEDGER = 265000
+const BACKFILL_END_LEDGER = 267633
 
 describe('Backfill Integration Test', () => {
   let db: any
