@@ -121,17 +121,13 @@ export class AttestProtocolAuthority {
   /**
    * Check if an address is an authority
    */
-  async isAuthority(authority: string): Promise<AttestProtocolResponse<boolean>> {
+  async isAuthority(authority: string): Promise<AttestProtocolResponse<any>> {
     try {
       const tx = await this.authorityClient.is_authority({ authority })
       const result = await tx.simulate()
 
-      if (!result.result?.returnValue) {
-        return createSuccessResponse(false)
-      }
-
-      const isAuth = scValToNative(result.result.returnValue)
-      return createSuccessResponse(isAuth)
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(
@@ -158,17 +154,13 @@ export class AttestProtocolAuthority {
   /**
    * Process attestation through authority contract
    */
-  async attest(attestation: Attestation): Promise<AttestProtocolResponse<boolean>> {
+  async attest(attestation: Attestation): Promise<AttestProtocolResponse<any>> {
     try {
       const tx = await this.authorityClient.attest({ attestation })
       const result = await tx.signAndSend()
 
-      if (!result.returnValue) {
-        return createSuccessResponse(false)
-      }
-
-      const success = scValToNative(result.returnValue)
-      return createSuccessResponse(success)
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(
@@ -182,17 +174,13 @@ export class AttestProtocolAuthority {
   /**
    * Process revocation through authority contract
    */
-  async revoke(attestation: Attestation): Promise<AttestProtocolResponse<boolean>> {
+  async revoke(attestation: Attestation): Promise<AttestProtocolResponse<any>> {
     try {
       const tx = await this.authorityClient.revoke({ attestation })
       const result = await tx.signAndSend()
 
-      if (!result.returnValue) {
-        return createSuccessResponse(false)
-      }
-
-      const success = scValToNative(result.returnValue)
-      return createSuccessResponse(success)
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(
@@ -206,15 +194,16 @@ export class AttestProtocolAuthority {
   /**
    * Withdraw collected levies
    */
-  async withdrawLevies(): Promise<AttestProtocolResponse<void>> {
+  async withdrawLevies(): Promise<AttestProtocolResponse<any>> {
     try {
       const tx = await this.authorityClient.withdraw_levies({
         caller: this.publicKey,
       })
 
-      await tx.signAndSend()
+      const result = await tx.signAndSend()
 
-      return createSuccessResponse(undefined)
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to withdraw levies')
@@ -225,17 +214,13 @@ export class AttestProtocolAuthority {
   /**
    * Get collected levies for an authority
    */
-  async getCollectedLevies(authority: string): Promise<AttestProtocolResponse<bigint>> {
+  async getCollectedLevies(authority: string): Promise<AttestProtocolResponse<any>> {
     try {
       const tx = await this.authorityClient.get_collected_levies({ authority })
       const result = await tx.simulate()
 
-      if (!result.result?.returnValue) {
-        return createSuccessResponse(BigInt(0))
-      }
-
-      const levies = scValToNative(result.result.returnValue)
-      return createSuccessResponse(BigInt(levies))
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(
@@ -249,17 +234,13 @@ export class AttestProtocolAuthority {
   /**
    * Get token ID
    */
-  async getTokenId(): Promise<AttestProtocolResponse<string>> {
+  async getTokenId(): Promise<AttestProtocolResponse<any>> {
     try {
       const tx = await this.authorityClient.get_token_id()
       const result = await tx.simulate()
 
-      if (!result.result?.returnValue) {
-        throw new Error('No token ID returned')
-      }
-
-      const tokenId = scValToNative(result.result.returnValue)
-      return createSuccessResponse(tokenId)
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to get token ID')
@@ -270,17 +251,13 @@ export class AttestProtocolAuthority {
   /**
    * Get admin address
    */
-  async getAdminAddress(): Promise<AttestProtocolResponse<string>> {
+  async getAdminAddress(): Promise<AttestProtocolResponse<any>> {
     try {
       const tx = await this.authorityClient.get_admin_address()
       const result = await tx.simulate()
 
-      if (!result.result?.returnValue) {
-        throw new Error('No admin address returned')
-      }
-
-      const admin = scValToNative(result.result.returnValue)
-      return createSuccessResponse(admin)
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to get admin address')
@@ -291,21 +268,16 @@ export class AttestProtocolAuthority {
   /**
    * Fetch authority information
    */
-  async fetchAuthority(id: string): Promise<AttestProtocolResponse<Authority | null>> {
+  async fetchAuthority(id: string): Promise<AttestProtocolResponse<any>> {
     try {
       const isAuthResult = await this.isAuthority(id)
 
-      if (isAuthResult.error || !isAuthResult.data) {
-        return createSuccessResponse(null)
+      if (isAuthResult.error) {
+        return isAuthResult
       }
 
-      // For now, return basic authority info
-      // In a real implementation, we'd need to get metadata from contract storage or events
-      return createSuccessResponse({
-        id,
-        isVerified: true,
-        metadata: 'Authority metadata', // This should come from contract storage
-      })
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(isAuthResult)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to fetch authority')

@@ -76,7 +76,7 @@ export class StellarSchemaRegistry {
   /**
    * Create a new schema on the Stellar network (accepts raw string or structured definition)
    */
-  async createSchema(config: SchemaDefinition): Promise<AttestProtocolResponse<Schema>> {
+  async createSchema(config: SchemaDefinition): Promise<AttestProtocolResponse<any>> {
     try {
       const validationError = this.validateSchemaDefinition(config)
       if (validationError) return createErrorResponse(validationError)
@@ -88,33 +88,15 @@ export class StellarSchemaRegistry {
 
       const tx = await this.protocolClient.register({
         caller,
-        resolver: undefined,
+        resolver: resolver || undefined,
         schema_definition: schemaDefinition,
         revocable,
       })
 
       const result = await tx.signAndSend()
 
-      //@ts-ignore
-      if (!result.result?.retval) {
-        throw createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          'Failed to get schema UID from transaction'
-        )
-      }
-
-      //@ts-ignore
-      const uid = scValToNative(result.result.returnValue).toString('hex')
-      
-      //@ts-ignore
-      console.warn("[schema.createSchema] uid", uid, result.result.retval)
-      return createSuccessResponse({
-        uid,
-        definition: config.content,
-        authority: caller,
-        revocable: config.revocable ?? true,
-        resolver: config.resolver || null,
-      })
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to create schema')
@@ -125,7 +107,7 @@ export class StellarSchemaRegistry {
   /**
    * Fetch a schema by its UID
    */
-  async fetchSchemaById(id: string): Promise<AttestProtocolResponse<Schema | null>> {
+  async fetchSchemaById(id: string): Promise<AttestProtocolResponse<any>> {
     try {
       if (!/^[0-9a-fA-F]{64}$/.test(id)) {
         throw createAttestProtocolError(
@@ -138,6 +120,7 @@ export class StellarSchemaRegistry {
 
       // Note: The current protocol contract doesn't have a get_schema method
       // This would need to be implemented in the contract or we'd need to use events/indexing
+      // For now, return null to indicate schema not found/not supported
       return createSuccessResponse(null)
     } catch (error: any) {
       return createErrorResponse(
@@ -250,3 +233,4 @@ export class StellarSchemaRegistry {
     return null
   }
 }
+

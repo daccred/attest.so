@@ -47,79 +47,7 @@ export interface StellarConfig extends IProtocolConfig {
   allowHttp?: boolean
 }
 
-/**
- * Stellar-specific schema configuration
- */
-export interface StellarSchemaConfig {
-  name: string
-  content: string
-  resolverAddress?: string
-  revocable?: boolean
-}
 
-/**
- * Stellar-specific attestation configuration
- */
-export interface StellarAttestationConfig {
-  schemaUID: string
-  subject: string
-  reference?: string
-}
-
-/**
- * Stellar attestation configuration with value field
- */
-export interface StellarAttestationConfigWithValue extends StellarAttestationConfig {
-  value: string
-  reference: string
-}
-
-/**
- * Stellar authority fetch result
- */
-export interface StellarFetchAuthorityResult {
-  address: string
-  metadata: string
-}
-
-/**
- * Stellar schema fetch result
- */
-export interface StellarFetchSchemaResult {
-  uid: string
-  definition: string
-  authority: string
-  revocable: boolean
-  resolver: string | null
-}
-
-/**
- * Stellar schema creation result
- */
-export interface StellarCreateSchemaResult {
-  schemaUID: string
-  hash: string
-}
-
-/**
- * Stellar attestation fetch result
- */
-export interface StellarFetchAttestationResult {
-  schemaUid: string
-  subject: string
-  value: string
-  reference: string | null
-  revoked: boolean
-}
-
-/**
- * Stellar revocation configuration
- */
-export interface StellarRevokeAttestationConfig {
-  attestationUID: string
-  recipient: string
-  reference?: string | null
-}
 
 /**
  * Client configuration options for initializing the Stellar SDK
@@ -176,7 +104,7 @@ export interface DelegatedAttestationRequest {
   /** Expiration timestamp for this signed request */
   deadline: bigint
   /** Optional expiration time for the attestation itself */
-  expiration_time: number | undefined
+  expiration_time: bigint | undefined
   /** The nonce for this attestation (must be the next expected nonce for the attester) */
   nonce: bigint
   /** The unique identifier of the schema this attestation follows */

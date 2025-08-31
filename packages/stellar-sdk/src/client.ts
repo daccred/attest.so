@@ -36,7 +36,7 @@ import {
 
 import { generateAttestationUid, generateSchemaUid } from './utils/uidGenerator'
 import { encodeSchema, decodeSchema } from './utils/dataCodec'
-import { createAttestMessage, createRevokeMessage, getAttestDST, getRevokeDST } from './utils/delegation'
+import { createAttestMessage, createRevokeMessage, getAttestDST, getRevokeDST } from './delegation'
 import { generateBlsKeys, verifySignature, signHashedMessage } from './utils/bls'
 import {
   fetchAttestationsByLedger,
@@ -50,8 +50,6 @@ import {
   NetworkError,
   ContractError,
   TransactionError,
-  ValidationError,
-  NotImplementedError,
   ConfigurationError,
   ErrorFactory,
 } from './common/errors'
@@ -189,14 +187,14 @@ export class StellarAttestationClient {
    * // Legacy positional arguments (backward compatibility)
    * await client.attest(schemaUid, value, expiration, { signer })
    */
-  async attest(params: AttestParams): Promise<Buffer | any>
-  async attest(schemaUid: Buffer, value: string, expiration?: number, options?: TxOptions): Promise<Buffer | any>
+  async attest(params: AttestParams): Promise<any>
+  async attest(schemaUid: Buffer, value: string, expiration?: number, options?: TxOptions): Promise<any>
   async attest(
     paramsOrSchemaUid: AttestParams | Buffer,
     legacyValue?: string,
     legacyExpiration?: number,
     legacyOptions?: TxOptions
-  ): Promise<Buffer | any> {
+  ): Promise<any> {
     try {
       // Handle both object and positional arguments
       const { schemaUid, value, subject, expirationTime, options } = this.normalizeAttestArgs(
@@ -215,20 +213,16 @@ export class StellarAttestationClient {
 
       if (options?.simulate) {
         const result = await tx.simulate()
-        // Extract attestation UID from simulation result
-        if (result.result?.returnValue) {
-          const uid = scValToNative(result.result.returnValue)
-          return Buffer.from(uid)
-        }
-        throw new Error('Simulation did not return attestation UID')
+        // Return the full simulation result for SDK consumers to decide what they need
+        return result
       }
 
       // If signer provided, sign and submit automatically
       if (options?.signer) {
         const signedXdr = await options.signer.signTransaction(tx.toXDR())
         const result = await this.submitTransaction(signedXdr)
-        // Extract attestation UID from result
-        return Buffer.from(result.hash || result.transactionHash || '', 'hex')
+        // Return the full transaction result
+        return result
       }
 
       // Return unsigned transaction for manual signing
@@ -314,19 +308,19 @@ export class StellarAttestationClient {
    * // Legacy positional arguments
    * await client.createSchema(definition, resolver, true, { signer })
    */
-  async createSchema(params: CreateSchemaParams): Promise<Buffer | any>
+  async createSchema(params: CreateSchemaParams): Promise<any>
   async createSchema(
     definition: string,
     resolver?: string,
     revocable?: boolean,
     options?: TxOptions
-  ): Promise<Buffer | any>
+  ): Promise<any>
   async createSchema(
     paramsOrDefinition: CreateSchemaParams | string,
     legacyResolver?: string,
     legacyRevocable?: boolean,
     legacyOptions?: TxOptions
-  ): Promise<Buffer | any> {
+  ): Promise<any> {
     try {
       // Handle both object and positional arguments
       const { definition, resolver, revocable, options } = this.normalizeCreateSchemaArgs(
@@ -339,25 +333,22 @@ export class StellarAttestationClient {
       const tx = await this.attestationProtocol.register({
         caller: this.callerPublicKey,
         schema_definition: definition,
-        resolver: resolver || null,
+        resolver: resolver || undefined,
         revocable: revocable ?? true,
       })
 
       if (options?.simulate) {
         const result = await tx.simulate()
-        if (result.result?.returnValue) {
-          const uid = scValToNative(result.result.returnValue)
-          return Buffer.from(uid)
-        }
-        throw new Error('Simulation did not return schema UID')
+        // Return the full simulation result for SDK consumers to decide what they need
+        return result
       }
 
       // If signer provided, sign and submit automatically
       if (options?.signer) {
         const signedXdr = await options.signer.signTransaction(tx.toXDR())
         const result = await this.submitTransaction(signedXdr)
-        // Extract schema UID from result
-        return Buffer.from(result.hash || result.transactionHash || '', 'hex')
+        // Return the full transaction result
+        return result
       }
 
       // Return unsigned transaction for manual signing
@@ -370,7 +361,7 @@ export class StellarAttestationClient {
   /**
    * Get schema by UID
    */
-  async getSchema(uid: Buffer): Promise<ContractSchema> {
+  async getSchema(uid: Buffer): Promise<any> {
     try {
       const tx = await this.attestationProtocol.get_schema({
         schema_uid: uid,
@@ -378,20 +369,8 @@ export class StellarAttestationClient {
 
       const result = await tx.simulate()
 
-      if (!result.result?.returnValue) {
-        throw new Error('Schema not found')
-      }
-
-      const schemaData = scValToNative(result.result.returnValue)
-
-      return {
-        uid,
-        definition: schemaData.definition || schemaData.schema,
-        authority: schemaData.authority,
-        resolver: schemaData.resolver,
-        revocable: schemaData.revocable ?? true,
-        timestamp: schemaData.timestamp || Date.now(),
-      }
+      // Return the full simulation result for SDK consumers to decide what they need
+      return result
     } catch (error: any) {
       throw new Error(`Failed to fetch schema: ${error.message}`)
     }
@@ -400,7 +379,7 @@ export class StellarAttestationClient {
   /**
    * Get attestation by UID
    */
-  async getAttestation(uid: Buffer): Promise<ContractAttestation> {
+  async getAttestation(uid: Buffer): Promise<any> {
     try {
       const tx = await this.attestationProtocol.get_attestation({
         attestation_uid: uid,
@@ -408,23 +387,8 @@ export class StellarAttestationClient {
 
       const result = await tx.simulate()
 
-      if (!result.result?.returnValue) {
-        throw new Error('Attestation not found')
-      }
-
-      const attestationData = scValToNative(result.result.returnValue)
-
-      return {
-        uid,
-        schemaUid: Buffer.from(attestationData.schema_uid),
-        subject: attestationData.subject,
-        attester: attestationData.attester,
-        value: attestationData.value,
-        timestamp: attestationData.timestamp || Date.now(),
-        expirationTime: attestationData.expiration_time,
-        revocationTime: attestationData.revocation_time,
-        revoked: attestationData.revoked || false,
-      }
+      // Return the full simulation result for SDK consumers to decide what they need
+      return result
     } catch (error: any) {
       throw new Error(`Failed to fetch attestation: ${error.message}`)
     }
@@ -1012,3 +976,4 @@ export class StellarAttestationClient {
     }
   }
 }
+
