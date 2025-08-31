@@ -312,7 +312,7 @@ describe('StellarAttestationClient', () => {
         value: 'test-value',
         nonce: BigInt(1000),
         deadline: BigInt(Date.now() + 3600000),
-        expiration_time: Date.now() + 365 * 24 * 60 * 60 * 1000,
+        expiration_time: BigInt(Date.now() + 365 * 24 * 60 * 60 * 1000),
         signature: Buffer.alloc(96)
       }
       

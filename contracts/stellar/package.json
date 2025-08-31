@@ -3,6 +3,8 @@
   "description": "Stellar Attestation Service",
   "version": "1.7.1",
   "author": "",
+  "main": "./dist/protocol.js",
+  "types": "./dist/protocol.d.ts",
   "dependencies": {
     "@noble/curves": "^2.0.0",
     "@noble/hashes": "^2.0.0",

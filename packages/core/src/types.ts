@@ -72,7 +72,7 @@ export interface SchemaDefinition {
   name: string
   content: string
   revocable?: boolean
-  resolver?: string | null
+  resolver: string | undefined
 }
 
 /**

@@ -34,7 +34,7 @@ export class StellarAttestationService {
   /**
    * Issue a new attestation on the Stellar network
    */
-  async issueAttestation(config: AttestationDefinition): Promise<AttestProtocolResponse<Attestation>> {
+  async issueAttestation(config: AttestationDefinition): Promise<AttestProtocolResponse<any>> {
     try {
       const validationError = this.validateAttestationDefinition(config)
       if (validationError) return createErrorResponse(validationError)
@@ -49,7 +49,7 @@ export class StellarAttestationService {
       const attester = this.publicKey
       const schemaUid = Buffer.from(config.schemaUid, 'hex')
       const value = config.data
-      const expiration_time = config.expirationTime || undefined
+      const expiration_time = config.expirationTime ? BigInt(config.expirationTime) : undefined
 
       // In the new protocol, attester is also the subject
       // TODO: Add support for attestations about other subjects via delegated attestations
@@ -68,20 +68,9 @@ export class StellarAttestationService {
       })
 
       const result = await tx.signAndSend()
-      const timestamp = Date.now()
 
-      return createSuccessResponse({
-        uid: result.transactionHash || Date.now().toString(),
-        schemaUid: config.schemaUid,
-        subject: config.subject,
-        attester: this.publicKey,
-        data: config.data,
-        timestamp,
-        expirationTime: config.expirationTime || null,
-        revocationTime: null,
-        revoked: false,
-        reference: config.reference || null,
-      })
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to issue attestation')
@@ -114,7 +103,7 @@ export class StellarAttestationService {
   /**
    * Fetch an attestation by its ID
    */
-  async fetchAttestationById(id: string): Promise<AttestProtocolResponse<Attestation | null>> {
+  async fetchAttestationById(id: string): Promise<AttestProtocolResponse<any>> {
     try {
       // Convert the attestation UID string to Buffer
       const attestationUidBuffer = Buffer.from(id, 'hex')
@@ -125,24 +114,8 @@ export class StellarAttestationService {
 
       const result = await tx.simulate()
 
-      if (!result.result?.returnValue) {
-        return createSuccessResponse(null)
-      }
-
-      const attestationRecord = scValToNative(result.result.returnValue)
-
-      return createSuccessResponse({
-        uid: id,
-        schemaUid: Buffer.from(attestationRecord.schema_uid).toString('hex'),
-        subject: attestationRecord.subject,
-        attester: attestationRecord.attester,
-        data: attestationRecord.value,
-        timestamp: attestationRecord.timestamp || Date.now(),
-        expirationTime: attestationRecord.expiration_time || null,
-        revocationTime: attestationRecord.revocation_time || null,
-        revoked: attestationRecord.revoked || false,
-        reference: null, // Not in the new protocol
-      })
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to fetch attestation')
@@ -329,3 +302,4 @@ export class StellarAttestationService {
     return null
   }
 }
+

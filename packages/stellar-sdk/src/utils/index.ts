@@ -18,7 +18,7 @@ export {
   getRevokeDST,
   createDelegatedAttestationRequest,
   createDelegatedRevocationRequest,
-} from './delegation'
+} from '../delegation'
 
 // BLS cryptography utilities
 export {

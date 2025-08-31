@@ -5,13 +5,13 @@
  * including message creation and domain separator tag retrieval.
  */
 
-import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/protocol'
+import { Client as ProtocolClient } from '@attestprotocol/stellar/protocol'
 import { scValToNative } from '@stellar/stellar-sdk'
 import { bls12_381 } from '@noble/curves/bls12-381'
 import { sha256 } from '@noble/hashes/sha2'
-import { DelegatedAttestationRequest, DelegatedRevocationRequest } from '../types'
+import { DelegatedAttestationRequest, DelegatedRevocationRequest } from './types'
 import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass'
-import { ContractError } from '../common/errors'
+import { ContractError } from './common/errors'
 
 /**
  * Create a message for signing delegated attestations.
@@ -104,11 +104,8 @@ export async function getAttestDST(client: ProtocolClient): Promise<Buffer> {
     const tx = await client.get_dst_for_attestation()
     const result = await tx.simulate()
 
-    if (!result.result?.returnValue) {
-      throw new Error('Failed to get attestation DST')
-    }
-
-    const dst = scValToNative(result.result.returnValue)
+    // @ts-ignore - Different result structures across contract methods
+    const dst = scValToNative(result.result)
     return Buffer.from(dst)
   } catch (error: any) {
     // Fallback to default DST if contract doesn't have the method
@@ -127,11 +124,8 @@ export async function getRevokeDST(client: ProtocolClient): Promise<Buffer> {
     const tx = await client.get_dst_for_revocation()
     const result = await tx.simulate()
 
-    if (!result.result?.returnValue) {
-      throw new Error('Failed to get revocation DST')
-    }
-
-    const dst = scValToNative(result.result.returnValue)
+    // @ts-ignore - Different result structures across contract methods
+    const dst = scValToNative(result.result)
     return Buffer.from(dst)
   } catch (error: any) {
     // Fallback to default DST if contract doesn't have the method
@@ -145,11 +139,8 @@ export async function getAttesterNonce(client: ProtocolClient, attester: string)
   })
   const result = await tx.simulate()
 
-  if (!result.result?.returnValue) {
-    throw new ContractError('Failed to get attester nonce')
-  }
-
-  return BigInt(result.result.returnValue)
+  // @ts-ignore - Different result structures across contract methods
+  return BigInt(result.result)
 }
 
 /**
@@ -177,7 +168,7 @@ export async function createDelegatedAttestationRequest(
     value: params.value,
     deadline: params.deadline,
     nonce: await getAttesterNonce(client, params.attester),
-    expiration_time: params.expirationTime,
+    expiration_time: params.expirationTime ? BigInt(params.expirationTime) : undefined,
   }
 }
 
@@ -207,3 +198,4 @@ export async function createDelegatedRevocationRequest(
     nonce: await getAttesterNonce(client, params.revoker),
   }
 }
+

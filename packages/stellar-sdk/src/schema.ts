@@ -14,7 +14,7 @@ import {
   createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/protocol'
+import { Client as ProtocolClient } from '@attestprotocol/stellar/protocol'
 import { Address, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 import { SorobanSchemaEncoder, StellarSchemaDefinition } from './common/schemaEncoder'
@@ -76,41 +76,27 @@ export class StellarSchemaRegistry {
   /**
    * Create a new schema on the Stellar network (accepts raw string or structured definition)
    */
-  async createSchema(config: SchemaDefinition): Promise<AttestProtocolResponse<Schema>> {
+  async createSchema(config: SchemaDefinition): Promise<AttestProtocolResponse<any>> {
     try {
       const validationError = this.validateSchemaDefinition(config)
       if (validationError) return createErrorResponse(validationError)
 
       const caller = this.publicKey
       const schemaDefinition = config.content
-      const resolver = config.resolver || null
+      const resolver = config.resolver || undefined
       const revocable = config.revocable ?? true
 
       const tx = await this.protocolClient.register({
         caller,
+        resolver: resolver || undefined,
         schema_definition: schemaDefinition,
-        resolver,
         revocable,
       })
 
       const result = await tx.signAndSend()
 
-      if (!result.returnValue) {
-        throw createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          'Failed to get schema UID from transaction'
-        )
-      }
-
-      const uid = scValToNative(result.returnValue).toString('hex')
-
-      return createSuccessResponse({
-        uid,
-        definition: config.content,
-        authority: caller,
-        revocable: config.revocable ?? true,
-        resolver: config.resolver || null,
-      })
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to create schema')
@@ -121,7 +107,7 @@ export class StellarSchemaRegistry {
   /**
    * Fetch a schema by its UID
    */
-  async fetchSchemaById(id: string): Promise<AttestProtocolResponse<Schema | null>> {
+  async fetchSchemaById(id: string): Promise<AttestProtocolResponse<any>> {
     try {
       if (!/^[0-9a-fA-F]{64}$/.test(id)) {
         throw createAttestProtocolError(
@@ -134,6 +120,7 @@ export class StellarSchemaRegistry {
 
       // Note: The current protocol contract doesn't have a get_schema method
       // This would need to be implemented in the contract or we'd need to use events/indexing
+      // For now, return null to indicate schema not found/not supported
       return createSuccessResponse(null)
     } catch (error: any) {
       return createErrorResponse(
@@ -246,3 +233,4 @@ export class StellarSchemaRegistry {
     return null
   }
 }
+

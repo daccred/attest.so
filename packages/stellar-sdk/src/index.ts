@@ -68,14 +68,14 @@ export {
   type Schema as ProtocolSchema,
   type Authority as ProtocolAuthority,
   type Attestation as ProtocolAttestationRecord,
-} from '@attestprotocol/stellar/dist/protocol'
+} from '@attestprotocol/stellar/protocol'
 
 export {
   Client as AuthorityClient,
   networks as AuthorityNetworks,
   type Attestation as AuthorityAttestationRecord,
   type RegisteredAuthorityData,
-} from '@attestprotocol/stellar/dist/authority'
+} from '@attestprotocol/stellar/authority'
 
 // Internal utilities (for advanced usage and testing)
 export * as common from './common'
