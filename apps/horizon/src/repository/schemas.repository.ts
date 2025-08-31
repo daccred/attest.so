@@ -174,7 +174,7 @@ export async function getSchemaByUid(uid: string, includeAttestations: boolean =
 
     return schema
   } catch (error: any) {
-    console.error(`Error retrieving schema ${uid}:`, error.message)
+    console.error(`Error retrieving schema UID`, uid, error.message)
     return null
   }
 }

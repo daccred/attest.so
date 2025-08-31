@@ -183,7 +183,7 @@ export async function getAttestationByUid(attestationUid: string) {
 
     return attestation
   } catch (error: any) {
-    console.error(`Error retrieving attestation ${attestationUid}:`, error.message)
+    console.error(`Error retrieving attestation`, attestationUid, error.message)
     return null
   }
 }
