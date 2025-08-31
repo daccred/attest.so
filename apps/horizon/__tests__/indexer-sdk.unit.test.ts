@@ -234,7 +234,23 @@ describe('Stellar SDK Indexer - Registry API Integration', () => {
         
         // Mock single attestation response
         mockDb.attestation.findMany.mockResolvedValueOnce([
-          mockDb.attestation.findMany.mockReturnValue[0] // First attestation from mock data
+          {
+            id: '257c9da8-8736-4255-bec4-a8491012906a',
+            attestationUid: '1f334d89e649ca1eea2bd8f63f183d00472da76c188ccdc37fd445cb09ecb029',
+            ledger: 265547,
+            schemaUid: 'd35d11d51b740d6c9ec93f1341d126be104ba8ad2d9ce766adefa42ac8072ef2',
+            attesterAddress: 'GBXLKGIGNJAVALY‰WNPNBFVDLALPQZ2OWKUHNZHTRCI47H4TH2WDCYTUHH',
+            subjectAddress: 'GDJ6QM7WBTURRYU5MCIXAFJFWWEWP3DGI7BOCK3XCYRIQ5ZHDDWTHILF',
+            transactionHash: '1bf9f420510dd2df507ff162b79ae9245ffc5c9aa2951727785063082fd7f57b',
+            schemaEncoding: 'JSON',
+            message: '{"claim":"verified identity"}',
+            value: { claim: "verified identity" },
+            revoked: true,
+            createdAt: new Date('2025-08-30T05:38:07.5Z'),
+            revokedAt: new Date('2025-08-30T02:39:56Z'),
+            ingestedAt: new Date('2025-08-30T05:38:07.5Z'),
+            lastUpdated: new Date('2025-08-30T05:38:07.5Z')
+          }
         ]);
         
         const res = await request(app).get(`/api/registry/attestations/${attestationUid}`);
@@ -342,7 +358,21 @@ describe('Stellar SDK Indexer - Registry API Integration', () => {
         
         // Mock single schema response
         mockDb.schema.findMany.mockResolvedValueOnce([
-          mockDb.schema.findMany.mockReturnValue[0] // First schema from mock data
+          {
+            id: 'f3ad247f-ed47-4a60-b4ba-5b4829032ad8',
+            uid: '1e67a0f47424988aff00297acccf517b00f5d55ac8c94c9c49803f5156bcbf93',
+            ledger: 265897,
+            schemaDefinition: '{"name":"Test Schema 83f3ec57","fields":[{"name":"value","type":"string"}]}',
+            parsedSchemaDefinition: { name: "Test Schema 83f3ec57", fields: [{ name: "value", type: "string" }] },
+            resolverAddress: null,
+            revocable: true,
+            deployerAddress: 'GAIGJP7DQP5WNPZO3N42VPHL2ZV5OWYY735ULTECY2J4Q36WKKHNHCPQ',
+            type: 'default',
+            transactionHash: 'b5c339c2a7985d45b550a8c5196a32483e62cf854c05a5455c4242eff8cd92a6',
+            createdAt: new Date('2025-08-30T05:36:58.806Z'),
+            ingestedAt: new Date('2025-08-30T05:36:58.806Z'),
+            lastUpdated: new Date('2025-08-30T05:36:58.806Z')
+          }
         ]);
         
         const res = await request(app).get(`/api/registry/schemas/${schemaUid}`);
