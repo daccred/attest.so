@@ -26,7 +26,7 @@ import {
 import { StellarConfig } from './types'
 import { StellarSchemaRegistry } from './schema'
 import { StellarAttestationService } from './attest'
-import { StellarAuthorityService } from './authority'
+import { AttestProtocolAuthority } from './authority'
 
 import {
   Keypair,
@@ -58,7 +58,7 @@ export class StellarAttestProtocol extends AttestProtocolBase {
   // Service modules
   private schemaService: StellarSchemaRegistry
   private attestationService: StellarAttestationService
-  private authorityService: StellarAuthorityService
+  private authorityService: AttestProtocolAuthority
 
   /**
    * Creates a new instance of the Stellar Attest SDK
@@ -102,7 +102,7 @@ export class StellarAttestProtocol extends AttestProtocolBase {
     // Initialize service modules
     this.schemaService = new StellarSchemaRegistry(config, this.protocolClient)
     this.attestationService = new StellarAttestationService(config, this.protocolClient)
-    this.authorityService = new StellarAuthorityService(config, this.authorityClient)
+    this.authorityService = new AttestProtocolAuthority(config, this.authorityClient)
   }
 
   protected getDefaultNetworkUrl(): string {
@@ -269,7 +269,7 @@ export class StellarAttestProtocol extends AttestProtocolBase {
   /**
    * Get the authority service for direct access
    */
-  getAuthorityService(): StellarAuthorityService {
+  getAuthorityService(): AttestProtocolAuthority {
     return this.authorityService
   }
 
