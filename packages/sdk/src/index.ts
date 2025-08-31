@@ -6,12 +6,10 @@
  */
 
 // Export all chain-specific SDKs
-export { StellarAttestProtocol } from '@attestprotocol/stellar-sdk'
 export { SolanaAttestProtocol } from '@attestprotocol/solana-sdk'
 export { StarknetAttestProtocol } from '@attestprotocol/starknet-sdk'
 
 // Export all chain-specific types
-export * from '@attestprotocol/stellar-sdk'
 export * from '@attestprotocol/solana-sdk'
 export * from '@attestprotocol/starknet-sdk'
 
@@ -19,37 +17,15 @@ export * from '@attestprotocol/starknet-sdk'
 export * from '@attestprotocol/core'
 
 // Import for factory methods
-import { StellarAttestProtocol, StellarConfig } from '@attestprotocol/stellar-sdk'
 import { SolanaAttestProtocol, SolanaConfig } from '@attestprotocol/solana-sdk'
 import { StarknetAttestProtocol, StarknetConfig } from '@attestprotocol/starknet-sdk'
-import { AttestProtocolResponse } from '@attestprotocol/core'
 
 /**
  * Factory class to create the appropriate AttestProtocol implementation based on configuration
  * Provides backward compatibility with the previous SDK interface
  */
 export class AttestProtocol {
-  /**
-   * Initialize a Stellar SDK instance
-   * @param config Stellar-specific configuration
-   * @returns Promise resolving to initialized Stellar SDK
-   */
-  static async initializeStellar(config: StellarConfig): Promise<StellarAttestProtocol> {
-    const stellarClient = new StellarAttestProtocol(config)
-
-    try {
-      const result = await stellarClient.initialize()
-      if (result.error) {
-        console.warn('Stellar SDK initialization completed with warnings:', result.error)
-      }
-    } catch (error) {
-      console.error('Fatal error during Stellar SDK initialization:', error)
-      throw error
-    }
-
-    return stellarClient
-  }
-
+ 
   /**
    * Initialize a Solana SDK instance
    * @param config Solana-specific configuration
@@ -90,13 +66,11 @@ export class AttestProtocol {
    * @returns Promise resolving to initialized SDK
    */
   static async initialize(
-    config: (StellarConfig | SolanaConfig | StarknetConfig) & {
+    config: (SolanaConfig | StarknetConfig) & {
       chain: 'stellar' | 'solana' | 'starknet'
     }
   ) {
     switch (config.chain) {
-      case 'stellar':
-        return this.initializeStellar(config as StellarConfig)
       case 'solana':
         return this.initializeSolana(config as SolanaConfig)
       case 'starknet':
@@ -122,14 +96,14 @@ export type ChainType = 'stellar' | 'solana' | 'starknet'
  */
 export type UnifiedConfig = {
   chain: ChainType
-} & (StellarConfig | SolanaConfig | StarknetConfig)
+} & ( SolanaConfig | StarknetConfig)
 
 /**
  * Helper function to create a unified configuration
  */
 export function createConfig<T extends ChainType>(
   chain: T,
-  config: T extends 'stellar' ? StellarConfig : T extends 'solana' ? SolanaConfig : StarknetConfig
+  config: T extends 'solana' ? SolanaConfig : StarknetConfig
 ): UnifiedConfig {
   return { chain, ...config } as UnifiedConfig
 }

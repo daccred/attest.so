@@ -23,7 +23,7 @@ import {
   createAttestProtocolError
 } from '@attestprotocol/core'
 
-import {
+import type {
   SolanaConfig,
   SolanaLevyConfig,
   SolanaSchemaConfig,
@@ -35,6 +35,15 @@ import {
   SolanaDelegatedAttestationConfig,
   SolanaDelegatedRevocationConfig
 } from './types'
+
+
+export type {
+  SolanaConfig,
+  SolanaLevyConfig,
+  SolanaSchemaConfig,
+  SolanaAttestationConfig,
+  SolanaRevokeAttestationConfig,
+}
 
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js'
 import * as anchor from '@coral-xyz/anchor'

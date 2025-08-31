@@ -8,7 +8,14 @@
 export { StarknetAttestProtocol } from './starknet-sdk'
 
 // Export Starknet-specific types
-export * from './types'
+export {
+  StarknetConfig,
+  StarknetSchemaConfig,
+  StarknetAttestationConfig,
+  StarknetDelegatedAttestationConfig,
+  StarknetDelegatedRevocationConfig,
+  StarknetFetchAuthorityResult,
+} from './types'
 
 // Re-export core types for convenience
 export {
