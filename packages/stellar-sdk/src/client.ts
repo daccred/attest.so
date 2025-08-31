@@ -33,7 +33,7 @@ import {
 } from './types'
 
 import { generateAttestationUid, generateSchemaUid } from './utils/uidGenerator'
-import { encodeSchema, decodeSchema } from './utils/schemaCodec'
+import { encodeSchema, decodeSchema } from './utils/dataCodec'
 import { 
   createAttestMessage, 
   createRevokeMessage,
