@@ -18,7 +18,7 @@ import {
   createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/protocol'
+import { Client as ProtocolClient } from '@attestprotocol/stellar/protocol'
 import { Address, xdr, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 
@@ -114,7 +114,7 @@ export class StellarAttestationService {
   /**
    * Fetch an attestation by its ID
    */
-  async fetchAttestationById(id: string): Promise<AttestProtocolResponse<Attestation | null>> {
+  async fetchAttestationById(id: string)  {
     try {
       // Convert the attestation UID string to Buffer
       const attestationUidBuffer = Buffer.from(id, 'hex')
@@ -125,24 +125,13 @@ export class StellarAttestationService {
 
       const result = await tx.simulate()
 
-      if (!result.result?.returnValue) {
-        return createSuccessResponse(null)
+      if (result.result.isErr()) {
+        result.result.unwrapErr();
       }
 
-      const attestationRecord = scValToNative(result.result.returnValue)
+      return result.result.unwrap();
 
-      return createSuccessResponse({
-        uid: id,
-        schemaUid: Buffer.from(attestationRecord.schema_uid).toString('hex'),
-        subject: attestationRecord.subject,
-        attester: attestationRecord.attester,
-        data: attestationRecord.value,
-        timestamp: attestationRecord.timestamp || Date.now(),
-        expirationTime: attestationRecord.expiration_time || null,
-        revocationTime: attestationRecord.revocation_time || null,
-        revoked: attestationRecord.revoked || false,
-        reference: null, // Not in the new protocol
-      })
+  
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to fetch attestation')

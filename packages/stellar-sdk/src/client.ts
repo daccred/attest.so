@@ -210,7 +210,7 @@ export class StellarAttestationClient {
         attester: this.callerPublicKey,
         schema_uid: schemaUid,
         value,
-        expiration_time: expirationTime,
+        expiration_time: BigInt(expirationTime || 0),
       })
 
       if (options?.simulate) {

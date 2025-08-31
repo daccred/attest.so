@@ -14,7 +14,7 @@ import {
   createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/protocol'
+import { Client as ProtocolClient } from '@attestprotocol/stellar/protocol'
 import { Address, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 import { SorobanSchemaEncoder, StellarSchemaDefinition } from './common/schemaEncoder'
@@ -83,27 +83,31 @@ export class StellarSchemaRegistry {
 
       const caller = this.publicKey
       const schemaDefinition = config.content
-      const resolver = config.resolver || null
+      const resolver = config.resolver || undefined
       const revocable = config.revocable ?? true
 
       const tx = await this.protocolClient.register({
         caller,
+        resolver: undefined,
         schema_definition: schemaDefinition,
-        resolver,
         revocable,
       })
 
       const result = await tx.signAndSend()
 
-      if (!result.returnValue) {
+      //@ts-ignore
+      if (!result.result?.retval) {
         throw createAttestProtocolError(
           AttestProtocolErrorType.NETWORK_ERROR,
           'Failed to get schema UID from transaction'
         )
       }
 
-      const uid = scValToNative(result.returnValue).toString('hex')
-
+      //@ts-ignore
+      const uid = scValToNative(result.result.returnValue).toString('hex')
+      
+      //@ts-ignore
+      console.warn("[schema.createSchema] uid", uid, result.result.retval)
       return createSuccessResponse({
         uid,
         definition: config.content,
