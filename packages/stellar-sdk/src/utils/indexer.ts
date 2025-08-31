@@ -2,7 +2,9 @@
  * Horizon Integration Utilities
  * 
  * Functions for interacting with the Horizon API to fetch
- * attestations and schemas from the blockchain.
+ * attestations and schemas from the blockchain. Integrates with
+ * the local horizon server instance primarily, with Stellar horizon
+ * as complementary data source.
  */
 
 import { ContractSchema, ContractAttestation } from '../types'
@@ -14,28 +16,32 @@ import { HorizonError, NetworkError } from '../common/errors'
 export interface HorizonConfig {
   baseUrl: string
   network: 'testnet' | 'mainnet'
+  registryUrl?: string
 }
 
 /**
- * Default Horizon configurations
+ * Default Horizon configurations with registry endpoints
  */
 export const HORIZON_CONFIGS: Record<string, HorizonConfig> = {
   testnet: {
     baseUrl: 'https://horizon-testnet.stellar.org',
-    network: 'testnet'
+    network: 'testnet',
+    registryUrl: 'http://localhost:3001/api/registry'
   },
   mainnet: {
     baseUrl: 'https://horizon.stellar.org', 
-    network: 'mainnet'
+    network: 'mainnet',
+    registryUrl: 'https://api.attest.so/api/registry'
   }
 }
 
 /**
- * Registry API endpoints (from apps/horizon)
+ * Registry API endpoints configuration
+ * Primarily uses local horizon server instance
  */
 export const REGISTRY_ENDPOINTS = {
-  testnet: 'https://api.testnet.attest.so/registry',
-  mainnet: 'https://api.attest.so/registry'
+  testnet: process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.testnet.registryUrl || 'http://localhost:3001/api/registry',
+  mainnet: process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.mainnet.registryUrl || 'https://api.attest.so/api/registry'
 }
 
 /**
@@ -47,7 +53,7 @@ export async function fetchAttestationsByLedger(
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<ContractAttestation[]> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations/ledger/${ledger}?limit=${limit}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?by_ledger=${ledger}&limit=${limit}`
     
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -67,16 +73,16 @@ export async function fetchAttestationsByLedger(
 
     const data = await response.json()
     
-    // Transform the response to match our ContractAttestation type
-    return (data.attestations || []).map((item: any) => ({
-      uid: Buffer.from(item.uid, 'hex'),
-      schemaUid: Buffer.from(item.schemaUid, 'hex'),
-      subject: item.subject,
-      attester: item.attester,
+    // Transform the horizon registry API response to match our ContractAttestation type
+    return (data.data || []).map((item: any) => ({
+      uid: Buffer.from(item.attestation_uid, 'hex'),
+      schemaUid: Buffer.from(item.schema_uid, 'hex'),
+      subject: item.subjectAddress,
+      attester: item.attesterAddress,
       value: item.value,
-      timestamp: item.timestamp,
-      expirationTime: item.expirationTime,
-      revocationTime: item.revocationTime,
+      timestamp: new Date(item.createdAt).getTime(),
+      expirationTime: item.expiration_time,
+      revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
       revoked: item.revoked || false
     }))
   } catch (error: any) {
@@ -96,7 +102,7 @@ export async function fetchSchemasByLedger(
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<ContractSchema[]> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas/ledger/${ledger}?limit=${limit}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?by_ledger=${ledger}&limit=${limit}`
     
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -116,14 +122,14 @@ export async function fetchSchemasByLedger(
 
     const data = await response.json()
     
-    // Transform the response to match our ContractSchema type
-    return (data.schemas || []).map((item: any) => ({
+    // Transform the horizon registry API response to match our ContractSchema type
+    return (data.data || []).map((item: any) => ({
       uid: Buffer.from(item.uid, 'hex'),
-      definition: item.definition,
-      authority: item.authority,
-      resolver: item.resolver,
+      definition: item.schema_definition || item.parsed_schema_definition,
+      authority: item.deployerAddress,
+      resolver: item.resolverAddress,
       revocable: item.revocable ?? true,
-      timestamp: item.timestamp || Date.now()
+      timestamp: new Date(item.createdAt).getTime()
     }))
   } catch (error: any) {
     if (error instanceof HorizonError) {
@@ -147,7 +153,7 @@ export async function fetchAttestationsByWallet(
   hasMore: boolean
 }> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations/wallet/${walletAddress}?limit=${limit}&offset=${offset}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?attester=${walletAddress}&limit=${limit}&offset=${offset}`
     
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -168,19 +174,19 @@ export async function fetchAttestationsByWallet(
     const data = await response.json()
     
     return {
-      attestations: (data.attestations || []).map((item: any) => ({
-        uid: Buffer.from(item.uid, 'hex'),
-        schemaUid: Buffer.from(item.schemaUid, 'hex'),
-        subject: item.subject,
-        attester: item.attester,
+      attestations: (data.data || []).map((item: any) => ({
+        uid: Buffer.from(item.attestation_uid, 'hex'),
+        schemaUid: Buffer.from(item.schema_uid, 'hex'),
+        subject: item.subjectAddress,
+        attester: item.attesterAddress,
         value: item.value,
-        timestamp: item.timestamp,
-        expirationTime: item.expirationTime,
-        revocationTime: item.revocationTime,
+        timestamp: new Date(item.createdAt).getTime(),
+        expirationTime: item.expiration_time,
+        revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
         revoked: item.revoked || false
       })),
-      total: data.total || 0,
-      hasMore: data.hasMore || false
+      total: data.pagination?.total || 0,
+      hasMore: data.pagination?.hasMore || false
     }
   } catch (error: any) {
     if (error instanceof HorizonError) {
@@ -204,7 +210,7 @@ export async function fetchSchemasByWallet(
   hasMore: boolean
 }> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas/wallet/${walletAddress}?limit=${limit}&offset=${offset}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?deployer=${walletAddress}&limit=${limit}&offset=${offset}`
     
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -225,16 +231,16 @@ export async function fetchSchemasByWallet(
     const data = await response.json()
     
     return {
-      schemas: (data.schemas || []).map((item: any) => ({
+      schemas: (data.data || []).map((item: any) => ({
         uid: Buffer.from(item.uid, 'hex'),
-        definition: item.definition,
-        authority: item.authority,
-        resolver: item.resolver,
+        definition: item.schema_definition || item.parsed_schema_definition,
+        authority: item.deployerAddress,
+        resolver: item.resolverAddress,
         revocable: item.revocable ?? true,
-        timestamp: item.timestamp || Date.now()
+        timestamp: new Date(item.createdAt).getTime()
       })),
-      total: data.total || 0,
-      hasMore: data.hasMore || false
+      total: data.pagination?.total || 0,
+      hasMore: data.pagination?.hasMore || false
     }
   } catch (error: any) {
     if (error instanceof HorizonError) {
@@ -252,7 +258,7 @@ export async function fetchLatestAttestations(
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<ContractAttestation[]> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?limit=${limit}&sort=desc`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?limit=${limit}`
     
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -272,15 +278,15 @@ export async function fetchLatestAttestations(
 
     const data = await response.json()
     
-    return (data.attestations || []).map((item: any) => ({
-      uid: Buffer.from(item.uid, 'hex'),
-      schemaUid: Buffer.from(item.schemaUid, 'hex'),
-      subject: item.subject,
-      attester: item.attester,
+    return (data.data || []).map((item: any) => ({
+      uid: Buffer.from(item.attestation_uid, 'hex'),
+      schemaUid: Buffer.from(item.schema_uid, 'hex'),
+      subject: item.subjectAddress,
+      attester: item.attesterAddress,
       value: item.value,
-      timestamp: item.timestamp,
-      expirationTime: item.expirationTime,
-      revocationTime: item.revocationTime,
+      timestamp: new Date(item.createdAt).getTime(),
+      expirationTime: item.expiration_time,
+      revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
       revoked: item.revoked || false
     }))
   } catch (error: any) {
@@ -299,7 +305,7 @@ export async function fetchLatestSchemas(
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<ContractSchema[]> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?limit=${limit}&sort=desc`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?limit=${limit}`
     
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -319,19 +325,121 @@ export async function fetchLatestSchemas(
 
     const data = await response.json()
     
-    return (data.schemas || []).map((item: any) => ({
+    return (data.data || []).map((item: any) => ({
       uid: Buffer.from(item.uid, 'hex'),
-      definition: item.definition,
-      authority: item.authority,
-      resolver: item.resolver,
+      definition: item.schema_definition || item.parsed_schema_definition,
+      authority: item.deployerAddress,
+      resolver: item.resolverAddress,
       revocable: item.revocable ?? true,
-      timestamp: item.timestamp || Date.now()
+      timestamp: new Date(item.createdAt).getTime()
     }))
   } catch (error: any) {
     if (error instanceof HorizonError) {
       throw error
     }
     throw new NetworkError(`Failed to fetch latest schemas: ${error.message}`, error)
+  }
+}
+
+/**
+ * Get a single attestation by UID
+ */
+export async function getAttestationByUid(
+  uid: string,
+  network: 'testnet' | 'mainnet' = 'testnet'
+): Promise<ContractAttestation | null> {
+  try {
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations/${uid}`
+    
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.status === 404) {
+      return null
+    }
+
+    if (!response.ok) {
+      throw new HorizonError(
+        `Failed to fetch attestation ${uid}`,
+        response.status,
+        endpoint
+      )
+    }
+
+    const data = await response.json()
+    const item = data.data
+    
+    return {
+      uid: Buffer.from(item.attestation_uid, 'hex'),
+      schemaUid: Buffer.from(item.schema_uid, 'hex'),
+      subject: item.subjectAddress,
+      attester: item.attesterAddress,
+      value: item.value,
+      timestamp: new Date(item.createdAt).getTime(),
+      expirationTime: item.expiration_time,
+      revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
+      revoked: item.revoked || false
+    }
+  } catch (error: any) {
+    if (error instanceof HorizonError) {
+      throw error
+    }
+    throw new NetworkError(`Failed to get attestation by UID: ${error.message}`, error)
+  }
+}
+
+/**
+ * Get a single schema by UID
+ */
+export async function getSchemaByUid(
+  uid: string,
+  includeAttestations: boolean = false,
+  network: 'testnet' | 'mainnet' = 'testnet'
+): Promise<ContractSchema | null> {
+  try {
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas/${uid}${includeAttestations ? '?include_attestations=true' : ''}`
+    
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.status === 404) {
+      return null
+    }
+
+    if (!response.ok) {
+      throw new HorizonError(
+        `Failed to fetch schema ${uid}`,
+        response.status,
+        endpoint
+      )
+    }
+
+    const data = await response.json()
+    const item = data.data
+    
+    return {
+      uid: Buffer.from(item.uid, 'hex'),
+      definition: item.schema_definition || item.parsed_schema_definition,
+      authority: item.deployerAddress,
+      resolver: item.resolverAddress,
+      revocable: item.revocable ?? true,
+      timestamp: new Date(item.createdAt).getTime()
+    }
+  } catch (error: any) {
+    if (error instanceof HorizonError) {
+      throw error
+    }
+    throw new NetworkError(`Failed to get schema by UID: ${error.message}`, error)
   }
 }
 
@@ -352,48 +460,53 @@ export async function fetchRegistryDump(
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<RegistryDump> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/dump`
-    
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    })
+    // Fetch both schemas and attestations in parallel since no single dump endpoint exists
+    const [schemasResponse, attestationsResponse] = await Promise.all([
+      fetch(`${REGISTRY_ENDPOINTS[network]}/schemas?limit=1000`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+      }),
+      fetch(`${REGISTRY_ENDPOINTS[network]}/attestations?limit=1000`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+      })
+    ])
 
-    if (!response.ok) {
+    if (!schemasResponse.ok || !attestationsResponse.ok) {
       throw new HorizonError(
         'Failed to fetch registry dump',
-        response.status,
-        endpoint
+        schemasResponse.status || attestationsResponse.status,
+        `${REGISTRY_ENDPOINTS[network]}/schemas and /attestations`
       )
     }
 
-    const data = await response.json()
+    const [schemasData, attestationsData] = await Promise.all([
+      schemasResponse.json(),
+      attestationsResponse.json()
+    ])
     
     return {
-      schemas: (data.schemas || []).map((item: any) => ({
+      schemas: (schemasData.data || []).map((item: any) => ({
         uid: Buffer.from(item.uid, 'hex'),
-        definition: item.definition,
-        authority: item.authority,
-        resolver: item.resolver,
+        definition: item.schema_definition || item.parsed_schema_definition,
+        authority: item.deployerAddress,
+        resolver: item.resolverAddress,
         revocable: item.revocable ?? true,
-        timestamp: item.timestamp || Date.now()
+        timestamp: new Date(item.createdAt).getTime()
       })),
-      attestations: (data.attestations || []).map((item: any) => ({
-        uid: Buffer.from(item.uid, 'hex'),
-        schemaUid: Buffer.from(item.schemaUid, 'hex'),
-        subject: item.subject,
-        attester: item.attester,
+      attestations: (attestationsData.data || []).map((item: any) => ({
+        uid: Buffer.from(item.attestation_uid, 'hex'),
+        schemaUid: Buffer.from(item.schema_uid, 'hex'),
+        subject: item.subjectAddress,
+        attester: item.attesterAddress,
         value: item.value,
-        timestamp: item.timestamp,
-        expirationTime: item.expirationTime,
-        revocationTime: item.revocationTime,
+        timestamp: new Date(item.createdAt).getTime(),
+        expirationTime: item.expiration_time,
+        revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
         revoked: item.revoked || false
       })),
-      timestamp: data.timestamp || Date.now(),
-      ledger: data.ledger || 0
+      timestamp: Date.now(),
+      ledger: Math.max(...(attestationsData.data || []).map((a: any) => a.ledger || 0), 0)
     }
   } catch (error: any) {
     if (error instanceof HorizonError) {
