@@ -13,7 +13,7 @@ export { StellarClient } from './client'
 // Export service classes for direct use
 export { StellarSchemaRegistry } from './schema'
 export { StellarAttestationService } from './attest'
-export { StellarAuthorityService } from './authority'
+export { AttestProtocolAuthority } from './authority'
 
 // Export standardized schema encoder
 export {

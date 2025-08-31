@@ -36,7 +36,7 @@ import {
 import { Address, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 
-export class StellarAuthorityService {
+export class AttestProtocolAuthority {
   private authorityClient: AuthorityClient
   private publicKey: string
 

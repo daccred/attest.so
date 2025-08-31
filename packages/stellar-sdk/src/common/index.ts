@@ -11,7 +11,7 @@
  */
 
 // Schema utilities
-export * from './schema-utils'
+export * from './errors'
 
 // Schema encoder core (main encoder classes and types)
 export * from './schemaEncoder'
