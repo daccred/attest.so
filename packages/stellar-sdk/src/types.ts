@@ -131,10 +131,20 @@ export interface ClientOptions {
   network?: 'testnet' | 'mainnet' | 'futurenet'
   /** Protocol contract ID */
   contractId?: string
+  /** Public Key for client instance*/
+  publicKey: string
   /** Network passphrase override */
   networkPassphrase?: string
   /** Allow HTTP connections (for local development) */
   allowHttp?: boolean
+}
+
+/**
+ * Transaction signer interface for wallet integration
+ */
+export interface TransactionSigner {
+  /** Sign a transaction XDR and return the signed XDR */
+  signTransaction(xdr: string, opts?: any): Promise<string>
 }
 
 /**
@@ -147,6 +157,8 @@ export interface TxOptions {
   timeoutInSeconds?: number
   /** Whether to simulate the transaction only */
   simulate?: boolean
+  /** Optional signer for automatic transaction signing */
+  signer?: TransactionSigner
 }
 
 /**

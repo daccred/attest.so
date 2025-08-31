@@ -7,8 +7,8 @@
 // Export the main SDK class
 export { StellarAttestProtocol } from './sdk'
 
-// Export the new StellarClient (main entry point for SDK requirements)
-export { StellarClient } from './client'
+// Export the new StellarAttestationClient (main entry point for SDK requirements)
+export { StellarAttestationClient } from './client'
 
 // Export service classes for direct use
 export { StellarSchemaRegistry } from './schema'

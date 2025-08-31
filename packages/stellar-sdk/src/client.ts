@@ -12,10 +12,12 @@ import {
   scValToNative,
   Address,
   nativeToScVal,
-  xdr
+  xdr,
+  Transaction
 } from '@stellar/stellar-sdk'
 
 import { 
+  type Client as ClientType,
   Client as ProtocolClient,
   networks as ProtocolNetworks 
 } from '@attestprotocol/stellar/dist/protocol'
@@ -29,7 +31,8 @@ import {
   ContractSchema,
   ContractAttestation,
   BlsKeyPair,
-  VerificationResult
+  VerificationResult,
+  TransactionSigner
 } from './types'
 
 import { generateAttestationUid, generateSchemaUid } from './utils/uidGenerator'
@@ -58,18 +61,25 @@ import {
   ConfigurationError,
   ErrorFactory
 } from './common/errors'
+import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass'
 
 /**
  * Main Stellar client for the Attest Protocol
  */
-export class StellarClient {
-  private protocolClient: ProtocolClient
+export class StellarAttestationClient {
+  private attestationProtocol: ClientType
   private server: rpc.Server
   private networkPassphrase: string
+  private callerPublicKey: string
   private options: ClientOptions
 
   constructor(options: ClientOptions) {
     this.options = options
+
+    if (!options.publicKey) {
+      throw new ConfigurationError('Public key is required')
+    }
+    this.callerPublicKey = options.publicKey
     
     // Initialize RPC server
     this.server = new rpc.Server(options.rpcUrl, {
@@ -99,11 +109,11 @@ export class StellarClient {
     if (!contractId) {
       switch (options.network) {
         case 'mainnet':
-          contractId = ProtocolNetworks.mainnet?.contractId || ''
+          contractId = ProtocolNetworks.mainnet.contractId || ''
           break
         case 'testnet':
         default:
-          contractId = ProtocolNetworks.testnet?.contractId || ''
+          contractId = ProtocolNetworks.testnet.contractId || ''
           break
       }
     }
@@ -116,21 +126,48 @@ export class StellarClient {
     }
 
     // Initialize protocol client
-    this.protocolClient = new ProtocolClient({
-      networkPassphrase: this.networkPassphrase,
-      rpcUrl: options.rpcUrl,
-      allowHttp: options.allowHttp ?? options.rpcUrl.startsWith('http://'),
+    this.attestationProtocol = new ProtocolClient({
       contractId,
+      rpcUrl: options.rpcUrl,
+      publicKey: options.publicKey,
+      networkPassphrase: this.networkPassphrase,
+      allowHttp: options.allowHttp ?? options.rpcUrl.startsWith('http://'),
     })
   }
 
   /**
    * 2. Revoke an attestation
+   * 
+   * Usage Examples:
+   * 
+   * // CLI with Keypair
+   * const keypair = Keypair.fromSecret('SECRET_KEY')
+   * const signer = {
+   *   signTransaction: async (xdr) => {
+   *     const tx = new Transaction(xdr, Networks.TESTNET)
+   *     tx.sign(keypair)
+   *     return tx.toXDR()
+   *   }
+   * }
+   * await client.revoke(attestationUid, { signer })
+   * 
+   * // Web with Freighter
+   * const signer = {
+   *   signTransaction: async (xdr) => {
+   *     return await window.freighter.signTransaction(xdr, { network: 'TESTNET' })
+   *   }
+   * }
+   * await client.revoke(attestationUid, { signer })
+   * 
+   * // Manual signing (returns unsigned transaction)
+   * const tx = await client.revoke(attestationUid)
+   * // User signs tx manually, then submit with:
+   * // await client.submitTransaction(signedXdr)
    */
   async revoke(attestationUid: Buffer, options?: TxOptions): Promise<any> {
     try {
-      const tx = await this.protocolClient.revoke({
-        revoker: '', // Will be set by the wallet signing the transaction
+      const tx = await this.attestationProtocol.revoke({
+        revoker: this.callerPublicKey,
         attestation_uid: attestationUid
       })
 
@@ -138,8 +175,14 @@ export class StellarClient {
         return await tx.simulate()
       }
 
-      const result = await tx.signAndSend()
-      return result
+      // If signer provided, sign and submit automatically
+      if (options?.signer) {
+        const signedXdr = await options.signer.signTransaction(tx.toXDR())
+        return await this.submitTransaction(signedXdr)
+      }
+
+      // Return unsigned transaction for manual signing
+      return tx
     } catch (error: any) {
       throw ErrorFactory.wrap(error, 'Failed to revoke attestation')
     }
@@ -147,16 +190,42 @@ export class StellarClient {
 
   /**
    * 3. Create an attestation
+   * 
+   * Usage Examples:
+   * 
+   * // CLI with Keypair
+   * const keypair = Keypair.fromSecret('SECRET_KEY')
+   * const signer = {
+   *   signTransaction: async (xdr) => {
+   *     const tx = new Transaction(xdr, Networks.TESTNET)
+   *     tx.sign(keypair)
+   *     return tx.toXDR()
+   *   }
+   * }
+   * const uid = await client.attest(schemaUid, value, expiration, { signer })
+   * 
+   * // Web with Freighter
+   * const signer = {
+   *   signTransaction: async (xdr) => {
+   *     return await window.freighter.signTransaction(xdr, { network: 'TESTNET' })
+   *   }
+   * }
+   * const uid = await client.attest(schemaUid, value, expiration, { signer })
+   * 
+   * // Manual signing (returns unsigned transaction)
+   * const tx = await client.attest(schemaUid, value, expiration)
+   * // User signs tx manually, then submit with:
+   * // const result = await client.submitTransaction(signedXdr)
    */
   async attest(
     schemaUid: Buffer, 
     value: string, 
     expiration?: number, 
     options?: TxOptions
-  ): Promise<Buffer> {
+  ): Promise<Buffer | any> {
     try {
-      const tx = await this.protocolClient.attest({
-        attester: '', // Will be set by the wallet signing the transaction
+      const tx = await this.attestationProtocol.attest({
+        attester: this.callerPublicKey,
         schema_uid: schemaUid,
         value,
         expiration_time: expiration
@@ -172,10 +241,16 @@ export class StellarClient {
         throw new Error('Simulation did not return attestation UID')
       }
 
-      const result = await tx.signAndSend()
-      // The attestation UID should be in the result
-      // This will need to be extracted from the transaction result
-      return Buffer.from(result.transactionHash || '', 'hex')
+      // If signer provided, sign and submit automatically
+      if (options?.signer) {
+        const signedXdr = await options.signer.signTransaction(tx.toXDR())
+        const result = await this.submitTransaction(signedXdr)
+        // Extract attestation UID from result
+        return Buffer.from(result.hash || result.transactionHash || '', 'hex')
+      }
+
+      // Return unsigned transaction for manual signing
+      return tx
     } catch (error: any) {
       throw new Error(`Failed to create attestation: ${error.message}`)
     }
@@ -197,18 +272,44 @@ export class StellarClient {
 
   /**
    * 6. Create a new schema
+   * 
+   * Usage Examples:
+   * 
+   * // CLI with Keypair
+   * const keypair = Keypair.fromSecret('SECRET_KEY')
+   * const signer = {
+   *   signTransaction: async (xdr) => {
+   *     const tx = new Transaction(xdr, Networks.TESTNET)
+   *     tx.sign(keypair)
+   *     return tx.toXDR()
+   *   }
+   * }
+   * const uid = await client.createSchema(definition, resolver, true, { signer })
+   * 
+   * // Web with Freighter
+   * const signer = {
+   *   signTransaction: async (xdr) => {
+   *     return await window.freighter.signTransaction(xdr, { network: 'TESTNET' })
+   *   }
+   * }
+   * const uid = await client.createSchema(definition, resolver, true, { signer })
+   * 
+   * // Manual signing (returns unsigned transaction)
+   * const tx = await client.createSchema(definition, resolver, true)
+   * // User signs tx manually, then submit with:
+   * // const result = await client.submitTransaction(signedXdr)
    */
   async createSchema(
     definition: string, 
     resolver?: string, 
     revocable: boolean = true, 
     options?: TxOptions
-  ): Promise<Buffer> {
+  ): Promise<Buffer | any> {
     try {
-      const tx = await this.protocolClient.register({
-        authority: '', // Will be set by the wallet signing the transaction
-        schema: definition,
-        resolver: resolver ? new Address(resolver) : undefined,
+      const tx = await this.attestationProtocol.register({
+        caller: this.callerPublicKey,
+        schema_definition: definition,
+        resolver: resolver || null,
         revocable
       })
 
@@ -221,9 +322,16 @@ export class StellarClient {
         throw new Error('Simulation did not return schema UID')
       }
 
-      const result = await tx.signAndSend()
-      // Extract schema UID from result
-      return Buffer.from(result.transactionHash || '', 'hex')
+      // If signer provided, sign and submit automatically
+      if (options?.signer) {
+        const signedXdr = await options.signer.signTransaction(tx.toXDR())
+        const result = await this.submitTransaction(signedXdr)
+        // Extract schema UID from result
+        return Buffer.from(result.hash || result.transactionHash || '', 'hex')
+      }
+
+      // Return unsigned transaction for manual signing
+      return tx
     } catch (error: any) {
       throw new Error(`Failed to create schema: ${error.message}`)
     }
@@ -234,7 +342,7 @@ export class StellarClient {
    */
   async getSchema(uid: Buffer): Promise<ContractSchema> {
     try {
-      const tx = await this.protocolClient.get_schema({
+      const tx = await this.attestationProtocol.get_schema({
         schema_uid: uid
       })
 
@@ -264,7 +372,7 @@ export class StellarClient {
    */
   async getAttestation(uid: Buffer): Promise<ContractAttestation> {
     try {
-      const tx = await this.protocolClient.get_attestation({
+      const tx = await this.attestationProtocol.get_attestation({
         attestation_uid: uid
       })
 
@@ -296,13 +404,13 @@ export class StellarClient {
    * 9. Create revoke message for delegation
    */
   createRevokeMessage(request: DelegatedRevocationRequest, dst: Buffer): Buffer {
-    return createRevokeMessage(request, dst)
+    return Buffer.from(createRevokeMessage(request, dst).toBytes(false))
   }
 
   /**
    * 10. Create attestation message for delegation
    */
-  createAttestMessage(request: DelegatedAttestationRequest, dst: Buffer): Buffer {
+  createAttestMessage(request: DelegatedAttestationRequest, dst: Buffer): WeierstrassPoint<bigint> {
     return createAttestMessage(request, dst)
   }
 
@@ -310,14 +418,14 @@ export class StellarClient {
    * 11. Get domain separator tag for revocations
    */
   async getRevokeDST(): Promise<Buffer> {
-    return getRevokeDST(this.protocolClient)
+    return getRevokeDST(this.attestationProtocol)
   }
 
   /**
    * 12. Get domain separator tag for attestations
    */
   async getAttestDST(): Promise<Buffer> {
-    return getAttestDST(this.protocolClient)
+    return getAttestDST(this.attestationProtocol)
   }
 
   /**
@@ -347,22 +455,34 @@ export class StellarClient {
   verifySignature(
     signedMessage: Buffer, 
     publicKey: Buffer, 
-    expectedMessage?: Buffer
+    expectedMessage: WeierstrassPoint<bigint>
   ): VerificationResult {
-    return verifySignature(signedMessage, publicKey, expectedMessage)
+    return verifySignature({
+      signature: signedMessage,
+      publicKey,
+      expectedMessage
+    })
   }
 
   /**
-   * 17. Submit signed transaction
+   * Submit a signed transaction to the network
+   * 
+   * Usage Examples:
+   * 
+   * // After manual signing
+   * const tx = await client.createSchema(definition)
+   * const signedXdr = await someWallet.signTransaction(tx.toXDR())
+   * const result = await client.submitTransaction(signedXdr)
    */
-  async submitSignedTx(signedXdr: string, options?: SubmitOptions): Promise<any> {
+  async submitTransaction(signedXdr: string, options?: SubmitOptions): Promise<any> {
     try {
-      const transaction = xdr.TransactionEnvelope.fromXDR(signedXdr, 'base64')
+      const transactionEnvelope = xdr.TransactionEnvelope.fromXDR(signedXdr, 'base64')
+      const transaction = new Transaction(transactionEnvelope, this.networkPassphrase)
       
       if (!options?.skipSimulation) {
         // Simulate first
         const simResult = await this.server.simulateTransaction(transaction)
-        if (simResult.error) {
+        if ('error' in simResult && simResult.error) {
           throw new Error(`Simulation failed: ${simResult.error}`)
         }
       }
@@ -372,6 +492,14 @@ export class StellarClient {
     } catch (error: any) {
       throw new Error(`Failed to submit transaction: ${error.message}`)
     }
+  }
+
+  /**
+   * 17. Submit signed transaction (alias for submitTransaction)
+   * @deprecated Use submitTransaction instead
+   */
+  async submitSignedTx(signedXdr: string, options?: SubmitOptions): Promise<any> {
+    return this.submitTransaction(signedXdr, options)
   }
 
   /**
@@ -396,7 +524,7 @@ export class StellarClient {
         message = this.createAttestMessage(attestRequest, dst)
         
         // Sign the message with BLS private key
-        const signature = signMessage(message, privateKey)
+        const signature = signHashedMessage(message, privateKey)
         
         // Create signed request
         signedRequest = {
@@ -442,13 +570,29 @@ export class StellarClient {
 
   /**
    * 20. Attest by delegation
+   * 
+   * Usage Examples:
+   * 
+   * // CLI with Keypair
+   * const signer = {
+   *   signTransaction: async (xdr) => {
+   *     const tx = new Transaction(xdr, Networks.TESTNET)
+   *     tx.sign(keypair)
+   *     return tx.toXDR()
+   *   }
+   * }
+   * await client.attestByDelegation(request, { signer })
+   * 
+   * // Manual signing
+   * const tx = await client.attestByDelegation(request)
+   * // User signs tx manually, then submit
    */
   async attestByDelegation(
     request: DelegatedAttestationRequest, 
     options?: TxOptions
   ): Promise<any> {
     try {
-      const tx = await this.protocolClient.attest_by_delegation({
+      const tx = await this.attestationProtocol.attest_by_delegation({
         request: {
           attester: request.attester,
           schema_uid: request.schemaUid,
@@ -463,21 +607,44 @@ export class StellarClient {
         return await tx.simulate()
       }
 
-      return await tx.signAndSend()
+      // If signer provided, sign and submit automatically
+      if (options?.signer) {
+        const signedXdr = await options.signer.signTransaction(tx.toXDR())
+        return await this.submitTransaction(signedXdr)
+      }
+
+      // Return unsigned transaction for manual signing
+      return tx
     } catch (error: any) {
       throw new Error(`Failed to attest by delegation: ${error.message}`)
     }
   }
 
   /**
-   * 20. Revoke by delegation
+   * 21. Revoke by delegation
+   * 
+   * Usage Examples:
+   * 
+   * // CLI with Keypair
+   * const signer = {
+   *   signTransaction: async (xdr) => {
+   *     const tx = new Transaction(xdr, Networks.TESTNET)
+   *     tx.sign(keypair)
+   *     return tx.toXDR()
+   *   }
+   * }
+   * await client.revokeByDelegation(request, { signer })
+   * 
+   * // Manual signing
+   * const tx = await client.revokeByDelegation(request)
+   * // User signs tx manually, then submit
    */
   async revokeByDelegation(
     request: DelegatedRevocationRequest, 
     options?: TxOptions
   ): Promise<any> {
     try {
-      const tx = await this.protocolClient.revoke_by_delegation({
+      const tx = await this.attestationProtocol.revoke_by_delegation({
         request: {
           revoker: request.revoker,
           attestation_uid: request.attestationUid,
@@ -491,7 +658,14 @@ export class StellarClient {
         return await tx.simulate()
       }
 
-      return await tx.signAndSend()
+      // If signer provided, sign and submit automatically
+      if (options?.signer) {
+        const signedXdr = await options.signer.signTransaction(tx.toXDR())
+        return await this.submitTransaction(signedXdr)
+      }
+
+      // Return unsigned transaction for manual signing
+      return tx
     } catch (error: any) {
       throw new Error(`Failed to revoke by delegation: ${error.message}`)
     }
@@ -586,14 +760,14 @@ export class StellarClient {
   /**
    * Get the underlying protocol client for advanced usage
    */
-  getProtocolClient(): ProtocolClient {
-    return this.protocolClient
+  getClientInstance(): ProtocolClient {
+    return this.attestationProtocol
   }
 
   /**
    * Get the RPC server instance
    */
-  getServer(): rpc.Server {
+  getServerInstance(): rpc.Server {
     return this.server
   }
 }
