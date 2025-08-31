@@ -1,6 +1,6 @@
 /**
  * @attestprotocol/stellar-sdk
- * 
+ *
  * Stellar implementation of the Attest Protocol SDK
  */
 
@@ -20,7 +20,7 @@ export {
   SchemaValidationError,
   type StellarSchemaDefinition,
   type SchemaField,
-  type EncodedAttestationData
+  type EncodedAttestationData,
 } from './common/schemaEncoder'
 
 // Export Stellar-specific types
@@ -41,7 +41,7 @@ export {
   decodeSchema,
   createAttestMessage,
   createRevokeMessage,
-  verifySignature
+  verifySignature,
 } from './utils'
 
 // Re-export core types for convenience
@@ -57,11 +57,11 @@ export {
   AttestProtocolErrorType,
   createSuccessResponse,
   createErrorResponse,
-  createAttestProtocolError
+  createAttestProtocolError,
 } from '@attestprotocol/core'
 
 // Re-export contract bindings for advanced usage
-export { 
+export {
   Client as ProtocolClient,
   networks as ProtocolNetworks,
   type ResolverAttestation,

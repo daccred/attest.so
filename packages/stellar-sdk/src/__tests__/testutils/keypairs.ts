@@ -6,10 +6,10 @@ import { Keypair } from '@stellar/stellar-sdk'
 
 /**
  * Create test keypairs for Stellar development and testing.
- * 
+ *
  * This utility generates funded test accounts that can be used for testing
  * the attestation protocol on Stellar testnet.
- * 
+ *
  * @returns Object containing authority and recipient keypairs
  */
 export function createTestKeypairs(): {
@@ -18,7 +18,6 @@ export function createTestKeypairs(): {
   authorityPublic: string
   recipientPublic: string
 } {
-
   const authority = Keypair.random()
   const recipient = Keypair.random()
 
@@ -32,17 +31,17 @@ export function createTestKeypairs(): {
 
 /**
  * Generate funding URLs for Stellar testnet accounts.
- * 
+ *
  * @param publicKeys - Array of public keys to generate funding URLs for
  * @returns Array of Friendbot URLs for funding the accounts
  */
 export function generateFundingUrls(publicKeys: string[]): string[] {
-  return publicKeys.map(key => `https://friendbot.stellar.org/?addr=${key}`)
+  return publicKeys.map((key) => `https://friendbot.stellar.org/?addr=${key}`)
 }
 
 /**
  * Check if a Stellar address is properly formatted.
- * 
+ *
  * @param address - The address to validate
  * @returns boolean - True if the address is valid
  */
@@ -52,7 +51,7 @@ export function isValidStellarAddress(address: string): boolean {
     if (address.length !== 56 || !address.startsWith('G')) {
       return false
     }
-    
+
     // Additional validation could be added here (checksum, etc.)
     return true
   } catch {

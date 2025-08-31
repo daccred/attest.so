@@ -22,17 +22,17 @@ export interface StellarConfig extends IProtocolConfig {
    * Either a secret key string or a custom signer implementation
    */
   secretKeyOrCustomSigner: string | StellarCustomSigner
-  
+
   /**
    * Public key address
    */
   publicKey: string
-  
+
   /**
    * Network passphrase (defaults to TESTNET)
    */
   networkPassphrase?: string
-  
+
   /**
    * Contract addresses for protocol and authority contracts
    */
@@ -40,7 +40,7 @@ export interface StellarConfig extends IProtocolConfig {
     protocol?: string
     authority?: string
   }
-  
+
   /**
    * Whether to allow HTTP connections (for development)
    */
@@ -214,7 +214,7 @@ export interface DelegatedRevocationRequest {
  */
 export interface BlsKeyPair {
   /** Public key (192 bytes uncompressed) */
-  publicKey: Uint8Array,
+  publicKey: Uint8Array
   /** Private key (32 bytes) */
   privateKey: Uint8Array
 }

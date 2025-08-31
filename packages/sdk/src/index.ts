@@ -25,7 +25,6 @@ import { StarknetAttestProtocol, StarknetConfig } from '@attestprotocol/starknet
  * Provides backward compatibility with the previous SDK interface
  */
 export class AttestProtocol {
- 
   /**
    * Initialize a Solana SDK instance
    * @param config Solana-specific configuration
@@ -76,9 +75,7 @@ export class AttestProtocol {
       case 'starknet':
         return this.initializeStarknet(config as StarknetConfig)
       default:
-        throw new Error(
-          `Unsupported chain: ${(config as any).chain}. Supported chains: stellar, solana, starknet`
-        )
+        throw new Error(`Unsupported chain: ${(config as any).chain}. Supported chains: stellar, solana, starknet`)
     }
   }
 }
@@ -96,7 +93,7 @@ export type ChainType = 'stellar' | 'solana' | 'starknet'
  */
 export type UnifiedConfig = {
   chain: ChainType
-} & ( SolanaConfig | StarknetConfig)
+} & (SolanaConfig | StarknetConfig)
 
 /**
  * Helper function to create a unified configuration

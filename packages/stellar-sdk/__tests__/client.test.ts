@@ -16,14 +16,29 @@ import {
   createSimpleSchema
 } from '../src/utils'
 import { ClientOptions } from '../src/types'
+import { Keypair } from '@stellar/stellar-sdk'
+
+const accountKeyPair = Keypair.random();
 
 describe('StellarAttestationClient', () => {
   let client: StellarAttestationClient
   
-  beforeAll(() => {
+  beforeAll(async () => {
+    // fund our Account KeyPair with the Friendbot API 
+    const friendbotUrl = `https://friendbot.stellar.org?addr=${accountKeyPair.publicKey()}`
+    await fetch(friendbotUrl)
+    .then(response => response.json())
+    .then(data => {
+      console.log('Friendbot response:', data)
+    })
+    .catch(error => {
+      console.error('Friendbot error:', error)
+    })
+
     const options: ClientOptions = {
       rpcUrl: 'https://soroban-testnet.stellar.org',
-      network: 'testnet'
+      network: 'testnet',
+      publicKey: accountKeyPair.publicKey(),
     }
     client = new StellarAttestationClient(options)
   })
@@ -31,14 +46,15 @@ describe('StellarAttestationClient', () => {
   describe('Client Initialization', () => {
     it('should create a client instance', () => {
       expect(client).toBeDefined()
-      expect(client.getProtocolClient()).toBeDefined()
-      expect(client.getServer()).toBeDefined()
+      expect(client.getClientInstance()).toBeDefined()
+      expect(client.getServerInstance()).toBeDefined()
     })
 
     it('should handle mainnet configuration', () => {
       const mainnetClient = new StellarAttestationClient({
         rpcUrl: 'https://soroban.stellar.org',
-        network: 'mainnet'
+        network: 'mainnet',
+        publicKey: accountKeyPair.publicKey(),
       })
       expect(mainnetClient).toBeDefined()
     })
@@ -46,7 +62,8 @@ describe('StellarAttestationClient', () => {
     it('should accept custom contract ID', () => {
       const customClient = new StellarAttestationClient({
         rpcUrl: 'https://soroban-testnet.stellar.org',
-        contractId: 'CCUSTOMCONTRACTIDEXAMPLE123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        contractId: 'CCUSTOMCONTRACTIDEXAMPLE123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        publicKey: accountKeyPair.publicKey(),
       })
       expect(customClient).toBeDefined()
     })
@@ -169,12 +186,13 @@ describe('StellarAttestationClient', () => {
   describe('Message Creation (Items 9-10)', () => {
     it('should create attestation message for delegation', () => {
       const request = {
-        schemaUid: Buffer.alloc(32, 3),
+        schema_uid: Buffer.alloc(32, 3),
         subject: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
         attester: 'GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBWHF',
         value: 'test-value',
         nonce: BigInt(1000),
         deadline: BigInt(Date.now() + 3600000),
+        expiration_time: undefined,
         signature: Buffer.alloc(96) // Placeholder
       }
       

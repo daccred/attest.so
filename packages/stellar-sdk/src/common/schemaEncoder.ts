@@ -1,6 +1,6 @@
 /**
  * Stellar Schema Encoder - Standardized schema definition and data encoding for Stellar attestations
- * 
+ *
  * Provides type-safe schema definitions and encoding/decoding utilities.
  */
 
@@ -24,7 +24,7 @@ export enum StellarDataType {
   OPTION = 'option',
   MAP = 'map',
   TIMESTAMP = 'timestamp',
-  AMOUNT = 'amount'
+  AMOUNT = 'amount',
 }
 
 /**
@@ -74,7 +74,10 @@ export interface EncodedAttestationData {
  * Schema validation error
  */
 export class SchemaValidationError extends Error {
-  constructor(message: string, public field?: string) {
+  constructor(
+    message: string,
+    public field?: string
+  ) {
     super(message)
     this.name = 'SchemaValidationError'
   }
@@ -105,13 +108,13 @@ export class SorobanSchemaEncoder {
     const schemaString = JSON.stringify({
       name: this.schema.name,
       version: this.schema.version,
-      fields: this.schema.fields.map(f => ({ name: f.name, type: f.type, optional: f.optional }))
+      fields: this.schema.fields.map((f) => ({ name: f.name, type: f.type, optional: f.optional })),
     })
-    
+
     const encoder = new TextEncoder()
     const data = encoder.encode(schemaString)
     return Array.from(new Uint8Array(data.slice(0, 32)))
-      .map(b => b.toString(16).padStart(2, '0'))
+      .map((b) => b.toString(16).padStart(2, '0'))
       .join('')
   }
 
@@ -121,29 +124,37 @@ export class SorobanSchemaEncoder {
   toXDR(): string {
     try {
       // Convert schema to XDR-encodable values
-      const fieldsXdr = this.schema.fields.map(field => {
+      const fieldsXdr = this.schema.fields.map((field) => {
         // Convert field to XDR Value
         const fieldObj = xdr.ScVal.scvMap([
           new xdr.ScMapEntry({
             key: xdr.ScVal.scvSymbol('name'),
-            val: xdr.ScVal.scvString(field.name)
+            val: xdr.ScVal.scvString(field.name),
           }),
           new xdr.ScMapEntry({
             key: xdr.ScVal.scvSymbol('type'),
-            val: xdr.ScVal.scvString(field.type)
+            val: xdr.ScVal.scvString(field.type),
           }),
           new xdr.ScMapEntry({
             key: xdr.ScVal.scvSymbol('optional'),
-            val: xdr.ScVal.scvBool(field.optional || false)
+            val: xdr.ScVal.scvBool(field.optional || false),
           }),
-          ...(field.description ? [new xdr.ScMapEntry({
-            key: xdr.ScVal.scvSymbol('description'),
-            val: xdr.ScVal.scvString(field.description)
-          })] : []),
-          ...(field.validation ? [new xdr.ScMapEntry({
-            key: xdr.ScVal.scvSymbol('validation'),
-            val: this.validationToXdr(field.validation)
-          })] : [])
+          ...(field.description
+            ? [
+                new xdr.ScMapEntry({
+                  key: xdr.ScVal.scvSymbol('description'),
+                  val: xdr.ScVal.scvString(field.description),
+                }),
+              ]
+            : []),
+          ...(field.validation
+            ? [
+                new xdr.ScMapEntry({
+                  key: xdr.ScVal.scvSymbol('validation'),
+                  val: this.validationToXdr(field.validation),
+                }),
+              ]
+            : []),
         ])
         return fieldObj
       })
@@ -152,20 +163,20 @@ export class SorobanSchemaEncoder {
       const schemaXdr = xdr.ScVal.scvMap([
         new xdr.ScMapEntry({
           key: xdr.ScVal.scvSymbol('name'),
-          val: xdr.ScVal.scvString(this.schema.name)
+          val: xdr.ScVal.scvString(this.schema.name),
         }),
         new xdr.ScMapEntry({
           key: xdr.ScVal.scvSymbol('version'),
-          val: xdr.ScVal.scvString(this.schema.version)
+          val: xdr.ScVal.scvString(this.schema.version),
         }),
         new xdr.ScMapEntry({
           key: xdr.ScVal.scvSymbol('description'),
-          val: xdr.ScVal.scvString(this.schema.description)
+          val: xdr.ScVal.scvString(this.schema.description),
         }),
         new xdr.ScMapEntry({
           key: xdr.ScVal.scvSymbol('fields'),
-          val: xdr.ScVal.scvVec(fieldsXdr)
-        })
+          val: xdr.ScVal.scvVec(fieldsXdr),
+        }),
       ])
 
       // Convert to XDR string
@@ -181,42 +192,54 @@ export class SorobanSchemaEncoder {
    */
   private validationToXdr(validation: any): xdr.ScVal {
     const entries: xdr.ScMapEntry[] = []
-    
+
     if (validation.min !== undefined) {
-      entries.push(new xdr.ScMapEntry({
-        key: xdr.ScVal.scvSymbol('min'),
-        val: xdr.ScVal.scvI128(new xdr.Int128Parts({
-          hi: xdr.Uint64.fromString('0'),
-          lo: xdr.Uint64.fromString(validation.min.toString())
-        }))
-      }))
+      entries.push(
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol('min'),
+          val: xdr.ScVal.scvI128(
+            new xdr.Int128Parts({
+              hi: xdr.Uint64.fromString('0'),
+              lo: xdr.Uint64.fromString(validation.min.toString()),
+            })
+          ),
+        })
+      )
     }
-    
+
     if (validation.max !== undefined) {
-      entries.push(new xdr.ScMapEntry({
-        key: xdr.ScVal.scvSymbol('max'),
-        val: xdr.ScVal.scvI128(new xdr.Int128Parts({
-          hi: xdr.Uint64.fromString('0'),
-          lo: xdr.Uint64.fromString(validation.max.toString())
-        }))
-      }))
+      entries.push(
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol('max'),
+          val: xdr.ScVal.scvI128(
+            new xdr.Int128Parts({
+              hi: xdr.Uint64.fromString('0'),
+              lo: xdr.Uint64.fromString(validation.max.toString()),
+            })
+          ),
+        })
+      )
     }
-    
+
     if (validation.pattern) {
-      entries.push(new xdr.ScMapEntry({
-        key: xdr.ScVal.scvSymbol('pattern'),
-        val: xdr.ScVal.scvString(validation.pattern)
-      }))
+      entries.push(
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol('pattern'),
+          val: xdr.ScVal.scvString(validation.pattern),
+        })
+      )
     }
-    
+
     if (validation.enum && validation.enum.length > 0) {
       const enumValues = validation.enum.map((val: string) => xdr.ScVal.scvString(val))
-      entries.push(new xdr.ScMapEntry({
-        key: xdr.ScVal.scvSymbol('enum'),
-        val: xdr.ScVal.scvVec(enumValues)
-      }))
+      entries.push(
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol('enum'),
+          val: xdr.ScVal.scvVec(enumValues),
+        })
+      )
     }
-    
+
     return xdr.ScVal.scvMap(entries)
   }
 
@@ -230,10 +253,10 @@ export class SorobanSchemaEncoder {
       }
 
       const xdrData = xdrString.substring(4)
-      
+
       // Parse XDR back to ScVal
       const schemaScVal = xdr.ScVal.fromXDR(xdrData, 'base64')
-      
+
       if (schemaScVal.switch() !== xdr.ScValType.scvMap()) {
         throw new Error('XDR data is not a map')
       }
@@ -289,7 +312,7 @@ export class SorobanSchemaEncoder {
    * Helper to parse fields array from XDR
    */
   private static parseFieldsFromXdr(fieldsXdr: xdr.ScVal[]): SchemaField[] {
-    return fieldsXdr.map(fieldXdr => {
+    return fieldsXdr.map((fieldXdr) => {
       if (fieldXdr.switch() !== xdr.ScValType.scvMap()) {
         throw new Error('Field is not a map')
       }
@@ -373,12 +396,14 @@ export class SorobanSchemaEncoder {
           break
         case 'enum':
           if (val.switch() === xdr.ScValType.scvVec()) {
-            validation.enum = (val.vec() || []).map(enumVal => {
-              if (enumVal.switch() === xdr.ScValType.scvString()) {
-                return enumVal.str().toString()
-              }
-              return ''
-            }).filter(v => v)
+            validation.enum = (val.vec() || [])
+              .map((enumVal) => {
+                if (enumVal.switch() === xdr.ScValType.scvString()) {
+                  return enumVal.str().toString()
+                }
+                return ''
+              })
+              .filter((v) => v)
           }
           break
       }
@@ -387,13 +412,12 @@ export class SorobanSchemaEncoder {
     return validation
   }
 
-
   /**
    * Encode attestation data according to the schema
    */
   async encodeData(data: Record<string, any>): Promise<EncodedAttestationData> {
     this.validateData(data)
-    
+
     const encodedData = JSON.stringify(this.processDataForEncoding(data))
     const schemaHash = this.getSchemaHash()
 
@@ -401,7 +425,7 @@ export class SorobanSchemaEncoder {
       schemaHash,
       encodedData,
       decodedData: { ...data },
-      schema: this.getSchema()
+      schema: this.getSchema(),
     }
   }
 
@@ -430,7 +454,7 @@ export class SorobanSchemaEncoder {
 
     // Validate each field
     for (const [key, value] of Object.entries(data)) {
-      const field = this.schema.fields.find(f => f.name === key)
+      const field = this.schema.fields.find((f) => f.name === key)
       if (!field) {
         throw new SchemaValidationError(`Unknown field '${key}'`, key)
       }
@@ -464,7 +488,7 @@ export class SorobanSchemaEncoder {
     for (const field of this.schema.fields) {
       properties[field.name] = {
         type: this.stellarTypeToJSONSchemaType(field.type),
-        description: field.description
+        description: field.description,
       }
 
       // If this is an address, add encoding and media type hints for round-trip fidelity
@@ -490,7 +514,7 @@ export class SorobanSchemaEncoder {
       version: this.schema.version,
       properties,
       required,
-      additionalProperties: false
+      additionalProperties: false,
     }
   }
 
@@ -508,9 +532,8 @@ export class SorobanSchemaEncoder {
       const isBase32Encoded = property.contentEncoding === 'base32'
       const mediaType: string | undefined = property.contentMediaType
       const isWalletAddress = typeof mediaType === 'string' && mediaType.startsWith('application/vnd.daccred.address')
-      const resolvedType = (baseType === StellarDataType.STRING && (isBase32Encoded || isWalletAddress))
-        ? StellarDataType.ADDRESS
-        : baseType
+      const resolvedType =
+        baseType === StellarDataType.STRING && (isBase32Encoded || isWalletAddress) ? StellarDataType.ADDRESS : baseType
 
       fields.push({
         name,
@@ -521,8 +544,8 @@ export class SorobanSchemaEncoder {
           min: property.minimum,
           max: property.maximum,
           pattern: property.pattern,
-          enum: property.enum
-        }
+          enum: property.enum,
+        },
       })
     }
 
@@ -530,7 +553,7 @@ export class SorobanSchemaEncoder {
       name: jsonSchema.title || 'Untitled Schema',
       version: jsonSchema.version || '1.0.0',
       description: jsonSchema.description || '',
-      fields
+      fields,
     }
 
     return new SorobanSchemaEncoder(schema)
@@ -653,7 +676,7 @@ export class SorobanSchemaEncoder {
     const processed: Record<string, any> = {}
 
     for (const [key, value] of Object.entries(data)) {
-      const field = this.schema.fields.find(f => f.name === key)
+      const field = this.schema.fields.find((f) => f.name === key)
       if (!field) continue
 
       switch (field.type) {
@@ -688,7 +711,7 @@ export class SorobanSchemaEncoder {
     const processed: Record<string, any> = {}
 
     for (const [key, value] of Object.entries(data)) {
-      const field = this.schema.fields.find(f => f.name === key)
+      const field = this.schema.fields.find((f) => f.name === key)
       if (!field) {
         processed[key] = value
         continue
@@ -746,10 +769,12 @@ export class SorobanSchemaEncoder {
    * Check if a type is valid Stellar type
    */
   private isValidStellarType(type: string): boolean {
-    return Object.values(StellarDataType).includes(type as StellarDataType) ||
-           type.startsWith('array<') ||
-           type.startsWith('option<') ||
-           type.startsWith('map<')
+    return (
+      Object.values(StellarDataType).includes(type as StellarDataType) ||
+      type.startsWith('array<') ||
+      type.startsWith('option<') ||
+      type.startsWith('map<')
+    )
   }
 
   /**

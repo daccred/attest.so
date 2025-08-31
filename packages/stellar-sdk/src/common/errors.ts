@@ -22,7 +22,7 @@ export class StellarClientError extends Error {
     this.code = code
     this.details = details
     this.timestamp = new Date()
-    
+
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, StellarClientError)
     }
@@ -35,7 +35,7 @@ export class StellarClientError extends Error {
       code: this.code,
       details: this.details,
       timestamp: this.timestamp,
-      stack: this.stack
+      stack: this.stack,
     }
   }
 }
@@ -211,11 +211,10 @@ export class NotFoundError extends StellarClientError {
   public readonly resourceId?: string
 
   constructor(resourceType: string, resourceId?: string) {
-    super(
-      `${resourceType}${resourceId ? ` with ID '${resourceId}'` : ''} not found`,
-      'NOT_FOUND',
-      { resourceType, resourceId }
-    )
+    super(`${resourceType}${resourceId ? ` with ID '${resourceId}'` : ''} not found`, 'NOT_FOUND', {
+      resourceType,
+      resourceId,
+    })
     this.name = 'NotFoundError'
     this.resourceType = resourceType
     this.resourceId = resourceId
@@ -251,11 +250,10 @@ export class TimeoutError extends StellarClientError {
   public readonly operation?: string
 
   constructor(operation: string, timeoutMs?: number) {
-    super(
-      `Operation '${operation}' timed out${timeoutMs ? ` after ${timeoutMs}ms` : ''}`,
-      'TIMEOUT_ERROR',
-      { operation, timeoutMs }
-    )
+    super(`Operation '${operation}' timed out${timeoutMs ? ` after ${timeoutMs}ms` : ''}`, 'TIMEOUT_ERROR', {
+      operation,
+      timeoutMs,
+    })
     this.name = 'TimeoutError'
     this.operation = operation
     this.timeoutMs = timeoutMs
@@ -304,18 +302,18 @@ export enum ErrorCode {
   NETWORK_ERROR = 'NETWORK_ERROR',
   NETWORK_TIMEOUT = 'NETWORK_TIMEOUT',
   NETWORK_UNAVAILABLE = 'NETWORK_UNAVAILABLE',
-  
+
   // Contract errors
   CONTRACT_ERROR = 'CONTRACT_ERROR',
   CONTRACT_NOT_FOUND = 'CONTRACT_NOT_FOUND',
   CONTRACT_CALL_FAILED = 'CONTRACT_CALL_FAILED',
-  
+
   // Transaction errors
   TRANSACTION_ERROR = 'TRANSACTION_ERROR',
   TRANSACTION_FAILED = 'TRANSACTION_FAILED',
   TRANSACTION_SIMULATION_FAILED = 'TRANSACTION_SIMULATION_FAILED',
   INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',
-  
+
   // Validation errors
   VALIDATION_ERROR = 'VALIDATION_ERROR',
   INVALID_ADDRESS = 'INVALID_ADDRESS',
@@ -323,48 +321,48 @@ export enum ErrorCode {
   INVALID_ATTESTATION_UID = 'INVALID_ATTESTATION_UID',
   INVALID_SIGNATURE = 'INVALID_SIGNATURE',
   INVALID_INPUT = 'INVALID_INPUT',
-  
+
   // Schema errors
   SCHEMA_ERROR = 'SCHEMA_ERROR',
   SCHEMA_NOT_FOUND = 'SCHEMA_NOT_FOUND',
   SCHEMA_ALREADY_EXISTS = 'SCHEMA_ALREADY_EXISTS',
   SCHEMA_INVALID_FORMAT = 'SCHEMA_INVALID_FORMAT',
-  
+
   // Attestation errors
   ATTESTATION_ERROR = 'ATTESTATION_ERROR',
   ATTESTATION_NOT_FOUND = 'ATTESTATION_NOT_FOUND',
   ATTESTATION_ALREADY_EXISTS = 'ATTESTATION_ALREADY_EXISTS',
   ATTESTATION_EXPIRED = 'ATTESTATION_EXPIRED',
   ATTESTATION_REVOKED = 'ATTESTATION_REVOKED',
-  
+
   // Cryptography errors
   CRYPTOGRAPHY_ERROR = 'CRYPTOGRAPHY_ERROR',
   SIGNATURE_VERIFICATION_FAILED = 'SIGNATURE_VERIFICATION_FAILED',
   KEY_GENERATION_FAILED = 'KEY_GENERATION_FAILED',
-  
+
   // Configuration errors
   CONFIGURATION_ERROR = 'CONFIGURATION_ERROR',
   MISSING_CONTRACT_ID = 'MISSING_CONTRACT_ID',
   INVALID_NETWORK = 'INVALID_NETWORK',
-  
+
   // Feature errors
   NOT_IMPLEMENTED = 'NOT_IMPLEMENTED',
   DEPRECATED = 'DEPRECATED',
-  
+
   // Authorization errors
   AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',
   UNAUTHORIZED = 'UNAUTHORIZED',
   FORBIDDEN = 'FORBIDDEN',
-  
+
   // Other errors
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-  INTERNAL_ERROR = 'INTERNAL_ERROR'
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
 }
 
 /**
  * A factory class for creating appropriate error instances from error codes or wrapping existing errors.
  * This helps in standardizing error creation and handling.
- * 
+ *
  * @example
  * ```typescript
  * // Creating an error from a code
@@ -373,7 +371,7 @@ export enum ErrorCode {
  *   'Schema not found',
  *   { schemaUid: '0x123...' }
  * );
- * 
+ *
  * // Wrapping an external error
  * try {
  *   await someThirdPartyApiCall();
@@ -397,18 +395,18 @@ export class ErrorFactory {
       case ErrorCode.NETWORK_TIMEOUT:
       case ErrorCode.NETWORK_UNAVAILABLE:
         return new NetworkError(message, details)
-      
+
       case ErrorCode.CONTRACT_ERROR:
       case ErrorCode.CONTRACT_NOT_FOUND:
       case ErrorCode.CONTRACT_CALL_FAILED:
         return new ContractError(message, details?.contractId, details?.method, details)
-      
+
       case ErrorCode.TRANSACTION_ERROR:
       case ErrorCode.TRANSACTION_FAILED:
       case ErrorCode.TRANSACTION_SIMULATION_FAILED:
       case ErrorCode.INSUFFICIENT_FUNDS:
         return new TransactionError(message, details?.txHash, details?.status, details)
-      
+
       case ErrorCode.VALIDATION_ERROR:
       case ErrorCode.INVALID_ADDRESS:
       case ErrorCode.INVALID_SCHEMA_UID:
@@ -416,38 +414,38 @@ export class ErrorFactory {
       case ErrorCode.INVALID_SIGNATURE:
       case ErrorCode.INVALID_INPUT:
         return new ValidationError(message, details?.field, details?.value)
-      
+
       case ErrorCode.SCHEMA_ERROR:
       case ErrorCode.SCHEMA_NOT_FOUND:
       case ErrorCode.SCHEMA_ALREADY_EXISTS:
       case ErrorCode.SCHEMA_INVALID_FORMAT:
         return new SchemaError(message, details?.schemaUid, details?.schemaName, details)
-      
+
       case ErrorCode.ATTESTATION_ERROR:
       case ErrorCode.ATTESTATION_NOT_FOUND:
       case ErrorCode.ATTESTATION_ALREADY_EXISTS:
       case ErrorCode.ATTESTATION_EXPIRED:
       case ErrorCode.ATTESTATION_REVOKED:
         return new AttestationError(message, details?.attestationUid, details?.schemaUid, details)
-      
+
       case ErrorCode.CRYPTOGRAPHY_ERROR:
       case ErrorCode.SIGNATURE_VERIFICATION_FAILED:
       case ErrorCode.KEY_GENERATION_FAILED:
         return new CryptographyError(message, details?.operation, details)
-      
+
       case ErrorCode.CONFIGURATION_ERROR:
       case ErrorCode.MISSING_CONTRACT_ID:
       case ErrorCode.INVALID_NETWORK:
         return new ConfigurationError(message, details?.missingField)
-      
+
       case ErrorCode.NOT_IMPLEMENTED:
         return new NotImplementedError(details?.feature || 'Unknown feature', details?.plannedScope)
-      
+
       case ErrorCode.AUTHORIZATION_ERROR:
       case ErrorCode.UNAUTHORIZED:
       case ErrorCode.FORBIDDEN:
         return new AuthorizationError(message, details?.requiredRole, details?.currentRole)
-      
+
       default:
         return new StellarClientError(message, code, details)
     }
@@ -457,7 +455,7 @@ export class ErrorFactory {
    * Wraps any thrown value into a `StellarClientError`.
    * If the error is already a `StellarClientError`, it is returned as is.
    * It also attempts to infer a more specific error type from the original error's properties.
-   * 
+   *
    * @param {any} error - The error to wrap.
    * @param {string} [context] - An optional context message to prepend to the error message.
    * @returns {StellarClientError} The wrapped error.
@@ -467,9 +465,7 @@ export class ErrorFactory {
       return error
     }
 
-    const message = context 
-      ? `${context}: ${error?.message || String(error)}`
-      : error?.message || String(error)
+    const message = context ? `${context}: ${error?.message || String(error)}` : error?.message || String(error)
 
     if (error?.code === 'ECONNREFUSED' || error?.code === 'ETIMEDOUT') {
       return new NetworkError(message, { originalError: error })
@@ -588,25 +584,25 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
       return false
     }
     return false
-  }
+  },
 }
 
 /**
  * A utility function to execute an operation with a retry mechanism using exponential backoff.
  * This is useful for making operations more resilient to transient failures like network issues.
- * 
+ *
  * @template T - The return type of the operation.
  * @param {() => Promise<T>} operation - The asynchronous operation to execute.
  * @param {Partial<RetryConfig>} [config={}] - Optional partial configuration to override the default retry settings.
  * @returns {Promise<T>} A promise that resolves with the result of the operation if successful.
  * @throws {StellarClientError} Throws the last error encountered if all retry attempts fail.
- * 
+ *
  * @example
  * ```typescript
  * async function fetchSomeData() {
  *   // a network call that might fail
  * }
- * 
+ *
  * try {
  *   const data = await withRetry(fetchSomeData, { maxAttempts: 5 });
  *   console.log('Data fetched successfully:', data);
@@ -615,35 +611,32 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
  * }
  * ```
  */
-export async function withRetry<T>(
-  operation: () => Promise<T>,
-  config: Partial<RetryConfig> = {}
-): Promise<T> {
+export async function withRetry<T>(operation: () => Promise<T>, config: Partial<RetryConfig> = {}): Promise<T> {
   const finalConfig = { ...DEFAULT_RETRY_CONFIG, ...config }
   let lastError: StellarClientError | undefined
-  
+
   for (let attempt = 1; attempt <= finalConfig.maxAttempts; attempt++) {
     try {
       return await operation()
     } catch (error) {
       lastError = ErrorFactory.wrap(error)
-      
+
       if (attempt === finalConfig.maxAttempts) {
         break
       }
-      
+
       if (finalConfig.shouldRetry && !finalConfig.shouldRetry(lastError, attempt)) {
         break
       }
-      
+
       const backoff = Math.min(
         finalConfig.backoffMs * Math.pow(2, attempt - 1) + Math.random() * 1000, // Exponential backoff with jitter
         finalConfig.maxBackoffMs
       )
-      
-      await new Promise(resolve => setTimeout(resolve, backoff))
+
+      await new Promise((resolve) => setTimeout(resolve, backoff))
     }
   }
-  
+
   throw lastError || new StellarClientError('Operation failed after retries', 'RETRY_EXHAUSTED')
 }

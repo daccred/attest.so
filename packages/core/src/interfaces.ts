@@ -17,7 +17,7 @@ import {
   ListAttestationsBySchemaParams,
   ListSchemasByIssuerParams,
   PaginatedResponse,
-  ChainConfig
+  ChainConfig,
 } from './types'
 
 /**
@@ -32,7 +32,7 @@ export interface IAttestProtocol {
   initialize(): Promise<AttestProtocolResponse<void>>
 
   // Authority Management
-  
+
   /**
    * Register the current wallet/account as an authority
    * @returns Promise resolving to the authority ID
@@ -104,14 +104,18 @@ export interface IAttestProtocol {
    * @param params Query parameters including wallet and filters
    * @returns Promise resolving to paginated list of attestations
    */
-  listAttestationsByWallet(params: ListAttestationsByWalletParams): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>>
+  listAttestationsByWallet(
+    params: ListAttestationsByWalletParams
+  ): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>>
 
   /**
    * List attestations for a specific schema
    * @param params Query parameters including schema UID and filters
    * @returns Promise resolving to paginated list of attestations
    */
-  listAttestationsBySchema(params: ListAttestationsBySchemaParams): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>>
+  listAttestationsBySchema(
+    params: ListAttestationsBySchemaParams
+  ): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>>
 
   /**
    * Revoke an existing attestation

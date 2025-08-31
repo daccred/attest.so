@@ -65,7 +65,6 @@ export interface Attestation {
   [key: string]: any
 }
 
-
 /**
  * Generic schema creation configuration
  */
@@ -168,7 +167,7 @@ export enum AttestProtocolErrorType {
   INVALID_SIGNATURE_ERROR = 'INVALID_SIGNATURE_ERROR',
   EXPIRED_ERROR = 'EXPIRED_ERROR',
   REVOKED_ERROR = 'REVOKED_ERROR',
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
 }
 
 /**

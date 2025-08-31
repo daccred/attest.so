@@ -6,7 +6,7 @@ import { createStandardizedSchemaEncoder } from './standardizedSchemas'
 
 /**
  * Validate attestation data against a schema type.
- * 
+ *
  * @param schemaType - Type of schema to validate against
  * @param data - Data to validate
  * @returns Validation result with any errors

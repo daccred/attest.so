@@ -1,6 +1,6 @@
 /**
  * Schema Encoding/Decoding Utilities
- * 
+ *
  * Functions for encoding and decoding schema definitions to/from XDR format
  * compatible with the Stellar Attest Protocol.
  */
@@ -9,7 +9,7 @@ import { SorobanSchemaEncoder, StellarSchemaDefinition } from '../common/schemaE
 
 /**
  * Encode a schema definition to XDR string format.
- * 
+ *
  * @param schema - The schema definition object
  * @returns XDR-encoded string with "XDR:" prefix
  */
@@ -20,7 +20,7 @@ export function encodeSchema(schema: StellarSchemaDefinition): string {
 
 /**
  * Decode a schema from XDR or JSON format.
- * 
+ *
  * @param encoded - The encoded schema string (XDR or JSON)
  * @returns The decoded schema definition
  */
@@ -30,7 +30,7 @@ export function decodeSchema(encoded: string): StellarSchemaDefinition {
     const decodedEncoder = SorobanSchemaEncoder.fromXDR(encoded)
     return decodedEncoder.getSchema()
   }
-  
+
   // Try to parse as JSON
   try {
     const parsed = JSON.parse(encoded)
@@ -49,7 +49,7 @@ export function decodeSchema(encoded: string): StellarSchemaDefinition {
 
 /**
  * Validate a schema definition.
- * 
+ *
  * @param schema - The schema definition to validate
  * @returns True if valid, throws error if invalid
  */
@@ -61,7 +61,7 @@ export function validateSchema(schema: StellarSchemaDefinition): boolean {
 
 /**
  * Create a simple schema definition for testing.
- * 
+ *
  * @param name - Schema name
  * @param fields - Array of field definitions
  * @returns A schema definition object
@@ -74,10 +74,10 @@ export function createSimpleSchema(
     name,
     version: '1.0',
     description: `Schema for ${name}`,
-    fields: fields.map(field => ({
+    fields: fields.map((field) => ({
       name: field.name,
       type: field.type as any, // Will be validated by encoder
-      optional: field.optional ?? false
-    }))
+      optional: field.optional ?? false,
+    })),
   }
 }

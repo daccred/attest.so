@@ -1,6 +1,6 @@
 /**
  * BLS (Boneh-Lynn-Shacham) Cryptography Utilities
- * 
+ *
  * Functions for BLS key generation, signing, and verification
  * using the BLS12-381 curve for delegated attestations.
  * @packageDocumentation
@@ -8,26 +8,25 @@
 
 import { bls12_381 } from '@noble/curves/bls12-381'
 import { VerificationResult, BlsKeyPair } from '../types'
-import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass';
+import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass'
 
-
-/** 
+/**
  * The core BLS pairing curve we support is short signatures.
- * @internal 
+ * @internal
  */
-const curve = bls12_381.shortSignatures;
+const curve = bls12_381.shortSignatures
 
 /**
  * @internal
  */
 type VerifyAggregateSignatureParams = {
-  message: Buffer,
+  message: Buffer
   publicKey: Buffer
 }
 
 /**
  * Generate a new BLS key pair for delegation.
- * 
+ *
  * @returns {BlsKeyPair} A BLS key pair with uncompressed public key (192 bytes) and private key (32 bytes).
  * @example
  * ```typescript
@@ -35,17 +34,17 @@ type VerifyAggregateSignatureParams = {
  * ```
  */
 export function generateBlsKeys(): BlsKeyPair {
-const { secretKey, publicKey } = curve.keygen();
+  const { secretKey, publicKey } = curve.keygen()
   return {
-    privateKey: secretKey,
-    publicKey: publicKey.toBytes(false),
+    privateKey: Buffer.from(secretKey),
+    publicKey: Buffer.from(publicKey.toBytes(false)),
   }
 }
 
 /**
  * Sign a hashed message with a BLS private key.
  * The message should be pre-hashed and mapped to a point on the curve.
- * 
+ *
  * @param {WeierstrassPoint<bigint>} message - The message to sign (as a point on the G1 curve).
  * @param {Uint8Array} privateKey - The BLS private key.
  * @returns {Buffer} The signature as a Buffer.
@@ -54,14 +53,14 @@ const { secretKey, publicKey } = curve.keygen();
  * @example
  * ```typescript
  * import { createAttestationMessage } from 'common/utils';
- * 
+ *
  * const { privateKey } = generateBlsKeys();
  * const attestationData = {
  *   schemaId: 'schema123',
  *   recipient: 'GABCDEF...',
  *   data: Buffer.from('attestation data')
  * };
- * 
+ *
  * // Generate the message point using createAttestationMessage
  * const messagePoint = createAttestationMessage(attestationData);
  * const signature = signHashedMessage(messagePoint, privateKey);
@@ -75,7 +74,7 @@ export function signHashedMessage(message: WeierstrassPoint<bigint>, privateKey:
 
 /**
  * Verify a BLS signature against a given message and public key.
- * 
+ *
  * This function performs a full signature verification. If `expectedMessage` is not provided,
  * it performs a basic format check on the signature, but this does not guarantee authenticity.
  * For full security, always provide the `expectedMessage`.
@@ -89,7 +88,7 @@ export function signHashedMessage(message: WeierstrassPoint<bigint>, privateKey:
  * const { privateKey, publicKey } = generateBlsKeys();
  * // Assuming `messagePoint` is created from a message.
  * const signature = signHashedMessage(messagePoint, privateKey);
- * 
+ *
  * const result = verifySignature(signature, messagePoint, Buffer.from(publicKey));
  * console.log('Is signature valid?', result.isValid); // true
  * ```
@@ -99,44 +98,46 @@ export function verifySignature({
   expectedMessage,
   publicKey,
 }: {
-  signature: Buffer,
-  expectedMessage: WeierstrassPoint<bigint>,
-  publicKey: Buffer,
+  signature: Buffer
+  expectedMessage: WeierstrassPoint<bigint>
+  publicKey: Buffer
 }): VerificationResult {
   try {
     if (expectedMessage) {
       const isValid = curve.verify(signature, expectedMessage, publicKey)
-      
+
       return {
         isValid,
-        metadata: isValid ? {
-          originalMessage: Buffer.from(expectedMessage.toBytes(false)),
-          inputs: {}
-        } : undefined
+        metadata: isValid
+          ? {
+              originalMessage: Buffer.from(expectedMessage.toBytes(false)),
+              inputs: {},
+            }
+          : undefined,
       }
     }
-    
+
     try {
       bls12_381.G1.Point.fromHex(signature.toString('hex'))
-      
+
       return {
         isValid: true,
         metadata: {
           originalMessage: Buffer.from([]),
           inputs: {
             signatureLength: signature.length,
-            publicKeyLength: publicKey.length
-          }
-        }
+            publicKeyLength: publicKey.length,
+          },
+        },
       }
     } catch {
       return {
-        isValid: false
+        isValid: false,
       }
     }
   } catch (error: any) {
     return {
-      isValid: false
+      isValid: false,
     }
   }
 }
@@ -158,9 +159,9 @@ export function aggregateSignatures(signatures: Buffer[]): Buffer {
   if (signatures.length === 0) {
     throw new Error('Cannot aggregate empty signature array')
   }
-  
+
   const aggregated = curve.aggregateSignatures(signatures)
-  return Buffer.from(aggregated.toBytes(false));
+  return Buffer.from(aggregated.toBytes(false))
 }
 
 /**
@@ -180,18 +181,15 @@ export function aggregatePublicKeys(publicKeys: Buffer[]): Buffer {
   if (publicKeys.length === 0) {
     throw new Error('Cannot aggregate empty public key array')
   }
-  
-  const points = publicKeys.map(pk => 
-    bls12_381.G2.Point.fromHex(pk.toString('hex'))
-  )
-  
+
+  const points = publicKeys.map((pk) => bls12_381.G2.Point.fromHex(pk.toString('hex')))
+
   let aggregated = points[0]
   for (let i = 1; i < points.length; i++) {
     aggregated = aggregated.add(points[i])
   }
-  return Buffer.from(aggregated.toBytes(false));
+  return Buffer.from(aggregated.toBytes(false))
 }
-
 
 /**
  * Verify an aggregated signature against multiple messages and public keys.
@@ -212,11 +210,11 @@ export function aggregatePublicKeys(publicKeys: Buffer[]): Buffer {
  */
 export function verifyAggregateSignature(
   aggregatedSignature: Buffer,
-  params: VerifyAggregateSignatureParams[],
+  params: VerifyAggregateSignatureParams[]
 ): boolean {
-  const paramsArray = params.map(param => ({
+  const paramsArray = params.map((param) => ({
     message: bls12_381.G1.Point.fromHex(param.message.toString('hex')),
-    publicKey: bls12_381.G2.Point.fromHex(param.publicKey.toString('hex'))
+    publicKey: bls12_381.G2.Point.fromHex(param.publicKey.toString('hex')),
   }))
   try {
     return curve.verifyBatch(aggregatedSignature, paramsArray)
@@ -243,9 +241,9 @@ export function decompressPublicKey(compressedKey: Buffer): Uint8Array {
   if (compressedKey.length !== 96) {
     throw new Error('Compressed G2 public key must be 96 bytes')
   }
-  
+
   const point = bls12_381.G2.Point.fromHex(compressedKey.toString('hex'))
-  return point.toBytes(false);
+  return point.toBytes(false)
 }
 
 /**
@@ -265,7 +263,7 @@ export function compressPublicKey(uncompressedKey: Buffer): Uint8Array {
   if (uncompressedKey.length !== 192) {
     throw new Error('Uncompressed G2 public key must be 192 bytes')
   }
-  
+
   const point = bls12_381.G2.Point.fromHex(uncompressedKey.toString('hex'))
-  return point.toBytes(true);
+  return point.toBytes(true)
 }

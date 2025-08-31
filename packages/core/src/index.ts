@@ -1,6 +1,6 @@
 /**
  * @attestprotocol/core
- * 
+ *
  * Core abstractions and interfaces for Attest Protocol SDKs
  * This package provides the foundation for all chain-specific implementations
  */
@@ -26,7 +26,7 @@ export {
   AttestProtocolErrorType,
   createSuccessResponse,
   createErrorResponse,
-  createAttestProtocolError
+  createAttestProtocolError,
 } from './types'
 
 export {
@@ -34,12 +34,7 @@ export {
   type IProtocolConfig,
   type IBatchOperations,
   type IOffChainOperations,
-  type IEventListener
+  type IEventListener,
 } from './interfaces'
 
-export {
-  AttestProtocolBase,
-  BatchAttestProtocol,
-  OffChainAttestProtocol,
-  EventListenerAttestProtocol
-} from './base'
+export { AttestProtocolBase, BatchAttestProtocol, OffChainAttestProtocol, EventListenerAttestProtocol } from './base'
