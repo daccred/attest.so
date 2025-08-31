@@ -14,4 +14,4 @@
 export * from './schema-utils'
 
 // Schema encoder core (main encoder classes and types)
-export * from './schema-encoder'
+export * from './schemaEncoder'
