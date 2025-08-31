@@ -515,7 +515,7 @@ export class StellarAttestationClient {
       const isAttestation = 'schemaUid' in request && 'value' in request
       
       // Get the appropriate DST and create message
-      let message: Buffer
+      let message: WeierstrassPoint<bigint>
       let signedRequest: any
       
       if (isAttestation) {
@@ -540,7 +540,7 @@ export class StellarAttestationClient {
         message = this.createRevokeMessage(revokeRequest, dst)
         
         // Sign the message with BLS private key
-        const signature = signMessage(message, privateKey)
+        const signature = signHashedMessage(message, privateKey)
         
         // Create signed request
         signedRequest = {
