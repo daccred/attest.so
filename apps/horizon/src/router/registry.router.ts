@@ -52,7 +52,6 @@ function transformAttestationForAPI(attestation: any) {
     createdAt: attestation.createdAt?.toISOString(),
     revokedAt: attestation.revokedAt?.toISOString(),
     revoked: attestation.revoked,
-    schema: attestation.schema ? transformSchemaForAPI(attestation.schema) : undefined,
   }
 }
 
@@ -71,8 +70,6 @@ function transformSchemaForAPI(schema: any) {
     createdAt: schema.createdAt?.toISOString(),
     type: schema.type,
     transaction_hash: schema.transactionHash,
-    attestation_count: schema._count?.attestations,
-    recent_attestations: schema.attestations?.map(transformAttestationForAPI),
   }
 }
 
