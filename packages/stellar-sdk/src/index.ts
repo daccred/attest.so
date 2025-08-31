@@ -30,7 +30,7 @@ export {
 export * from './types'
 
 // Export error handling utilities
-export * from './errors'
+export * from './common/errors'
 
 // Export all utilities
 export * as utils from './utils'

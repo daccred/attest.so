@@ -32,15 +32,15 @@ import {
   VerificationResult
 } from './types'
 
-import { generateAttestationUid, generateSchemaUid } from './utils/uid-generator'
-import { encodeSchema, decodeSchema } from './utils/schema-codec'
+import { generateAttestationUid, generateSchemaUid } from './utils/uidGenerator'
+import { encodeSchema, decodeSchema } from './utils/schemaCodec'
 import { 
   createAttestMessage, 
   createRevokeMessage,
   getAttestDST,
   getRevokeDST 
 } from './utils/delegation'
-import { generateBlsKeys, verifySignature, signMessage } from './utils/bls'
+import { generateBlsKeys, verifySignature, signHashedMessage } from './utils/bls'
 import { 
   fetchAttestationsByLedger,
   fetchSchemasByLedger,
@@ -48,7 +48,7 @@ import {
   fetchLatestSchemas,
   fetchAttestationsByWallet,
   fetchSchemasByWallet
-} from './utils/horizon'
+} from './utils/indexer'
 import { 
   NetworkError, 
   ContractError, 
@@ -57,7 +57,7 @@ import {
   NotImplementedError,
   ConfigurationError,
   ErrorFactory
-} from './errors'
+} from './common/errors'
 
 /**
  * Main Stellar client for the Attest Protocol

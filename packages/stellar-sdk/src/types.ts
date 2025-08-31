@@ -200,9 +200,9 @@ export interface DelegatedRevocationRequest {
  */
 export interface BlsKeyPair {
   /** Public key (192 bytes uncompressed) */
-  publicKey: Buffer
+  publicKey: Uint8Array,
   /** Private key (32 bytes) */
-  privateKey: Buffer
+  privateKey: Uint8Array
 }
 
 /**
