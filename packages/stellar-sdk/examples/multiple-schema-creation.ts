@@ -5,11 +5,11 @@
  * schema management, and attestation creation using the Stellar SDK.
  */
 
+import { Keypair } from '@stellar/stellar-sdk'
 import StellarAttestProtocol, { 
   StellarSchemaEncoder, 
   StellarSchemaRegistry,
   StellarDataType,
-  common as _internal 
 } from '../src'
 
 async function demonstrateMultipleSchemas() {
@@ -23,7 +23,15 @@ async function demonstrateMultipleSchemas() {
     url: 'https://soroban-testnet.stellar.org'
   })
 
-  const testKeypairs = _internal.createTestKeypairs()
+  const authority = Keypair.random()
+  const recipient = Keypair.random()
+ 
+  const testKeypairs = {
+    authority,
+    recipient,
+    authorityPublic: authority.publicKey(),
+    recipientPublic: recipient.publicKey(),
+  }
 
   // 1. Creating Multiple Custom Schemas using Schema Service
   console.log('📋 Feature 1: Creating Multiple Custom Schemas')
