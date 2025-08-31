@@ -1,5 +1,11 @@
 # @attestprotocol/core
 
+## 1.7.2
+
+### Patch Changes
+
+- 9f70611: sdk API standardization
+
 ## 1.7.1
 
 ### Patch Changes

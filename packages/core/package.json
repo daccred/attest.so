@@ -1,7 +1,7 @@
 {
   "name": "@attestprotocol/core",
   "description": "Core abstractions and interfaces for Attest Protocol SDKs",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "author": "daccred",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "devDependencies": {

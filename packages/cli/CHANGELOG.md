@@ -1,5 +1,13 @@
 # @attestprotocol/cli
 
+## 1.7.2
+
+### Patch Changes
+
+- 9f70611: sdk API standardization
+- Updated dependencies [9f70611]
+  - @attestprotocol/sdk@1.7.2
+
 ## 1.7.1
 
 ### Patch Changes
