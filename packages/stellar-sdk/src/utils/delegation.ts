@@ -33,7 +33,7 @@ export function createAttestMessage(
   components.push(dst)
   
   // Schema UID (32 bytes)
-  components.push(request.schemaUid)
+  components.push(request.schema_uid)
   
   // Nonce (8 bytes, big-endian u64)
   const nonceBuffer = Buffer.allocUnsafe(8)
@@ -46,9 +46,9 @@ export function createAttestMessage(
   components.push(deadlineBuffer)
   
   // Optional expiration time (8 bytes if present)
-  if (request.expirationTime !== undefined) {
+  if (request.expiration_time !== undefined) {
     const expirationBuffer = Buffer.allocUnsafe(8)
-    expirationBuffer.writeBigUInt64BE(BigInt(request.expirationTime), 0)
+    expirationBuffer.writeBigUInt64BE(BigInt(request.expiration_time), 0)
     components.push(expirationBuffer)
   }
   
@@ -82,7 +82,7 @@ export function createRevokeMessage(
   components.push(dst)
   
   // Attestation UID (32 bytes)
-  components.push(request.attestationUid)
+  components.push(request.attestation_uid)
   
   // Nonce (8 bytes, big-endian u64)
   const nonceBuffer = Buffer.allocUnsafe(8)
@@ -177,13 +177,13 @@ export async function createDelegatedAttestationRequest(client: ProtocolClient, 
   expirationTime?: number
 }): Promise<Omit<DelegatedAttestationRequest, "signature">> {
   return {
-    schemaUid: params.schemaUid,
+    schema_uid: params.schemaUid,
     subject: params.subject,
     attester: params.attester,
     value: params.value,
     deadline: params.deadline,
     nonce: await getAttesterNonce(client, params.attester),
-    expirationTime: params.expirationTime
+    expiration_time: params.expirationTime
   }
 }
 
@@ -194,13 +194,17 @@ export async function createDelegatedAttestationRequest(client: ProtocolClient, 
  * @returns A delegated revocation request ready for signing
  */
 export async function createDelegatedRevocationRequest(client: ProtocolClient, params: {
-  attestationUid: Buffer
+  attestation_uid: Buffer
+  schema_uid: Buffer
+  subject: string
   revoker: string
   nonce?: bigint
   deadline: bigint
 }): Promise<Omit<DelegatedRevocationRequest, 'signature'>> {
   return {
-    attestationUid: params.attestationUid,
+    attestation_uid: params.attestation_uid,
+    schema_uid: params.schema_uid,
+    subject: params.subject,
     revoker: params.revoker,
     deadline: params.deadline,
     nonce: await getAttesterNonce(client, params.revoker),

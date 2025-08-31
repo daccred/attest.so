@@ -4,9 +4,6 @@
  * Stellar implementation of the Attest Protocol SDK
  */
 
-// Export the main SDK class
-export { StellarAttestProtocol } from './sdk'
-
 // Export the new StellarAttestationClient (main entry point for SDK requirements)
 export { StellarAttestationClient } from './client'
 
@@ -82,7 +79,3 @@ export {
 
 // Internal utilities (for advanced usage and testing)
 export * as common from './common'
-
-// Default export for convenience
-import { StellarAttestProtocol } from './sdk'
-export default StellarAttestProtocol

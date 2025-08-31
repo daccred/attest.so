@@ -171,42 +171,42 @@ export interface SubmitOptions extends TxOptions {
  * Delegated attestation request
  */
 export interface DelegatedAttestationRequest {
-  /** Schema UID (32 bytes) */
-  schemaUid: Buffer
-  /** Subject address */
-  subject: string
-  /** Attester address */
+  /** The address of the original attester (who signed off-chain) */
   attester: string
-  /** Attestation value */
-  value: string
-  /** Nonce for uniqueness */
-  nonce: bigint
-  /** Deadline timestamp */
+  /** Expiration timestamp for this signed request */
   deadline: bigint
-  /** Optional expiration time */
-  expirationTime?: number
-  /** BLS signature */
+  /** Optional expiration time for the attestation itself */
+  expiration_time: number | undefined
+  /** The nonce for this attestation (must be the next expected nonce for the attester) */
+  nonce: bigint
+  /** The unique identifier of the schema this attestation follows */
+  schema_uid: Buffer
+  /** BLS12-381 G1 signature of the request data (96 bytes) */
   signature: Buffer
+  /** The address of the entity that is the subject of this attestation */
+  subject: string
+  /** The value or content of the attestation */
+  value: string
 }
 
 /**
  * Delegated revocation request
  */
 export interface DelegatedRevocationRequest {
-  /** Attestation UID to revoke */
-  attestationUid: Buffer
-  /** Schema UID (32 bytes) */
-  schemaUid: Buffer
-  /** Subject address */
-  subject: string
-  /** Revoker address */
-  revoker: string
-  /** Nonce for uniqueness */
-  nonce: bigint
-  /** Deadline timestamp */
+  /** The unique identifier of the attestation to revoke */
+  attestation_uid: Buffer
+  /** Expiration timestamp for this signed request */
   deadline: bigint
-  /** BLS signature */
+  /** The nonce of the attestation to revoke */
+  nonce: bigint
+  /** The address of the original attester (who signed off-chain) */
+  revoker: string
+  /** The unique identifier of the schema */
+  schema_uid: Buffer
+  /** BLS12-381 G1 signature of the request data (96 bytes) */
   signature: Buffer
+  /** The address of the entity that is the subject of the attestation to revoke */
+  subject: string
 }
 
 /**

@@ -396,9 +396,6 @@ const { data, error } = await sdk.createSchema({
 ###### `fetchSchemaById(uid: string): Promise<AttestProtocolResponse<Schema | null>>`
 Retrieve a schema by its UID.
 
-###### `generateIdFromSchema(schema: SchemaDefinition): Promise<AttestProtocolResponse<string>>`
-Generate a schema UID from a schema definition.
-
 ###### `listSchemasByIssuer(params: ListSchemasByIssuerParams): Promise<AttestProtocolResponse<PaginatedResponse<Schema>>>`
 List schemas created by a specific issuer.
 

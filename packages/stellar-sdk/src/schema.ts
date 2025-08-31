@@ -205,24 +205,7 @@ export class StellarSchemaRegistry {
       );
     }
   }
-
-  /**
-   * Generate a deterministic ID from schema definition
-   */
-  async generateIdFromSchema(schema: SchemaDefinition): Promise<AttestProtocolResponse<string>> {
-    try {
-      const { generateIdFromSchema: generateId } = await import('./common')
-      const uid = await generateId(schema, this.publicKey)
-      return createSuccessResponse(uid)
-    } catch (error: any) {
-      return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.VALIDATION_ERROR,
-          error.message || 'Failed to generate schema ID'
-        )
-      )
-    }
-  }
+ 
 
   /**
    * List schemas by issuer

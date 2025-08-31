@@ -32,7 +32,15 @@ import {
   ContractAttestation,
   BlsKeyPair,
   VerificationResult,
-  TransactionSigner
+  TransactionSigner,
+  AttestParams,
+  RevokeParams,
+  CreateSchemaParams,
+  FetchAttestationsByWalletParams,
+  FetchSchemasByWalletParams,
+  FetchByLedgerParams,
+  GenerateAttestationUidParams,
+  GenerateSchemaUidParams
 } from './types'
 
 import { generateAttestationUid, generateSchemaUid } from './utils/uidGenerator'
@@ -136,36 +144,29 @@ export class StellarAttestationClient {
   }
 
   /**
-   * 2. Revoke an attestation
+   * Revoke an attestation
    * 
    * Usage Examples:
    * 
-   * // CLI with Keypair
-   * const keypair = Keypair.fromSecret('SECRET_KEY')
-   * const signer = {
-   *   signTransaction: async (xdr) => {
-   *     const tx = new Transaction(xdr, Networks.TESTNET)
-   *     tx.sign(keypair)
-   *     return tx.toXDR()
-   *   }
-   * }
-   * await client.revoke(attestationUid, { signer })
+   * // Object-based approach (recommended)
+   * await client.revoke({
+   *   attestationUid: Buffer.from('...'),
+   *   options: { signer }
+   * })
    * 
-   * // Web with Freighter
-   * const signer = {
-   *   signTransaction: async (xdr) => {
-   *     return await window.freighter.signTransaction(xdr, { network: 'TESTNET' })
-   *   }
-   * }
+   * // Legacy positional arguments (backward compatibility)
    * await client.revoke(attestationUid, { signer })
-   * 
-   * // Manual signing (returns unsigned transaction)
-   * const tx = await client.revoke(attestationUid)
-   * // User signs tx manually, then submit with:
-   * // await client.submitTransaction(signedXdr)
    */
-  async revoke(attestationUid: Buffer, options?: TxOptions): Promise<any> {
+  async revoke(params: RevokeParams): Promise<any>
+  async revoke(attestationUid: Buffer, options?: TxOptions): Promise<any>
+  async revoke(
+    paramsOrUid: RevokeParams | Buffer, 
+    legacyOptions?: TxOptions
+  ): Promise<any> {
     try {
+      // Handle both object and positional arguments
+      const { attestationUid, options } = this.normalizeRevokeArgs(paramsOrUid, legacyOptions)
+
       const tx = await this.attestationProtocol.revoke({
         revoker: this.callerPublicKey,
         attestation_uid: attestationUid
@@ -189,46 +190,45 @@ export class StellarAttestationClient {
   }
 
   /**
-   * 3. Create an attestation
+   * Create an attestation
    * 
    * Usage Examples:
    * 
-   * // CLI with Keypair
-   * const keypair = Keypair.fromSecret('SECRET_KEY')
-   * const signer = {
-   *   signTransaction: async (xdr) => {
-   *     const tx = new Transaction(xdr, Networks.TESTNET)
-   *     tx.sign(keypair)
-   *     return tx.toXDR()
-   *   }
-   * }
-   * const uid = await client.attest(schemaUid, value, expiration, { signer })
+   * // Object-based approach (recommended)
+   * await client.attest({
+   *   schemaUid: Buffer.from('...'),
+   *   value: JSON.stringify({ name: 'John', age: 30 }),
+   *   subject: 'GSUBJECT123...',
+   *   expirationTime: Date.now() + 365*24*60*60*1000,
+   *   options: { signer }
+   * })
    * 
-   * // Web with Freighter
-   * const signer = {
-   *   signTransaction: async (xdr) => {
-   *     return await window.freighter.signTransaction(xdr, { network: 'TESTNET' })
-   *   }
-   * }
-   * const uid = await client.attest(schemaUid, value, expiration, { signer })
-   * 
-   * // Manual signing (returns unsigned transaction)
-   * const tx = await client.attest(schemaUid, value, expiration)
-   * // User signs tx manually, then submit with:
-   * // const result = await client.submitTransaction(signedXdr)
+   * // Legacy positional arguments (backward compatibility)
+   * await client.attest(schemaUid, value, expiration, { signer })
    */
+  async attest(params: AttestParams): Promise<Buffer | any>
   async attest(
     schemaUid: Buffer, 
     value: string, 
     expiration?: number, 
     options?: TxOptions
+  ): Promise<Buffer | any>
+  async attest(
+    paramsOrSchemaUid: AttestParams | Buffer,
+    legacyValue?: string,
+    legacyExpiration?: number,
+    legacyOptions?: TxOptions
   ): Promise<Buffer | any> {
     try {
+      // Handle both object and positional arguments
+      const { schemaUid, value, subject, expirationTime, options } = 
+        this.normalizeAttestArgs(paramsOrSchemaUid, legacyValue, legacyExpiration, legacyOptions)
+
       const tx = await this.attestationProtocol.attest({
         attester: this.callerPublicKey,
         schema_uid: schemaUid,
         value,
-        expiration_time: expiration
+        expiration_time: expirationTime
       })
 
       if (options?.simulate) {
@@ -257,60 +257,101 @@ export class StellarAttestationClient {
   }
 
   /**
-   * 4. Generate attestation UID
+   * Generate attestation UID
+   * 
+   * Usage Examples:
+   * 
+   * // Object-based approach (recommended)
+   * const uid = client.generateAttestationUid({
+   *   schemaUid: Buffer.from('...'),
+   *   subject: 'GSUBJECT123...',
+   *   nonce: BigInt(12345)
+   * })
+   * 
+   * // Legacy positional arguments
+   * const uid = client.generateAttestationUid(schemaUid, subject, nonce)
    */
-  generateAttestationUid(schemaUid: Buffer, subject: string, nonce: bigint): Buffer {
+  generateAttestationUid(params: GenerateAttestationUidParams): Buffer
+  generateAttestationUid(schemaUid: Buffer, subject: string, nonce: bigint): Buffer
+  generateAttestationUid(
+    paramsOrSchemaUid: GenerateAttestationUidParams | Buffer,
+    legacySubject?: string,
+    legacyNonce?: bigint
+  ): Buffer {
+    const { schemaUid, subject, nonce } = this.normalizeGenerateAttestationUidArgs(
+      paramsOrSchemaUid, legacySubject, legacyNonce
+    )
     return generateAttestationUid(schemaUid, subject, nonce)
   }
 
   /**
-   * 5. Generate schema UID
+   * Generate schema UID
+   * 
+   * Usage Examples:
+   * 
+   * // Object-based approach (recommended)
+   * const uid = client.generateSchemaUid({
+   *   definition: 'struct Identity { string name; uint age; }',
+   *   authority: 'GAUTHORITY123...',
+   *   resolver: 'GRESOLVER123...'
+   * })
+   * 
+   * // Legacy positional arguments
+   * const uid = client.generateSchemaUid(definition, authority, resolver)
    */
-  generateSchemaUid(definition: string, authority: string, resolver?: string): Buffer {
+  generateSchemaUid(params: GenerateSchemaUidParams): Buffer
+  generateSchemaUid(definition: string, authority: string, resolver?: string): Buffer
+  generateSchemaUid(
+    paramsOrDefinition: GenerateSchemaUidParams | string,
+    legacyAuthority?: string,
+    legacyResolver?: string
+  ): Buffer {
+    const { definition, authority, resolver } = this.normalizeGenerateSchemaUidArgs(
+      paramsOrDefinition, legacyAuthority, legacyResolver
+    )
     return generateSchemaUid(definition, authority, resolver)
   }
 
   /**
-   * 6. Create a new schema
+   * Create a new schema
    * 
    * Usage Examples:
    * 
-   * // CLI with Keypair
-   * const keypair = Keypair.fromSecret('SECRET_KEY')
-   * const signer = {
-   *   signTransaction: async (xdr) => {
-   *     const tx = new Transaction(xdr, Networks.TESTNET)
-   *     tx.sign(keypair)
-   *     return tx.toXDR()
-   *   }
-   * }
-   * const uid = await client.createSchema(definition, resolver, true, { signer })
+   * // Object-based approach (recommended)
+   * await client.createSchema({
+   *   definition: 'struct Identity { string name; uint age; }',
+   *   resolver: 'GRESOLVER123...',
+   *   revocable: true,
+   *   options: { signer }
+   * })
    * 
-   * // Web with Freighter
-   * const signer = {
-   *   signTransaction: async (xdr) => {
-   *     return await window.freighter.signTransaction(xdr, { network: 'TESTNET' })
-   *   }
-   * }
-   * const uid = await client.createSchema(definition, resolver, true, { signer })
-   * 
-   * // Manual signing (returns unsigned transaction)
-   * const tx = await client.createSchema(definition, resolver, true)
-   * // User signs tx manually, then submit with:
-   * // const result = await client.submitTransaction(signedXdr)
+   * // Legacy positional arguments
+   * await client.createSchema(definition, resolver, true, { signer })
    */
+  async createSchema(params: CreateSchemaParams): Promise<Buffer | any>
   async createSchema(
     definition: string, 
     resolver?: string, 
-    revocable: boolean = true, 
+    revocable?: boolean, 
     options?: TxOptions
+  ): Promise<Buffer | any>
+  async createSchema(
+    paramsOrDefinition: CreateSchemaParams | string,
+    legacyResolver?: string,
+    legacyRevocable?: boolean,
+    legacyOptions?: TxOptions
   ): Promise<Buffer | any> {
     try {
+      // Handle both object and positional arguments
+      const { definition, resolver, revocable, options } = this.normalizeCreateSchemaArgs(
+        paramsOrDefinition, legacyResolver, legacyRevocable, legacyOptions
+      )
+
       const tx = await this.attestationProtocol.register({
         caller: this.callerPublicKey,
         schema_definition: definition,
         resolver: resolver || null,
-        revocable
+        revocable: revocable ?? true
       })
 
       if (options?.simulate) {
@@ -338,7 +379,7 @@ export class StellarAttestationClient {
   }
 
   /**
-   * 7. Get schema by UID
+   * Get schema by UID
    */
   async getSchema(uid: Buffer): Promise<ContractSchema> {
     try {
@@ -368,7 +409,7 @@ export class StellarAttestationClient {
   }
 
   /**
-   * 8. Get attestation by UID
+   * Get attestation by UID
    */
   async getAttestation(uid: Buffer): Promise<ContractAttestation> {
     try {
@@ -559,8 +600,15 @@ export class StellarAttestationClient {
   /**
    * 19. Get attestations by ledger (Horizon integration)
    */
-  async getAttestationsByLedger(ledger: number, limit?: number): Promise<ContractAttestation[]> {
+  async getAttestationsByLedger(params: FetchByLedgerParams): Promise<ContractAttestation[]>
+  async getAttestationsByLedger(ledger: number, limit?: number): Promise<ContractAttestation[]>
+  async getAttestationsByLedger(
+    paramsOrLedger: FetchByLedgerParams | number,
+    legacyLimit?: number
+  ): Promise<ContractAttestation[]> {
     try {
+      const { ledger, limit } = this.normalizeFetchByLedgerArgs(paramsOrLedger, legacyLimit)
+      
       const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
       return await fetchAttestationsByLedger(ledger, limit, network)
     } catch (error: any) {
@@ -594,16 +642,7 @@ export class StellarAttestationClient {
     try {
       const tx = await this.attestationProtocol.attest_by_delegation({
         submitter: this.callerPublicKey,
-        request: {
-          attester: request.attester,
-          schema_uid: request.schemaUid,
-          subject: request.subject,
-          value: request.value,
-          nonce: request.nonce,
-          deadline: request.deadline,
-          expiration_time: request.expirationTime,
-          signature: request.signature
-        }
+        request
       })
 
       if (options?.simulate) {
@@ -649,15 +688,7 @@ export class StellarAttestationClient {
     try {
       const tx = await this.attestationProtocol.revoke_by_delegation({
         submitter: this.callerPublicKey,
-        request: {
-          revoker: request.revoker,
-          attestation_uid: request.attestationUid, // Protocol expects snake_case
-          schema_uid: request.schemaUid, // Protocol expects snake_case
-          subject: request.subject,
-          nonce: request.nonce,
-          deadline: request.deadline,
-          signature: request.signature
-        } as any // Cast to any to handle naming differences
+        request
       })
 
       if (options?.simulate) {
@@ -704,8 +735,15 @@ export class StellarAttestationClient {
   /**
    * 23. Get schemas by ledger
    */
-  async getSchemasByLedger(ledger: number, limit?: number): Promise<ContractSchema[]> {
+  async getSchemasByLedger(params: FetchByLedgerParams): Promise<ContractSchema[]>
+  async getSchemasByLedger(ledger: number, limit?: number): Promise<ContractSchema[]>
+  async getSchemasByLedger(
+    paramsOrLedger: FetchByLedgerParams | number,
+    legacyLimit?: number
+  ): Promise<ContractSchema[]> {
     try {
+      const { ledger, limit } = this.normalizeFetchByLedgerArgs(paramsOrLedger, legacyLimit)
+      
       const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
       return await fetchSchemasByLedger(ledger, limit, network)
     } catch (error: any) {
@@ -716,50 +754,100 @@ export class StellarAttestationClient {
   /**
    * Fetch attestations by wallet address
    * 
-   * @param walletAddress - The wallet address to query
-   * @param limit - Maximum number of results (default 100)
-   * @param offset - Pagination offset (default 0)
-   * @returns Promise with attestations, total count, and hasMore flag
+   * Usage Examples:
+   * 
+   * // Object-based approach (recommended)
+   * const result = await client.fetchAttestationsByWallet({
+   *   walletAddress: 'GWALLET123...',
+   *   limit: 50,
+   *   offset: 0
+   * })
+   * 
+   * // Legacy positional arguments
+   * const result = await client.fetchAttestationsByWallet('GWALLET123...', 50, 0)
    */
+  async fetchAttestationsByWallet(params: FetchAttestationsByWalletParams): Promise<{
+    attestations: ContractAttestation[]
+    total: number
+    hasMore: boolean
+  }>
   async fetchAttestationsByWallet(
     walletAddress: string,
-    limit: number = 100,
-    offset: number = 0
+    limit?: number,
+    offset?: number
+  ): Promise<{
+    attestations: ContractAttestation[]
+    total: number
+    hasMore: boolean
+  }>
+  async fetchAttestationsByWallet(
+    paramsOrAddress: FetchAttestationsByWalletParams | string,
+    legacyLimit?: number,
+    legacyOffset?: number
   ): Promise<{
     attestations: ContractAttestation[]
     total: number
     hasMore: boolean
   }> {
     try {
+      const { walletAddress, limit, offset } = this.normalizeFetchAttestationsByWalletArgs(
+        paramsOrAddress, legacyLimit, legacyOffset
+      )
+      
       const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
       return await fetchAttestationsByWallet(walletAddress, limit, offset, network)
     } catch (error: any) {
-      throw ErrorFactory.wrap(error, `Failed to fetch attestations for wallet ${walletAddress}`)
+      throw ErrorFactory.wrap(error, `Failed to fetch attestations for wallet ${typeof paramsOrAddress === 'string' ? paramsOrAddress : paramsOrAddress.walletAddress}`)
     }
   }
 
   /**
    * Fetch schemas created by a wallet address
    * 
-   * @param walletAddress - The wallet address to query
-   * @param limit - Maximum number of results (default 100)
-   * @param offset - Pagination offset (default 0)
-   * @returns Promise with schemas, total count, and hasMore flag
+   * Usage Examples:
+   * 
+   * // Object-based approach (recommended)
+   * const result = await client.fetchSchemasByWallet({
+   *   walletAddress: 'GWALLET123...',
+   *   limit: 50,
+   *   offset: 0
+   * })
+   * 
+   * // Legacy positional arguments
+   * const result = await client.fetchSchemasByWallet('GWALLET123...', 50, 0)
    */
+  async fetchSchemasByWallet(params: FetchSchemasByWalletParams): Promise<{
+    schemas: ContractSchema[]
+    total: number
+    hasMore: boolean
+  }>
   async fetchSchemasByWallet(
     walletAddress: string,
-    limit: number = 100,
-    offset: number = 0
+    limit?: number,
+    offset?: number
+  ): Promise<{
+    schemas: ContractSchema[]
+    total: number
+    hasMore: boolean
+  }>
+  async fetchSchemasByWallet(
+    paramsOrAddress: FetchSchemasByWalletParams | string,
+    legacyLimit?: number,
+    legacyOffset?: number
   ): Promise<{
     schemas: ContractSchema[]
     total: number
     hasMore: boolean
   }> {
     try {
+      const { walletAddress, limit, offset } = this.normalizeFetchSchemasByWalletArgs(
+        paramsOrAddress, legacyLimit, legacyOffset
+      )
+      
       const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
       return await fetchSchemasByWallet(walletAddress, limit, offset, network)
     } catch (error: any) {
-      throw ErrorFactory.wrap(error, `Failed to fetch schemas for wallet ${walletAddress}`)
+      throw ErrorFactory.wrap(error, `Failed to fetch schemas for wallet ${typeof paramsOrAddress === 'string' ? paramsOrAddress : paramsOrAddress.walletAddress}`)
     }
   }
 
@@ -775,5 +863,127 @@ export class StellarAttestationClient {
    */
   getServerInstance(): rpc.Server {
     return this.server
+  }
+
+  private normalizeRevokeArgs(paramsOrUid: RevokeParams | Buffer, legacyOptions?: TxOptions): { attestationUid: Buffer, options?: TxOptions } {
+    if (Buffer.isBuffer(paramsOrUid)) {
+      return {
+        attestationUid: paramsOrUid,
+        options: legacyOptions
+      };
+    }
+    return {
+      attestationUid: paramsOrUid.attestationUid,
+      options: paramsOrUid.options || legacyOptions
+    };
+  }
+
+  private normalizeAttestArgs(paramsOrSchemaUid: AttestParams | Buffer, legacyValue?: string, legacyExpiration?: number, legacyOptions?: TxOptions): { schemaUid: Buffer, value: string, subject?: string, expirationTime?: number, options?: TxOptions } {
+    if (Buffer.isBuffer(paramsOrSchemaUid)) {
+      return {
+        schemaUid: paramsOrSchemaUid,
+        value: legacyValue || '',
+        subject: this.callerPublicKey,
+        expirationTime: legacyExpiration,
+        options: legacyOptions
+      };
+    }
+    return {
+      schemaUid: paramsOrSchemaUid.schemaUid,
+      value: paramsOrSchemaUid.value || legacyValue || '',
+      subject: paramsOrSchemaUid.subject || this.callerPublicKey,
+      expirationTime: paramsOrSchemaUid.expirationTime || legacyExpiration,
+      options: paramsOrSchemaUid.options || legacyOptions
+    };
+  }
+
+  private normalizeGenerateAttestationUidArgs(paramsOrSchemaUid: GenerateAttestationUidParams | Buffer, legacySubject?: string, legacyNonce?: bigint): { schemaUid: Buffer, subject: string, nonce: bigint } {
+    if (Buffer.isBuffer(paramsOrSchemaUid)) {
+      return {
+        schemaUid: paramsOrSchemaUid,
+        subject: legacySubject || '',
+        nonce: legacyNonce || BigInt(0)
+      };
+    }
+    return {
+      schemaUid: paramsOrSchemaUid.schemaUid,
+      subject: paramsOrSchemaUid.subject || legacySubject || '',
+      nonce: paramsOrSchemaUid.nonce || legacyNonce || BigInt(0)
+    };
+  }
+
+  private normalizeGenerateSchemaUidArgs(paramsOrDefinition: GenerateSchemaUidParams | string, legacyAuthority?: string, legacyResolver?: string): { definition: string, authority: string, resolver: string } {
+    if (typeof paramsOrDefinition === 'string') {
+      return {
+        definition: paramsOrDefinition,
+        authority: legacyAuthority || '',
+        resolver: legacyResolver || ''
+      };
+    }
+    return {
+      definition: paramsOrDefinition.definition,
+      authority: paramsOrDefinition.authority || legacyAuthority || '',
+      resolver: paramsOrDefinition.resolver || legacyResolver || ''
+    };
+  }
+
+  private normalizeCreateSchemaArgs(paramsOrDefinition: CreateSchemaParams | string, legacyResolver?: string, legacyRevocable?: boolean, legacyOptions?: TxOptions): { definition: string, resolver?: string, revocable?: boolean, options?: TxOptions } {
+    if (typeof paramsOrDefinition === 'string') {
+      return {
+        definition: paramsOrDefinition,
+        resolver: legacyResolver,
+        revocable: legacyRevocable,
+        options: legacyOptions
+      };
+    }
+    return {
+      definition: paramsOrDefinition.definition,
+      resolver: paramsOrDefinition.resolver || legacyResolver,
+      revocable: paramsOrDefinition.revocable ?? legacyRevocable,
+      options: paramsOrDefinition.options || legacyOptions
+    };
+  }
+
+  private normalizeFetchAttestationsByWalletArgs(paramsOrAddress: FetchAttestationsByWalletParams | string, legacyLimit?: number, legacyOffset?: number): { walletAddress: string, limit: number, offset: number } {
+    if (typeof paramsOrAddress === 'string') {
+      return {
+        walletAddress: paramsOrAddress,
+        limit: legacyLimit || 100,
+        offset: legacyOffset || 0
+      };
+    }
+    return {
+      walletAddress: paramsOrAddress.walletAddress,
+      limit: paramsOrAddress.limit || legacyLimit || 100,
+      offset: paramsOrAddress.offset || legacyOffset || 0
+    };
+  }
+
+  private normalizeFetchSchemasByWalletArgs(paramsOrAddress: FetchSchemasByWalletParams | string, legacyLimit?: number, legacyOffset?: number): { walletAddress: string, limit: number, offset: number } {
+    if (typeof paramsOrAddress === 'string') {
+      return {
+        walletAddress: paramsOrAddress,
+        limit: legacyLimit || 100,
+        offset: legacyOffset || 0
+      };
+    }
+    return {
+      walletAddress: paramsOrAddress.walletAddress,
+      limit: paramsOrAddress.limit || legacyLimit || 100,
+      offset: paramsOrAddress.offset || legacyOffset || 0
+    };
+  }
+
+  private normalizeFetchByLedgerArgs(paramsOrLedger: FetchByLedgerParams | number, legacyLimit?: number): { ledger: number, limit: number } {
+    if (typeof paramsOrLedger === 'number') {
+      return {
+        ledger: paramsOrLedger,
+        limit: legacyLimit || 100
+      };
+    }
+    return {
+      ledger: paramsOrLedger.ledger,
+      limit: paramsOrLedger.limit || legacyLimit || 100
+    };
   }
 }

@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import { StellarAttestProtocol } from '../src/stellar-sdk'
 import { StellarConfig } from '../src/types'
-import { StellarDataType, SchemaValidationError } from '../src/common/schema-encoder'
+import { StellarDataType, SchemaValidationError } from '../src/common/schemaEncoder'
 import { Keypair } from '@stellar/stellar-sdk'
 
 describe('Stellar SDK Basic Functionality', () => {
