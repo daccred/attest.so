@@ -7,7 +7,7 @@
  * 3. Use the newly registered schemas to create attestations.
  */
 import { 
-  StellarClient, 
+  StellarAttestationClient, 
   SorobanSchemaEncoder
 } from '../src'
 import { log, an, an_v, an_c, an_ac, an_e } from './logger'
@@ -58,7 +58,7 @@ async function main() {
   // 2. Concurrently create and register all schemas
   log(an_v, '2. Concurrently creating and registering schemas on-chain')
   try {
-    const client = new StellarClient(options)
+    const client = new StellarAttestationClient(options)
     const createdSchemas = await client.createAndRegisterSchemas(
       newSchemas.map(s => s.getSchemaDefinition())
     )

@@ -1,12 +1,12 @@
 /**
- * Tests for StellarClient implementation
+ * Tests for StellarAttestationClient implementation
  * 
  * These tests verify the core functionality of the Stellar SDK client
  * as defined in the requirements document.
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { StellarClient } from '../src/client'
+import { StellarAttestationClient } from '../src/client'
 import {
   generateAttestationUid,
   generateSchemaUid,
@@ -17,15 +17,15 @@ import {
 } from '../src/utils'
 import { ClientOptions } from '../src/types'
 
-describe('StellarClient', () => {
-  let client: StellarClient
+describe('StellarAttestationClient', () => {
+  let client: StellarAttestationClient
   
   beforeAll(() => {
     const options: ClientOptions = {
       rpcUrl: 'https://soroban-testnet.stellar.org',
       network: 'testnet'
     }
-    client = new StellarClient(options)
+    client = new StellarAttestationClient(options)
   })
 
   describe('Client Initialization', () => {
@@ -36,7 +36,7 @@ describe('StellarClient', () => {
     })
 
     it('should handle mainnet configuration', () => {
-      const mainnetClient = new StellarClient({
+      const mainnetClient = new StellarAttestationClient({
         rpcUrl: 'https://soroban.stellar.org',
         network: 'mainnet'
       })
@@ -44,7 +44,7 @@ describe('StellarClient', () => {
     })
 
     it('should accept custom contract ID', () => {
-      const customClient = new StellarClient({
+      const customClient = new StellarAttestationClient({
         rpcUrl: 'https://soroban-testnet.stellar.org',
         contractId: 'CCUSTOMCONTRACTIDEXAMPLE123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
       })
@@ -252,7 +252,7 @@ describe('StellarClient', () => {
 
     it('should throw error when contract ID is missing', () => {
       expect(() => {
-        new StellarClient({
+        new StellarAttestationClient({
           rpcUrl: 'https://soroban-testnet.stellar.org',
           network: 'futurenet' as any // Network without default contract
         })

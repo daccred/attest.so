@@ -5,7 +5,7 @@
  * associated with specific wallet addresses.
  */
 
-import { ClientOptions, StellarClient } from '../src'
+import { ClientOptions, StellarAttestationClient } from '../src'
 import { log, an, an_v, an_c, an_ac, an_e } from './logger'
 import { registerCommonSchemas } from './commonSchemas'
 import { ExampleSchemaRegistry as Registry } from './registry'
@@ -23,7 +23,7 @@ async function main() {
     network: 'testnet'
   }
   
-  const client = new StellarClient(options as ClientOptions)
+  const client = new StellarAttestationClient(options as ClientOptions)
   
   // Example wallet address (replace with actual address)
   const walletAddress = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
