@@ -1,5 +1,0 @@
-{
-  "title": "starknet",
-  "root": true,
-  "pages": ["index", "[Attest](https://attest-next.vercel.app)"]
-}
