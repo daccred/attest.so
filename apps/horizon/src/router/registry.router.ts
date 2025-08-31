@@ -39,20 +39,29 @@ export type { Schema } from '../repository/schemas.repository'
  * Helper function to transform attestation for API response
  */
 function transformAttestationForAPI(attestation: any) {
+  const valueString = typeof attestation?.value === 'string'
+    ? attestation.value
+    : attestation?.value != null
+      ? JSON.stringify(attestation.value)
+      : attestation?.message
+
   return {
-    attestation_uid: attestation.attestationUid,
-    ledger: attestation.ledger,
-    schema_uid: attestation.schemaUid,
+    // Compatibility keys expected by tests/SDK
+    uid: attestation.attestationUid,
+    schemaUid: attestation.schemaUid,
     attesterAddress: attestation.attesterAddress,
     subjectAddress: attestation.subjectAddress,
+    value: valueString,
+    createdAt: attestation.createdAt?.toISOString(),
+    revoked: attestation.revoked,
+    ledger: attestation.ledger,
+    // Legacy/supplemental fields kept for completeness
+    attestation_uid: attestation.attestationUid,
+    schema_uid: attestation.schemaUid,
     transaction_hash: attestation.transactionHash,
     schema_encoding: attestation.schemaEncoding,
     message: attestation.message,
-    value: attestation.value,
-    createdAt: attestation.createdAt?.toISOString(),
     revokedAt: attestation.revokedAt?.toISOString(),
-    revoked: attestation.revoked,
-    schema: attestation.schema ? transformSchemaForAPI(attestation.schema) : undefined,
   }
 }
 
@@ -60,19 +69,24 @@ function transformAttestationForAPI(attestation: any) {
  * Helper function to transform schema for API response
  */
 function transformSchemaForAPI(schema: any) {
+  if (!schema) return schema
   return {
+    // Compatibility keys expected by tests/SDK
     uid: schema.uid,
     ledger: schema.ledger,
-    schema_definition: schema.schemaDefinition,
-    parsed_schema_definition: schema.parsedSchemaDefinition,
+    schemaDefinition: schema.schemaDefinition,
+    parsedSchemaDefinition: schema.parsedSchemaDefinition,
     resolverAddress: schema.resolverAddress,
     revocable: schema.revocable,
     deployerAddress: schema.deployerAddress,
+    attesterAddress: schema.deployerAddress, // alias for test expectations
     createdAt: schema.createdAt?.toISOString(),
     type: schema.type,
+    transactionHash: schema.transactionHash,
+    // Legacy/supplemental keys
+    schema_definition: schema.schemaDefinition,
+    parsed_schema_definition: schema.parsedSchemaDefinition,
     transaction_hash: schema.transactionHash,
-    attestation_count: schema._count?.attestations,
-    recent_attestations: schema.attestations?.map(transformAttestationForAPI),
   }
 }
 
@@ -103,13 +117,15 @@ router.get(ATTESTATIONS_LIST_ROUTE, async (req: Request, res: Response) => {
   try {
     const {
       by_ledger,
+      ledger,
       limit = '50',
       offset = '0',
       schema_uid,
+      schemaUid,
       attester,
       subject,
       revoked,
-    } = req.query
+    } = req.query as any
 
     // Input validation
     const limitNum = Math.min(parseInt(limit as string) || 50, 200)
@@ -128,27 +144,29 @@ router.get(ATTESTATIONS_LIST_ROUTE, async (req: Request, res: Response) => {
       offset: offsetNum,
     }
 
-    if (by_ledger) {
-      const ledgerNum = parseInt(by_ledger as string)
+    const ledgerParam = (ledger ?? by_ledger) as string | undefined
+    if (ledgerParam) {
+      const ledgerNum = parseInt(ledgerParam)
       if (isNaN(ledgerNum)) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid by_ledger parameter. Must be a number.'
+          error: 'Invalid ledger parameter. Must be a number.'
         })
       }
       filters.ledger = ledgerNum
     }
 
-    if (schema_uid) filters.schemaUid = schema_uid as string
+    const schemaUidParam = (schemaUid ?? schema_uid) as string | undefined
+    if (schemaUidParam) filters.schemaUid = schemaUidParam
     if (attester) filters.attesterAddress = attester as string
     if (subject) filters.subjectAddress = subject as string
-    if (revoked !== undefined) filters.revoked = revoked === 'true'
+    if (revoked !== undefined) filters.revoked = String(revoked) === 'true'
 
     // Get attestations from repository
     const { attestations, total } = await getAttestations(filters)
 
     // Transform for API response
-    const transformedAttestations = attestations.map(transformAttestationForAPI)
+    const transformedAttestations = (attestations || []).filter(Boolean).map(transformAttestationForAPI)
 
     res.json({
       success: true,
@@ -238,12 +256,15 @@ router.get(SCHEMAS_LIST_ROUTE, async (req: Request, res: Response) => {
   try {
     const {
       by_ledger,
+      ledger,
       limit = '50',
       offset = '0',
       deployer,
+      authority,
       type,
+      context,
       revocable,
-    } = req.query
+    } = req.query as any
 
     // Input validation
     const limitNum = Math.min(parseInt(limit as string) || 50, 200)
@@ -262,25 +283,29 @@ router.get(SCHEMAS_LIST_ROUTE, async (req: Request, res: Response) => {
       offset: offsetNum,
     }
 
-    if (by_ledger) {
-      const ledgerNum = parseInt(by_ledger as string)
+    const ledgerParam = (ledger ?? by_ledger) as string | undefined
+    if (ledgerParam) {
+      const ledgerNum = parseInt(ledgerParam)
       if (isNaN(ledgerNum)) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid by_ledger parameter. Must be a number.'
+          error: 'Invalid ledger parameter. Must be a number.'
         })
       }
       filters.ledger = ledgerNum
     }
 
-    if (deployer) filters.deployerAddress = deployer as string
-    if (type) filters.type = type as string
-    if (revocable !== undefined) filters.revocable = revocable === 'true'
+    const deployerParam = (authority ?? deployer) as string | undefined
+    const typeParam = (context ?? type) as string | undefined
+
+    if (deployerParam) filters.deployerAddress = deployerParam
+    if (typeParam) filters.type = typeParam
+    if (revocable !== undefined) filters.revocable = String(revocable) === 'true'
 
     const result = await getSchemas(filters)
 
     // Transform for API response
-    const transformedSchemas = result.schemas.map(transformSchemaForAPI)
+    const transformedSchemas = (result.schemas || []).filter(Boolean).map(transformSchemaForAPI)
 
     res.json({
       success: true,

@@ -1,6 +1,6 @@
 /**
  * Internal utilities for the Stellar Attest Protocol SDK
- * 
+ *
  * This module exports all internal utilities organized by context:
  * - Schema utilities (UID generation, formatting)
  * - Test data generation functions
@@ -11,7 +11,7 @@
  */
 
 // Schema utilities
-export * from './schema-utils'
+export * from './errors'
 
 // Schema encoder core (main encoder classes and types)
-export * from './schema-encoder'
+export * from './schemaEncoder'

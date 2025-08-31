@@ -20,10 +20,10 @@ import {
   AttestProtocolErrorType,
   createSuccessResponse,
   createErrorResponse,
-  createAttestProtocolError
+  createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import {
+import type {
   SolanaConfig,
   SolanaLevyConfig,
   SolanaSchemaConfig,
@@ -33,8 +33,16 @@ import {
   SolanaFetchSchemaResult,
   SolanaFetchAttestationResult,
   SolanaDelegatedAttestationConfig,
-  SolanaDelegatedRevocationConfig
+  SolanaDelegatedRevocationConfig,
 } from './types'
+
+export type {
+  SolanaConfig,
+  SolanaLevyConfig,
+  SolanaSchemaConfig,
+  SolanaAttestationConfig,
+  SolanaRevokeAttestationConfig,
+}
 
 import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js'
 import * as anchor from '@coral-xyz/anchor'
@@ -54,10 +62,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
   constructor(config: SolanaConfig) {
     super(config)
 
-    this.connection = new anchor.web3.Connection(
-      config.url ?? 'https://api.devnet.solana.com',
-      'confirmed'
-    )
+    this.connection = new anchor.web3.Connection(config.url ?? 'https://api.devnet.solana.com', 'confirmed')
 
     if (Array.isArray(config.walletOrSecretKey)) {
       const walletKeypair = Keypair.fromSecretKey(Uint8Array.from(config.walletOrSecretKey))
@@ -89,7 +94,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
         if (!idl) {
           throw new Error('Could not fetch program IDL')
         }
-        
+
         this.program = new anchor.Program(idl, provider)
       } catch (error) {
         // Fallback to a minimal program interface for development
@@ -152,14 +157,12 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
 
       try {
         if (this.program) {
-          const authorityAccount = await (this.program.account as any).authorityRecord.fetch(
-            authorityRecordPDA
-          )
+          const authorityAccount = await (this.program.account as any).authorityRecord.fetch(authorityRecordPDA)
 
           return {
             id: authorityAccount.authority.toBase58(),
             isVerified: authorityAccount.isVerified,
-            deploymentTime: authorityAccount.firstDeployment?.toNumber() || Date.now()
+            deploymentTime: authorityAccount.firstDeployment?.toNumber() || Date.now(),
           }
         }
       } catch (error) {
@@ -198,7 +201,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
 
       if (this.program) {
         const resolverKey = config.resolver ? new PublicKey(config.resolver) : null
-        
+
         const tx = await this.program.methods
           .createSchema(config.content, resolverKey, config.revocable ?? true)
           .accounts({
@@ -217,7 +220,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
         definition: config.content,
         authority: this.wallet.publicKey.toBase58(),
         revocable: config.revocable ?? true,
-        resolver: config.resolver || null
+        resolver: config.resolver || null,
       }
     })
   }
@@ -239,11 +242,13 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
             authority: schemaAccount.deployer.toBase58(),
             revocable: schemaAccount.revocable,
             resolver: schemaAccount.resolver?.toBase58() || null,
-            levy: schemaAccount.levy ? {
-              amount: schemaAccount.levy.amount.toString(),
-              asset: schemaAccount.levy.asset.toBase58(),
-              recipient: schemaAccount.levy.recipient.toBase58()
-            } : null
+            levy: schemaAccount.levy
+              ? {
+                  amount: schemaAccount.levy.amount.toString(),
+                  asset: schemaAccount.levy.asset.toBase58(),
+                  recipient: schemaAccount.levy.recipient.toBase58(),
+                }
+              : null,
           }
         }
       } catch (error) {
@@ -264,7 +269,9 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
     })
   }
 
-  async listSchemasByIssuer(params: ListSchemasByIssuerParams): Promise<AttestProtocolResponse<PaginatedResponse<Schema>>> {
+  async listSchemasByIssuer(
+    params: ListSchemasByIssuerParams
+  ): Promise<AttestProtocolResponse<PaginatedResponse<Schema>>> {
     const initError = this.ensureInitialized()
     if (initError) return createErrorResponse(initError)
 
@@ -289,12 +296,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
       const recipientKey = new PublicKey(config.subject)
 
       const [attestationDataPDA] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from('attestation'),
-          schemaKey.toBuffer(),
-          recipientKey.toBuffer(),
-          this.wallet.publicKey.toBuffer()
-        ],
+        [Buffer.from('attestation'), schemaKey.toBuffer(), recipientKey.toBuffer(), this.wallet.publicKey.toBuffer()],
         this.programId
       )
 
@@ -328,7 +330,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
         expirationTime: config.expirationTime || null,
         revocationTime: null,
         revoked: false,
-        reference: config.reference || null
+        reference: config.reference || null,
       }
     })
   }
@@ -342,9 +344,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
 
       try {
         if (this.program) {
-          const attestationAccount = await (this.program.account as any).attestationData.fetch(
-            attestationKey
-          )
+          const attestationAccount = await (this.program.account as any).attestationData.fetch(attestationKey)
 
           return {
             uid: id,
@@ -356,7 +356,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
             expirationTime: attestationAccount.expirationTime?.toNumber() || null,
             revocationTime: attestationAccount.revocationTime?.toNumber() || null,
             revoked: attestationAccount.revocationTime && attestationAccount.revocationTime.toNumber() > 0,
-            reference: attestationAccount.refUid?.toBase58() || null
+            reference: attestationAccount.refUid?.toBase58() || null,
           }
         }
       } catch (error) {
@@ -367,7 +367,9 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
     })
   }
 
-  async listAttestationsByWallet(params: ListAttestationsByWalletParams): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>> {
+  async listAttestationsByWallet(
+    params: ListAttestationsByWalletParams
+  ): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>> {
     const initError = this.ensureInitialized()
     if (initError) return createErrorResponse(initError)
 
@@ -378,7 +380,9 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
     })
   }
 
-  async listAttestationsBySchema(params: ListAttestationsBySchemaParams): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>> {
+  async listAttestationsBySchema(
+    params: ListAttestationsBySchemaParams
+  ): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>> {
     const initError = this.ensureInitialized()
     if (initError) return createErrorResponse(initError)
 
@@ -422,10 +426,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
     return this.safeExecute(async () => {
       // Implementation would depend on delegation logic in Solana contracts
       // This is a placeholder that would need actual delegation signature verification
-      throw createAttestProtocolError(
-        AttestProtocolErrorType.NOT_FOUND_ERROR,
-        'Delegation not fully implemented'
-      )
+      throw createAttestProtocolError(AttestProtocolErrorType.NOT_FOUND_ERROR, 'Delegation not fully implemented')
     })
   }
 
@@ -435,10 +436,7 @@ export class SolanaAttestProtocol extends AttestProtocolBase {
 
     return this.safeExecute(async () => {
       // Implementation would depend on delegation logic in Solana contracts
-      throw createAttestProtocolError(
-        AttestProtocolErrorType.NOT_FOUND_ERROR,
-        'Delegation not fully implemented'
-      )
+      throw createAttestProtocolError(AttestProtocolErrorType.NOT_FOUND_ERROR, 'Delegation not fully implemented')
     })
   }
 

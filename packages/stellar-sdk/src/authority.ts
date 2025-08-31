@@ -1,5 +1,23 @@
 /**
- * Authority operations for the Stellar Attest Protocol
+ * This module provides the Authority operations for the Stellar Attest Protocol.
+ *
+ * It serves as an implementation of our resolver standard, as defined in the
+ * `@resolver.rs` file. The primary purpose of this module is to facilitate
+ * internal operations that involve verified authorities within the Stellar
+ * Attestation Protocol. These authorities have been authenticated through
+ * their `stellar.toml` files, ensuring they meet the necessary criteria for
+ * participation in the protocol.
+ *
+ * By adhering to the resolver standard, this module ensures that all authority
+ * operations are conducted with the highest level of security and compliance,
+ * leveraging the robust framework established in the resolver interface.
+ * This includes critical functions such as attestation validation, economic
+ * model enforcement, and post-processing hooks, all of which are essential
+ * for maintaining the integrity and reliability of the Stellar Attestation
+ * Protocol.
+ *
+ * @see {@link @resolver.rs} for the resolver standard implementation details.
+ * @see {@link stellar.toml} for authority authentication criteria.
  */
 
 import {
@@ -11,14 +29,11 @@ import {
   createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import { 
-  Client as AuthorityClient,
-  Attestation 
-} from '@attestprotocol/stellar/dist/authority'
+import { Client as AuthorityClient, Attestation } from '@attestprotocol/stellar/dist/authority'
 import { Address, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 
-export class StellarAuthorityService {
+export class AttestProtocolAuthority {
   private authorityClient: AuthorityClient
   private publicKey: string
 
@@ -30,12 +45,16 @@ export class StellarAuthorityService {
   /**
    * Initialize the authority contract
    */
-  async initialize(admin: string, tokenContractId: string, tokenWasmHash: Buffer): Promise<AttestProtocolResponse<void>> {
+  async initialize(
+    admin: string,
+    tokenContractId: string,
+    tokenWasmHash: Buffer
+  ): Promise<AttestProtocolResponse<void>> {
     try {
       const tx = await this.authorityClient.initialize({
         admin,
         token_contract_id: tokenContractId,
-        token_wasm_hash: tokenWasmHash
+        token_wasm_hash: tokenWasmHash,
       })
 
       await tx.signAndSend()
@@ -54,15 +73,12 @@ export class StellarAuthorityService {
   /**
    * Register an authority (admin function)
    */
-  async adminRegisterAuthority(
-    authToReg: string,
-    metadata: string
-  ): Promise<AttestProtocolResponse<void>> {
+  async adminRegisterAuthority(authToReg: string, metadata: string): Promise<AttestProtocolResponse<void>> {
     try {
       const tx = await this.authorityClient.admin_register_authority({
         admin: this.publicKey,
         auth_to_reg: authToReg,
-        metadata
+        metadata,
       })
 
       await tx.signAndSend()
@@ -81,15 +97,12 @@ export class StellarAuthorityService {
   /**
    * Register an authority (public function with fees)
    */
-  async registerAuthority(
-    authorityToReg: string,
-    metadata: string
-  ): Promise<AttestProtocolResponse<void>> {
+  async registerAuthority(authorityToReg: string, metadata: string): Promise<AttestProtocolResponse<void>> {
     try {
       const tx = await this.authorityClient.register_authority({
         caller: this.publicKey,
         authority_to_reg: authorityToReg,
-        metadata
+        metadata,
       })
 
       await tx.signAndSend()
@@ -129,17 +142,11 @@ export class StellarAuthorityService {
     }
   }
 
- 
-
-
   /**
    * Set registration fee (admin function)
    * @deprecated This method is no longer available in the contract
    */
-  async adminSetRegistrationFee(
-    _feeAmount: bigint,
-    _tokenId: string
-  ): Promise<AttestProtocolResponse<void>> {
+  async adminSetRegistrationFee(_feeAmount: bigint, _tokenId: string): Promise<AttestProtocolResponse<void>> {
     return createErrorResponse(
       createAttestProtocolError(
         AttestProtocolErrorType.NOT_FOUND_ERROR,
@@ -202,7 +209,7 @@ export class StellarAuthorityService {
   async withdrawLevies(): Promise<AttestProtocolResponse<void>> {
     try {
       const tx = await this.authorityClient.withdraw_levies({
-        caller: this.publicKey
+        caller: this.publicKey,
       })
 
       await tx.signAndSend()
@@ -210,14 +217,10 @@ export class StellarAuthorityService {
       return createSuccessResponse(undefined)
     } catch (error: any) {
       return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to withdraw levies'
-        )
+        createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to withdraw levies')
       )
     }
   }
- 
 
   /**
    * Get collected levies for an authority
@@ -259,10 +262,7 @@ export class StellarAuthorityService {
       return createSuccessResponse(tokenId)
     } catch (error: any) {
       return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to get token ID'
-        )
+        createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to get token ID')
       )
     }
   }
@@ -283,10 +283,7 @@ export class StellarAuthorityService {
       return createSuccessResponse(admin)
     } catch (error: any) {
       return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to get admin address'
-        )
+        createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to get admin address')
       )
     }
   }
@@ -297,7 +294,7 @@ export class StellarAuthorityService {
   async fetchAuthority(id: string): Promise<AttestProtocolResponse<Authority | null>> {
     try {
       const isAuthResult = await this.isAuthority(id)
-      
+
       if (isAuthResult.error || !isAuthResult.data) {
         return createSuccessResponse(null)
       }
@@ -311,10 +308,7 @@ export class StellarAuthorityService {
       })
     } catch (error: any) {
       return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to fetch authority'
-        )
+        createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to fetch authority')
       )
     }
   }

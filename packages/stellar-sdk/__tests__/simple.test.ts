@@ -3,40 +3,37 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { StellarAttestProtocol } from '../src/stellar-sdk'
-import { StellarConfig } from '../src/types'
-import { StellarDataType, SchemaValidationError } from '../src/common/schema-encoder'
+import { StellarAttestationClient } from '../src/client'
+import { ClientOptions } from '../src/types'
+import { StellarDataType, SchemaValidationError } from '../src/common/schemaEncoder'
 import { Keypair } from '@stellar/stellar-sdk'
 
 describe('Stellar SDK Basic Functionality', () => {
-  describe('StellarAttestProtocol', () => {
+  describe('StellarAttestationClient', () => {
     it('should create instance with valid config', () => {
       const keypair = Keypair.random()
-      const config: StellarConfig = {
-        secretKeyOrCustomSigner: keypair.secret(),
+      const config: ClientOptions = {
         publicKey: keypair.publicKey(),
-        url: 'https://soroban-testnet.stellar.org'
+        rpcUrl: 'https://soroban-testnet.stellar.org',
+        network: 'testnet'
       }
       
-      const sdk = new StellarAttestProtocol(config)
+      const client = new StellarAttestationClient(config)
       
-      expect(sdk).toBeDefined()
-      expect(sdk.getProtocolClient()).toBeDefined()
-      expect(sdk.getAuthorityClient()).toBeDefined()
-      expect(sdk.getSchemaService()).toBeDefined()
-      expect(sdk.getAttestationService()).toBeDefined()
-      expect(sdk.getAuthorityService()).toBeDefined()
+      expect(client).toBeDefined()
+      expect(client.getClientInstance()).toBeDefined()
+      expect(client.getServerInstance()).toBeDefined()
     })
 
     it('should use default configuration values', () => {
       const keypair = Keypair.random()
-      const config: StellarConfig = {
-        secretKeyOrCustomSigner: keypair.secret(),
-        publicKey: keypair.publicKey()
+      const config: ClientOptions = {
+        publicKey: keypair.publicKey(),
+        rpcUrl: 'https://soroban-testnet.stellar.org'
       }
       
-      const sdk = new StellarAttestProtocol(config)
-      expect(sdk).toBeDefined()
+      const client = new StellarAttestationClient(config)
+      expect(client).toBeDefined()
     })
   })
 
@@ -83,7 +80,7 @@ describe('Stellar SDK Basic Functionality', () => {
   describe('Type exports', () => {
     it('should export all required types', () => {
       // This test ensures that all exports from index.ts work
-      expect(StellarAttestProtocol).toBeDefined()
+      expect(StellarAttestationClient).toBeDefined()
       expect(StellarDataType).toBeDefined()
       expect(SchemaValidationError).toBeDefined()
     })
