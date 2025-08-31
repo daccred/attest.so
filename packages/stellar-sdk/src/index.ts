@@ -5,7 +5,7 @@
  */
 
 // Export the main SDK class
-export { StellarAttestProtocol } from './stellar-sdk'
+export { StellarAttestProtocol } from './sdk'
 
 // Export the new StellarClient (main entry point for SDK requirements)
 export { StellarClient } from './client'
@@ -24,7 +24,7 @@ export {
   type StellarSchemaDefinition,
   type SchemaField,
   type EncodedAttestationData
-} from './common/schema-encoder'
+} from './common/schemaEncoder'
 
 // Export Stellar-specific types
 export * from './types'
@@ -84,5 +84,5 @@ export {
 export * as common from './common'
 
 // Default export for convenience
-import { StellarAttestProtocol } from './stellar-sdk'
+import { StellarAttestProtocol } from './sdk'
 export default StellarAttestProtocol
