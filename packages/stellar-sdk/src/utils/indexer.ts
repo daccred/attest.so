@@ -20,18 +20,68 @@ export interface HorizonConfig {
 }
 
 /**
+ * Registry API response interfaces
+ */
+export interface RegistryPagination {
+  total: number
+  hasMore: boolean
+  limit: number
+  offset: number
+}
+
+export interface RegistryResponse<T> {
+  success: boolean
+  data: T[]
+  pagination?: RegistryPagination
+}
+
+export interface RegistrySingleResponse<T> {
+  success: boolean
+  data: T
+  error?: string
+}
+
+/**
+ * Raw API data interfaces (as returned from registry router)
+ */
+export interface RawAttestationData {
+  attestation_uid: string
+  schema_uid: string
+  subjectAddress: string
+  attesterAddress: string
+  value: any
+  createdAt: string
+  expiration_time?: number
+  revokedAt?: string
+  revoked: boolean
+  ledger: number
+}
+
+export interface RawSchemaData {
+  uid: string
+  schema_definition?: string
+  parsed_schema_definition?: any
+  deployerAddress: string
+  resolverAddress: string
+  revocable: boolean
+  createdAt: string
+  ledger: number
+  type?: string
+}
+
+/**
  * Default Horizon configurations with registry endpoints
  */
 export const HORIZON_CONFIGS: Record<string, HorizonConfig> = {
   testnet: {
-    baseUrl: 'https://horizon-testnet.stellar.org',
     network: 'testnet',
+    baseUrl: 'https://horizon-testnet.stellar.org',
     registryUrl: 'http://localhost:3001/api/registry'
   },
   mainnet: {
-    baseUrl: 'https://horizon.stellar.org', 
     network: 'mainnet',
-    registryUrl: 'https://api.attest.so/api/registry'
+    baseUrl: 'https://horizon.stellar.org', 
+    registryUrl: 'https://graph.attest.so/api/registry'
   }
 }
 
@@ -41,7 +91,38 @@ export const HORIZON_CONFIGS: Record<string, HorizonConfig> = {
  */
 export const REGISTRY_ENDPOINTS = {
   testnet: process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.testnet.registryUrl || 'http://localhost:3001/api/registry',
-  mainnet: process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.mainnet.registryUrl || 'https://api.attest.so/api/registry'
+  mainnet: process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.mainnet.registryUrl || 'https://graph.attest.so/api/registry'
+}
+
+/**
+ * Transform raw attestation data to ContractAttestation
+ */
+function transformAttestation(item: RawAttestationData): ContractAttestation {
+  return {
+    uid: Buffer.from(item.attestation_uid, 'hex'),
+    schemaUid: Buffer.from(item.schema_uid, 'hex'),
+    subject: item.subjectAddress,
+    attester: item.attesterAddress,
+    value: item.value,
+    timestamp: new Date(item.createdAt).getTime(),
+    expirationTime: item.expiration_time,
+    revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
+    revoked: item.revoked || false
+  }
+}
+
+/**
+ * Transform raw schema data to ContractSchema
+ */
+function transformSchema(item: RawSchemaData): ContractSchema {
+  return {
+    uid: Buffer.from(item.uid, 'hex'),
+    definition: item.schema_definition || item.parsed_schema_definition,
+    authority: item.deployerAddress,
+    resolver: item.resolverAddress,
+    revocable: item.revocable ?? true,
+    timestamp: new Date(item.createdAt).getTime()
+  }
 }
 
 /**
@@ -71,20 +152,10 @@ export async function fetchAttestationsByLedger(
       )
     }
 
-    const data = await response.json()
+    const apiResponse = await response.json() as RegistryResponse<RawAttestationData>
     
     // Transform the horizon registry API response to match our ContractAttestation type
-    return (data.data || []).map((item: any) => ({
-      uid: Buffer.from(item.attestation_uid, 'hex'),
-      schemaUid: Buffer.from(item.schema_uid, 'hex'),
-      subject: item.subjectAddress,
-      attester: item.attesterAddress,
-      value: item.value,
-      timestamp: new Date(item.createdAt).getTime(),
-      expirationTime: item.expiration_time,
-      revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
-      revoked: item.revoked || false
-    }))
+    return (apiResponse.data || []).map(transformAttestation)
   } catch (error: any) {
     if (error instanceof HorizonError) {
       throw error
@@ -120,17 +191,10 @@ export async function fetchSchemasByLedger(
       )
     }
 
-    const data = await response.json()
+    const apiResponse = await response.json() as RegistryResponse<RawSchemaData>
     
     // Transform the horizon registry API response to match our ContractSchema type
-    return (data.data || []).map((item: any) => ({
-      uid: Buffer.from(item.uid, 'hex'),
-      definition: item.schema_definition || item.parsed_schema_definition,
-      authority: item.deployerAddress,
-      resolver: item.resolverAddress,
-      revocable: item.revocable ?? true,
-      timestamp: new Date(item.createdAt).getTime()
-    }))
+    return (apiResponse.data || []).map(transformSchema)
   } catch (error: any) {
     if (error instanceof HorizonError) {
       throw error
@@ -171,22 +235,12 @@ export async function fetchAttestationsByWallet(
       )
     }
 
-    const data = await response.json()
+    const apiResponse = await response.json() as RegistryResponse<RawAttestationData>
     
     return {
-      attestations: (data.data || []).map((item: any) => ({
-        uid: Buffer.from(item.attestation_uid, 'hex'),
-        schemaUid: Buffer.from(item.schema_uid, 'hex'),
-        subject: item.subjectAddress,
-        attester: item.attesterAddress,
-        value: item.value,
-        timestamp: new Date(item.createdAt).getTime(),
-        expirationTime: item.expiration_time,
-        revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
-        revoked: item.revoked || false
-      })),
-      total: data.pagination?.total || 0,
-      hasMore: data.pagination?.hasMore || false
+      attestations: (apiResponse.data || []).map(transformAttestation),
+      total: apiResponse.pagination?.total || 0,
+      hasMore: apiResponse.pagination?.hasMore || false
     }
   } catch (error: any) {
     if (error instanceof HorizonError) {
@@ -228,19 +282,12 @@ export async function fetchSchemasByWallet(
       )
     }
 
-    const data = await response.json()
+    const apiResponse = await response.json() as RegistryResponse<RawSchemaData>
     
     return {
-      schemas: (data.data || []).map((item: any) => ({
-        uid: Buffer.from(item.uid, 'hex'),
-        definition: item.schema_definition || item.parsed_schema_definition,
-        authority: item.deployerAddress,
-        resolver: item.resolverAddress,
-        revocable: item.revocable ?? true,
-        timestamp: new Date(item.createdAt).getTime()
-      })),
-      total: data.pagination?.total || 0,
-      hasMore: data.pagination?.hasMore || false
+      schemas: (apiResponse.data || []).map(transformSchema),
+      total: apiResponse.pagination?.total || 0,
+      hasMore: apiResponse.pagination?.hasMore || false
     }
   } catch (error: any) {
     if (error instanceof HorizonError) {
@@ -276,19 +323,9 @@ export async function fetchLatestAttestations(
       )
     }
 
-    const data = await response.json()
+    const apiResponse = await response.json() as RegistryResponse<RawAttestationData>
     
-    return (data.data || []).map((item: any) => ({
-      uid: Buffer.from(item.attestation_uid, 'hex'),
-      schemaUid: Buffer.from(item.schema_uid, 'hex'),
-      subject: item.subjectAddress,
-      attester: item.attesterAddress,
-      value: item.value,
-      timestamp: new Date(item.createdAt).getTime(),
-      expirationTime: item.expiration_time,
-      revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
-      revoked: item.revoked || false
-    }))
+    return (apiResponse.data || []).map(transformAttestation)
   } catch (error: any) {
     if (error instanceof HorizonError) {
       throw error
@@ -323,16 +360,9 @@ export async function fetchLatestSchemas(
       )
     }
 
-    const data = await response.json()
+    const apiResponse = await response.json() as RegistryResponse<RawSchemaData>
     
-    return (data.data || []).map((item: any) => ({
-      uid: Buffer.from(item.uid, 'hex'),
-      definition: item.schema_definition || item.parsed_schema_definition,
-      authority: item.deployerAddress,
-      resolver: item.resolverAddress,
-      revocable: item.revocable ?? true,
-      timestamp: new Date(item.createdAt).getTime()
-    }))
+    return (apiResponse.data || []).map(transformSchema)
   } catch (error: any) {
     if (error instanceof HorizonError) {
       throw error
@@ -371,20 +401,9 @@ export async function getAttestationByUid(
       )
     }
 
-    const data = await response.json()
-    const item = data.data
+    const apiResponse = await response.json() as RegistrySingleResponse<RawAttestationData>
     
-    return {
-      uid: Buffer.from(item.attestation_uid, 'hex'),
-      schemaUid: Buffer.from(item.schema_uid, 'hex'),
-      subject: item.subjectAddress,
-      attester: item.attesterAddress,
-      value: item.value,
-      timestamp: new Date(item.createdAt).getTime(),
-      expirationTime: item.expiration_time,
-      revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
-      revoked: item.revoked || false
-    }
+    return transformAttestation(apiResponse.data)
   } catch (error: any) {
     if (error instanceof HorizonError) {
       throw error
@@ -424,17 +443,9 @@ export async function getSchemaByUid(
       )
     }
 
-    const data = await response.json()
-    const item = data.data
+    const apiResponse = await response.json() as RegistrySingleResponse<RawSchemaData>
     
-    return {
-      uid: Buffer.from(item.uid, 'hex'),
-      definition: item.schema_definition || item.parsed_schema_definition,
-      authority: item.deployerAddress,
-      resolver: item.resolverAddress,
-      revocable: item.revocable ?? true,
-      timestamp: new Date(item.createdAt).getTime()
-    }
+    return transformSchema(apiResponse.data)
   } catch (error: any) {
     if (error instanceof HorizonError) {
       throw error
@@ -480,33 +491,16 @@ export async function fetchRegistryDump(
       )
     }
 
-    const [schemasData, attestationsData] = await Promise.all([
-      schemasResponse.json(),
-      attestationsResponse.json()
+    const [schemasApiResponse, attestationsApiResponse] = await Promise.all([
+      schemasResponse.json() as Promise<RegistryResponse<RawSchemaData>>,
+      attestationsResponse.json() as Promise<RegistryResponse<RawAttestationData>>
     ])
     
     return {
-      schemas: (schemasData.data || []).map((item: any) => ({
-        uid: Buffer.from(item.uid, 'hex'),
-        definition: item.schema_definition || item.parsed_schema_definition,
-        authority: item.deployerAddress,
-        resolver: item.resolverAddress,
-        revocable: item.revocable ?? true,
-        timestamp: new Date(item.createdAt).getTime()
-      })),
-      attestations: (attestationsData.data || []).map((item: any) => ({
-        uid: Buffer.from(item.attestation_uid, 'hex'),
-        schemaUid: Buffer.from(item.schema_uid, 'hex'),
-        subject: item.subjectAddress,
-        attester: item.attesterAddress,
-        value: item.value,
-        timestamp: new Date(item.createdAt).getTime(),
-        expirationTime: item.expiration_time,
-        revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
-        revoked: item.revoked || false
-      })),
+      schemas: (schemasApiResponse.data || []).map(transformSchema),
+      attestations: (attestationsApiResponse.data || []).map(transformAttestation),
       timestamp: Date.now(),
-      ledger: Math.max(...(attestationsData.data || []).map((a: any) => a.ledger || 0), 0)
+      ledger: Math.max(...(attestationsApiResponse.data || []).map((a) => a.ledger || 0), 0)
     }
   } catch (error: any) {
     if (error instanceof HorizonError) {

@@ -94,11 +94,15 @@ export function signHashedMessage(message: WeierstrassPoint<bigint>, privateKey:
  * console.log('Is signature valid?', result.isValid); // true
  * ```
  */
-export function verifySignature(
+export function verifySignature({
+  signature,
+  expectedMessage,
+  publicKey,
+}: {
   signature: Buffer,
   expectedMessage: WeierstrassPoint<bigint>,
   publicKey: Buffer,
-): VerificationResult {
+}): VerificationResult {
   try {
     if (expectedMessage) {
       const isValid = curve.verify(signature, expectedMessage, publicKey)
