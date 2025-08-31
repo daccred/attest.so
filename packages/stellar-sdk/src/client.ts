@@ -403,8 +403,8 @@ export class StellarAttestationClient {
   /**
    * 9. Create revoke message for delegation
    */
-  createRevokeMessage(request: DelegatedRevocationRequest, dst: Buffer): Buffer {
-    return Buffer.from(createRevokeMessage(request, dst).toBytes(false))
+  createRevokeMessage(request: DelegatedRevocationRequest, dst: Buffer): WeierstrassPoint<bigint> {
+    return createRevokeMessage(request, dst)
   }
 
   /**
