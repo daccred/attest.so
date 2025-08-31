@@ -40,7 +40,24 @@ import {
   getAttestDST,
   getRevokeDST 
 } from './utils/delegation'
-import { generateBlsKeys, verifySignature } from './utils/bls'
+import { generateBlsKeys, verifySignature, signMessage } from './utils/bls'
+import { 
+  fetchAttestationsByLedger,
+  fetchSchemasByLedger,
+  fetchLatestAttestations,
+  fetchLatestSchemas,
+  fetchAttestationsByWallet,
+  fetchSchemasByWallet
+} from './utils/horizon'
+import { 
+  NetworkError, 
+  ContractError, 
+  TransactionError,
+  ValidationError,
+  NotImplementedError,
+  ConfigurationError,
+  ErrorFactory
+} from './errors'
 
 /**
  * Main Stellar client for the Attest Protocol
@@ -92,7 +109,10 @@ export class StellarClient {
     }
 
     if (!contractId) {
-      throw new Error('Contract ID is required. Either provide it directly or specify a valid network.')
+      throw new ConfigurationError(
+        'Contract ID is required. Either provide it directly or specify a valid network.',
+        'contractId'
+      )
     }
 
     // Initialize protocol client
@@ -121,7 +141,7 @@ export class StellarClient {
       const result = await tx.signAndSend()
       return result
     } catch (error: any) {
-      throw new Error(`Failed to revoke attestation: ${error.message}`)
+      throw ErrorFactory.wrap(error, 'Failed to revoke attestation')
     }
   }
 
@@ -180,15 +200,14 @@ export class StellarClient {
    */
   async createSchema(
     definition: string, 
-    deployer: string,
     resolver?: string, 
     revocable: boolean = true, 
     options?: TxOptions
   ): Promise<Buffer> {
     try {
       const tx = await this.protocolClient.register({
-        caller: deployer,
-        schema_definition: definition,
+        authority: '', // Will be set by the wallet signing the transaction
+        schema: definition,
         resolver: resolver ? new Address(resolver) : undefined,
         revocable
       })
@@ -363,16 +382,62 @@ export class StellarClient {
     privateKey: Buffer, 
     options?: TxOptions
   ): Promise<any> {
-    // This will be implemented in Scope 3
-    throw new Error('Not implemented yet - will be added in Scope 3')
+    try {
+      // Determine if this is attestation or revocation
+      const isAttestation = 'schemaUid' in request && 'value' in request
+      
+      // Get the appropriate DST and create message
+      let message: Buffer
+      let signedRequest: any
+      
+      if (isAttestation) {
+        const attestRequest = request as DelegatedAttestationRequest
+        const dst = await this.getAttestDST()
+        message = this.createAttestMessage(attestRequest, dst)
+        
+        // Sign the message with BLS private key
+        const signature = signMessage(message, privateKey)
+        
+        // Create signed request
+        signedRequest = {
+          ...attestRequest,
+          signature
+        }
+        
+        // Submit via delegation
+        return await this.attestByDelegation(signedRequest, options)
+      } else {
+        const revokeRequest = request as DelegatedRevocationRequest
+        const dst = await this.getRevokeDST()
+        message = this.createRevokeMessage(revokeRequest, dst)
+        
+        // Sign the message with BLS private key
+        const signature = signMessage(message, privateKey)
+        
+        // Create signed request
+        signedRequest = {
+          ...revokeRequest,
+          signature
+        }
+        
+        // Submit via delegation
+        return await this.revokeByDelegation(signedRequest, options)
+      }
+    } catch (error: any) {
+      throw ErrorFactory.wrap(error, 'Failed to submit raw transaction')
+    }
   }
 
   /**
    * 19. Get attestations by ledger (Horizon integration)
    */
   async getAttestationsByLedger(ledger: number, limit?: number): Promise<ContractAttestation[]> {
-    // This will be implemented in Scope 3 with Horizon integration
-    throw new Error('Horizon integration not implemented yet - will be added in Scope 3')
+    try {
+      const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
+      return await fetchAttestationsByLedger(ledger, limit, network)
+    } catch (error: any) {
+      throw ErrorFactory.wrap(error, 'Failed to fetch attestations by ledger')
+    }
   }
 
   /**
@@ -436,24 +501,86 @@ export class StellarClient {
    * 21. Fetch schemas from Horizon
    */
   async fetchSchemas(limit: number = 100): Promise<ContractSchema[]> {
-    // This will be implemented in Scope 3 with Horizon integration
-    throw new Error('Horizon integration not implemented yet - will be added in Scope 3')
+    try {
+      const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
+      return await fetchLatestSchemas(limit, network)
+    } catch (error: any) {
+      throw ErrorFactory.wrap(error, 'Failed to fetch schemas')
+    }
   }
 
   /**
    * 22. Fetch attestations from Horizon
    */
   async fetchAttestations(limit: number = 100): Promise<ContractAttestation[]> {
-    // This will be implemented in Scope 3 with Horizon integration
-    throw new Error('Horizon integration not implemented yet - will be added in Scope 3')
+    try {
+      const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
+      return await fetchLatestAttestations(limit, network)
+    } catch (error: any) {
+      throw ErrorFactory.wrap(error, 'Failed to fetch attestations')
+    }
   }
 
   /**
    * 23. Get schemas by ledger
    */
   async getSchemasByLedger(ledger: number, limit?: number): Promise<ContractSchema[]> {
-    // This will be implemented in Scope 3 with Horizon integration
-    throw new Error('Horizon integration not implemented yet - will be added in Scope 3')
+    try {
+      const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
+      return await fetchSchemasByLedger(ledger, limit, network)
+    } catch (error: any) {
+      throw ErrorFactory.wrap(error, 'Failed to fetch schemas by ledger')
+    }
+  }
+
+  /**
+   * Fetch attestations by wallet address
+   * 
+   * @param walletAddress - The wallet address to query
+   * @param limit - Maximum number of results (default 100)
+   * @param offset - Pagination offset (default 0)
+   * @returns Promise with attestations, total count, and hasMore flag
+   */
+  async fetchAttestationsByWallet(
+    walletAddress: string,
+    limit: number = 100,
+    offset: number = 0
+  ): Promise<{
+    attestations: ContractAttestation[]
+    total: number
+    hasMore: boolean
+  }> {
+    try {
+      const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
+      return await fetchAttestationsByWallet(walletAddress, limit, offset, network)
+    } catch (error: any) {
+      throw ErrorFactory.wrap(error, `Failed to fetch attestations for wallet ${walletAddress}`)
+    }
+  }
+
+  /**
+   * Fetch schemas created by a wallet address
+   * 
+   * @param walletAddress - The wallet address to query
+   * @param limit - Maximum number of results (default 100)
+   * @param offset - Pagination offset (default 0)
+   * @returns Promise with schemas, total count, and hasMore flag
+   */
+  async fetchSchemasByWallet(
+    walletAddress: string,
+    limit: number = 100,
+    offset: number = 0
+  ): Promise<{
+    schemas: ContractSchema[]
+    total: number
+    hasMore: boolean
+  }> {
+    try {
+      const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
+      return await fetchSchemasByWallet(walletAddress, limit, offset, network)
+    } catch (error: any) {
+      throw ErrorFactory.wrap(error, `Failed to fetch schemas for wallet ${walletAddress}`)
+    }
   }
 
   /**

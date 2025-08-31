@@ -41,3 +41,18 @@ export {
   decompressPublicKey,
   compressPublicKey
 } from './bls'
+
+// Horizon integration utilities
+export {
+  fetchAttestationsByLedger,
+  fetchSchemasByLedger,
+  fetchAttestationsByWallet,
+  fetchSchemasByWallet,
+  fetchLatestAttestations,
+  fetchLatestSchemas,
+  fetchRegistryDump,
+  HORIZON_CONFIGS,
+  REGISTRY_ENDPOINTS,
+  type HorizonConfig,
+  type RegistryDump
+} from './horizon'
