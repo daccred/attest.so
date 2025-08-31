@@ -2,7 +2,7 @@
  * Validation utility functions
  */
 
-import { createStandardizedSchemaEncoder } from './standardized-schemas'
+import { createStandardizedSchemaEncoder } from './standardizedSchemas'
 
 /**
  * Validate attestation data against a schema type.

@@ -17,7 +17,7 @@ import {
 import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/protocol'
 import { Address, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
-import { SorobanSchemaEncoder, StellarSchemaDefinition } from './common/schema-encoder'
+import { SorobanSchemaEncoder, StellarSchemaDefinition } from './common/schemaEncoder'
 
 export class StellarSchemaRegistry {
   private protocolClient: ProtocolClient
