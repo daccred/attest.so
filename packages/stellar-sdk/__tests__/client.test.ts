@@ -279,7 +279,6 @@ describe('StellarAttestationClient', () => {
   })
 })
  
-const accountKeyPair = Keypair.random();
 
 describe('StellarAttestationClient', () => {
   let client: StellarAttestationClient
