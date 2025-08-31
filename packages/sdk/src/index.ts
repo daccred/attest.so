@@ -137,5 +137,5 @@ export function createConfig<T extends ChainType>(
 /**
  * Version information
  */
-export const SDK_VERSION = '2.0.0'
+export const SDK_VERSION = '1.7.3'
 export const SUPPORTED_CHAINS = ['stellar', 'solana', 'starknet'] as const

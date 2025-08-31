@@ -17,7 +17,7 @@ import {
 import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/protocol'
 import { Address, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
-import { StellarSchemaEncoder, StellarSchemaDefinition } from './common/schema-encoder'
+import { SorobanSchemaEncoder, StellarSchemaDefinition } from './common/schema-encoder'
 
 export class StellarSchemaRegistry {
   private protocolClient: ProtocolClient
@@ -41,7 +41,7 @@ export class StellarSchemaRegistry {
   ): Promise<AttestProtocolResponse<Schema>> {
     try {
       // Validate and encode the structured schema
-      const encoder = new StellarSchemaEncoder(schemaDefinition);
+      const encoder = new SorobanSchemaEncoder(schemaDefinition);
       
       // Choose encoding format
       let schemaString: string;
@@ -152,13 +152,13 @@ export class StellarSchemaRegistry {
    * Parse a schema definition string into structured format if possible
    */
   parseSchemaDefinition(schemaString: string): { 
-    encoder: StellarSchemaEncoder | null; 
+    encoder: SorobanSchemaEncoder | null; 
     format: 'xdr' | 'json' | 'unknown' 
   } {
     // Try XDR format first
     if (schemaString.startsWith('XDR:')) {
       try {
-        const encoder = StellarSchemaEncoder.fromXDR(schemaString);
+        const encoder = SorobanSchemaEncoder.fromXDR(schemaString);
         return { encoder, format: 'xdr' };
       } catch {
         return { encoder: null, format: 'unknown' };
@@ -171,7 +171,7 @@ export class StellarSchemaRegistry {
       
       // Check if it looks like our structured format
       if (parsed.name && parsed.version && parsed.fields && Array.isArray(parsed.fields)) {
-        const encoder = new StellarSchemaEncoder(parsed as StellarSchemaDefinition);
+        const encoder = new SorobanSchemaEncoder(parsed as StellarSchemaDefinition);
         return { encoder, format: 'json' };
       }
     } catch {
@@ -185,7 +185,7 @@ export class StellarSchemaRegistry {
    * Create a schema encoder from a schema UID (fetch from contract and parse)
    */
   async createEncoderFromSchema(schemaUID: string): Promise<AttestProtocolResponse<{
-    encoder: StellarSchemaEncoder | null;
+    encoder: SorobanSchemaEncoder | null;
     format: 'xdr' | 'json' | 'unknown';
   }>> {
     try {

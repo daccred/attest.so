@@ -7,6 +7,9 @@
 // Export the main SDK class
 export { StellarAttestProtocol } from './stellar-sdk'
 
+// Export the new StellarClient (main entry point for SDK requirements)
+export { StellarClient } from './client'
+
 // Export service classes for direct use
 export { StellarSchemaRegistry } from './schema'
 export { StellarAttestationService } from './attest'
@@ -14,7 +17,8 @@ export { StellarAuthorityService } from './authority'
 
 // Export standardized schema encoder
 export {
-  StellarSchemaEncoder,
+  SorobanSchemaEncoder,
+  SorobanSchemaEncoder as StellarSchemaEncoder, // Alias for backward compatibility
   StellarDataType,
   SchemaValidationError,
   type StellarSchemaDefinition,
@@ -24,6 +28,24 @@ export {
 
 // Export Stellar-specific types
 export * from './types'
+
+// Export error handling utilities
+export * from './errors'
+
+// Export all utilities
+export * as utils from './utils'
+
+// Re-export specific utilities at top level for convenience
+export {
+  generateAttestationUid,
+  generateSchemaUid,
+  generateBlsKeys,
+  encodeSchema,
+  decodeSchema,
+  createAttestMessage,
+  createRevokeMessage,
+  verifySignature
+} from './utils'
 
 // Re-export core types for convenience
 export {

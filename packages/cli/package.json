@@ -20,9 +20,6 @@
     "picocolors": "^1.0.1",
     "yargs": "^17.7.2"
   },
-  "peerDependencies": {
-    "@stellar/stellar-sdk": ">=14.1.0"
-  },
   "devDependencies": {
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
@@ -63,6 +60,9 @@
   ],
   "license": "MIT",
   "main": "./dist/bin/run.js",
+  "peerDependencies": {
+    "@stellar/stellar-sdk": ">=14.1.0"
+  },
   "publishConfig": {
     "access": "public"
   },

@@ -83,7 +83,7 @@ export class SchemaValidationError extends Error {
 /**
  * Stellar Schema Encoder - Provides standardized schema definition and data encoding
  */
-export class StellarSchemaEncoder {
+export class SorobanSchemaEncoder {
   private schema: StellarSchemaDefinition
 
   constructor(schema: StellarSchemaDefinition) {
@@ -223,7 +223,7 @@ export class StellarSchemaEncoder {
   /**
    * Create schema encoder from XDR format
    */
-  static fromXDR(xdrString: string): StellarSchemaEncoder {
+  static fromXDR(xdrString: string): SorobanSchemaEncoder {
     try {
       if (!xdrString.startsWith('XDR:')) {
         throw new Error('Invalid XDR format - missing XDR: prefix')
@@ -279,7 +279,7 @@ export class StellarSchemaEncoder {
         throw new Error('Missing required schema fields')
       }
 
-      return new StellarSchemaEncoder(schema as StellarSchemaDefinition)
+      return new SorobanSchemaEncoder(schema as StellarSchemaDefinition)
     } catch (error) {
       throw new SchemaValidationError(`Failed to decode XDR schema: ${error}`)
     }
@@ -497,12 +497,12 @@ export class StellarSchemaEncoder {
   /**
    * Create a schema encoder from JSON Schema
    */
-  static fromJSONSchema(jsonSchema: any): StellarSchemaEncoder {
+  static fromJSONSchema(jsonSchema: any): SorobanSchemaEncoder {
     const fields: SchemaField[] = []
 
     for (const [name, prop] of Object.entries(jsonSchema.properties || {})) {
       const property = prop as any
-      const baseType = StellarSchemaEncoder.jsonSchemaTypeToStellarType(property.type)
+      const baseType = SorobanSchemaEncoder.jsonSchemaTypeToStellarType(property.type)
 
       // Detect Stellar address strictly by base32 encoding hint or custom media type
       const isBase32Encoded = property.contentEncoding === 'base32'
@@ -533,7 +533,7 @@ export class StellarSchemaEncoder {
       fields
     }
 
-    return new StellarSchemaEncoder(schema)
+    return new SorobanSchemaEncoder(schema)
   }
 
   /**
@@ -840,19 +840,19 @@ export class StellarSchemaEncoder {
  * Pre-defined schema encoders for common use cases
  */
 export class StellarSchemaService {
-  private static schemas = new Map<string, StellarSchemaEncoder>()
+  private static schemas = new Map<string, SorobanSchemaEncoder>()
 
   /**
    * Register a schema encoder
    */
-  static register(name: string, encoder: StellarSchemaEncoder): void {
+  static register(name: string, encoder: SorobanSchemaEncoder): void {
     this.schemas.set(name, encoder)
   }
 
   /**
    * Get a registered schema encoder
    */
-  static get(name: string): StellarSchemaEncoder | undefined {
+  static get(name: string): SorobanSchemaEncoder | undefined {
     return this.schemas.get(name)
   }
 
@@ -868,7 +868,7 @@ export class StellarSchemaService {
    */
   static initializeDefaults(): void {
     // Identity verification schema
-    this.register('identity-verification', new StellarSchemaEncoder({
+    this.register('identity-verification', new SorobanSchemaEncoder({
       name: 'Identity Verification',
       version: '1.0.0',
       description: 'Standard identity verification attestation',
@@ -883,7 +883,7 @@ export class StellarSchemaService {
     }))
 
     // Academic credential schema
-    this.register('academic-credential', new StellarSchemaEncoder({
+    this.register('academic-credential', new SorobanSchemaEncoder({
       name: 'Academic Credential',
       version: '1.0.0', 
       description: 'University degree or academic achievement',
@@ -899,7 +899,7 @@ export class StellarSchemaService {
     }))
 
     // Professional certification schema
-    this.register('professional-certification', new StellarSchemaEncoder({
+    this.register('professional-certification', new SorobanSchemaEncoder({
       name: 'Professional Certification',
       version: '1.0.0',
       description: 'Professional certification or license',

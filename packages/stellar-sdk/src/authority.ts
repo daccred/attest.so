@@ -1,5 +1,23 @@
 /**
- * Authority operations for the Stellar Attest Protocol
+ * This module provides the Authority operations for the Stellar Attest Protocol.
+ * 
+ * It serves as an implementation of our resolver standard, as defined in the 
+ * `@resolver.rs` file. The primary purpose of this module is to facilitate 
+ * internal operations that involve verified authorities within the Stellar 
+ * Attestation Protocol. These authorities have been authenticated through 
+ * their `stellar.toml` files, ensuring they meet the necessary criteria for 
+ * participation in the protocol.
+ * 
+ * By adhering to the resolver standard, this module ensures that all authority 
+ * operations are conducted with the highest level of security and compliance, 
+ * leveraging the robust framework established in the resolver interface. 
+ * This includes critical functions such as attestation validation, economic 
+ * model enforcement, and post-processing hooks, all of which are essential 
+ * for maintaining the integrity and reliability of the Stellar Attestation 
+ * Protocol.
+ * 
+ * @see {@link @resolver.rs} for the resolver standard implementation details.
+ * @see {@link stellar.toml} for authority authentication criteria.
  */
 
 import {
