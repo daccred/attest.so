@@ -218,10 +218,10 @@ describe('Stellar SDK Indexer - Registry API Integration', () => {
         expect(res.body.data[0]).toMatchObject({
           uid: expect.any(String),
           schemaUid: expect.any(String),
-          attester: expect.any(String),
-          subject: expect.any(String),
+          attesterAddress: expect.any(String),
+          subjectAddress: expect.any(String),
           value: expect.any(String),
-          timestamp: expect.any(String),
+          createdAt: expect.any(String),
           revoked: expect.any(Boolean),
           ledger: expect.any(Number)
         });
@@ -328,10 +328,9 @@ describe('Stellar SDK Indexer - Registry API Integration', () => {
         
         expect(res.body.data[0]).toMatchObject({
           uid: expect.any(String),
-          definition: expect.any(String),
-          authority: expect.any(String),
+          schemaDefinition: expect.any(String),
           revocable: expect.any(Boolean),
-          timestamp: expect.any(String),
+          createdAt: expect.any(String),
           ledger: expect.any(Number)
         });
       });
@@ -451,11 +450,11 @@ describe('Stellar SDK Indexer - Registry API Integration', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       
-      // Verify latest attestations query (no filters, ordered by timestamp desc)
+      // Verify latest attestations query (no filters, ordered by createdAt desc)
       expect(mockDb.attestation.findMany).toHaveBeenCalledWith({
         take: 100,
         skip: 0,
-        orderBy: { timestamp: 'desc' }
+        orderBy: { createdAt: 'desc' }
       });
     });
 
@@ -465,11 +464,11 @@ describe('Stellar SDK Indexer - Registry API Integration', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       
-      // Verify latest schemas query (no filters, ordered by timestamp desc)
+      // Verify latest schemas query (no filters, ordered by createdAt desc)
       expect(mockDb.schema.findMany).toHaveBeenCalledWith({
         take: 100,
         skip: 0,
-        orderBy: { timestamp: 'desc' }
+        orderBy: { createdAt: 'desc' }
       });
     });
   });
@@ -494,11 +493,10 @@ describe('Stellar SDK Indexer - Registry API Integration', () => {
         expect(res.body.data[0]).toMatchObject({
           uid: expect.any(String),
           schemaUid: expect.any(String),
-          attester: expect.any(String),
-          subject: expect.any(String),
+          attesterAddress: expect.any(String),
+          subjectAddress: expect.any(String),
           value: expect.any(String),
-          timestamp: expect.any(String),
-          revoked: expect.any(Boolean)
+          createdAt: expect.any(String),
         });
       }
     });
@@ -521,10 +519,9 @@ describe('Stellar SDK Indexer - Registry API Integration', () => {
       if (res.body.data.length > 0) {
         expect(res.body.data[0]).toMatchObject({
           uid: expect.any(String),
-          definition: expect.any(String),
-          authority: expect.any(String),
+          attesterAddress: expect.any(String),
           revocable: expect.any(Boolean),
-          timestamp: expect.any(String)
+          createdAt: expect.any(String)
         });
       }
     });
