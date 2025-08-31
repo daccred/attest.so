@@ -18,7 +18,7 @@ export {
   decodeSchema,
   validateSchema,
   createSimpleSchema
-} from './schemaCodec'
+} from './dataCodec'
 
 // Delegation utilities
 export {
@@ -51,6 +51,8 @@ export {
   fetchLatestAttestations,
   fetchLatestSchemas,
   fetchRegistryDump,
+  getAttestationByUid,
+  getSchemaByUid,
   HORIZON_CONFIGS,
   REGISTRY_ENDPOINTS,
   type HorizonConfig,
