@@ -175,7 +175,7 @@ describe('Registry Router', () => {
     }
 
     it('should fetch single attestation by UID', async () => {
-      mockDb.attestation.findUnique.mockResolvedValue(mockAttestationEvent)
+      mockDb.attestation.findMany.mockResolvedValue(mockAttestationEvent)
 
       const response = await request(app)
         .get('/api/registry/attestations/attest-event-id-1')

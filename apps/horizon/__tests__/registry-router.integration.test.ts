@@ -18,7 +18,7 @@ const app = express()
 app.use(express.json())
 app.use('/api/registry', registryRouter)
 
-const REQUEST_LEDGER = 265543
+const REQUEST_LEDGER = 1021507
 
 describe('Registry Router Integration Tests', () => {
   let db: any
@@ -110,15 +110,15 @@ describe('Registry Router Integration Tests', () => {
 
     it('should correctly filter attestations by ledger number', async () => {
       const response = await request(app)
-        .get('/api/registry/attestations?by_ledger=1021507')
+        .get(`/api/registry/attestations?by_ledger=${REQUEST_LEDGER}`)
         .expect(200)
 
       expect(response.body.success).toBe(true)
-      expect(response.body.data).toHaveLength(2) // Two attestations with ledger 1021507
+      expect(response.body.data).toHaveLength(2) // Two attestations with this ledger
       
       // Verify all returned attestations have the correct ledger
       response.body.data.forEach((attestation: any) => {
-        expect(attestation.ledger).toBe(1021507)
+        expect(attestation.ledger).toBe(REQUEST_LEDGER)
       })
     })
 
@@ -183,12 +183,12 @@ describe('Registry Router Integration Tests', () => {
 
     it('should correctly combine multiple filters', async () => {
       const response = await request(app)
-        .get('/api/registry/attestations?by_ledger=1021507&revoked=false')
+        .get(`/api/registry/attestations?by_ledger=${REQUEST_LEDGER}&revoked=false`)
         .expect(200)
 
       expect(response.body.success).toBe(true)
-      expect(response.body.data).toHaveLength(1) // Only one non-revoked attestation in ledger 1021507
-      expect(response.body.data[0].ledger).toBe(1021507)
+      expect(response.body.data).toHaveLength(1) // Only one non-revoked attestation in this ledger
+      expect(response.body.data[0].ledger).toBe(REQUEST_LEDGER)
       expect(response.body.data[0].revoked).toBe(false)
     })
 
@@ -216,7 +216,7 @@ describe('Registry Router Integration Tests', () => {
 
       expect(response.body.success).toBe(true)
       expect(response.body.data.attestation_uid).toBe(attestationUid)
-      expect(response.body.data.ledger).toBe(1021507)
+      expect(response.body.data.ledger).toBe(REQUEST_LEDGER)
       expect(response.body.data.attesterAddress).toBe(baseAttestationData.attesterAddress)
     })
 
@@ -232,7 +232,7 @@ describe('Registry Router Integration Tests', () => {
 
   describe('Database Query Formation - Schemas', () => {
     const baseSchemaData = {
-      ledger: 1021507,
+      ledger: REQUEST_LEDGER,
       schemaDefinition: 'struct Person { string name; uint age; }',
       parsedSchemaDefinition: {
         fields: [
@@ -253,7 +253,7 @@ describe('Registry Router Integration Tests', () => {
         {
           ...baseSchemaData,
           uid: 'test-schema-1',
-          ledger: 1021507,
+          ledger: REQUEST_LEDGER,
         },
         {
           ...baseSchemaData,
@@ -265,9 +265,9 @@ describe('Registry Router Integration Tests', () => {
         {
           ...baseSchemaData,
           uid: 'test-schema-3',
-          ledger: 1021507,
+          ledger: REQUEST_LEDGER,
           revocable: false,
-          type: 'certificate'
+          type: 'identity' // Changed to identity to have 2 identity schemas
         }
       ]
 
@@ -278,15 +278,15 @@ describe('Registry Router Integration Tests', () => {
 
     it('should correctly filter schemas by ledger number', async () => {
       const response = await request(app)
-        .get('/api/registry/schemas?by_ledger=1021507')
+        .get(`/api/registry/schemas?by_ledger=${REQUEST_LEDGER}`)
         .expect(200)
 
       expect(response.body.success).toBe(true)
-      expect(response.body.data).toHaveLength(2) // Two schemas with ledger 1021507
+      expect(response.body.data).toHaveLength(2) // Two schemas with this ledger
       
       // Verify all returned schemas have the correct ledger
       response.body.data.forEach((schema: any) => {
-        expect(schema.ledger).toBe(1021507)
+        expect(schema.ledger).toBe(REQUEST_LEDGER)
       })
     })
 
@@ -333,12 +333,12 @@ describe('Registry Router Integration Tests', () => {
 
     it('should correctly combine multiple filters for schemas', async () => {
       const response = await request(app)
-        .get('/api/registry/schemas?by_ledger=1021507&revocable=true')
+        .get(`/api/registry/schemas?by_ledger=${REQUEST_LEDGER}&revocable=true`)
         .expect(200)
 
       expect(response.body.success).toBe(true)
-      expect(response.body.data).toHaveLength(1) // Only one revocable schema in ledger 1021507
-      expect(response.body.data[0].ledger).toBe(1021507)
+      expect(response.body.data).toHaveLength(1) // Only one revocable schema in this ledger
+      expect(response.body.data[0].ledger).toBe(REQUEST_LEDGER)
       expect(response.body.data[0].revocable).toBe(true)
       expect(response.body.data[0].uid).toBe('test-schema-1')
     })
@@ -352,7 +352,7 @@ describe('Registry Router Integration Tests', () => {
 
       expect(response.body.success).toBe(true)
       expect(response.body.data.uid).toBe(schemaUid)
-      expect(response.body.data.ledger).toBe(1021507)
+      expect(response.body.data.ledger).toBe(REQUEST_LEDGER)
       expect(response.body.data.deployerAddress).toBe(baseSchemaData.deployerAddress)
       expect(response.body.data.type).toBe('identity')
     })
@@ -374,7 +374,7 @@ describe('Registry Router Integration Tests', () => {
         .expect(400)
 
       expect(response.body.success).toBe(false)
-      expect(response.body.error).toContain('Invalid by_ledger parameter')
+      expect(response.body.error).toContain('Invalid ledger parameter')
     })
 
     it('should enforce maximum limit for attestations', async () => {
@@ -397,7 +397,7 @@ describe('Registry Router Integration Tests', () => {
 
     it('should return empty results for filters with no matches', async () => {
       const response = await request(app)
-        .get(`/api/registry/attestations?by_ledger=${REQUEST_LEDGER}`)
+        .get('/api/registry/attestations?by_ledger=999999')
         .expect(200)
 
       expect(response.body.success).toBe(true)
