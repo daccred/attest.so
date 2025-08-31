@@ -145,7 +145,7 @@ export interface IProtocolConfig extends ChainConfig {
   /**
    * Network URL endpoint
    */
-  url?: string
+  rpcUrl?: string
 
   /**
    * Optional contract addresses or program IDs

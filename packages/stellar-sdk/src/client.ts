@@ -593,12 +593,15 @@ export class StellarAttestationClient {
   ): Promise<any> {
     try {
       const tx = await this.attestationProtocol.attest_by_delegation({
+        submitter: this.callerPublicKey,
         request: {
           attester: request.attester,
           schema_uid: request.schemaUid,
+          subject: request.subject,
           value: request.value,
           nonce: request.nonce,
           deadline: request.deadline,
+          expiration_time: request.expirationTime,
           signature: request.signature
         }
       })
@@ -645,13 +648,16 @@ export class StellarAttestationClient {
   ): Promise<any> {
     try {
       const tx = await this.attestationProtocol.revoke_by_delegation({
+        submitter: this.callerPublicKey,
         request: {
           revoker: request.revoker,
-          attestation_uid: request.attestationUid,
+          attestation_uid: request.attestationUid, // Protocol expects snake_case
+          schema_uid: request.schemaUid, // Protocol expects snake_case
+          subject: request.subject,
           nonce: request.nonce,
           deadline: request.deadline,
           signature: request.signature
-        }
+        } as any // Cast to any to handle naming differences
       })
 
       if (options?.simulate) {

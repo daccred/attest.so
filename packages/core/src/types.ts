@@ -21,7 +21,7 @@ export type AttestProtocolResponse<T = undefined> =
  * Base configuration for any chain-specific SDK
  */
 export interface ChainConfig {
-  url?: string
+  rpcUrl?: string
   [key: string]: any
 }
 

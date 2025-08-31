@@ -151,9 +151,7 @@ export interface TransactionSigner {
  * Transaction options for contract interactions
  */
 export interface TxOptions {
-  /** Transaction fee in stroops */
-  fee?: number
-  /** Transaction timeout in seconds */
+  /** Maximum time to wait for transaction completion */
   timeoutInSeconds?: number
   /** Whether to simulate the transaction only */
   simulate?: boolean
@@ -197,6 +195,10 @@ export interface DelegatedAttestationRequest {
 export interface DelegatedRevocationRequest {
   /** Attestation UID to revoke */
   attestationUid: Buffer
+  /** Schema UID (32 bytes) */
+  schemaUid: Buffer
+  /** Subject address */
+  subject: string
   /** Revoker address */
   revoker: string
   /** Nonce for uniqueness */
@@ -257,4 +259,90 @@ export interface ContractAttestation {
   expirationTime?: number
   revocationTime?: number
   revoked: boolean
+}
+
+/**
+ * Core API method argument interfaces
+ */
+
+/** Arguments for creating an attestation */
+export interface AttestParams {
+  /** Schema UID that defines the attestation structure */
+  schemaUid: Buffer
+  /** The attestation data/value */
+  value: string
+  /** Optional subject address (defaults to attester if not provided) */
+  subject?: string
+  /** Optional expiration timestamp */
+  expirationTime?: number
+  /** Transaction options including optional signer */
+  options?: TxOptions
+}
+
+/** Arguments for revoking an attestation */
+export interface RevokeParams {
+  /** UID of the attestation to revoke */
+  attestationUid: Buffer
+  /** Transaction options including optional signer */
+  options?: TxOptions
+}
+
+/** Arguments for creating a schema */
+export interface CreateSchemaParams {
+  /** Schema definition string */
+  definition: string
+  /** Optional resolver contract address */
+  resolver?: string
+  /** Whether attestations can be revoked (default: true) */
+  revocable?: boolean
+  /** Transaction options including optional signer */
+  options?: TxOptions
+}
+
+/** Arguments for fetching attestations by wallet */
+export interface FetchAttestationsByWalletParams {
+  /** Wallet address to query */
+  walletAddress: string
+  /** Maximum number of results (default: 100) */
+  limit?: number
+  /** Pagination offset (default: 0) */
+  offset?: number
+}
+
+/** Arguments for fetching schemas by wallet */
+export interface FetchSchemasByWalletParams {
+  /** Wallet address to query */
+  walletAddress: string
+  /** Maximum number of results (default: 100) */
+  limit?: number
+  /** Pagination offset (default: 0) */
+  offset?: number
+}
+
+/** Arguments for fetching by ledger */
+export interface FetchByLedgerParams {
+  /** Ledger number to query */
+  ledger: number
+  /** Maximum number of results (default: 100) */
+  limit?: number
+}
+
+/** Arguments for generating attestation UID */
+export interface GenerateAttestationUidParams {
+  /** Schema UID */
+  schemaUid: Buffer
+  /** Subject address */
+  subject: string
+  /** Unique nonce */
+  nonce: bigint
+}
+
+/** Arguments for generating schema UID */
+export interface GenerateSchemaUidParams {
+  /** Schema definition */
+  definition: string
+  /** Authority address */
+  authority: string
+  /** Optional resolver address */
+  resolver?: string
 }
