@@ -10,7 +10,7 @@ export {
   generateSchemaUid,
   formatUid,
   parseFormattedUid
-} from './uid-generator'
+} from './uidGenerator'
 
 // Schema encoding/decoding utilities
 export {
@@ -18,7 +18,7 @@ export {
   decodeSchema,
   validateSchema,
   createSimpleSchema
-} from './schema-codec'
+} from './schemaCodec'
 
 // Delegation utilities
 export {
@@ -33,7 +33,7 @@ export {
 // BLS cryptography utilities
 export {
   generateBlsKeys,
-  signMessage,
+  signHashedMessage,
   verifySignature,
   aggregateSignatures,
   aggregatePublicKeys,
@@ -55,4 +55,4 @@ export {
   REGISTRY_ENDPOINTS,
   type HorizonConfig,
   type RegistryDump
-} from './horizon'
+} from './indexer'

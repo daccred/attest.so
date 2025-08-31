@@ -6,7 +6,13 @@
  */
 
 import { bls12_381 } from '@noble/curves/bls12-381'
-import { BlsKeyPair, VerificationResult } from '../types'
+import { VerificationResult, BlsKeyPair } from '../types'
+import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass';
+
+
+/** The core BLS pairing curve we support is short signatures */
+const curve = bls12_381.shortSignatures;
+
 
 /**
  * Generate a new BLS key pair for delegation.
@@ -14,33 +20,42 @@ import { BlsKeyPair, VerificationResult } from '../types'
  * @returns A BLS key pair with uncompressed public key (192 bytes) and private key (32 bytes)
  */
 export function generateBlsKeys(): BlsKeyPair {
-  // Generate random private key (32 bytes)
-  const privateKey = bls12_381.utils.randomPrivateKey()
-  
-  // Get the public key from private key
-  const publicKeyPoint = bls12_381.G2.ProjectivePoint.fromPrivateKey(privateKey)
-  
-  // Convert to uncompressed format (192 bytes for G2 point)
-  const publicKey = publicKeyPoint.toRawBytes(false) // false = uncompressed
+const { secretKey, publicKey } = curve.keygen();
   
   return {
-    publicKey: Buffer.from(publicKey),
-    privateKey: Buffer.from(privateKey)
+    privateKey: secretKey,
+    publicKey: publicKey.toBytes(false),
   }
 }
 
 /**
- * Sign a message with a BLS private key.
+ * Sign a hashed message with a BLS private key.
+ * @see createAttestationMessage for more details on the message format
  * 
- * @param message - The message to sign (should be hashed already)
+ * @see createRevocationMessage for more details on the message format
+ * 
+ * @param message - The message to sign (should be hashed by default)
  * @param privateKey - The BLS private key
  * @returns The signature as a Buffer
  */
-export function signMessage(message: Buffer, privateKey: Buffer): Buffer {
+export function signHashedMessage(message: WeierstrassPoint<bigint>, privateKey: Uint8Array): Buffer {
   // Sign the message using BLS short signatures
-  const signature = bls12_381.sign(message, privateKey)
-  return Buffer.from(signature)
+  const signature = curve.sign(message, privateKey)
+  return Buffer.from(signature.toBytes(false))
 }
+
+
+
+// public_key: Buffer.from(attesterBlsPublicKey.toBytes(false))
+
+//     // Create the message to sign
+//     const messageToSign = createAttestationMessage(delegatedRequest, dst)
+    
+//     // Sign with BLS private key (minimal signature scheme)
+//     const signature = bls12_381.shortSignatures.sign(messageToSign, attesterBlsPrivateKey)
+//     delegatedRequest.signature = Buffer.from(signature.toBytes(false))
+
+
 
 /**
  * Verify a BLS signature and optionally extract metadata.
@@ -58,7 +73,7 @@ export function verifySignature(
   try {
     // If we have an expected message, verify against it
     if (expectedMessage) {
-      const isValid = bls12_381.verify(signedMessage, expectedMessage, publicKey)
+      const isValid = bls12_381.shortSignatures.verify(signedMessage, expectedMessage, publicKey)
       
       return {
         isValid,
@@ -119,9 +134,9 @@ export function aggregateSignatures(signatures: Buffer[]): Buffer {
   const sigs = signatures.map(sig => sig)
   
   // Use the library's aggregation function
-  const aggregated = bls12_381.aggregateSignatures(sigs)
+  const aggregated = bls12_381.shortSignatures.aggregateSignatures(sigs)
   
-  return Buffer.from(aggregated)
+  return Buffer.from(aggregated.toHex());
 }
 
 /**
@@ -137,7 +152,7 @@ export function aggregatePublicKeys(publicKeys: Buffer[]): Buffer {
   
   // Convert buffers to points and aggregate
   const points = publicKeys.map(pk => 
-    bls12_381.G2.ProjectivePoint.fromHex(pk.toString('hex'))
+    bls12_381.G2.Point.fromHex(pk.toString('hex'))
   )
   
   // Add all points together
@@ -145,10 +160,14 @@ export function aggregatePublicKeys(publicKeys: Buffer[]): Buffer {
   for (let i = 1; i < points.length; i++) {
     aggregated = aggregated.add(points[i])
   }
-  
-  return Buffer.from(aggregated.toRawBytes(false))
+  return Buffer.from(aggregated.toHex());
 }
 
+
+type VerifyAggregateSignatureParams = {
+  message: Buffer,
+  publicKey: Buffer
+}
 /**
  * Verify an aggregated signature against multiple messages and public keys.
  * 
@@ -159,15 +178,14 @@ export function aggregatePublicKeys(publicKeys: Buffer[]): Buffer {
  */
 export function verifyAggregateSignature(
   aggregatedSignature: Buffer,
-  messages: Buffer[],
-  publicKeys: Buffer[]
+  params: VerifyAggregateSignatureParams[],
 ): boolean {
-  if (messages.length !== publicKeys.length) {
-    throw new Error('Number of messages must match number of public keys')
-  }
-  
+  const paramsArray = params.map(param => ({
+    message: bls12_381.G1.Point.fromHex(param.message.toString('hex')),
+    publicKey: bls12_381.G2.Point.fromHex(param.publicKey.toString('hex'))
+  }))
   try {
-    return bls12_381.verifyBatch(aggregatedSignature, messages, publicKeys)
+    return bls12_381.shortSignatures.verifyBatch(aggregatedSignature, paramsArray)
   } catch {
     return false
   }
@@ -179,13 +197,13 @@ export function verifyAggregateSignature(
  * @param compressedKey - The compressed public key (96 bytes)
  * @returns The uncompressed public key (192 bytes)
  */
-export function decompressPublicKey(compressedKey: Buffer): Buffer {
+export function decompressPublicKey(compressedKey: Buffer) {
   if (compressedKey.length !== 96) {
     throw new Error('Compressed G2 public key must be 96 bytes')
   }
   
-  const point = bls12_381.G2.ProjectivePoint.fromHex(compressedKey.toString('hex'))
-  return Buffer.from(point.toRawBytes(false))
+  const point = bls12_381.G2.Point.fromHex(compressedKey.toString('hex'))
+  return point.toBytes(false);
 }
 
 /**
@@ -194,11 +212,11 @@ export function decompressPublicKey(compressedKey: Buffer): Buffer {
  * @param uncompressedKey - The uncompressed public key (192 bytes)
  * @returns The compressed public key (96 bytes)
  */
-export function compressPublicKey(uncompressedKey: Buffer): Buffer {
+export function compressPublicKey(uncompressedKey: Buffer) {
   if (uncompressedKey.length !== 192) {
     throw new Error('Uncompressed G2 public key must be 192 bytes')
   }
   
-  const point = bls12_381.G2.ProjectivePoint.fromHex(uncompressedKey.toString('hex'))
-  return Buffer.from(point.toRawBytes(true))
+  const point = bls12_381.G2.Point.fromHex(uncompressedKey.toString('hex'))
+  return point.toBytes(false);
 }

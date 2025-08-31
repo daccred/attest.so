@@ -10,6 +10,8 @@ import { scValToNative } from '@stellar/stellar-sdk'
 import { bls12_381 } from '@noble/curves/bls12-381'
 import { sha256 } from '@noble/hashes/sha2'
 import { DelegatedAttestationRequest, DelegatedRevocationRequest } from '../types'
+import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass'
+import { ContractError } from '../common/errors'
 
 /**
  * Create a message for signing delegated attestations.
@@ -22,7 +24,7 @@ import { DelegatedAttestationRequest, DelegatedRevocationRequest } from '../type
 export function createAttestMessage(
   request: DelegatedAttestationRequest,
   dst: Buffer
-): Buffer {
+): WeierstrassPoint<bigint> {
   // Match exact format from Rust contract:
   // Domain Separator + Schema UID + Nonce + Deadline + [Expiration Time] + Value Length
   const components: Buffer[] = []
@@ -57,7 +59,9 @@ export function createAttestMessage(
   
   // Concatenate and hash
   const message = Buffer.concat(components)
-  return Buffer.from(bls12_381.G2.hashToCurve.hash(sha256(message)))
+  // return  bls12_381.G2.hashToCurve(sha256(message)).toBytes(false)
+  return bls12_381.shortSignatures.hash(sha256(message))
+
 }
 
 /**
@@ -71,7 +75,7 @@ export function createAttestMessage(
 export function createRevokeMessage(
   request: DelegatedRevocationRequest,
   dst: Buffer
-): Buffer {
+): WeierstrassPoint<bigint> {
   const components: Buffer[] = []
   
   // Domain separation tag
@@ -92,7 +96,9 @@ export function createRevokeMessage(
   
   // Concatenate and hash
   const message = Buffer.concat(components)
-  return Buffer.from(bls12_381.G2.hashToCurve.hash(sha256(message)))
+  // return bls12_381.G2.hashToCurve(sha256(message)).toBytes(false)
+  return bls12_381.shortSignatures.hash(sha256(message))
+
 }
 
 /**
@@ -141,28 +147,42 @@ export async function getRevokeDST(client: ProtocolClient): Promise<Buffer> {
   }
 }
 
+
+export async function getAttesterNonce(client: ProtocolClient, attester: string): Promise<bigint> {
+  const tx = await client.get_attester_nonce({
+    attester
+  })
+  const result = await tx.simulate();
+
+  if (!result.result?.returnValue) {
+    throw new ContractError('Failed to get attester nonce')
+  }
+
+  return BigInt(result.result.returnValue)
+}
+
 /**
  * Create a delegated attestation request object.
  * 
  * @param params - Parameters for the attestation
  * @returns A delegated attestation request ready for signing
  */
-export function createDelegatedAttestationRequest(params: {
+export async function createDelegatedAttestationRequest(client: ProtocolClient, params: {
   schemaUid: Buffer
   subject: string
   attester: string
   value: string
   nonce?: bigint
-  deadline?: bigint
+  deadline: bigint
   expirationTime?: number
-}): Omit<DelegatedAttestationRequest, 'signature'> {
+}): Promise<Omit<DelegatedAttestationRequest, "signature">> {
   return {
     schemaUid: params.schemaUid,
     subject: params.subject,
     attester: params.attester,
     value: params.value,
-    nonce: params.nonce ?? BigInt(Date.now()),
-    deadline: params.deadline ?? BigInt(Date.now() + 3600000), // 1 hour from now
+    deadline: params.deadline,
+    nonce: await getAttesterNonce(client, params.attester),
     expirationTime: params.expirationTime
   }
 }
@@ -173,16 +193,16 @@ export function createDelegatedAttestationRequest(params: {
  * @param params - Parameters for the revocation
  * @returns A delegated revocation request ready for signing
  */
-export function createDelegatedRevocationRequest(params: {
+export async function createDelegatedRevocationRequest(client: ProtocolClient, params: {
   attestationUid: Buffer
   revoker: string
   nonce?: bigint
-  deadline?: bigint
-}): Omit<DelegatedRevocationRequest, 'signature'> {
+  deadline: bigint
+}): Promise<Omit<DelegatedRevocationRequest, 'signature'>> {
   return {
     attestationUid: params.attestationUid,
     revoker: params.revoker,
-    nonce: params.nonce ?? BigInt(Date.now()),
-    deadline: params.deadline ?? BigInt(Date.now() + 3600000) // 1 hour from now
+    deadline: params.deadline,
+    nonce: await getAttesterNonce(client, params.revoker),
   }
 }
