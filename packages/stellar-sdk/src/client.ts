@@ -706,12 +706,11 @@ export class StellarAttestationClient {
    * // Object-based approach (recommended)
    * const result = await client.fetchAttestationsByWallet({
    *   walletAddress: 'GWALLET123...',
-   *   limit: 50,
-   *   offset: 0
+   *   limit: 50
    * })
    *
    * // Legacy positional arguments
-   * const result = await client.fetchAttestationsByWallet('GWALLET123...', 50, 0)
+   * const result = await client.fetchAttestationsByWallet('GWALLET123...', 50)
    */
   async fetchAttestationsByWallet(params: FetchAttestationsByWalletParams): Promise<{
     attestations: ContractAttestation[]
@@ -720,8 +719,7 @@ export class StellarAttestationClient {
   }>
   async fetchAttestationsByWallet(
     walletAddress: string,
-    limit?: number,
-    offset?: number
+    limit?: number
   ): Promise<{
     attestations: ContractAttestation[]
     total: number
@@ -729,22 +727,20 @@ export class StellarAttestationClient {
   }>
   async fetchAttestationsByWallet(
     paramsOrAddress: FetchAttestationsByWalletParams | string,
-    legacyLimit?: number,
-    legacyOffset?: number
+    legacyLimit?: number
   ): Promise<{
     attestations: ContractAttestation[]
     total: number
     hasMore: boolean
   }> {
     try {
-      const { walletAddress, limit, offset } = this.normalizeFetchAttestationsByWalletArgs(
+      const { walletAddress, limit } = this.normalizeFetchAttestationsByWalletArgs(
         paramsOrAddress,
-        legacyLimit,
-        legacyOffset
+        legacyLimit
       )
 
       const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
-      return await fetchAttestationsByWallet(walletAddress, limit, offset, network)
+      return await fetchAttestationsByWallet(walletAddress, limit, network)
     } catch (error: any) {
       throw ErrorFactory.wrap(
         error,
@@ -761,12 +757,11 @@ export class StellarAttestationClient {
    * // Object-based approach (recommended)
    * const result = await client.fetchSchemasByWallet({
    *   walletAddress: 'GWALLET123...',
-   *   limit: 50,
-   *   offset: 0
+   *   limit: 50
    * })
    *
    * // Legacy positional arguments
-   * const result = await client.fetchSchemasByWallet('GWALLET123...', 50, 0)
+   * const result = await client.fetchSchemasByWallet('GWALLET123...', 50)
    */
   async fetchSchemasByWallet(params: FetchSchemasByWalletParams): Promise<{
     schemas: ContractSchema[]
@@ -775,8 +770,7 @@ export class StellarAttestationClient {
   }>
   async fetchSchemasByWallet(
     walletAddress: string,
-    limit?: number,
-    offset?: number
+    limit?: number
   ): Promise<{
     schemas: ContractSchema[]
     total: number
@@ -784,22 +778,20 @@ export class StellarAttestationClient {
   }>
   async fetchSchemasByWallet(
     paramsOrAddress: FetchSchemasByWalletParams | string,
-    legacyLimit?: number,
-    legacyOffset?: number
+    legacyLimit?: number
   ): Promise<{
     schemas: ContractSchema[]
     total: number
     hasMore: boolean
   }> {
     try {
-      const { walletAddress, limit, offset } = this.normalizeFetchSchemasByWalletArgs(
+      const { walletAddress, limit } = this.normalizeFetchSchemasByWalletArgs(
         paramsOrAddress,
-        legacyLimit,
-        legacyOffset
+        legacyLimit
       )
 
       const network = this.networkPassphrase === Networks.PUBLIC ? 'mainnet' : 'testnet'
-      return await fetchSchemasByWallet(walletAddress, limit, offset, network)
+      return await fetchSchemasByWallet(walletAddress, limit, network)
     } catch (error: any) {
       throw ErrorFactory.wrap(
         error,
@@ -924,39 +916,33 @@ export class StellarAttestationClient {
 
   private normalizeFetchAttestationsByWalletArgs(
     paramsOrAddress: FetchAttestationsByWalletParams | string,
-    legacyLimit?: number,
-    legacyOffset?: number
-  ): { walletAddress: string; limit: number; offset: number } {
+    legacyLimit?: number
+  ): { walletAddress: string; limit: number } {
     if (typeof paramsOrAddress === 'string') {
       return {
         walletAddress: paramsOrAddress,
         limit: legacyLimit || 100,
-        offset: legacyOffset || 0,
       }
     }
     return {
       walletAddress: paramsOrAddress.walletAddress,
       limit: paramsOrAddress.limit || legacyLimit || 100,
-      offset: paramsOrAddress.offset || legacyOffset || 0,
     }
   }
 
   private normalizeFetchSchemasByWalletArgs(
     paramsOrAddress: FetchSchemasByWalletParams | string,
-    legacyLimit?: number,
-    legacyOffset?: number
-  ): { walletAddress: string; limit: number; offset: number } {
+    legacyLimit?: number
+  ): { walletAddress: string; limit: number } {
     if (typeof paramsOrAddress === 'string') {
       return {
         walletAddress: paramsOrAddress,
         limit: legacyLimit || 100,
-        offset: legacyOffset || 0,
       }
     }
     return {
       walletAddress: paramsOrAddress.walletAddress,
       limit: paramsOrAddress.limit || legacyLimit || 100,
-      offset: paramsOrAddress.offset || legacyOffset || 0,
     }
   }
 

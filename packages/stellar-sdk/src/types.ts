@@ -231,20 +231,16 @@ export interface CreateSchemaParams {
 export interface FetchAttestationsByWalletParams {
   /** Wallet address to query */
   walletAddress: string
-  /** Maximum number of results (default: 100) */
+  /** Maximum number of results (default: 100, max: 100) */
   limit?: number
-  /** Pagination offset (default: 0) */
-  offset?: number
 }
 
 /** Arguments for fetching schemas by wallet */
 export interface FetchSchemasByWalletParams {
   /** Wallet address to query */
   walletAddress: string
-  /** Maximum number of results (default: 100) */
+  /** Maximum number of results (default: 100, max: 100) */
   limit?: number
-  /** Pagination offset (default: 0) */
-  offset?: number
 }
 
 /** Arguments for fetching by ledger */

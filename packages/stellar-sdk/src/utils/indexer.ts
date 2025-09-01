@@ -136,7 +136,9 @@ export async function fetchAttestationsByLedger(
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<ContractAttestation[]> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?by_ledger=${ledger}&limit=${limit}`
+    // Enforce maximum limit of 100 items
+    const validLimit = Math.min(limit, 100)
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?by_ledger=${ledger}&limit=${validLimit}`
 
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -171,7 +173,9 @@ export async function fetchSchemasByLedger(
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<ContractSchema[]> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?by_ledger=${ledger}&limit=${limit}`
+    // Enforce maximum limit of 100 items
+    const validLimit = Math.min(limit, 100)
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?by_ledger=${ledger}&limit=${validLimit}`
 
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -199,11 +203,11 @@ export async function fetchSchemasByLedger(
 
 /**
  * Fetch attestations by wallet address
+ * Note: Only accepts limit parameter (max 100), no offset support
  */
 export async function fetchAttestationsByWallet(
   walletAddress: string,
   limit: number = 100,
-  offset: number = 0,
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<{
   attestations: ContractAttestation[]
@@ -211,7 +215,9 @@ export async function fetchAttestationsByWallet(
   hasMore: boolean
 }> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?attester=${walletAddress}&limit=${limit}&offset=${offset}`
+    // Enforce maximum limit of 100 items
+    const validLimit = Math.min(limit, 100)
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?attester=${walletAddress}&limit=${validLimit}`
 
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -242,11 +248,11 @@ export async function fetchAttestationsByWallet(
 
 /**
  * Fetch schemas by wallet address (schemas created by this wallet)
+ * Note: Only accepts limit parameter (max 100), no offset support
  */
 export async function fetchSchemasByWallet(
   walletAddress: string,
   limit: number = 100,
-  offset: number = 0,
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<{
   schemas: ContractSchema[]
@@ -254,7 +260,9 @@ export async function fetchSchemasByWallet(
   hasMore: boolean
 }> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?deployer=${walletAddress}&limit=${limit}&offset=${offset}`
+    // Enforce maximum limit of 100 items
+    const validLimit = Math.min(limit, 100)
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?deployer=${walletAddress}&limit=${validLimit}`
 
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -291,7 +299,9 @@ export async function fetchLatestAttestations(
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<ContractAttestation[]> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?limit=${limit}`
+    // Enforce maximum limit of 100 items
+    const validLimit = Math.min(limit, 100)
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?limit=${validLimit}`
 
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -324,7 +334,9 @@ export async function fetchLatestSchemas(
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<ContractSchema[]> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?limit=${limit}`
+    // Enforce maximum limit of 100 items
+    const validLimit = Math.min(limit, 100)
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?limit=${validLimit}`
 
     const response = await fetch(endpoint, {
       method: 'GET',
