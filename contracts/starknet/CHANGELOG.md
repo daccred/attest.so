@@ -1,5 +1,11 @@
 # @attestprotocol/starknet
 
+## 1.7.3
+
+### Patch Changes
+
+- 073bbc9: sdk export update with llm TXT doc gen
+
 ## 1.7.2
 
 ### Patch Changes

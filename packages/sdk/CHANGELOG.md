@@ -1,5 +1,16 @@
 # @attestprotocol/sdk
 
+## 1.7.3
+
+### Patch Changes
+
+- 073bbc9: sdk export update with llm TXT doc gen
+- Updated dependencies [073bbc9]
+  - @attestprotocol/starknet-sdk@1.7.3
+  - @attestprotocol/stellar-sdk@1.7.3
+  - @attestprotocol/solana-sdk@1.7.3
+  - @attestprotocol/core@1.7.3
+
 ## 1.7.2
 
 ### Patch Changes
