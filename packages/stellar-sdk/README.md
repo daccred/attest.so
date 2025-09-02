@@ -12,16 +12,17 @@ A powerful TypeScript SDK for building attestation services on the Stellar block
 - [Key Features](#key-features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Core Concepts](#core-concepts)
-- [Schema System](#schema-system)
-- [API Reference](#api-reference)
+- [Core API Reference](#core-api-reference)
+- [Schema Management](#schema-management)
+- [Attestation Operations](#attestation-operations)
+- [Delegated Attestations](#delegated-attestations)
+- [Utility Functions](#utility-functions)
 - [Common Use Cases](#common-use-cases)
 - [Advanced Features](#advanced-features)
 - [Error Handling](#error-handling)
 - [Best Practices](#best-practices)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
-- [Migration Guide](#migration-guide)
 - [Contributing](#contributing)
 - [Resources](#resources)
 
@@ -43,6 +44,7 @@ Attestations are signed statements about a subject (person, organization, or ent
 - 🔄 **Batch Operations**: Efficient bulk attestation creation and management
 - 🔍 **Advanced Querying**: Find attestations by subject, schema, or custom criteria
 - 🛠 **Internal Utilities**: Comprehensive utility functions for testing and development
+- 🔏 **Delegated Attestations**: Support for BLS signature-based delegated attestations
 
 ## Installation
 
@@ -77,13 +79,20 @@ Before using the SDK, ensure you have deployed the Stellar Attestation Protocol 
 import StellarAttestProtocol from '@attestprotocol/stellar-sdk'
 import { Networks } from '@stellar/stellar-sdk'
 
-// Initialize the SDK
+// Initialize the main client
+const client = new StellarAttestationClient({
+  rpcUrl: 'https://soroban-testnet.stellar.org',
+  network: 'testnet',
+  publicKey: 'GABC123...',
+  contractId: 'CBQHN...' // Optional: Protocol contract ID
+})
+
+// Or use the legacy SDK interface
 const sdk = new StellarAttestProtocol({
   secretKeyOrCustomSigner: 'YOUR_SECRET_KEY',
   publicKey: 'YOUR_PUBLIC_KEY',
   url: 'https://soroban-testnet.stellar.org',
   networkPassphrase: Networks.TESTNET,
-  // Optional: specify contract addresses if different from defaults
   contractAddresses: {
     protocol: 'YOUR_PROTOCOL_CONTRACT_ID',
     authority: 'YOUR_AUTHORITY_CONTRACT_ID'
@@ -94,441 +103,479 @@ const sdk = new StellarAttestProtocol({
 await sdk.initialize()
 ```
 
-### Environment Configuration
+## Core API Reference
 
-You can also configure the SDK using environment variables:
+### StellarAttestationClient
 
-```bash
-STELLAR_SECRET_KEY=SXXXXX...
-STELLAR_PUBLIC_KEY=GXXXXX...
-STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
-STELLAR_RPC_URL=https://soroban-testnet.stellar.org
-PROTOCOL_CONTRACT_ID=CBQHNBFQHAHAHA...
-AUTHORITY_CONTRACT_ID=CBQHNBFQHAHAHA...
-```
-
-### Creating Your First Schema
-
-```typescript
-import { StellarSchemaEncoder, StellarDataType } from '@attestprotocol/stellar-sdk/internal'
-
-// Create a custom schema
-const identitySchema = new StellarSchemaEncoder({
-  name: 'Identity Verification',
-  version: '1.0.0',
-  description: 'Standard identity verification attestation',
-  fields: [
-    {
-      name: 'fullName',
-      type: StellarDataType.STRING,
-      description: 'Legal full name of the individual'
-    },
-    {
-      name: 'documentType',
-      type: StellarDataType.STRING,
-      validation: { enum: ['passport', 'drivers_license', 'national_id'] }
-    },
-    {
-      name: 'verificationDate',
-      type: StellarDataType.TIMESTAMP,
-      description: 'When the verification was completed'
-    },
-    {
-      name: 'verifiedBy',
-      type: StellarDataType.ADDRESS,
-      description: 'Address of the verifying authority'
-    }
-  ],
-  metadata: {
-    category: 'identity',
-    revocable: true,
-    expirable: false
-  }
-})
-
-// Register the schema
-const { data: schema, error } = await sdk.createSchema({
-  name: 'identity-verification-v1',
-  content: JSON.stringify(identitySchema.toJSONSchema()),
-  revocable: true,
-  resolver: null
-})
-
-if (error) {
-  console.error('Schema registration failed:', error)
-} else {
-  console.log('Schema registered with UID:', schema.uid)
-}
-```
-
-### Creating an Attestation
-
-```typescript
-// Using the registered schema
-const attestationData = {
-  schemaUid: schema.uid,
-  subject: 'GBULAMIEKTTBKNV44XSC3SQZ7P2YU5BTBZI3WG3ZDYBPIH7N74D3SXAA',
-  data: JSON.stringify({
-    fullName: 'John Alexander Smith',
-    documentType: 'passport',
-    verificationDate: Date.now(),
-    verifiedBy: sdk.publicKey
-  }),
-  reference: 'identity-verification-001',
-  expirationTime: null, // Never expires
-  revocable: true
-}
-
-// Create the attestation
-const { data: attestation, error: attestError } = await sdk.issueAttestation(attestationData)
-
-if (attestError) {
-  console.error('Attestation creation failed:', attestError)
-} else {
-  console.log('Attestation created:', attestation)
-}
-```
-
-## Core Concepts
-
-### Schemas
-
-Schemas define the structure, validation rules, and metadata for attestation data. They ensure data consistency and enable type-safe operations.
-
-**Schema Components:**
-- **Fields**: Define data structure with types and validation
-- **Metadata**: Category, versioning, and lifecycle information  
-- **Validation**: Type checking, enums, ranges, and custom rules
-
-### Attestations
-
-Attestations are signed statements about a subject, conforming to a specific schema. They include:
-- **Subject**: The entity the attestation is about
-- **Data**: Structured information following the schema
-- **Authority**: Who issued the attestation
-- **Lifecycle**: Creation, expiration, and revocation status
-
-### Authorities
-
-Authorities are entities authorized to issue attestations for specific schemas. The system supports:
-- **Registration**: Become a recognized authority
-- **Permissions**: Schema-specific authorization
-- **Delegation**: Authority can grant permissions to others
-
-## Schema System
-
-### Pre-Built Schema Registry
-
-Access ready-to-use schemas for common use cases:
-
-```typescript
-import { 
-  StellarSchemaRegistry, 
-  createStandardizedSchemaEncoder,
-  createStandardizedTestData
-} from '@attestprotocol/stellar-sdk/internal'
-
-// List all available schemas
-console.log('Available schemas:', StellarSchemaRegistry.list())
-// Output: ['identity-verification', 'academic-credential', 'professional-certification']
-
-// Get a pre-built schema encoder
-const identityEncoder = createStandardizedSchemaEncoder('identity')
-
-// Create standardized test data
-const testData = createStandardizedTestData('identity')
-
-// Validate and encode data
-const encoded = await identityEncoder.encodeData(testData)
-console.log('Encoded data:', encoded.encodedData)
-console.log('Schema hash:', encoded.schemaHash)
-```
-
-### Custom Schema Creation
-
-```typescript
-// Create a sophisticated KYC schema
-const kycSchema = new StellarSchemaEncoder({
-  name: 'Enhanced KYC Verification',
-  version: '2.0.0',
-  description: 'Comprehensive KYC verification with risk assessment',
-  fields: [
-    {
-      name: 'subjectAddress',
-      type: StellarDataType.ADDRESS,
-      description: 'Stellar address of the subject'
-    },
-    {
-      name: 'verificationTier',
-      type: StellarDataType.STRING,
-      validation: { enum: ['basic', 'enhanced', 'premium'] },
-      description: 'Level of verification completed'
-    },
-    {
-      name: 'riskScore',
-      type: StellarDataType.U32,
-      validation: { min: 0, max: 1000 },
-      description: 'Calculated risk score (0-1000)'
-    },
-    {
-      name: 'documentsVerified',
-      type: 'array<string>',
-      description: 'List of verified document types'
-    },
-    {
-      name: 'verificationDate',
-      type: StellarDataType.TIMESTAMP,
-      description: 'Completion timestamp'
-    },
-    {
-      name: 'expiryDate',
-      type: StellarDataType.TIMESTAMP,
-      optional: true,
-      description: 'When this verification expires'
-    },
-    {
-      name: 'notes',
-      type: StellarDataType.STRING,
-      optional: true,
-      description: 'Additional verification notes'
-    }
-  ],
-  metadata: {
-    category: 'compliance',
-    revocable: true,
-    expirable: true,
-    authority: sdk.publicKey
-  }
-})
-
-// Validate schema design
-try {
-  kycSchema.validateData({
-    subjectAddress: 'GBULAMIEKTTBKNV44XSC3SQZ7P2YU5BTBZI3WG3ZDYBPIH7N74D3SXAA',
-    verificationTier: 'enhanced',
-    riskScore: 150,
-    documentsVerified: ['passport', 'utility_bill'],
-    verificationDate: Date.now()
-  })
-  console.log('✅ Schema validation passed')
-} catch (error) {
-  console.error('❌ Schema validation failed:', error.message)
-}
-```
-
-### Schema Conversion and Interoperability
-
-```typescript
-// Convert from JSON Schema to Stellar Schema
-const legacyJsonSchema = {
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Legacy Verification',
-  type: 'object',
-  properties: {
-    userId: { type: 'string' },
-    status: { type: 'boolean' },
-    timestamp: { type: 'integer' }
-  },
-  required: ['userId', 'status']
-}
-
-const convertedEncoder = convertLegacySchema(legacyJsonSchema)
-
-// Generate default values
-const defaults = convertedEncoder.generateDefaults()
-console.log('Default values:', defaults)
-
-// Convert to standardized format
-const jsonSchema = convertedEncoder.toJSONSchema()
-console.log('Converted to JSON Schema:', jsonSchema)
-```
-
-## API Reference
-
-### StellarAttestProtocol Class
+The main client class for interacting with the Attest Protocol on Stellar.
 
 #### Constructor
 ```typescript
-constructor(config: StellarConfig)
+new StellarAttestationClient(options: ClientOptions)
 ```
 
-**StellarConfig:**
+**ClientOptions:**
 ```typescript
-interface StellarConfig {
-  secretKeyOrCustomSigner: string | StellarCustomSigner
+interface ClientOptions {
+  rpcUrl: string
+  network: 'testnet' | 'mainnet'
   publicKey: string
-  url?: string
+  contractId?: string
   networkPassphrase?: string
-  contractAddresses?: {
-    protocol?: string
-    authority?: string
-  }
   allowHttp?: boolean
 }
 ```
 
-#### Core Methods
-
-##### `initialize(): Promise<AttestProtocolResponse<void>>`
-Initialize the protocol by setting the admin.
-
+**Example:**
 ```typescript
-const result = await sdk.initialize()
-if (result.error) {
-  console.error('Initialization failed:', result.error)
-}
+const client = new StellarAttestationClient({
+  rpcUrl: 'https://soroban-testnet.stellar.org',
+  network: 'testnet',
+  publicKey: 'GABC123...'
+})
 ```
 
-##### Schema Operations
+## Schema Management
 
-###### `createSchema(schema: SchemaDefinition): Promise<AttestProtocolResponse<Schema>>`
+### Creating Schemas
+
+#### createSchema
+```typescript
+async createSchema(params: CreateSchemaParams): Promise<any>
+```
+
 Register a new schema on-chain.
 
+**Parameters:**
+- `definition`: string - Schema definition like "name:string,age:u32"
+- `resolver?`: string - Optional resolver address
+- `revocable?`: boolean - Whether attestations can be revoked (default: true)
+- `options?`: TxOptions - Transaction options including signer
+
+**Example:**
 ```typescript
-const { data, error } = await sdk.createSchema({
-  name: 'my-schema',
-  content: JSON.stringify(schemaDefinition),
+await client.createSchema({
+  definition: 'name:string,verified:bool',
   revocable: true,
-  resolver: null
+  options: { signer: myKeypair }
 })
 ```
 
-###### `fetchSchemaById(uid: string): Promise<AttestProtocolResponse<Schema | null>>`
-Retrieve a schema by its UID.
-
-###### `listSchemasByIssuer(params: ListSchemasByIssuerParams): Promise<AttestProtocolResponse<PaginatedResponse<Schema>>>`
-List schemas created by a specific issuer.
-
-##### Attestation Operations
-
-###### `issueAttestation(attestation: AttestationDefinition): Promise<AttestProtocolResponse<Attestation>>`
-Create a new attestation.
-
+#### getSchema
 ```typescript
-const { data: attestation, error } = await sdk.issueAttestation({
-  schemaUid: 'schema-uid-here',
-  subject: 'GSUBJECT...ADDRESS',
-  data: JSON.stringify(attestationData),
-  reference: 'unique-reference',
-  expirationTime: Date.now() + 86400000, // 24 hours
-  revocable: true
+async getSchema(uid: Buffer): Promise<any>
+```
+
+Retrieve a schema by its UID from the blockchain.
+
+**Example:**
+```typescript
+const schema = await client.getSchema(Buffer.from('abc123...', 'hex'))
+```
+
+### Schema Encoding
+
+#### SorobanSchemaEncoder
+```typescript
+new SorobanSchemaEncoder(definition: StellarSchemaDefinition)
+```
+
+Create a schema encoder for non-XDR structured data.
+
+**Example:**
+```typescript
+const encoder = new SorobanSchemaEncoder({
+  name: 'UserProfile',
+  fields: [
+    { name: 'username', type: StellarDataType.STRING },
+    { name: 'age', type: StellarDataType.U32, optional: true }
+  ]
 })
 ```
 
-###### `fetchAttestationById(uid: string): Promise<AttestProtocolResponse<Attestation | null>>`
-Retrieve an attestation by UID.
+#### XDR Schema Encoding
 
-###### `listAttestationsByWallet(params: ListAttestationsByWalletParams): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>>`
-Find attestations by subject/wallet address.
+##### encodeSchema
+```typescript
+encodeSchema(schema: any): string
+```
 
-###### `listAttestationsBySchema(params: ListAttestationsBySchemaParams): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>>`
-Find attestations by schema UID.
+Encode schema data to XDR format for blockchain storage.
 
-###### `revokeAttestation(definition: RevocationDefinition): Promise<AttestProtocolResponse<void>>`
+**Example:**
+```typescript
+const xdrString = client.encodeSchema({ name: 'TestSchema', fields: [...] })
+// Returns: "XDR:AAAAB..."
+```
+
+##### decodeSchema
+```typescript
+decodeSchema(encoded: string): any
+```
+
+Decode XDR-encoded schema data back to JavaScript object.
+
+**Example:**
+```typescript
+const schema = client.decodeSchema('XDR:AAAAB...')
+```
+
+## Attestation Operations
+
+### Basic Attestation
+
+#### attest
+```typescript
+async attest(params: AttestParams): Promise<any>
+```
+
+Create a new attestation on-chain.
+
+**Parameters:**
+- `schemaUid`: Buffer - 32-byte schema identifier
+- `value`: string - Attestation data (usually JSON)
+- `subject?`: string - Who the attestation is about (defaults to caller)
+- `expirationTime?`: number - Unix timestamp when attestation expires
+- `options?`: TxOptions - Transaction options including signer
+
+**Example:**
+```typescript
+await client.attest({
+  schemaUid: Buffer.from('abc123...', 'hex'),
+  value: JSON.stringify({ name: 'John', verified: true }),
+  subject: 'GSUBJECT123...',
+  options: { signer: myKeypair }
+})
+```
+
+#### getAttestation
+```typescript
+async getAttestation(uid: Buffer): Promise<any>
+```
+
+Retrieve an attestation by its UID from the blockchain.
+
+**Example:**
+```typescript
+const attestation = await client.getAttestation(Buffer.from('def456...', 'hex'))
+```
+
+### Revocation
+
+#### revoke
+```typescript
+async revoke(params: RevokeParams): Promise<any>
+```
+
 Revoke an existing attestation.
 
+**Parameters:**
+- `attestationUid`: Buffer - 32-byte attestation UID to revoke
+- `options?`: TxOptions - Transaction options including signer
+
+**Example:**
 ```typescript
-const { error } = await sdk.revokeAttestation({
-  attestationUid: 'attestation-uid',
-  reason: 'Information no longer valid'
+await client.revoke({
+  attestationUid: Buffer.from('abc123...', 'hex'),
+  options: { signer: myKeypair }
 })
 ```
 
-##### Authority Operations
+## Delegated Attestations
 
-###### `registerAuthority(): Promise<AttestProtocolResponse<string>>`
-Register as an attestation authority.
+### Delegated Attestation Creation
 
+#### attestByDelegation
 ```typescript
-const { data: authorityId, error } = await sdk.registerAuthority()
+async attestByDelegation(request: DelegatedAttestationRequest, options?: TxOptions): Promise<any>
 ```
 
-###### `fetchAuthority(id: string): Promise<AttestProtocolResponse<Authority | null>>`
-Retrieve authority details by ID.
+Create an attestation using a delegated signature.
 
-###### `isIssuerAnAuthority(issuer: string): Promise<AttestProtocolResponse<boolean>>`
-Check if an address is registered as an authority.
-
-### Schema Encoder Classes
-
-#### StellarSchemaEncoder
-
-##### `constructor(schema: StellarSchemaDefinition)`
-Create a new schema encoder.
-
-##### `encodeData(data: Record<string, any>): Promise<EncodedAttestationData>`
-Encode and validate data according to the schema.
-
-##### `decodeData(encodedData: string): Record<string, any>`
-Decode data from blockchain format.
-
-##### `validateData(data: Record<string, any>): void`
-Validate data against schema (throws on failure).
-
-##### `getSchema(): StellarSchemaDefinition`
-Get the schema definition.
-
-##### `getSchemaHash(): string`
-Generate a unique hash for the schema.
-
-##### `toJSONSchema(): object`
-Convert to standard JSON Schema format.
-
-##### `generateDefaults(): Record<string, any>`
-Generate default values for all required fields.
-
-#### StellarSchemaRegistry
-
-##### `static get(name: string): StellarSchemaEncoder | undefined`
-Retrieve a pre-registered schema encoder.
-
-##### `static list(): string[]`
-List all available schema names.
-
-##### `static register(name: string, encoder: StellarSchemaEncoder): void`
-Register a custom schema encoder.
-
-### Internal Utilities
-
-The internal module provides utility functions for testing and development:
-
+**Example:**
 ```typescript
-import { 
-  createTestKeypairs, 
-  createStandardizedTestData,
-  createTestSchema,
-  createTestAttestation,
-  generateSchemaUid,
-  formatSchemaUid,
-  validateAttestationData,
-  convertLegacySchema,
-  generateFundingUrls
-} from '@attestprotocol/stellar-sdk/internal'
+const request = await createDelegatedAttestationRequest({...})
+await client.attestByDelegation(request, { signer: myKeypair })
+```
 
-// Generate test keypairs
-const keypairs = createTestKeypairs()
+#### createAttestMessage
+```typescript
+createAttestMessage(request: DelegatedAttestationRequest, dst: Buffer): WeierstrassPoint<bigint>
+```
 
-// Create realistic test data
-const testData = createStandardizedTestData('identity')
+Create a message point for BLS signing in delegated attestation.
 
-// Generate schema UIDs
-const uid = await generateSchemaUid(schemaContent, authority)
+**Example:**
+```typescript
+const dst = await getAttestDST(client.getClientInstance())
+const messagePoint = createAttestMessage(attestRequest, dst)
+```
 
-// Format UIDs for display
-const formatted = formatSchemaUid(uid)
+#### getAttestDST
+```typescript
+async getAttestDST(): Promise<Buffer>
+```
 
-// Validate attestation data
-const validation = validateAttestationData('identity', testData)
+Get the domain separation tag for attestation signatures.
+
+**Example:**
+```typescript
+const dst = await client.getAttestDST()
+```
+
+### Delegated Revocation
+
+#### revokeByDelegation
+```typescript
+async revokeByDelegation(request: DelegatedRevocationRequest, options?: TxOptions): Promise<any>
+```
+
+Revoke an attestation using a delegated signature.
+
+**Example:**
+```typescript
+const request = await createDelegatedRevocationRequest({...})
+await client.revokeByDelegation(request, { signer: myKeypair })
+```
+
+#### createRevokeMessage
+```typescript
+createRevokeMessage(request: DelegatedRevocationRequest, dst: Buffer): WeierstrassPoint<bigint>
+```
+
+Create a message point for BLS signing in delegated revocation.
+
+**Example:**
+```typescript
+const dst = await getRevokeDST(client.getClientInstance())
+const messagePoint = createRevokeMessage(revokeRequest, dst)
+```
+
+#### getRevokeDST
+```typescript
+async getRevokeDST(): Promise<Buffer>
+```
+
+Get the domain separation tag for revocation signatures.
+
+**Example:**
+```typescript
+const dst = await client.getRevokeDST()
+```
+
+## Utility Functions
+
+### UID Generation
+
+#### generateAttestationUid
+```typescript
+generateAttestationUid(schemaUid: Buffer, subject: string, nonce: bigint): Buffer
+```
+
+Generate a deterministic 32-byte UID for an attestation.
+
+**Example:**
+```typescript
+const uid = client.generateAttestationUid(
+  Buffer.from('abc123...', 'hex'),
+  'GSUBJECT123...',
+  BigInt(12345)
+)
+```
+
+#### generateSchemaUid
+```typescript
+generateSchemaUid(definition: string, authority: string, resolver?: string): Buffer
+```
+
+Generate a deterministic 32-byte UID for a schema.
+
+**Example:**
+```typescript
+const uid = client.generateSchemaUid(
+  'name:string,verified:bool',
+  'GAUTHORITY123...',
+  'GRESOLVER456...'
+)
+```
+
+### BLS Signature Operations
+
+#### generateBlsKeys
+```typescript
+generateBlsKeys(): BlsKeyPair
+```
+
+Generate a new BLS key pair for delegated signatures.
+
+**Returns:** BlsKeyPair with privateKey (32 bytes) and publicKey (192 bytes uncompressed)
+
+**Example:**
+```typescript
+const { privateKey, publicKey } = client.generateBlsKeys()
+```
+
+#### signHashedMessage
+```typescript
+signHashedMessage(message: WeierstrassPoint<bigint>, privateKey: Uint8Array): Buffer
+```
+
+Sign a hashed message point using BLS private key.
+
+**Example:**
+```typescript
+const messagePoint = createAttestMessage(request, dst)
+const signature = signHashedMessage(messagePoint, privateKey)
+```
+
+#### verifySignature
+```typescript
+verifySignature({ signature, expectedMessage, publicKey }): VerificationResult
+```
+
+Verify a BLS signature against expected message and public key.
+
+**Example:**
+```typescript
+const result = client.verifySignature({
+  signature: signatureBuffer,
+  expectedMessage: messagePoint,
+  publicKey: publicKeyBuffer
+})
+console.log('Valid:', result.isValid)
+```
+
+### Data Fetching
+
+#### fetchAttestations
+```typescript
+async fetchAttestations(limit: number = 100): Promise<ContractAttestation[]>
+```
+
+Fetch the latest attestations from the registry (max 100).
+
+**Example:**
+```typescript
+const attestations = await client.fetchAttestations(50)
+```
+
+#### fetchAttestationsByWallet
+```typescript
+async fetchAttestationsByWallet(walletAddress: string, limit?: number): Promise<{ 
+  attestations: ContractAttestation[], 
+  total: number, 
+  hasMore: boolean 
+}>
+```
+
+Fetch attestations created by a specific wallet (max 100).
+
+**Example:**
+```typescript
+const result = await client.fetchAttestationsByWallet('GATTESTER123...', 25)
+console.log(`Found ${result.attestations.length} attestations`)
+```
+
+#### fetchSchemas
+```typescript
+async fetchSchemas(limit: number = 100): Promise<ContractSchema[]>
+```
+
+Fetch the latest schemas from the registry (max 100).
+
+**Example:**
+```typescript
+const schemas = await client.fetchSchemas(30)
+```
+
+#### fetchSchemasByWallet
+```typescript
+async fetchSchemasByWallet(walletAddress: string, limit?: number): Promise<{ 
+  schemas: ContractSchema[], 
+  total: number, 
+  hasMore: boolean 
+}>
+```
+
+Fetch schemas created by a specific wallet (max 100).
+
+**Example:**
+```typescript
+const result = await client.fetchSchemasByWallet('GCREATOR123...', 20)
+console.log(`Found ${result.schemas.length} schemas`)
+```
+
+### Transaction Submission
+
+#### submitTransaction
+```typescript
+async submitTransaction(signedXdr: string, options?: SubmitOptions): Promise<any>
+```
+
+Submit a signed transaction to the Stellar network.
+
+**Example:**
+```typescript
+const result = await client.submitTransaction(signedTxXdr)
+```
+
+### Helper Functions
+
+#### createDelegatedAttestationRequest
+```typescript
+async createDelegatedAttestationRequest(
+  params: {...}, 
+  privateKey: Uint8Array, 
+  client: ProtocolClient
+): Promise<DelegatedAttestationRequest>
+```
+
+Create a complete delegated attestation request with BLS signature.
+
+**Parameters:**
+- `schemaUid`: Buffer
+- `subject`: string
+- `data`: string
+- `expirationTime?`: number
+- `nonce?`: bigint
+- `privateKey`: Uint8Array - BLS private key for signing
+- `client`: ProtocolClient - For fetching DST and nonce
+
+**Example:**
+```typescript
+const request = await createDelegatedAttestationRequest({
+  schemaUid: Buffer.from('abc...', 'hex'),
+  subject: 'GSUBJECT...',
+  data: JSON.stringify({verified: true})
+}, blsPrivateKey, client.getClientInstance())
+```
+
+#### createDelegatedRevocationRequest
+```typescript
+async createDelegatedRevocationRequest(
+  params: {...}, 
+  privateKey: Uint8Array, 
+  client: ProtocolClient
+): Promise<DelegatedRevocationRequest>
+```
+
+Create a complete delegated revocation request with BLS signature.
+
+**Example:**
+```typescript
+const request = await createDelegatedRevocationRequest({
+  attestationUid: Buffer.from('def...', 'hex')
+}, blsPrivateKey, client.getClientInstance())
 ```
 
 ## Common Use Cases
 
-### 1. Identity Verification Service
+### Identity Verification Service
 
 ```typescript
 // Complete identity verification flow
 class IdentityVerificationService {
-  constructor(private sdk: StellarAttestProtocol) {}
+  constructor(private client: StellarAttestationClient) {}
 
   async verifyIdentity(userData: {
     fullName: string
@@ -536,41 +583,26 @@ class IdentityVerificationService {
     documentNumber: string
     userAddress: string
   }) {
-    // 1. Create schema if not exists
-    const identitySchema = createStandardizedSchemaEncoder('identity')
-    
-    // 2. Validate user data
-    const verificationData = {
+    // Create attestation
+    const attestationData = {
       fullName: userData.fullName,
       documentType: userData.documentType,
-      documentNumber: this.hashDocument(userData.documentNumber),
+      documentHash: this.hashDocument(userData.documentNumber),
       verificationLevel: 'enhanced',
       verificationDate: Date.now(),
-      verifiedBy: this.sdk.publicKey
+      verifiedBy: this.client.publicKey
     }
 
-    try {
-      identitySchema.validateData(verificationData)
-    } catch (error) {
-      throw new Error(`Invalid verification data: ${error.message}`)
-    }
-
-    // 3. Create attestation
-    const { data: attestationUid, error } = await this.sdk.attest.create({
+    const result = await this.client.attest({
       schemaUid: await this.getIdentitySchemaUid(),
+      value: JSON.stringify(attestationData),
       subject: userData.userAddress,
-      data: JSON.stringify(verificationData),
-      reference: `identity-${Date.now()}`,
       expirationTime: Date.now() + (2 * 365 * 24 * 60 * 60 * 1000), // 2 years
-      revocable: true
+      options: { signer: this.signer }
     })
 
-    if (error) {
-      throw new Error(`Attestation creation failed: ${error}`)
-    }
-
     return {
-      attestationUid,
+      attestationUid: result,
       verificationLevel: 'enhanced',
       validUntil: new Date(Date.now() + (2 * 365 * 24 * 60 * 60 * 1000))
     }
@@ -581,19 +613,19 @@ class IdentityVerificationService {
     return `sha256:${documentNumber.slice(0, 3)}...${documentNumber.slice(-3)}`
   }
 
-  private async getIdentitySchemaUid(): Promise<string> {
+  private async getIdentitySchemaUid(): Promise<Buffer> {
     // Implementation to get or create identity schema
-    return 'your-identity-schema-uid'
+    return Buffer.from('your-identity-schema-uid', 'hex')
   }
 }
 ```
 
-### 2. Academic Credential Issuer
+### Academic Credential Issuer
 
 ```typescript
 // University degree attestation system
 class UniversityCredentialIssuer {
-  constructor(private sdk: StellarAttestProtocol) {}
+  constructor(private client: StellarAttestationClient) {}
 
   async issueDegree(graduateData: {
     studentName: string
@@ -604,8 +636,6 @@ class UniversityCredentialIssuer {
     gpa?: number
     honors?: string
   }) {
-    const degreeSchema = createStandardizedSchemaEncoder('degree')
-    
     const credentialData = {
       studentName: graduateData.studentName,
       institution: 'Stanford University',
@@ -617,109 +647,34 @@ class UniversityCredentialIssuer {
     }
 
     // Issue permanent credential (no expiration)
-    const { data: attestationUid, error } = await this.sdk.attest.create({
+    const result = await this.client.attest({
       schemaUid: await this.getDegreeSchemaUid(),
+      value: JSON.stringify(credentialData),
       subject: graduateData.studentAddress,
-      data: JSON.stringify(credentialData),
-      reference: `degree-${graduateData.studentName.replace(/\s+/g, '-')}-${Date.now()}`,
-      expirationTime: null, // Degrees don't expire
-      revocable: false // Academic credentials should be immutable
+      expirationTime: undefined, // Degrees don't expire
+      options: { signer: this.signer }
     })
 
-    if (error) {
-      throw new Error(`Degree attestation failed: ${error}`)
-    }
-
     return {
-      attestationUid,
+      attestationUid: result,
       credentialType: 'degree',
       institution: 'Stanford University',
       verifiable: true
     }
   }
 
-  private async getDegreeSchemaUid(): Promise<string> {
-    return 'your-degree-schema-uid'
+  private async getDegreeSchemaUid(): Promise<Buffer> {
+    return Buffer.from('your-degree-schema-uid', 'hex')
   }
 }
 ```
 
-### 3. Professional Certification Authority
-
-```typescript
-// Professional certification management
-class CertificationAuthority {
-  constructor(private sdk: StellarAttestProtocol) {}
-
-  async issueCertification(certData: {
-    holderName: string
-    holderAddress: string
-    certificationName: string
-    level: 'entry' | 'associate' | 'professional' | 'expert' | 'master'
-    validityPeriod: number // months
-    skillsValidated: string[]
-  }) {
-    const certSchema = createStandardizedSchemaEncoder('certification')
-    
-    const issueDate = Date.now()
-    const expirationDate = issueDate + (certData.validityPeriod * 30 * 24 * 60 * 60 * 1000)
-
-    const certificationData = {
-      holderName: certData.holderName,
-      certificationName: certData.certificationName,
-      issuingOrganization: 'Professional Certification Board',
-      certificationNumber: this.generateCertNumber(),
-      issueDate,
-      expirationDate,
-      skillsValidated: certData.skillsValidated,
-      certificationLevel: certData.level
-    }
-
-    const { data: attestationUid, error } = await this.sdk.attest.create({
-      schemaUid: await this.getCertSchemaUid(),
-      subject: certData.holderAddress,
-      data: JSON.stringify(certificationData),
-      reference: `cert-${this.generateCertNumber()}`,
-      expirationTime: expirationDate,
-      revocable: true // Certifications can be revoked for violations
-    })
-
-    if (error) {
-      throw new Error(`Certification issuance failed: ${error}`)
-    }
-
-    // Schedule renewal reminder
-    this.scheduleRenewalReminder(certData.holderAddress, expirationDate)
-
-    return {
-      attestationUid,
-      certificationNumber: certificationData.certificationNumber,
-      validUntil: new Date(expirationDate),
-      renewalRequired: true
-    }
-  }
-
-  private generateCertNumber(): string {
-    return `CERT-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-  }
-
-  private async getCertSchemaUid(): Promise<string> {
-    return 'your-certification-schema-uid'
-  }
-
-  private scheduleRenewalReminder(address: string, expirationDate: number) {
-    // Implementation for renewal notifications
-    console.log(`Renewal reminder scheduled for ${address} at ${new Date(expirationDate)}`)
-  }
-}
-```
-
-### 4. Financial Compliance (KYC/AML)
+### KYC/AML Compliance
 
 ```typescript
 // KYC/AML compliance attestation system
 class ComplianceService {
-  constructor(private sdk: StellarAttestProtocol) {}
+  constructor(private client: StellarAttestationClient) {}
 
   async performKYC(customerData: {
     customerAddress: string
@@ -729,10 +684,10 @@ class ComplianceService {
     documentType: string
     documentNumber: string
   }) {
-    // 1. Perform background checks
+    // Perform background checks
     const riskAssessment = await this.performRiskAssessment(customerData)
     
-    // 2. Create compliance attestation
+    // Create compliance attestation
     const kycData = {
       subjectAddress: customerData.customerAddress,
       verificationTier: riskAssessment.tier,
@@ -740,24 +695,19 @@ class ComplianceService {
       documentsVerified: ['identity', 'address'],
       verificationDate: Date.now(),
       complianceStatus: riskAssessment.approved ? 'approved' : 'rejected',
-      reviewedBy: this.sdk.publicKey
+      reviewedBy: this.client.publicKey
     }
 
-    const { data: attestationUid, error } = await this.sdk.attest.create({
+    const result = await this.client.attest({
       schemaUid: await this.getKYCSchemaUid(),
+      value: JSON.stringify(kycData),
       subject: customerData.customerAddress,
-      data: JSON.stringify(kycData),
-      reference: `kyc-${customerData.customerAddress}-${Date.now()}`,
       expirationTime: Date.now() + (365 * 24 * 60 * 60 * 1000), // 1 year
-      revocable: true
+      options: { signer: this.signer }
     })
 
-    if (error) {
-      throw new Error(`KYC attestation failed: ${error}`)
-    }
-
     return {
-      attestationUid,
+      attestationUid: result,
       status: riskAssessment.approved ? 'approved' : 'rejected',
       riskLevel: riskAssessment.tier,
       validUntil: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000))
@@ -774,8 +724,8 @@ class ComplianceService {
     }
   }
 
-  private async getKYCSchemaUid(): Promise<string> {
-    return 'your-kyc-schema-uid'
+  private async getKYCSchemaUid(): Promise<Buffer> {
+    return Buffer.from('your-kyc-schema-uid', 'hex')
   }
 }
 ```
@@ -786,33 +736,65 @@ class ComplianceService {
 
 ```typescript
 // Efficient batch attestation creation
-async function createBatchAttestations() {
+async function createBatchAttestations(client: StellarAttestationClient) {
   const attestations = [
     {
-      schemaUid: 'identity-schema-uid',
-      subject: 'GUSER1...ADDRESS',
-      data: JSON.stringify({ name: 'User 1', verified: true }),
-      reference: 'batch-1-user1',
-      expirationTime: null,
-      revocable: true
+      schemaUid: Buffer.from('identity-schema-uid', 'hex'),
+      value: JSON.stringify({ name: 'User 1', verified: true }),
+      subject: 'GUSER1...ADDRESS'
     },
     {
-      schemaUid: 'identity-schema-uid', 
-      subject: 'GUSER2...ADDRESS',
-      data: JSON.stringify({ name: 'User 2', verified: true }),
-      reference: 'batch-1-user2',
-      expirationTime: null,
-      revocable: true
+      schemaUid: Buffer.from('identity-schema-uid', 'hex'),
+      value: JSON.stringify({ name: 'User 2', verified: true }),
+      subject: 'GUSER2...ADDRESS'
     }
   ]
 
-  const { data: attestationUids, error } = await sdk.attest.createBatch(attestations)
-  
-  if (error) {
-    console.error('Batch creation failed:', error)
-  } else {
-    console.log(`Created ${attestationUids.length} attestations:`, attestationUids)
+  // Process attestations in batch
+  for (const attestation of attestations) {
+    await client.attest({
+      ...attestation,
+      options: { signer: myKeypair }
+    })
   }
+}
+```
+
+### Delegated Attestations with BLS
+
+```typescript
+// Complete delegated attestation flow
+async function createDelegatedAttestation(client: StellarAttestationClient) {
+  // 1. Generate BLS keys
+  const { privateKey, publicKey } = generateBlsKeys()
+  
+  // 2. Get domain separation tag
+  const dst = await client.getAttestDST()
+  
+  // 3. Create attestation request
+  const request: DelegatedAttestationRequest = {
+    schemaUid: Buffer.from('schema-uid', 'hex'),
+    subject: 'GSUBJECT...',
+    data: JSON.stringify({ verified: true }),
+    expirationTime: Date.now() + 86400000,
+    nonce: BigInt(1)
+  }
+  
+  // 4. Create message point for signing
+  const messagePoint = createAttestMessage(request, dst)
+  
+  // 5. Sign the message
+  const signature = signHashedMessage(messagePoint, privateKey)
+  
+  // 6. Add signature to request
+  const signedRequest = {
+    ...request,
+    signature,
+    publicKey
+  }
+  
+  // 7. Submit delegated attestation
+  await client.attestByDelegation(signedRequest, { signer: myKeypair })
 }
 ```
 
@@ -821,50 +803,44 @@ async function createBatchAttestations() {
 ```typescript
 // Complex attestation queries
 class AttestationQueryService {
-  constructor(private sdk: StellarAttestProtocol) {}
+  constructor(private client: StellarAttestationClient) {}
 
-  async findVerifiedUsers(verificationLevel: string = 'enhanced') {
-    // Get all identity attestations
-    const { data: attestations, error } = await this.sdk.attest.getBySchema(
-      'identity-schema-uid',
-      { limit: 100, offset: 0 }
-    )
-
-    if (error) return []
-
-    // Filter by verification level
-    return attestations.items.filter(attestation => {
+  async findVerifiedUsers(schemaUid: string, verificationLevel: string = 'enhanced') {
+    // Fetch attestations by schema
+    const attestations = await this.client.fetchSchemas(100)
+    
+    // Filter and parse attestations
+    const verifiedUsers = []
+    for (const attestation of attestations) {
       try {
         const data = JSON.parse(attestation.data)
-        return data.verificationLevel === verificationLevel
+        if (data.verificationLevel === verificationLevel) {
+          verifiedUsers.push({
+            subject: attestation.subject,
+            data,
+            timestamp: attestation.timestamp
+          })
+        }
       } catch {
-        return false
+        // Skip invalid data
       }
-    })
+    }
+    
+    return verifiedUsers
   }
 
   async getUserAttestationSummary(userAddress: string) {
-    const { data: attestations, error } = await this.sdk.attest.getBySubject(userAddress)
+    const result = await this.client.fetchAttestationsByWallet(userAddress)
     
-    if (error) return null
-
     const summary = {
-      total: attestations.items.length,
-      byCategory: {} as Record<string, number>,
-      bySchema: {} as Record<string, number>,
+      total: result.total,
       active: 0,
       expired: 0,
-      revoked: 0
+      revoked: 0,
+      bySchema: {} as Record<string, number>
     }
 
-    for (const attestation of attestations.items) {
-      // Get schema details to categorize
-      const { data: schema } = await this.sdk.schema.get(attestation.schemaUid)
-      
-      if (schema) {
-        summary.bySchema[schema.name] = (summary.bySchema[schema.name] || 0) + 1
-      }
-
+    for (const attestation of result.attestations) {
       // Check status
       if (attestation.revoked) {
         summary.revoked++
@@ -873,142 +849,13 @@ class AttestationQueryService {
       } else {
         summary.active++
       }
+      
+      // Group by schema
+      const schemaId = attestation.schemaUid.toString('hex')
+      summary.bySchema[schemaId] = (summary.bySchema[schemaId] || 0) + 1
     }
 
     return summary
-  }
-}
-```
-
-### Custom Validation and Hooks
-
-```typescript
-// Advanced schema with custom validation
-const advancedSchema = new StellarSchemaEncoder({
-  name: 'Advanced Verification',
-  version: '1.0.0',
-  description: 'Schema with custom validation logic',
-  fields: [
-    {
-      name: 'score',
-      type: StellarDataType.U32,
-      validation: {
-        min: 0,
-        max: 1000,
-        custom: (value: number) => {
-          if (value % 5 !== 0) {
-            throw new Error('Score must be divisible by 5')
-          }
-          return true
-        }
-      }
-    },
-    {
-      name: 'email',
-      type: StellarDataType.STRING,
-      validation: {
-        pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'
-      }
-    },
-    {
-      name: 'age',
-      type: StellarDataType.U32,
-      validation: {
-        min: 18,
-        max: 120,
-        custom: (age: number) => {
-          if (age < 21 && Math.random() > 0.5) {
-            throw new Error('Additional verification required for under 21')
-          }
-          return true
-        }
-      }
-    }
-  ]
-})
-
-// Validation with error handling
-try {
-  advancedSchema.validateData({
-    score: 85, // Will fail - not divisible by 5
-    email: 'user@example.com',
-    age: 25
-  })
-} catch (error) {
-  console.error('Validation failed:', error.message)
-}
-```
-
-### Attestation Lifecycle Management
-
-```typescript
-// Complete attestation lifecycle management
-class AttestationLifecycleManager {
-  constructor(private sdk: StellarAttestProtocol) {}
-
-  async createTimeBoundAttestation(data: {
-    schemaUid: string
-    subject: string
-    attestationData: any
-    validityDays: number
-  }) {
-    const expirationTime = Date.now() + (data.validityDays * 24 * 60 * 60 * 1000)
-    
-    const { data: attestationUid, error } = await this.sdk.attest.create({
-      schemaUid: data.schemaUid,
-      subject: data.subject,
-      data: JSON.stringify(data.attestationData),
-      reference: `time-bound-${Date.now()}`,
-      expirationTime,
-      revocable: true
-    })
-
-    if (error) {
-      throw new Error(`Attestation creation failed: ${error}`)
-    }
-
-    // Schedule expiration notification
-    this.scheduleExpirationNotification(attestationUid, expirationTime)
-    
-    return attestationUid
-  }
-
-  async renewAttestation(originalUid: string, newValidityDays: number) {
-    // Get original attestation
-    const { data: original, error } = await this.sdk.attest.get(originalUid)
-    
-    if (error || !original) {
-      throw new Error('Original attestation not found')
-    }
-
-    // Create new attestation with extended validity
-    const newExpirationTime = Date.now() + (newValidityDays * 24 * 60 * 60 * 1000)
-    
-    const { data: newUid, error: createError } = await this.sdk.attest.create({
-      schemaUid: original.schemaUid,
-      subject: original.subject,
-      data: original.data,
-      reference: `renewal-of-${originalUid}`,
-      expirationTime: newExpirationTime,
-      revocable: true
-    })
-
-    if (createError) {
-      throw new Error(`Renewal failed: ${createError}`)
-    }
-
-    // Revoke original attestation
-    await this.sdk.attest.revoke({
-      attestationUid: originalUid,
-      reason: `Renewed with attestation ${newUid}`
-    })
-
-    return newUid
-  }
-
-  private scheduleExpirationNotification(uid: string, expirationTime: number) {
-    // In production, use a proper job scheduler
-    console.log(`Scheduled expiration notification for ${uid} at ${new Date(expirationTime)}`)
   }
 }
 ```
@@ -1020,66 +867,43 @@ class AttestationLifecycleManager {
 ```typescript
 import { AttestProtocolErrorType } from '@attestprotocol/stellar-sdk'
 
-async function robustAttestationCreation(attestationData: any) {
+async function robustAttestationCreation(
+  client: StellarAttestationClient,
+  attestationData: any
+) {
   try {
-    const { data, error } = await sdk.attest.create(attestationData)
-    
-    if (error) {
-      // Handle SDK-level errors
-      switch (error.type) {
-        case AttestProtocolErrorType.VALIDATION_ERROR:
-          console.error('Data validation failed:', error.message)
-          // Show user-friendly validation errors
-          break
-          
-        case AttestProtocolErrorType.NETWORK_ERROR:
-          console.error('Network connection failed:', error.message)
-          // Retry logic or show connectivity issues
-          break
-          
-        case AttestProtocolErrorType.UNAUTHORIZED:
-          console.error('Not authorized:', error.message)
-          // Redirect to authorization flow
-          break
-          
-        case AttestProtocolErrorType.INSUFFICIENT_FUNDS:
-          console.error('Insufficient funds for transaction:', error.message)
-          // Show funding instructions
-          break
-          
-        default:
-          console.error('Unknown error:', error.message)
-      }
-      return null
-    }
-    
-    return data
-    
-  } catch (contractError) {
-    // Handle contract-specific errors
-    if (contractError.message.includes('schema not found')) {
-      console.error('Schema does not exist - please register it first')
-    } else if (contractError.message.includes('unauthorized authority')) {
-      console.error('You are not authorized to issue attestations for this schema')
-    } else if (contractError.message.includes('invalid subject')) {
-      console.error('Subject address is invalid')
+    const result = await client.attest(attestationData)
+    return result
+  } catch (error) {
+    if (error.code === 'VALIDATION_ERROR') {
+      console.error('Data validation failed:', error.message)
+      // Show user-friendly validation errors
+    } else if (error.code === 'NETWORK_ERROR') {
+      console.error('Network connection failed:', error.message)
+      // Retry logic or show connectivity issues
+    } else if (error.code === 'UNAUTHORIZED') {
+      console.error('Not authorized:', error.message)
+      // Redirect to authorization flow
+    } else if (error.code === 'INSUFFICIENT_FUNDS') {
+      console.error('Insufficient funds for transaction:', error.message)
+      // Show funding instructions
     } else {
-      console.error('Contract error:', contractError.message)
+      console.error('Unknown error:', error.message)
     }
     return null
   }
 }
 
-// Error recovery patterns
+// Error recovery with retry
 async function createAttestationWithRetry(
-  attestationData: any, 
+  client: StellarAttestationClient,
+  attestationData: any,
   maxRetries: number = 3
 ): Promise<string | null> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const result = await robustAttestationCreation(attestationData)
+      const result = await robustAttestationCreation(client, attestationData)
       if (result) return result
-      
     } catch (error) {
       console.warn(`Attempt ${attempt} failed:`, error.message)
       
@@ -1097,53 +921,13 @@ async function createAttestationWithRetry(
 }
 ```
 
-### Schema Validation Error Handling
-
-```typescript
-function handleSchemaValidationErrors(error: any) {
-  if (error.name === 'SchemaValidationError') {
-    const field = error.field
-    const message = error.message
-    
-    // Provide specific guidance based on field
-    switch (field) {
-      case 'email':
-        return 'Please provide a valid email address'
-      case 'age':
-        return 'Age must be between 18 and 120'
-      case 'score':
-        return 'Score must be between 0 and 1000'
-      default:
-        return `Field '${field}': ${message}`
-    }
-  }
-  
-  return 'Validation failed: ' + error.message
-}
-
-// Usage in forms
-async function validateFormData(formData: any) {
-  const schema = createStandardizedSchemaEncoder('identity')
-  
-  try {
-    schema.validateData(formData)
-    return { valid: true, errors: [] }
-  } catch (error) {
-    return {
-      valid: false,
-      errors: [handleSchemaValidationErrors(error)]
-    }
-  }
-}
-```
-
 ## Best Practices
 
-### 1. Schema Design Best Practices
+### 1. Schema Design
 
 ```typescript
 // ✅ Good schema design
-const goodSchema = new StellarSchemaEncoder({
+const goodSchema = new SorobanSchemaEncoder({
   name: 'Professional License',
   version: '1.0.0',
   description: 'Professional license verification with clear validation rules',
@@ -1152,7 +936,7 @@ const goodSchema = new StellarSchemaEncoder({
       name: 'licenseNumber',
       type: StellarDataType.STRING,
       description: 'Unique license identifier',
-      validation: { pattern: '^[A-Z]{2}[0-9]{6}$' } // Clear format requirement
+      validation: { pattern: '^[A-Z]{2}[0-9]{6}$' }
     },
     {
       name: 'profession',
@@ -1174,29 +958,9 @@ const goodSchema = new StellarSchemaEncoder({
   ],
   metadata: {
     category: 'professional',
-    revocable: true, // Licenses can be revoked
-    expirable: true  // Licenses can expire
+    revocable: true,
+    expirable: true
   }
-})
-
-// ❌ Poor schema design
-const badSchema = new StellarSchemaEncoder({
-  name: 'Bad Schema', // Non-descriptive name
-  version: '1.0.0',
-  description: 'Some data', // Vague description
-  fields: [
-    {
-      name: 'data', // Generic field name
-      type: StellarDataType.STRING
-      // No validation or description
-    },
-    {
-      name: 'number',
-      type: StellarDataType.U32
-      // No validation limits
-    }
-  ]
-  // No metadata
 })
 ```
 
@@ -1205,10 +969,8 @@ const badSchema = new StellarSchemaEncoder({
 ```typescript
 // Privacy-preserving attestation patterns
 class PrivacyPreservingAttestations {
-  
   // Hash sensitive data before storing
   static hashSensitiveData(data: string): string {
-    // Use proper cryptographic hashing in production
     const crypto = require('crypto')
     return 'sha256:' + crypto.createHash('sha256').update(data).digest('hex')
   }
@@ -1232,103 +994,31 @@ class PrivacyPreservingAttestations {
     return age >= 18
   }
 }
-
-// Selective disclosure pattern
-const privacySchema = new StellarSchemaEncoder({
-  name: 'Privacy-Preserving Identity',
-  version: '1.0.0',
-  description: 'Identity verification with minimal data disclosure',
-  fields: [
-    {
-      name: 'ageVerified',
-      type: StellarDataType.BOOL,
-      description: 'Whether the person is verified to be over 18'
-    },
-    {
-      name: 'countryVerified',
-      type: StellarDataType.STRING,
-      description: 'Country of citizenship (ISO code only)'
-    },
-    {
-      name: 'documentTypeVerified',
-      type: StellarDataType.STRING,
-      validation: { enum: ['government_id', 'passport', 'other'] },
-      description: 'Type of document verified (category only)'
-    },
-    {
-      name: 'verificationLevel',
-      type: StellarDataType.STRING,
-      validation: { enum: ['basic', 'enhanced'] },
-      description: 'Level of verification performed'
-    }
-  ]
-})
 ```
 
 ### 3. Performance Optimization
 
 ```typescript
-// Efficient batch processing
-class OptimizedAttestationService {
-  private batchSize = 10
-  private processingQueue: any[] = []
-
-  async queueAttestation(attestationData: any) {
-    this.processingQueue.push(attestationData)
-    
-    if (this.processingQueue.length >= this.batchSize) {
-      await this.processBatch()
-    }
-  }
-
-  private async processBatch() {
-    if (this.processingQueue.length === 0) return
-
-    const batch = this.processingQueue.splice(0, this.batchSize)
-    
-    try {
-      const { data: uids, error } = await sdk.attest.createBatch(batch)
-      
-      if (error) {
-        console.error('Batch processing failed:', error)
-        // Re-queue failed items
-        this.processingQueue.unshift(...batch)
-      } else {
-        console.log(`Successfully processed batch of ${uids.length} attestations`)
-      }
-    } catch (error) {
-      console.error('Batch processing error:', error)
-      // Re-queue failed items
-      this.processingQueue.unshift(...batch)
-    }
-  }
-
-  // Process any remaining items
-  async flush() {
-    while (this.processingQueue.length > 0) {
-      await this.processBatch()
-    }
-  }
-}
-
 // Caching for frequently accessed schemas
 class SchemaCache {
   private cache = new Map<string, any>()
   private cacheExpiry = new Map<string, number>()
   private ttl = 5 * 60 * 1000 // 5 minutes
 
-  async getSchema(uid: string) {
+  async getSchema(client: StellarAttestationClient, uid: Buffer) {
+    const uidStr = uid.toString('hex')
+    
     // Check cache first
-    if (this.cache.has(uid) && this.cacheExpiry.get(uid)! > Date.now()) {
-      return this.cache.get(uid)
+    if (this.cache.has(uidStr) && this.cacheExpiry.get(uidStr)! > Date.now()) {
+      return this.cache.get(uidStr)
     }
 
     // Fetch from network
-    const { data: schema, error } = await sdk.schema.get(uid)
+    const schema = await client.getSchema(uid)
     
-    if (!error && schema) {
-      this.cache.set(uid, schema)
-      this.cacheExpiry.set(uid, Date.now() + this.ttl)
+    if (schema) {
+      this.cache.set(uidStr, schema)
+      this.cacheExpiry.set(uidStr, Date.now() + this.ttl)
     }
     
     return schema
@@ -1346,103 +1036,6 @@ class SchemaCache {
 }
 ```
 
-### 4. Testing Strategies
-
-```typescript
-// Comprehensive testing patterns
-import { _internal } from '@attestprotocol/stellar-sdk'
-
-describe('Attestation Service Tests', () => {
-  let sdk: StellarAttestProtocol
-  let testKeypairs: any
-
-  beforeEach(async () => {
-    // Use test utilities
-    testKeypairs = createTestKeypairs()
-    
-    sdk = new StellarAttestProtocol({
-      network: Networks.TESTNET,
-      secretKeyOrCustomSigner: testKeypairs.authority.secret(),
-      publicKey: testKeypairs.authority.publicKey()
-    })
-    
-    await sdk.initialize()
-  })
-
-  describe('Schema Operations', () => {
-    it('should create and register a schema', async () => {
-      const testSchema = createTestSchema('identity')
-      
-      const { data: schema, error } = await sdk.schema.register(testSchema)
-      
-      expect(error).toBeNull()
-      expect(schema).toBeDefined()
-      expect(schema.uid).toBeTruthy()
-    })
-
-    it('should validate schema data correctly', () => {
-      const identityEncoder = createStandardizedSchemaEncoder('identity')
-      const testData = createStandardizedTestData('identity')
-      
-      expect(() => {
-        identityEncoder.validateData(testData)
-      }).not.toThrow()
-    })
-  })
-
-  describe('Attestation Operations', () => {
-    it('should create attestation with valid data', async () => {
-      const schemaUid = 'test-schema-uid'
-      const attestationData = createTestAttestation(
-        schemaUid,
-        'identity',
-        testKeypairs.recipientPublic
-      )
-
-      const { data: attestationUid, error } = await sdk.attest.create(attestationData)
-      
-      expect(error).toBeNull()
-      expect(attestationUid).toBeTruthy()
-    })
-
-    it('should handle batch attestation creation', async () => {
-      const attestations = Array.from({ length: 5 }, (_, i) => 
-        createTestAttestation(
-          'test-schema-uid',
-          'identity',
-          `GUSER${i}...ADDRESS`
-        )
-      )
-
-      const { data: uids, error } = await sdk.attest.createBatch(attestations)
-      
-      expect(error).toBeNull()
-      expect(uids).toHaveLength(5)
-    })
-  })
-
-  describe('Error Handling', () => {
-    it('should handle invalid schema gracefully', async () => {
-      const { data, error } = await sdk.schema.get('non-existent-uid')
-      
-      expect(data).toBeNull()
-      expect(error).toBeDefined()
-      expect(error.type).toBe(AttestProtocolErrorType.NOT_FOUND)
-    })
-
-    it('should validate attestation data', () => {
-      const encoder = createStandardizedSchemaEncoder('identity')
-      
-      expect(() => {
-        encoder.validateData({
-          invalidField: 'invalid'
-        })
-      }).toThrow('Unknown field')
-    })
-  })
-})
-```
-
 ## Testing
 
 ### Setting Up Tests
@@ -1456,79 +1049,65 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/internal/**'
-  ],
-  coverageReporters: ['text', 'lcov', 'html']
-}
-
-// test/setup.ts
-import { Networks } from '@stellar/stellar-sdk'
-
-global.testConfig = {
-  network: Networks.TESTNET,
-  rpcUrl: 'https://soroban-testnet.stellar.org'
+    '!src/**/*.d.ts'
+  ]
 }
 ```
 
 ### Integration Tests
 
 ```typescript
-// test/integration/attestation.test.ts
-import StellarAttestProtocol, { _internal } from '@attestprotocol/stellar-sdk'
+import { StellarAttestationClient } from '@attestprotocol/stellar-sdk'
+import { Keypair } from '@stellar/stellar-sdk'
 
 describe('Integration Tests', () => {
-  let sdk: StellarAttestProtocol
-  let schemaUid: string
+  let client: StellarAttestationClient
+  let schemaUid: Buffer
+  let signer: Keypair
 
   beforeAll(async () => {
-    const keypairs = createTestKeypairs()
+    signer = Keypair.random()
     
-    sdk = new StellarAttestProtocol({
-      network: global.testConfig.network,
-      rpcUrl: global.testConfig.rpcUrl,
-      secretKeyOrCustomSigner: keypairs.authority.secret(),
-      publicKey: keypairs.authority.publicKey()
+    client = new StellarAttestationClient({
+      rpcUrl: 'https://soroban-testnet.stellar.org',
+      network: 'testnet',
+      publicKey: signer.publicKey()
     })
 
-    await sdk.initialize()
-
     // Create test schema
-    const testSchema = createTestSchema('identity')
-    const { data: schema } = await sdk.schema.register(testSchema)
-    schemaUid = schema.uid
+    const result = await client.createSchema({
+      definition: 'name:string,verified:bool',
+      revocable: true,
+      options: { signer }
+    })
+    
+    schemaUid = result // Assuming result is the schema UID
   })
 
   it('should complete full attestation lifecycle', async () => {
-    const keypairs = createTestKeypairs()
+    const subject = Keypair.random().publicKey()
     
     // 1. Create attestation
-    const attestationData = createTestAttestation(
+    const attestationData = {
       schemaUid,
-      'identity',
-      keypairs.recipientPublic
-    )
+      value: JSON.stringify({ name: 'Test User', verified: true }),
+      subject,
+      options: { signer }
+    }
 
-    const { data: attestationUid } = await sdk.attest.create(attestationData)
+    const attestationUid = await client.attest(attestationData)
     expect(attestationUid).toBeTruthy()
 
     // 2. Retrieve attestation
-    const { data: attestation } = await sdk.attest.get(attestationUid)
+    const attestation = await client.getAttestation(attestationUid)
     expect(attestation).toBeDefined()
-    expect(attestation.subject).toBe(keypairs.recipientPublic)
+    expect(attestation.subject).toBe(subject)
 
-    // 3. Query by subject
-    const { data: subjectAttestations } = await sdk.attest.getBySubject(
-      keypairs.recipientPublic
-    )
-    expect(subjectAttestations.items.length).toBeGreaterThan(0)
-
-    // 4. Revoke attestation
-    const { error: revokeError } = await sdk.attest.revoke({
+    // 3. Revoke attestation
+    await client.revoke({
       attestationUid,
-      reason: 'Test revocation'
+      options: { signer }
     })
-    expect(revokeError).toBeNull()
   })
 })
 ```
@@ -1546,19 +1125,12 @@ Error: Contract CBQHNBFQ... not found
 **Solution:**
 ```typescript
 // Verify contract deployment
-const contracts = {
-  protocol: process.env.PROTOCOL_CONTRACT_ID,
-  authority: process.env.AUTHORITY_CONTRACT_ID
-}
-
-// Check if contracts are deployed
-const sdk = new StellarAttestProtocol({
-  network: Networks.TESTNET,
-  contracts
+const client = new StellarAttestationClient({
+  rpcUrl: 'https://soroban-testnet.stellar.org',
+  network: 'testnet',
+  publicKey: 'YOUR_PUBLIC_KEY',
+  contractId: 'YOUR_PROTOCOL_CONTRACT_ID' // Make sure this is correct
 })
-
-// Verify the contract addresses are correct for your network
-console.log('Using contracts:', contracts)
 ```
 
 #### 2. Insufficient Funds for Transaction
@@ -1570,23 +1142,10 @@ Error: Insufficient funds for transaction fees
 **Solution:**
 ```typescript
 // Fund your testnet account
-const keypairs = createTestKeypairs()
-const fundingUrls = generateFundingUrls([
-  keypairs.authorityPublic,
-  keypairs.recipientPublic
-])
-
-console.log('Fund accounts at:', fundingUrls)
-
-// Or check account balance
-async function checkBalance(publicKey: string) {
-  const response = await fetch(
-    `https://horizon-testnet.stellar.org/accounts/${publicKey}`
-  )
-  const account = await response.json()
-  const balance = account.balances.find((b: any) => b.asset_type === 'native')
-  return balance ? parseFloat(balance.balance) : 0
-}
+// Visit: https://laboratory.stellar.org/#account-creator?network=test
+// Or use friendbot
+const fundingUrl = `https://friendbot.stellar.org?addr=${publicKey}`
+const response = await fetch(fundingUrl)
 ```
 
 #### 3. Schema Validation Errors
@@ -1598,211 +1157,25 @@ SchemaValidationError: Field 'email' must be a string
 **Solution:**
 ```typescript
 // Debug schema validation
-const schema = createStandardizedSchemaEncoder('identity')
+const encoder = new SorobanSchemaEncoder({
+  name: 'Test Schema',
+  fields: [
+    { name: 'email', type: StellarDataType.STRING }
+  ]
+})
 
 try {
-  schema.validateData(yourData)
+  encoder.validateData({ email: 123 }) // This will fail
 } catch (error) {
-  console.error('Validation details:', {
-    field: error.field,
-    message: error.message,
-    receivedValue: yourData[error.field],
-    expectedType: schema.getSchema().fields.find(f => f.name === error.field)?.type
-  })
-}
-
-// Generate valid defaults
-const defaults = schema.generateDefaults()
-console.log('Valid default values:', defaults)
-```
-
-#### 4. Authority Permission Denied
-
-```
-Error: Authority not authorized for schema
-```
-
-**Solution:**
-```typescript
-// Check authority permissions
-const hasPermission = await sdk.authority.hasPermission(
-  sdk.publicKey,
-  schemaUid
-)
-
-if (!hasPermission) {
-  // Register as authority or request permission
-  await sdk.authority.register({
-    name: 'Your Organization',
-    description: 'Description of your authority'
-  })
-  
-  // Or request permission from schema owner
-  console.log('Request permission from schema owner')
-}
-```
-
-#### 5. Network Connection Issues
-
-```
-Error: Failed to submit transaction to network
-```
-
-**Solution:**
-```typescript
-// Implement retry logic with exponential backoff
-async function submitWithRetry(transaction: any, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await sdk.submitTransaction(transaction)
-    } catch (error) {
-      if (i === maxRetries - 1) throw error
-      
-      await new Promise(resolve => 
-        setTimeout(resolve, Math.pow(2, i) * 1000)
-      )
-    }
-  }
-}
-
-// Check network status
-const networkStatus = await fetch('https://soroban-testnet.stellar.org/health')
-console.log('Network status:', networkStatus.status)
-```
-
-### Debug Mode
-
-```typescript
-// Enable debug logging
-const sdk = new StellarAttestProtocol({
-  network: Networks.TESTNET,
-  // Add debug flag if available
-  debug: true
-})
-
-// Manual transaction inspection
-sdk.on('transaction', (tx) => {
-  console.log('Transaction details:', {
-    hash: tx.hash,
-    operations: tx.operations.length,
-    fee: tx.fee
-  })
-})
-```
-
-## Migration Guide
-
-### Migrating from Legacy Systems
-
-```typescript
-// Legacy to standardized schema migration
-class LegacyMigrationService {
-  constructor(private sdk: StellarAttestProtocol) {}
-
-  async migrateLegacyAttestation(legacyData: {
-    id: string
-    userId: string
-    verified: boolean
-    verificationDate: number
-    documentType: string
-  }) {
-    // Transform legacy data to standardized format
-    const standardizedData = {
-      fullName: await this.lookupUserName(legacyData.userId),
-      documentType: this.mapDocumentType(legacyData.documentType),
-      verificationLevel: legacyData.verified ? 'basic' : 'pending',
-      verificationDate: legacyData.verificationDate,
-      verifiedBy: this.sdk.publicKey,
-      legacyId: legacyData.id // Keep reference to original
-    }
-
-    // Create new attestation using standardized schema
-    const { data: attestationUid, error } = await this.sdk.attest.create({
-      schemaUid: await this.getIdentitySchemaUid(),
-      subject: await this.deriveAddressFromUserId(legacyData.userId),
-      data: JSON.stringify(standardizedData),
-      reference: `migrated-${legacyData.id}`,
-      expirationTime: null,
-      revocable: true
-    })
-
-    if (error) {
-      throw new Error(`Migration failed for ${legacyData.id}: ${error}`)
-    }
-
-    return attestationUid
-  }
-
-  private mapDocumentType(legacyType: string): string {
-    const mapping: Record<string, string> = {
-      'driver_license': 'drivers_license',
-      'passport': 'passport',
-      'id_card': 'national_id'
-    }
-    return mapping[legacyType] || 'other'
-  }
-
-  private async lookupUserName(userId: string): Promise<string> {
-    // Implement user lookup logic
-    return `User ${userId}`
-  }
-
-  private async deriveAddressFromUserId(userId: string): Promise<string> {
-    // Implement deterministic address derivation
-    // Generate deterministic address (custom implementation needed)
-    return `G${userId.slice(0, 54).toUpperCase().padEnd(54, 'A')}`
-  }
-
-  private async getIdentitySchemaUid(): Promise<string> {
-    return 'your-identity-schema-uid'
-  }
-}
-```
-
-### Version Upgrade Guide
-
-```typescript
-// Upgrading from v1 to v2 schema format
-const v1Schema = {
-  name: 'Identity V1',
-  fields: [
-    { name: 'name', type: 'string' },
-    { name: 'verified', type: 'boolean' }
-  ]
-}
-
-const v2Schema = new StellarSchemaEncoder({
-  name: 'Identity V2',
-  version: '2.0.0',
-  description: 'Enhanced identity verification',
-  fields: [
-    { name: 'fullName', type: StellarDataType.STRING },
-    { name: 'verificationLevel', type: StellarDataType.STRING },
-    { name: 'verificationDate', type: StellarDataType.TIMESTAMP },
-    { name: 'verifiedBy', type: StellarDataType.ADDRESS }
-  ]
-})
-
-// Migration function
-function migrateV1ToV2(v1Data: any) {
-  return {
-    fullName: v1Data.name,
-    verificationLevel: v1Data.verified ? 'basic' : 'none',
-    verificationDate: Date.now(),
-    verifiedBy: 'GMIGRATION...ADDRESS'
-  }
+  console.error('Validation error:', error.message)
+  // Provide correct data type
+  encoder.validateData({ email: 'user@example.com' }) // This will pass
 }
 ```
 
 ## Contributing
 
-We welcome contributions to the Stellar Attestation Service SDK! Please see our [Contributing Guide](../../CONTRIBUTING.md) for detailed information on:
-
-- Setting up the development environment
-- Code style and conventions
-- Testing requirements
-- Submitting pull requests
-- Reporting issues
+We welcome contributions to the Stellar Attestation Service SDK! Please see our [Contributing Guide](../../CONTRIBUTING.md) for detailed information.
 
 ### Development Setup
 
@@ -1820,9 +1193,6 @@ pnpm build
 
 # Run tests
 pnpm test
-
-# Run examples
-pnpm example
 ```
 
 ## Resources
