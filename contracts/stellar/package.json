@@ -1,5 +1,5 @@
 {
-  "name": "@attestprotocol/stellar",
+  "name": "@attestprotocol/stellar-contracts",
   "description": "Stellar Attestation Service",
   "version": "1.7.3",
   "author": "",

@@ -5,7 +5,7 @@
  * including message creation and domain separator tag retrieval.
  */
 
-import { Client as ProtocolClient } from '@attestprotocol/stellar/protocol'
+import { Client as ProtocolClient } from '@attestprotocol/stellar-contracts/protocol'
 import { scValToNative } from '@stellar/stellar-sdk'
 import { bls12_381 } from '@noble/curves/bls12-381'
 import { sha256 } from '@noble/hashes/sha2'

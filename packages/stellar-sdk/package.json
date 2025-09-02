@@ -6,7 +6,7 @@
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
     "@attestprotocol/core": "1.7.3",
-    "@attestprotocol/stellar": "1.7.3",
+    "@attestprotocol/stellar-contracts": "1.7.3",
     "@noble/curves": "^2.0.0",
     "@noble/hashes": "^2.0.0",
     "js-sha3": "^0.9.3"

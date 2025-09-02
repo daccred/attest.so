@@ -11,7 +11,7 @@ import {
   type Client as ClientType,
   Client as ProtocolClient,
   networks as ProtocolNetworks,
-} from '@attestprotocol/stellar/protocol'
+} from '@attestprotocol/stellar-contracts/protocol'
 
 import {
   ClientOptions,

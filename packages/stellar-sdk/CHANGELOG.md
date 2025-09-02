@@ -6,7 +6,7 @@
 
 - 073bbc9: sdk export update with llm TXT doc gen
 - Updated dependencies [073bbc9]
-  - @attestprotocol/stellar@1.7.3
+  - @attestprotocol/stellar-contracts@1.7.3
   - @attestprotocol/core@1.7.3
 
 ## 1.7.2
@@ -15,7 +15,7 @@
 
 - 9f70611: sdk API standardization
 - Updated dependencies [9f70611]
-  - @attestprotocol/stellar@1.7.2
+  - @attestprotocol/stellar-contracts@1.7.2
   - @attestprotocol/core@1.7.2
 
 ## 1.7.1
@@ -24,7 +24,7 @@
 
 - 8f14c2c: update sdk, standardize contract api and graph data
 - Updated dependencies [8f14c2c]
-  - @attestprotocol/stellar@1.7.1
+  - @attestprotocol/stellar-contracts@1.7.1
   - @attestprotocol/core@1.7.1
 
 ## 1.7.0
@@ -36,7 +36,7 @@
 ### Patch Changes
 
 - Updated dependencies [1989554]
-  - @attestprotocol/stellar@1.7.0
+  - @attestprotocol/stellar-contracts@1.7.0
   - @attestprotocol/core@1.7.0
 
 ## 0.2.0

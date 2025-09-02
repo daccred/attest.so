@@ -18,7 +18,7 @@ import {
   createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import { Client as ProtocolClient } from '@attestprotocol/stellar/protocol'
+import { Client as ProtocolClient } from '@attestprotocol/stellar-contracts/protocol'
 import { Address, xdr, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 

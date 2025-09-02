@@ -1,4 +1,4 @@
-# @attestprotocol/stellar
+# @attestprotocol/stellar-contracts
 
 ## 1.7.3
 

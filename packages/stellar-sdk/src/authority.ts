@@ -29,7 +29,7 @@ import {
   createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import { Client as AuthorityClient, Attestation } from '@attestprotocol/stellar/authority'
+import { Client as AuthorityClient, Attestation } from '@attestprotocol/stellar-contracts/authority'
 import { Address, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 
