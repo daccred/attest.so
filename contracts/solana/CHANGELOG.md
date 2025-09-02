@@ -1,5 +1,11 @@
 # @attestprotocol/solana
 
+## 1.7.4
+
+### Patch Changes
+
+- 1c2c8c2: fix npm resolution for sub-dependencies in stellar sdk
+
 ## 1.7.3
 
 ### Patch Changes

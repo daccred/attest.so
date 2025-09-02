@@ -1,5 +1,16 @@
 # @attestprotocol/sdk
 
+## 1.7.4
+
+### Patch Changes
+
+- 1c2c8c2: fix npm resolution for sub-dependencies in stellar sdk
+- Updated dependencies [1c2c8c2]
+  - @attestprotocol/starknet-sdk@1.7.4
+  - @attestprotocol/stellar-sdk@1.7.4
+  - @attestprotocol/solana-sdk@1.7.4
+  - @attestprotocol/core@1.7.4
+
 ## 1.7.3
 
 ### Patch Changes

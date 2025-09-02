@@ -1,5 +1,13 @@
 # @attestprotocol/cli
 
+## 1.7.4
+
+### Patch Changes
+
+- 1c2c8c2: fix npm resolution for sub-dependencies in stellar sdk
+- Updated dependencies [1c2c8c2]
+  - @attestprotocol/sdk@1.7.4
+
 ## 1.7.3
 
 ### Patch Changes
