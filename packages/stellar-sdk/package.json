@@ -25,11 +25,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    }
+    },
+    "./llm.txt": "./dist/llm.txt"
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "llm.txt"
   ],
   "homepage": "https://github.com/daccred/attest.so#readme",
   "keywords": [
