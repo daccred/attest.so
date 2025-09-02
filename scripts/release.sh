@@ -240,6 +240,8 @@ publish_packages() {
     local packages=(
         "@attestprotocol/sdk"
         "@attestprotocol/cli" 
+        "@attestprotocol/core"
+        "@attestprotocol/stellar-contracts"
         "@attestprotocol/stellar-sdk"
         "@attestprotocol/solana-sdk"
         "@attestprotocol/starknet-sdk"
@@ -258,6 +260,12 @@ publish_packages() {
                 ;;
             "@attestprotocol/cli")
                 package_dir="packages/cli"
+                ;;
+            "@attestprotocol/core")
+                package_dir="packages/core"
+                ;;
+            "@attestprotocol/stellar-contracts")
+                package_dir="contracts/stellar"
                 ;;
             "@attestprotocol/stellar-sdk")
                 package_dir="packages/stellar-sdk"
