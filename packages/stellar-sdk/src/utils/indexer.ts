@@ -76,7 +76,7 @@ export const HORIZON_CONFIGS: Record<string, HorizonConfig> = {
   testnet: {
     network: 'testnet',
     baseUrl: 'https://horizon-testnet.stellar.org',
-    registryUrl: 'http://localhost:3001/api/registry',
+    registryUrl: 'https://graph.attest.so/api/registry',
   },
   mainnet: {
     network: 'mainnet',
@@ -91,7 +91,7 @@ export const HORIZON_CONFIGS: Record<string, HorizonConfig> = {
  */
 export const REGISTRY_ENDPOINTS = {
   testnet:
-    process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.testnet.registryUrl || 'http://localhost:3001/api/registry',
+    process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.testnet.registryUrl || 'https://graph.attest.so/api/registry',
   mainnet:
     process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.mainnet.registryUrl || 'https://graph.attest.so/api/registry',
 }
