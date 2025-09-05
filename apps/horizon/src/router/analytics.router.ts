@@ -13,7 +13,12 @@
 
 import { Router, Request, Response } from 'express'
 import { getDB } from '../common/db'
-import { CONTRACT_IDS } from '../common/constants'
+import { CONTRACT_IDS_TO_INDEX } from '../common/constants'
+
+// Route constants for analytics endpoints
+const ANALYTICS_OVERVIEW_ROUTE = '/'
+const ANALYTICS_CONTRACTS_ROUTE = '/contracts'
+const ANALYTICS_ACTIVITY_ROUTE = '/activity'
 
 const router = Router()
 
@@ -42,7 +47,7 @@ const router = Router()
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get(ANALYTICS_OVERVIEW_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
@@ -145,23 +150,23 @@ router.get('/', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/contracts', async (req: Request, res: Response) => {
+router.get(ANALYTICS_CONTRACTS_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {
       return res.status(503).json({ error: 'Database not available' })
     }
 
-    const { contractIds = CONTRACT_IDS } = req.query
+    const { contractIds = CONTRACT_IDS_TO_INDEX } = req.query
     const targetContractIds = Array.isArray(contractIds) ? contractIds : [contractIds]
 
     const analytics = await Promise.all(
       (targetContractIds as string[]).map(async (contractId: string) => {
         const [totalOperations, successfulOperations, uniqueUsers, recentEvents, failedOperations] =
           await Promise.all([
-            db.horizonContractOperation.count({ where: { contractId } }),
-            db.horizonContractOperation.count({ where: { contractId, successful: true } }),
-            db.horizonContractOperation
+            db.horizonOperation.count({ where: { contractId } }),
+            db.horizonOperation.count({ where: { contractId, successful: true } }),
+            db.horizonOperation
               .findMany({
                 where: { contractId },
                 select: { sourceAccount: true },
@@ -174,7 +179,7 @@ router.get('/contracts', async (req: Request, res: Response) => {
                 timestamp: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
               },
             }),
-            db.horizonContractOperation.count({ where: { contractId, successful: false } }),
+            db.horizonOperation.count({ where: { contractId, successful: false } }),
           ])
 
         return {
@@ -247,7 +252,7 @@ router.get('/contracts', async (req: Request, res: Response) => {
  * @status 503 - Database unavailable
  * @status 500 - Internal server error
  */
-router.get('/activity', async (req: Request, res: Response) => {
+router.get(ANALYTICS_ACTIVITY_ROUTE, async (req: Request, res: Response) => {
   try {
     const db = await getDB()
     if (!db) {

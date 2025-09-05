@@ -20,7 +20,7 @@ import {
   AttestProtocolErrorType,
   createSuccessResponse,
   createErrorResponse,
-  createAttestProtocolError
+  createAttestProtocolError,
 } from '@attestprotocol/core'
 
 import {
@@ -32,18 +32,10 @@ import {
   StarknetFetchSchemaResult,
   StarknetFetchAttestationResult,
   StarknetDelegatedAttestationConfig,
-  StarknetDelegatedRevocationConfig
+  StarknetDelegatedRevocationConfig,
 } from './types'
 
-import {
-  Account,
-  Contract,
-  RpcProvider,
-  stark,
-  uint256,
-  CallData,
-  InvokeTransactionReceiptResponse
-} from 'starknet'
+import { Account, Contract, RpcProvider, stark, uint256, CallData, InvokeTransactionReceiptResponse } from 'starknet'
 
 // Default contract address - should be updated when contracts are deployed
 const DEFAULT_CONTRACT_ADDRESS = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
@@ -61,15 +53,11 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
     super(config)
 
     const providerUrl = config.url || 'https://starknet-goerli.g.alchemy.com/v2/your-api-key'
-    this.provider = new RpcProvider({ 
-      nodeUrl: providerUrl
+    this.provider = new RpcProvider({
+      nodeUrl: providerUrl,
     })
 
-    this.account = new Account(
-      this.provider,
-      config.accountAddress,
-      config.privateKey
-    )
+    this.account = new Account(this.provider, config.accountAddress, config.privateKey)
 
     this.contractAddress = config.contractAddress || DEFAULT_CONTRACT_ADDRESS
 
@@ -120,7 +108,7 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
       const { transaction_hash } = await this.account.execute({
         contractAddress: this.contractAddress,
         entrypoint: 'register_authority',
-        calldata
+        calldata,
       })
 
       await this.provider.waitForTransaction(transaction_hash)
@@ -142,7 +130,7 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
             id: id,
             isVerified: true,
             metadata: 'Authority metadata',
-            registrationTime: Date.now()
+            registrationTime: Date.now(),
           }
         }
       } catch (error) {
@@ -169,32 +157,27 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
     if (validationError) return createErrorResponse(validationError)
 
     return this.safeExecute(async () => {
-      const calldata = CallData.compile([
-        config.content,
-        config.resolver || '0',
-        config.revocable ? 1 : 0
-      ])
+      const calldata = CallData.compile([config.content, config.resolver || '0', config.revocable ? 1 : 0])
 
       const { transaction_hash } = await this.account.execute({
         contractAddress: this.contractAddress,
         entrypoint: 'create_schema',
-        calldata
+        calldata,
       })
 
-      const receipt = await this.provider.waitForTransaction(transaction_hash) as InvokeTransactionReceiptResponse
+      const receipt = (await this.provider.waitForTransaction(transaction_hash)) as InvokeTransactionReceiptResponse
 
       // Extract schema UID from events or return value
       let schemaUid = transaction_hash // Fallback to transaction hash
 
       // In a real implementation, you would parse the events to get the actual schema UID
-      
+
       return {
         uid: schemaUid,
         definition: config.content,
         authority: this.account.address,
         revocable: config.revocable ?? true,
         resolver: config.resolver || null,
-        levy: config.levy || null
       }
     })
   }
@@ -215,7 +198,7 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
             authority: this.account.address,
             revocable: true,
             resolver: null,
-            levy: null
+            levy: null,
           }
         }
       } catch (error) {
@@ -234,11 +217,13 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
       const data = encoder.encode(content)
       const hashBuffer = await crypto.subtle.digest('SHA-256', data)
       const hashArray = Array.from(new Uint8Array(hashBuffer))
-      return '0x' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+      return '0x' + hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
     })
   }
 
-  async listSchemasByIssuer(params: ListSchemasByIssuerParams): Promise<AttestProtocolResponse<PaginatedResponse<Schema>>> {
+  async listSchemasByIssuer(
+    params: ListSchemasByIssuerParams
+  ): Promise<AttestProtocolResponse<PaginatedResponse<Schema>>> {
     const initError = this.ensureInitialized()
     if (initError) return createErrorResponse(initError)
 
@@ -264,13 +249,13 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
         config.subject,
         config.data,
         config.expirationTime || 0,
-        config.reference || ''
+        config.reference || '',
       ])
 
       const { transaction_hash } = await this.account.execute({
         contractAddress: this.contractAddress,
         entrypoint: 'create_attestation',
-        calldata
+        calldata,
       })
 
       await this.provider.waitForTransaction(transaction_hash)
@@ -287,7 +272,7 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
         expirationTime: config.expirationTime || null,
         revocationTime: null,
         revoked: false,
-        reference: config.reference || null
+        reference: config.reference || null,
       }
     })
   }
@@ -312,7 +297,7 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
             expirationTime: null,
             revocationTime: null,
             revoked: false,
-            reference: null
+            reference: null,
           }
         }
       } catch (error) {
@@ -323,7 +308,9 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
     })
   }
 
-  async listAttestationsByWallet(params: ListAttestationsByWalletParams): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>> {
+  async listAttestationsByWallet(
+    params: ListAttestationsByWalletParams
+  ): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>> {
     const initError = this.ensureInitialized()
     if (initError) return createErrorResponse(initError)
 
@@ -333,7 +320,9 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
     })
   }
 
-  async listAttestationsBySchema(params: ListAttestationsBySchemaParams): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>> {
+  async listAttestationsBySchema(
+    params: ListAttestationsBySchemaParams
+  ): Promise<AttestProtocolResponse<PaginatedResponse<Attestation>>> {
     const initError = this.ensureInitialized()
     if (initError) return createErrorResponse(initError)
 
@@ -351,15 +340,12 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
     if (validationError) return createErrorResponse(validationError)
 
     return this.safeExecute(async () => {
-      const calldata = CallData.compile([
-        config.attestationUid,
-        config.reference || ''
-      ])
+      const calldata = CallData.compile([config.attestationUid, config.reference || ''])
 
       const { transaction_hash } = await this.account.execute({
         contractAddress: this.contractAddress,
-        entrypoint: 'revoke_attestation',
-        calldata
+        entrypoint: 'revoke',
+        calldata,
       })
 
       await this.provider.waitForTransaction(transaction_hash)
@@ -368,29 +354,23 @@ export class StarknetAttestProtocol extends AttestProtocolBase {
 
   // Delegation
 
-  async attestByDelegation(config: DelegatedAttestationDefinition): Promise<AttestProtocolResponse<Attestation>> {
+  async attestByDelegation(_config: DelegatedAttestationDefinition): Promise<AttestProtocolResponse<Attestation>> {
     const initError = this.ensureInitialized()
     if (initError) return createErrorResponse(initError)
 
     return this.safeExecute(async () => {
       // Implementation would depend on delegation logic in Starknet contracts
-      throw createAttestProtocolError(
-        AttestProtocolErrorType.NOT_FOUND_ERROR,
-        'Delegation not fully implemented'
-      )
+      throw createAttestProtocolError(AttestProtocolErrorType.NOT_FOUND_ERROR, 'Delegation not fully implemented')
     })
   }
 
-  async revokeByDelegation(config: DelegatedRevocationDefinition): Promise<AttestProtocolResponse<void>> {
+  async revokeByDelegation(_config: DelegatedRevocationDefinition): Promise<AttestProtocolResponse<void>> {
     const initError = this.ensureInitialized()
     if (initError) return createErrorResponse(initError)
 
     return this.safeExecute(async () => {
       // Implementation would depend on delegation logic in Starknet contracts
-      throw createAttestProtocolError(
-        AttestProtocolErrorType.NOT_FOUND_ERROR,
-        'Delegation not fully implemented'
-      )
+      throw createAttestProtocolError(AttestProtocolErrorType.NOT_FOUND_ERROR, 'Delegation not fully implemented')
     })
   }
 

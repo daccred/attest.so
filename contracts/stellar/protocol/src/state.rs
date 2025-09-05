@@ -186,8 +186,8 @@ pub struct Attestation {
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct BlsPublicKey {
-    /// The BLS12-381 G2 public key (96 bytes compressed)
-    pub key: BytesN<96>,
+    /// The BLS12-381 G2 public key (192 bytes compressed)
+    pub key: BytesN<192>,
     /// Timestamp when this key was registered
     pub registered_at: u64,
 }

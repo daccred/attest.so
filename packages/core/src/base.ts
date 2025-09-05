@@ -3,13 +3,7 @@
  * Provides common functionality and enforces the interface contract
  */
 
-import {
-  IAttestProtocol,
-  IProtocolConfig,
-  IBatchOperations,
-  IOffChainOperations,
-  IEventListener,
-} from './interfaces'
+import { IAttestProtocol, IProtocolConfig, IBatchOperations, IOffChainOperations, IEventListener } from './interfaces'
 import {
   AttestProtocolResponse,
   Authority,
@@ -61,9 +55,7 @@ export abstract class AttestProtocolBase implements IAttestProtocol {
   ): Promise<AttestProtocolResponse<PaginatedResponse<Schema>>>
 
   // Attestation Management
-  abstract issueAttestation(
-    config: AttestationDefinition
-  ): Promise<AttestProtocolResponse<Attestation>>
+  abstract issueAttestation(config: AttestationDefinition): Promise<AttestProtocolResponse<Attestation>>
   abstract fetchAttestationById(id: string): Promise<AttestProtocolResponse<Attestation | null>>
   abstract listAttestationsByWallet(
     params: ListAttestationsByWalletParams
@@ -74,12 +66,8 @@ export abstract class AttestProtocolBase implements IAttestProtocol {
   abstract revokeAttestation(config: RevocationDefinition): Promise<AttestProtocolResponse<void>>
 
   // Delegation
-  abstract attestByDelegation(
-    config: DelegatedAttestationDefinition
-  ): Promise<AttestProtocolResponse<Attestation>>
-  abstract revokeByDelegation(
-    config: DelegatedRevocationDefinition
-  ): Promise<AttestProtocolResponse<void>>
+  abstract attestByDelegation(config: DelegatedAttestationDefinition): Promise<AttestProtocolResponse<Attestation>>
+  abstract revokeByDelegation(config: DelegatedRevocationDefinition): Promise<AttestProtocolResponse<void>>
 
   // Common utility methods
 
@@ -99,10 +87,7 @@ export abstract class AttestProtocolBase implements IAttestProtocol {
   /**
    * Validate required parameters
    */
-  protected validateRequired(
-    params: Record<string, any>,
-    requiredFields: string[]
-  ): AttestProtocolError | null {
+  protected validateRequired(params: Record<string, any>, requiredFields: string[]): AttestProtocolError | null {
     for (const field of requiredFields) {
       if (params[field] === undefined || params[field] === null || params[field] === '') {
         return createAttestProtocolError(
@@ -135,12 +120,7 @@ export abstract class AttestProtocolBase implements IAttestProtocol {
   /**
    * Helper method to create paginated responses
    */
-  protected createPaginatedResponse<T>(
-    items: T[],
-    total: number,
-    limit: number,
-    offset: number
-  ): PaginatedResponse<T> {
+  protected createPaginatedResponse<T>(items: T[], total: number, limit: number, offset: number): PaginatedResponse<T> {
     return {
       items,
       total,
@@ -172,10 +152,7 @@ export abstract class AttestProtocolBase implements IAttestProtocol {
     }
 
     if (schema.content.length === 0) {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Schema content cannot be empty'
-      )
+      return createAttestProtocolError(AttestProtocolErrorType.VALIDATION_ERROR, 'Schema content cannot be empty')
     }
 
     return null
@@ -184,9 +161,7 @@ export abstract class AttestProtocolBase implements IAttestProtocol {
   /**
    * Validate attestation definition
    */
-  protected validateAttestationDefinition(
-    attestation: AttestationDefinition
-  ): AttestProtocolError | null {
+  protected validateAttestationDefinition(attestation: AttestationDefinition): AttestProtocolError | null {
     const validation = this.validateRequired(attestation, ['schemaUid', 'subject', 'data'])
     if (validation) return validation
 
@@ -210,9 +185,7 @@ export abstract class AttestProtocolBase implements IAttestProtocol {
   /**
    * Validate revocation definition
    */
-  protected validateRevocationDefinition(
-    revocation: RevocationDefinition
-  ): AttestProtocolError | null {
+  protected validateRevocationDefinition(revocation: RevocationDefinition): AttestProtocolError | null {
     return this.validateRequired(revocation, ['attestationUid'])
   }
 
@@ -266,24 +239,15 @@ export abstract class AttestProtocolBase implements IAttestProtocol {
  * Mixin class for SDKs that support batch operations
  */
 export abstract class BatchAttestProtocol extends AttestProtocolBase implements IBatchOperations {
-  abstract batchIssueAttestations(
-    attestations: AttestationDefinition[]
-  ): Promise<AttestProtocolResponse<Attestation[]>>
-  abstract batchRevokeAttestations(
-    revocations: RevocationDefinition[]
-  ): Promise<AttestProtocolResponse<void>>
+  abstract batchIssueAttestations(attestations: AttestationDefinition[]): Promise<AttestProtocolResponse<Attestation[]>>
+  abstract batchRevokeAttestations(revocations: RevocationDefinition[]): Promise<AttestProtocolResponse<void>>
 }
 
 /**
  * Mixin class for SDKs that support off-chain operations
  */
-export abstract class OffChainAttestProtocol
-  extends AttestProtocolBase
-  implements IOffChainOperations
-{
-  abstract createOffChainAttestation(
-    config: AttestationDefinition
-  ): Promise<AttestProtocolResponse<string>>
+export abstract class OffChainAttestProtocol extends AttestProtocolBase implements IOffChainOperations {
+  abstract createOffChainAttestation(config: AttestationDefinition): Promise<AttestProtocolResponse<string>>
   abstract verifyOffChainAttestation(
     attestation: Attestation,
     signature: string
@@ -293,15 +257,8 @@ export abstract class OffChainAttestProtocol
 /**
  * Mixin class for SDKs that support event listening
  */
-export abstract class EventListenerAttestProtocol
-  extends AttestProtocolBase
-  implements IEventListener
-{
-  abstract subscribeToAttestationEvents(
-    callback: (event: any) => void
-  ): Promise<AttestProtocolResponse<string>>
-  abstract subscribeToSchemaEvents(
-    callback: (event: any) => void
-  ): Promise<AttestProtocolResponse<string>>
+export abstract class EventListenerAttestProtocol extends AttestProtocolBase implements IEventListener {
+  abstract subscribeToAttestationEvents(callback: (event: any) => void): Promise<AttestProtocolResponse<string>>
+  abstract subscribeToSchemaEvents(callback: (event: any) => void): Promise<AttestProtocolResponse<string>>
   abstract unsubscribe(subscriptionId: string): Promise<AttestProtocolResponse<void>>
 }

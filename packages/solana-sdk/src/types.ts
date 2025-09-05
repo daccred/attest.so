@@ -13,12 +13,12 @@ export interface SolanaConfig extends IProtocolConfig {
    * Wallet instance or secret key array for signing transactions
    */
   walletOrSecretKey: number[] | anchor.Wallet
-  
+
   /**
    * Program ID for the attestation contract
    */
   programId?: string
-  
+
   /**
    * Solana cluster URL (defaults to devnet)
    */

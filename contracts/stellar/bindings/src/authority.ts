@@ -34,7 +34,7 @@ if (typeof window !== 'undefined') {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CBCOY75QHFUJM4CFVZV355RRMX2655O4BA5MD3DZ2PVLSH3D3JYW6JSX",
+    contractId: "CBLCL256WVODZVVGGC3TRV5ZSVLZXQFGX4OHE2YM2P4WUQIT2OFAOUQQ",
   }
 } as const
 
@@ -575,10 +575,10 @@ export interface Client {
   }) => Promise<AssembledTransaction<Result<void>>>
 
   /**
-   * Construct and simulate a before_attest transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Construct and simulate a onattest transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    * Called before an attestation is created (resolver interface)
    */
-  before_attest: ({attestation}: {attestation: ResolverAttestationData}, options?: {
+  onattest: ({attestation}: {attestation: ResolverAttestationData}, options?: {
     /**
      * The fee to pay for the transaction. Default: BASE_FEE
      */
@@ -596,10 +596,10 @@ export interface Client {
   }) => Promise<AssembledTransaction<Result<boolean>>>
 
   /**
-   * Construct and simulate a after_attest transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Construct and simulate a onresolve transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    * Called after an attestation is created (resolver interface)
    */
-  after_attest: ({attestation}: {attestation: ResolverAttestationData}, options?: {
+  onresolve: ({attestation}: {attestation: ResolverAttestationData}, options?: {
     /**
      * The fee to pay for the transaction. Default: BASE_FEE
      */
@@ -659,8 +659,8 @@ export class Client extends ContractClient {
         "AAAAAAAAAClDaGVjayBpZiBhbiBhZGRyZXNzIGhhcyBjb25maXJtZWQgcGF5bWVudAAAAAAAABVoYXNfY29uZmlybWVkX3BheW1lbnQAAAAAAAABAAAAAAAAAAVwYXllcgAAAAAAABMAAAABAAAAAQ==",
         "AAAAAAAAACFHZXQgcGF5bWVudCByZWNvcmQgZm9yIGFuIGFkZHJlc3MAAAAAAAASZ2V0X3BheW1lbnRfcmVjb3JkAAAAAAABAAAAAAAAAAVwYXllcgAAAAAAABMAAAABAAAD6AAAB9AAAAANUGF5bWVudFJlY29yZAAAAA==",
         "AAAAAAAAAClBZG1pbiBmdW5jdGlvbiB0byB3aXRoZHJhdyBjb2xsZWN0ZWQgZmVlcwAAAAAAABNhZG1pbl93aXRoZHJhd19mZWVzAAAAAAMAAAAAAAAABWFkbWluAAAAAAAAEwAAAAAAAAANdG9rZW5fYWRkcmVzcwAAAAAAABMAAAAAAAAABmFtb3VudAAAAAAACwAAAAEAAAPpAAAD7QAAAAAAAAAD",
-        "AAAAAAAAADxDYWxsZWQgYmVmb3JlIGFuIGF0dGVzdGF0aW9uIGlzIGNyZWF0ZWQgKHJlc29sdmVyIGludGVyZmFjZSkAAAANYmVmb3JlX2F0dGVzdAAAAAAAAAEAAAAAAAAAC2F0dGVzdGF0aW9uAAAAB9AAAAAXUmVzb2x2ZXJBdHRlc3RhdGlvbkRhdGEAAAAAAQAAA+kAAAABAAAH0AAAAA1SZXNvbHZlckVycm9yAAAA",
-        "AAAAAAAAADtDYWxsZWQgYWZ0ZXIgYW4gYXR0ZXN0YXRpb24gaXMgY3JlYXRlZCAocmVzb2x2ZXIgaW50ZXJmYWNlKQAAAAAMYWZ0ZXJfYXR0ZXN0AAAAAQAAAAAAAAALYXR0ZXN0YXRpb24AAAAH0AAAABdSZXNvbHZlckF0dGVzdGF0aW9uRGF0YQAAAAABAAAD6QAAA+0AAAAAAAAH0AAAAA1SZXNvbHZlckVycm9yAAAA",
+        "AAAAAAAAADxDYWxsZWQgYmVmb3JlIGFuIGF0dGVzdGF0aW9uIGlzIGNyZWF0ZWQgKHJlc29sdmVyIGludGVyZmFjZSkAAAAIb25hdHRlc3QAAAABAAAAAAAAAAthdHRlc3RhdGlvbgAAAAfQAAAAF1Jlc29sdmVyQXR0ZXN0YXRpb25EYXRhAAAAAAEAAAPpAAAAAQAAB9AAAAANUmVzb2x2ZXJFcnJvcgAAAA==",
+        "AAAAAAAAADtDYWxsZWQgYWZ0ZXIgYW4gYXR0ZXN0YXRpb24gaXMgY3JlYXRlZCAocmVzb2x2ZXIgaW50ZXJmYWNlKQAAAAAJb25yZXNvbHZlAAAAAAAAAQAAAAAAAAALYXR0ZXN0YXRpb24AAAAH0AAAABdSZXNvbHZlckF0dGVzdGF0aW9uRGF0YQAAAAABAAAD6QAAA+0AAAAAAAAH0AAAAA1SZXNvbHZlckVycm9yAAAA",
         "AAAAAQAAAAAAAAAAAAAAF1Jlc29sdmVyQXR0ZXN0YXRpb25EYXRhAAAAAAgAAAAAAAAACGF0dGVzdGVyAAAAEwAAAAAAAAAEZGF0YQAAAA4AAAAAAAAAD2V4cGlyYXRpb25fdGltZQAAAAAGAAAAAAAAAAlyZWNpcGllbnQAAAAAAAATAAAAAAAAAAlyZXZvY2FibGUAAAAAAAABAAAAAAAAAApzY2hlbWFfdWlkAAAAAAPuAAAAIAAAAAAAAAAJdGltZXN0YW1wAAAAAAAABgAAAAAAAAADdWlkAAAAA+4AAAAg",
         "AAAAAQAAAAAAAAAAAAAAEFJlc29sdmVyTWV0YWRhdGEAAAAEAAAAAAAAAAtkZXNjcmlwdGlvbgAAAAAQAAAAAAAAAARuYW1lAAAAEAAAAAAAAAANcmVzb2x2ZXJfdHlwZQAAAAAAB9AAAAAMUmVzb2x2ZXJUeXBlAAAAAAAAAAd2ZXJzaW9uAAAAABA=",
         "AAAAAgAAAAAAAAAAAAAADFJlc29sdmVyVHlwZQAAAAcAAAAAAAAAAAAAAAdEZWZhdWx0AAAAAAAAAAAAAAAACUF1dGhvcml0eQAAAAAAAAAAAAAAAAAAC1Rva2VuUmV3YXJkAAAAAAAAAAAAAAAADUZlZUNvbGxlY3Rpb24AAAAAAAAAAAAAAAAAAAZIeWJyaWQAAAAAAAAAAAAAAAAAB1N0YWtpbmcAAAAAAAAAAAAAAAAGQ3VzdG9tAAA=",
@@ -689,7 +689,7 @@ export class Client extends ContractClient {
         has_confirmed_payment: this.txFromJSON<boolean>,
         get_payment_record: this.txFromJSON<Option<PaymentRecord>>,
         admin_withdraw_fees: this.txFromJSON<Result<void>>,
-        before_attest: this.txFromJSON<Result<boolean>>,
-        after_attest: this.txFromJSON<Result<void>>
+        onattest: this.txFromJSON<Result<boolean>>,
+        onresolve: this.txFromJSON<Result<void>>
   }
 }

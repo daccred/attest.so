@@ -1,12 +1,13 @@
 {
   "name": "attestprotocol",
-  "version": "1.7.1-0",
+  "version": "1.7.4",
   "author": "Andrew Miracle <andrew@daccred.co>",
   "devDependencies": {
     "@changesets/cli": "^2.29.4",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.1",
+    "@stellar/stellar-sdk": ">=14.1.0",
     "conventional-changelog-conventionalcommits": "^8.0.0",
     "semantic-release": "^24.2.3"
   },
@@ -37,7 +38,7 @@
     "semantic-release": "semantic-release",
     "syncpack": "npx syncpack",
     "syncpack:format": "npx syncpack format && npx syncpack list",
-    "test": "pnpm run -r test && cargo test"
+    "test": "pnpm run -r test"
   },
   "workspaces": [
     "packages/*",

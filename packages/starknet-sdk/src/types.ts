@@ -12,22 +12,22 @@ export interface StarknetConfig extends IProtocolConfig {
    * Account address on Starknet
    */
   accountAddress: string
-  
+
   /**
    * Private key for signing transactions
    */
   privateKey: string
-  
+
   /**
    * Contract address for the attestation protocol
    */
   contractAddress?: string
-  
+
   /**
    * Provider URL (defaults to Goerli testnet)
    */
   url?: string
-  
+
   /**
    * Network configuration
    */

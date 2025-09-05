@@ -1,5 +1,49 @@
 # @attestprotocol/sdk
 
+## 1.7.4
+
+### Patch Changes
+
+- 1c2c8c2: fix npm resolution for sub-dependencies in stellar sdk
+- Updated dependencies [1c2c8c2]
+  - @attestprotocol/starknet-sdk@1.7.4
+  - @attestprotocol/stellar-sdk@1.7.4
+  - @attestprotocol/solana-sdk@1.7.4
+  - @attestprotocol/core@1.7.4
+
+## 1.7.3
+
+### Patch Changes
+
+- 073bbc9: sdk export update with llm TXT doc gen
+- Updated dependencies [073bbc9]
+  - @attestprotocol/starknet-sdk@1.7.3
+  - @attestprotocol/stellar-sdk@1.7.3
+  - @attestprotocol/solana-sdk@1.7.3
+  - @attestprotocol/core@1.7.3
+
+## 1.7.2
+
+### Patch Changes
+
+- 9f70611: sdk API standardization
+- Updated dependencies [9f70611]
+  - @attestprotocol/starknet-sdk@1.7.2
+  - @attestprotocol/stellar-sdk@1.7.2
+  - @attestprotocol/solana-sdk@1.7.2
+  - @attestprotocol/core@1.7.2
+
+## 1.7.1
+
+### Patch Changes
+
+- 8f14c2c: update sdk, standardize contract api and graph data
+- Updated dependencies [8f14c2c]
+  - @attestprotocol/starknet-sdk@1.7.1
+  - @attestprotocol/stellar-sdk@1.7.1
+  - @attestprotocol/core@1.7.1
+  - @attestprotocol/solana-sdk@1.7.1
+
 ## 1.7.0
 
 ### Minor Changes

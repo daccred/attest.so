@@ -10,16 +10,16 @@ use crate::utils::{self, generate_attestation_uid};
 // ► Resolver Cross-Contract Call Helpers
 // ══════════════════════════════════════════════════════════════════════════════
 
-/// Calls before_attest on a resolver contract
+/// Calls onattest on a resolver contract
 /// Returns true if the attestation should be allowed, false otherwise
-fn call_resolver_before_attest(
+fn call_resolver_onattest(
     env: &Env,
     resolver_address: &Address,
     attestation: &ResolverAttestation,
 ) -> Result<bool, Error> {
     let resolver_client = ResolverClient::new(env, resolver_address);
 
-    match resolver_client.try_bef_att(attestation) {
+    match resolver_client.try_onattest(attestation) {
         Ok(result) => match result {
             Ok(allowed) => Ok(allowed),
             Err(_) => Err(Error::ResolverCallFailed),
@@ -28,25 +28,16 @@ fn call_resolver_before_attest(
     }
 }
 
-/// Calls after_attest on a resolver contract
-/// Failures are logged but don't revert the attestation
-fn call_resolver_after_attest(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
-    let resolver_client = ResolverClient::new(env, resolver_address);
-
-    // Ignore failures in after_attest - they're non-critical side effects
-    let _ = resolver_client.try_aft_att(attestation);
-}
-
-/// Calls before_revoke on a resolver contract
+/// Calls onrevoke on a resolver contract
 /// Returns true if the revocation should be allowed, false otherwise
-fn call_resolver_before_revoke(
+fn call_resolver_onrevoke(
     env: &Env,
     resolver_address: &Address,
     attestation: &ResolverAttestation,
 ) -> Result<bool, Error> {
     let resolver_client = ResolverClient::new(env, resolver_address);
 
-    match resolver_client.try_bef_rev(attestation) {
+    match resolver_client.try_onrevoke(attestation) {
         Ok(result) => match result {
             Ok(allowed) => Ok(allowed),
             Err(_) => Err(Error::ResolverCallFailed),
@@ -55,13 +46,13 @@ fn call_resolver_before_revoke(
     }
 }
 
-/// Calls after_revoke on a resolver contract
-/// Failures are logged but don't revert the revocation
-fn call_resolver_after_revoke(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
+/// Calls onresolve on a resolver contract
+/// Failures are logged but don't revert the attestation or revocation
+fn call_resolver_onresolve(env: &Env, resolver_address: &Address, attestation: &ResolverAttestation) {
     let resolver_client = ResolverClient::new(env, resolver_address);
 
-    // Ignore failures in after_revoke - they're non-critical side effects
-    let _ = resolver_client.try_aft_rev(attestation);
+    // Ignore failures in onresolve - they're non-critical side effects
+    let _ = resolver_client.try_onresolve(attestation);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -105,9 +96,8 @@ fn create_resolver_attestation(
 ///
 /// # Arguments
 /// * `env` - The Soroban environment
-/// * `attester` - The address creating the attestation
+/// * `attester` - The address creating the attestation. This address will also be the subject of the attestation.
 /// * `schema_uid` - The unique identifier of the schema
-/// * `subject` - The address that is the subject of the attestation
 /// * `value` - The attestation data
 /// * `expiration_time` - Optional expiration timestamp
 ///
@@ -117,7 +107,6 @@ pub fn attest(
     env: &Env,
     attester: Address,
     schema_uid: BytesN<32>,
-    subject: Address,
     value: String,
     expiration_time: Option<u64>,
 ) -> Result<BytesN<32>, Error> {
@@ -138,12 +127,13 @@ pub fn attest(
             return Err(Error::InvalidDeadline);
         }
     }
+    let subject = attester.clone();
     let attestation_uid = generate_attestation_uid(env, &schema_uid, &subject, nonce);
 
     let attestation = Attestation {
         uid: attestation_uid.clone(),
         schema_uid: schema_uid.clone(),
-        subject: subject.clone(),
+        subject,
         attester: attester.clone(),
         value: value.clone(),
         nonce,
@@ -157,13 +147,13 @@ pub fn attest(
     // ► RESOLVER INTEGRATION: Before Attest Hook
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Call resolver before_attest hook if schema has a resolver
+    // Call resolver onattest hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format
         let resolver_attestation = create_resolver_attestation(env, &attestation, &schema_uid, &value);
 
-        // Call before_attest hook - this is CRITICAL for access control
-        let allowed = call_resolver_before_attest(env, resolver_address, &resolver_attestation)?;
+        // Call onattest hook - this is CRITICAL for access control
+        let allowed = call_resolver_onattest(env, resolver_address, &resolver_attestation)?;
 
         if !allowed {
             return Err(Error::ResolverError); // Resolver rejected the attestation
@@ -187,14 +177,14 @@ pub fn attest(
     // ► RESOLVER INTEGRATION: After Attest Hook
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Call resolver after_attest hook if schema has a resolver
+    // Call resolver onresolve hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format
         let resolver_attestation = create_resolver_attestation(env, &attestation, &schema_uid, &value);
 
-        // Call after_attest hook for side effects (rewards, registration, etc.)
+        // Call onresolve hook for side effects (rewards, registration, etc.)
         // Note: Failures here don't revert the attestation
-        call_resolver_after_attest(env, resolver_address, &resolver_attestation);
+        call_resolver_onresolve(env, resolver_address, &resolver_attestation);
     }
 
     // Emit event
@@ -287,14 +277,14 @@ pub fn revoke_attestation(env: &Env, revoker: Address, attestation_uid: BytesN<3
     // ► RESOLVER INTEGRATION: Before Revoke Hook
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Call resolver before_revoke hook if schema has a resolver
+    // Call resolver onrevoke hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format
         let resolver_attestation =
             create_resolver_attestation(env, &attestation, &attestation.schema_uid, &attestation.value);
 
-        // Call before_revoke hook - this is CRITICAL for access control
-        let allowed = call_resolver_before_revoke(env, resolver_address, &resolver_attestation)?;
+        // Call onrevoke hook - this is CRITICAL for access control
+        let allowed = call_resolver_onrevoke(env, resolver_address, &resolver_attestation)?;
 
         if !allowed {
             return Err(Error::ResolverError); // Resolver rejected the revocation
@@ -316,15 +306,15 @@ pub fn revoke_attestation(env: &Env, revoker: Address, attestation_uid: BytesN<3
     // ► RESOLVER INTEGRATION: After Revoke Hook
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Call resolver after_revoke hook if schema has a resolver
+    // Call resolver onresolve hook if schema has a resolver
     if let Some(resolver_address) = &schema.resolver {
         // Create resolver attestation format with updated revocation status
         let resolver_attestation =
             create_resolver_attestation(env, &attestation, &attestation.schema_uid, &attestation.value);
 
-        // Call after_revoke hook for side effects (cleanup, notifications, etc.)
+        // Call onresolve hook for side effects (cleanup, notifications, etc.)
         // Note: Failures here don't revert the revocation
-        call_resolver_after_revoke(env, resolver_address, &resolver_attestation);
+        call_resolver_onresolve(env, resolver_address, &resolver_attestation);
     }
 
     // Emit revocation event

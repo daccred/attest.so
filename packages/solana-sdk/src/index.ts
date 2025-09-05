@@ -1,6 +1,6 @@
 /**
  * @attestprotocol/solana-sdk
- * 
+ *
  * Solana implementation of the Attest Protocol SDK
  */
 
@@ -23,7 +23,7 @@ export {
   AttestProtocolErrorType,
   createSuccessResponse,
   createErrorResponse,
-  createAttestProtocolError
+  createAttestProtocolError,
 } from '@attestprotocol/core'
 
 // Default export for convenience

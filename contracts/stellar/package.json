@@ -1,14 +1,16 @@
 {
-  "name": "@attestprotocol/stellar",
+  "name": "@attestprotocol/stellar-contracts",
   "description": "Stellar Attestation Service",
-  "version": "1.7.0",
+  "version": "1.7.4",
   "author": "",
   "dependencies": {
-    "@stellar/stellar-sdk": "14.0.0-rc.3",
+    "@noble/curves": "^2.0.0",
+    "@noble/hashes": "^2.0.0",
     "buffer": "6.0.3"
   },
   "devDependencies": {
     "@types/node": "^24.2.1",
+    "js-sha3": "^0.9.3",
     "typescript": "^5.6.2",
     "vitest": "^3.2.4"
   },
@@ -36,6 +38,10 @@
     "stellar"
   ],
   "license": "MIT",
+  "main": "./dist/protocol.js",
+  "peerDependencies": {
+    "@stellar/stellar-sdk": ">=14.1.0"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -44,5 +50,6 @@
     "clean": "echo 'Use make clean in individual contract directories'",
     "test": "vitest"
   },
-  "type": "module"
+  "type": "module",
+  "types": "./dist/protocol.d.ts"
 }

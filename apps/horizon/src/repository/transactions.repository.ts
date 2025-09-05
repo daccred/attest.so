@@ -129,48 +129,11 @@ async function storeTransactionsInDB(transactions: any[]): Promise<number> {
             sorobanResourceUsage: tx.sorobanResourceUsage || null,
           } as any
 
-          const existing = await db.horizonTransaction.findUnique({ where: { hash } })
-          if (existing) {
-            // Skipping update for existing transaction hashes; not merging data
-            /*
-            const updateData: any = {
-              ledger: Math.max(num(existing.ledger, 0), num(incoming.ledger, 0)),
-              timestamp: new Date(
-                Math.max(
-                  new Date(existing.timestamp || 0).getTime(),
-                  new Date(incoming.timestamp).getTime()
-                )
-              ),
-              sourceAccount: incoming.sourceAccount || existing.sourceAccount || '',
-              fee: (incoming.fee ?? existing.fee ?? '0').toString(),
-              operationCount: Math.max(
-                num(existing.operationCount, 0),
-                num(incoming.operationCount, 0)
-              ),
-              envelope: mergeJson(existing.envelope, incoming.envelope),
-              result: mergeJson(existing.result, incoming.result),
-              meta: mergeJson(existing.meta, incoming.meta),
-              feeBump:
-                typeof incoming.feeBump === 'boolean' ? incoming.feeBump : Boolean(existing.feeBump),
-              successful:
-                typeof incoming.successful === 'boolean'
-                  ? incoming.successful
-                  : Boolean(existing.successful),
-              memo: incoming.memo ?? existing.memo ?? null,
-              memoType: incoming.memoType ?? existing.memoType ?? null,
-              inclusionFee: incoming.inclusionFee ?? existing.inclusionFee ?? undefined,
-              resourceFee: incoming.resourceFee ?? existing.resourceFee ?? undefined,
-              sorobanResourceUsage: mergeJson(
-                existing.sorobanResourceUsage,
-                incoming.sorobanResourceUsage
-              ),
-            }
-            await db.horizonTransaction.update({ where: { hash }, data: updateData })
-            */
-            continue
-          } else {
-            await db.horizonTransaction.create({ data: incoming })
-          }
+          await db.horizonTransaction.upsert({
+            where: { hash },
+            update: incoming,
+            create: incoming,
+          })
           totalStored++
         } catch (perr: any) {
           console.error('Error storing single transaction:', perr?.message || perr)

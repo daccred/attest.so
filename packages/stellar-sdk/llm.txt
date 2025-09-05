@@ -1,0 +1,504 @@
+# Attest Protocol Stellar SDK - LLM Reference
+
+This file documents all available functions, methods, and classes in the @attestprotocol/stellar-sdk package.
+
+## Main Client Class
+
+### StellarAttestationClient
+- **Signature:** `new StellarAttestationClient(options: ClientOptions)`
+- **Description:** Main client for interacting with Attest Protocol on Stellar blockchain
+- **Inputs:** 
+  - options: ClientOptions (rpcUrl: string, network: 'testnet'|'mainnet', publicKey: string, contractId?: string)
+- **Outputs:** StellarAttestationClient instance
+- **Example Call:**
+```typescript
+const client = new StellarAttestationClient({
+  rpcUrl: 'https://soroban-testnet.stellar.org',
+  network: 'testnet',
+  publicKey: 'GABC123...'
+})
+```
+
+## Basic Attestation
+
+### attest
+- **Signature:** `async attest(params: AttestParams): Promise<any>`
+- **Description:** Create a new attestation on-chain
+- **Inputs:**
+  - schemaUid: Buffer (32-byte schema identifier)
+  - value: string (attestation data, usually JSON)
+  - subject?: string (who the attestation is about, defaults to caller)
+  - expirationTime?: number (Unix timestamp when attestation expires)
+  - options?: TxOptions (transaction options including signer)
+- **Outputs:** Transaction or simulation result
+- **Example Call:**
+```typescript
+await client.attest({
+  schemaUid: Buffer.from('abc123...', 'hex'),
+  value: JSON.stringify({ name: 'John', verified: true }),
+  subject: 'GSUBJECT123...',
+  options: { signer: myKeypair }
+})
+```
+
+### getAttestation
+- **Signature:** `async getAttestation(uid: Buffer): Promise<any>`
+- **Description:** Retrieve an attestation by its UID from the blockchain
+- **Inputs:**
+  - uid: Buffer (32-byte attestation UID)
+- **Outputs:** Attestation data or null if not found
+- **Example Call:**
+```typescript
+const attestation = await client.getAttestation(Buffer.from('def456...', 'hex'))
+```
+
+## Basic Revocation
+
+### revoke
+- **Signature:** `async revoke(params: RevokeParams): Promise<any>`
+- **Description:** Revoke an existing attestation
+- **Inputs:**
+  - attestationUid: Buffer (32-byte attestation UID to revoke)
+  - options?: TxOptions (transaction options including signer)
+- **Outputs:** Transaction or simulation result
+- **Example Call:**
+```typescript
+await client.revoke({
+  attestationUid: Buffer.from('abc123...', 'hex'),
+  options: { signer: myKeypair }
+})
+```
+
+## Delegated Attestation
+
+### attestByDelegation
+- **Signature:** `async attestByDelegation(request: DelegatedAttestationRequest, options?: TxOptions): Promise<any>`
+- **Description:** Create an attestation using a delegated signature
+- **Inputs:**
+  - request: DelegatedAttestationRequest (contains attestation data and BLS signature)
+  - options?: TxOptions (transaction options)
+- **Outputs:** Transaction result
+- **Example Call:**
+```typescript
+const request = await createDelegatedAttestationRequest({...})
+await client.attestByDelegation(request, { signer: myKeypair })
+```
+
+### createAttestMessage
+- **Signature:** `createAttestMessage(request: DelegatedAttestationRequest, dst: Buffer): WeierstrassPoint<bigint>`
+- **Description:** Create a message point for BLS signing in delegated attestation
+- **Inputs:**
+  - request: DelegatedAttestationRequest (attestation parameters)
+  - dst: Buffer (domain separation tag from getAttestDST)
+- **Outputs:** Point on elliptic curve for BLS signing
+- **Example Call:**
+```typescript
+const dst = await getAttestDST(client.getClientInstance())
+const messagePoint = createAttestMessage(attestRequest, dst)
+```
+
+### getAttestDST
+- **Signature:** `async getAttestDST(): Promise<Buffer>`
+- **Description:** Get the domain separation tag for attestation signatures
+- **Inputs:** None
+- **Outputs:** Buffer containing DST for BLS signatures
+- **Example Call:**
+```typescript
+const dst = await client.getAttestDST()
+```
+
+## Delegated Revocation
+
+### revokeByDelegation
+- **Signature:** `async revokeByDelegation(request: DelegatedRevocationRequest, options?: TxOptions): Promise<any>`
+- **Description:** Revoke an attestation using a delegated signature
+- **Inputs:**
+  - request: DelegatedRevocationRequest (contains revocation data and BLS signature)
+  - options?: TxOptions (transaction options)
+- **Outputs:** Transaction result
+- **Example Call:**
+```typescript
+const request = await createDelegatedRevocationRequest({...})
+await client.revokeByDelegation(request, { signer: myKeypair })
+```
+
+### createRevokeMessage
+- **Signature:** `createRevokeMessage(request: DelegatedRevocationRequest, dst: Buffer): WeierstrassPoint<bigint>`
+- **Description:** Create a message point for BLS signing in delegated revocation
+- **Inputs:**
+  - request: DelegatedRevocationRequest (revocation parameters)
+  - dst: Buffer (domain separation tag from getRevokeDST)
+- **Outputs:** Point on elliptic curve for BLS signing
+- **Example Call:**
+```typescript
+const dst = await getRevokeDST(client.getClientInstance())
+const messagePoint = createRevokeMessage(revokeRequest, dst)
+```
+
+### getRevokeDST
+- **Signature:** `async getRevokeDST(): Promise<Buffer>`
+- **Description:** Get the domain separation tag for revocation signatures
+- **Inputs:** None
+- **Outputs:** Buffer containing DST for BLS signatures
+- **Example Call:**
+```typescript
+const dst = await client.getRevokeDST()
+```
+
+## Schema Management
+
+### createSchema
+- **Signature:** `async createSchema(params: CreateSchemaParams): Promise<any>`
+- **Description:** Register a new schema on-chain
+- **Inputs:**
+  - definition: string (schema definition like "name:string,age:u32")
+  - resolver?: string (optional resolver address)
+  - revocable?: boolean (whether attestations can be revoked, default true)
+  - options?: TxOptions (transaction options including signer)
+- **Outputs:** Transaction result
+- **Example Call:**
+```typescript
+await client.createSchema({
+  definition: 'name:string,verified:bool',
+  revocable: true,
+  options: { signer: myKeypair }
+})
+```
+
+### getSchema
+- **Signature:** `async getSchema(uid: Buffer): Promise<any>`
+- **Description:** Retrieve a schema by its UID from the blockchain
+- **Inputs:**
+  - uid: Buffer (32-byte schema UID)
+- **Outputs:** Schema data or null if not found
+- **Example Call:**
+```typescript
+const schema = await client.getSchema(Buffer.from('abc123...', 'hex'))
+```
+
+## XDR Schema Encoding
+
+### encodeSchema
+- **Signature:** `encodeSchema(schema: any): string`
+- **Description:** Encode schema data to XDR format for blockchain storage
+- **Inputs:**
+  - schema: any (schema object to encode)
+- **Outputs:** XDR-encoded string with "XDR:" prefix
+- **Example Call:**
+```typescript
+const xdrString = client.encodeSchema({ name: 'TestSchema', fields: [...] })
+```
+
+### decodeSchema
+- **Signature:** `decodeSchema(encoded: string): any`
+- **Description:** Decode XDR-encoded schema data back to JavaScript object
+- **Inputs:**
+  - encoded: string (XDR-encoded string with "XDR:" prefix)
+- **Outputs:** Decoded schema object
+- **Example Call:**
+```typescript
+const schema = client.decodeSchema('XDR:AAAAB...')
+```
+
+## Non-XDR Schema
+
+### SorobanSchemaEncoder
+- **Signature:** `new SorobanSchemaEncoder(definition: StellarSchemaDefinition)`
+- **Description:** Create a schema encoder for non-XDR structured data
+- **Inputs:**
+  - definition: StellarSchemaDefinition (schema field definitions)
+- **Outputs:** SorobanSchemaEncoder instance
+- **Example Call:**
+```typescript
+const encoder = new SorobanSchemaEncoder({
+  name: 'UserProfile',
+  fields: [
+    { name: 'username', type: StellarDataType.STRING },
+    { name: 'age', type: StellarDataType.U32, optional: true }
+  ]
+})
+```
+
+## UID Generation
+
+### generateAttestationUid
+- **Signature:** `generateAttestationUid(schemaUid: Buffer, subject: string, nonce: bigint): Buffer`
+- **Description:** Generate a deterministic 32-byte UID for an attestation
+- **Inputs:**
+  - schemaUid: Buffer (32-byte schema UID)
+  - subject: string (subject address)
+  - nonce: bigint (unique nonce for this attestation)
+- **Outputs:** 32-byte Buffer containing attestation UID
+- **Example Call:**
+```typescript
+const uid = client.generateAttestationUid(
+  Buffer.from('abc123...', 'hex'),
+  'GSUBJECT123...',
+  BigInt(12345)
+)
+```
+
+### generateSchemaUid
+- **Signature:** `generateSchemaUid(definition: string, authority: string, resolver?: string): Buffer`
+- **Description:** Generate a deterministic 32-byte UID for a schema
+- **Inputs:**
+  - definition: string (schema definition like "name:string,age:u32")
+  - authority: string (authority address creating the schema)
+  - resolver?: string (optional resolver address)
+- **Outputs:** 32-byte Buffer containing schema UID
+- **Example Call:**
+```typescript
+const uid = client.generateSchemaUid(
+  'name:string,verified:bool',
+  'GAUTHORITY123...',
+  'GRESOLVER456...'
+)
+```
+
+## Signature Creation
+
+### generateBlsKeys
+- **Signature:** `generateBlsKeys(): BlsKeyPair`
+- **Description:** Generate a new BLS key pair for delegated signatures
+- **Inputs:** None
+- **Outputs:** BlsKeyPair with privateKey (32 bytes) and publicKey (192 bytes uncompressed)
+- **Example Call:**
+```typescript
+const { privateKey, publicKey } = client.generateBlsKeys()
+```
+
+### signHashedMessage
+- **Signature:** `signHashedMessage(message: WeierstrassPoint<bigint>, privateKey: Uint8Array): Buffer`
+- **Description:** Sign a hashed message point using BLS private key
+- **Inputs:**
+  - message: WeierstrassPoint<bigint> (message mapped to curve point)
+  - privateKey: Uint8Array (32-byte BLS private key)
+- **Outputs:** Buffer containing BLS signature
+- **Example Call:**
+```typescript
+const messagePoint = createAttestMessage(request, dst)
+const signature = signHashedMessage(messagePoint, privateKey)
+```
+
+## Signature Verification
+
+### verifySignature
+- **Signature:** `verifySignature({ signature, expectedMessage, publicKey }): VerificationResult`
+- **Description:** Verify a BLS signature against expected message and public key
+- **Inputs:**
+  - signature: Buffer (BLS signature to verify)
+  - expectedMessage: WeierstrassPoint<bigint> (expected message point)
+  - publicKey: Buffer (192-byte uncompressed BLS public key)
+- **Outputs:** VerificationResult with isValid boolean and optional metadata
+- **Example Call:**
+```typescript
+const result = client.verifySignature({
+  signature: signatureBuffer,
+  expectedMessage: messagePoint,
+  publicKey: publicKeyBuffer
+})
+console.log('Valid:', result.isValid)
+```
+
+## Attestation Data Fetching
+
+### fetchAttestations
+- **Signature:** `async fetchAttestations(limit: number = 100): Promise<ContractAttestation[]>`
+- **Description:** Fetch the latest attestations from the registry (max 100)
+- **Inputs:**
+  - limit: number (maximum number of attestations to fetch, capped at 100)
+- **Outputs:** Array of ContractAttestation objects
+- **Example Call:**
+```typescript
+const attestations = await client.fetchAttestations(50)
+```
+
+### fetchAttestationsByWallet
+- **Signature:** `async fetchAttestationsByWallet(walletAddress: string, limit?: number): Promise<{ attestations: ContractAttestation[], total: number, hasMore: boolean }>`
+- **Description:** Fetch attestations created by a specific wallet (max 100)
+- **Inputs:**
+  - walletAddress: string (Stellar address of the attester)
+  - limit?: number (maximum number to fetch, defaults to 100, capped at 100)
+- **Outputs:** Object with attestations array, total count, and hasMore flag
+- **Example Call:**
+```typescript
+const result = await client.fetchAttestationsByWallet('GATTESTER123...', 25)
+console.log(`Found ${result.attestations.length} attestations`)
+```
+
+### getAttestationsByLedger
+- **Signature:** `async getAttestationsByLedger(ledger: number, limit?: number): Promise<ContractAttestation[]>`
+- **Description:** Fetch attestations from a specific ledger number (max 100)
+- **Inputs:**
+  - ledger: number (Stellar ledger number)
+  - limit?: number (maximum number to fetch, defaults to 100, capped at 100)
+- **Outputs:** Array of ContractAttestation objects
+- **Example Call:**
+```typescript
+const attestations = await client.getAttestationsByLedger(1234567, 10)
+```
+
+### getAttestationByUid (from indexer)
+- **Signature:** `async getAttestationByUid(uid: string, network?: 'testnet'|'mainnet'): Promise<ContractAttestation | null>`
+- **Description:** Fetch a single attestation by its UID from the registry API
+- **Inputs:**
+  - uid: string (hex-encoded attestation UID)
+  - network?: 'testnet'|'mainnet' (defaults to testnet)
+- **Outputs:** ContractAttestation object or null if not found
+- **Example Call:**
+```typescript
+const attestation = await getAttestationByUid('abc123...', 'testnet')
+```
+
+## Schema Data Fetching
+
+### fetchSchemas
+- **Signature:** `async fetchSchemas(limit: number = 100): Promise<ContractSchema[]>`
+- **Description:** Fetch the latest schemas from the registry (max 100)
+- **Inputs:**
+  - limit: number (maximum number of schemas to fetch, capped at 100)
+- **Outputs:** Array of ContractSchema objects
+- **Example Call:**
+```typescript
+const schemas = await client.fetchSchemas(30)
+```
+
+### fetchSchemasByWallet
+- **Signature:** `async fetchSchemasByWallet(walletAddress: string, limit?: number): Promise<{ schemas: ContractSchema[], total: number, hasMore: boolean }>`
+- **Description:** Fetch schemas created by a specific wallet (max 100)
+- **Inputs:**
+  - walletAddress: string (Stellar address of the schema creator)
+  - limit?: number (maximum number to fetch, defaults to 100, capped at 100)
+- **Outputs:** Object with schemas array, total count, and hasMore flag
+- **Example Call:**
+```typescript
+const result = await client.fetchSchemasByWallet('GCREATOR123...', 20)
+console.log(`Found ${result.schemas.length} schemas`)
+```
+
+### getSchemasByLedger
+- **Signature:** `async getSchemasByLedger(ledger: number, limit?: number): Promise<ContractSchema[]>`
+- **Description:** Fetch schemas from a specific ledger number (max 100)
+- **Inputs:**
+  - ledger: number (Stellar ledger number)
+  - limit?: number (maximum number to fetch, defaults to 100, capped at 100)
+- **Outputs:** Array of ContractSchema objects
+- **Example Call:**
+```typescript
+const schemas = await client.getSchemasByLedger(1234567, 15)
+```
+
+### getSchemaByUid (from indexer)
+- **Signature:** `async getSchemaByUid(uid: string, includeAttestations?: boolean, network?: 'testnet'|'mainnet'): Promise<ContractSchema | null>`
+- **Description:** Fetch a single schema by its UID from the registry API
+- **Inputs:**
+  - uid: string (hex-encoded schema UID)
+  - includeAttestations?: boolean (whether to include related attestations)
+  - network?: 'testnet'|'mainnet' (defaults to testnet)
+- **Outputs:** ContractSchema object or null if not found
+- **Example Call:**
+```typescript
+const schema = await getSchemaByUid('def456...', true, 'testnet')
+```
+
+## Registry Operations
+
+### fetchRegistryDump
+- **Signature:** `async fetchRegistryDump(network?: 'testnet'|'mainnet'): Promise<RegistryDump>`
+- **Description:** Fetch complete registry data including all schemas and attestations
+- **Inputs:**
+  - network?: 'testnet'|'mainnet' (defaults to testnet)
+- **Outputs:** RegistryDump with schemas, attestations, timestamp, and ledger info
+- **Example Call:**
+```typescript
+const dump = await fetchRegistryDump('testnet')
+console.log(`Registry contains ${dump.schemas.length} schemas and ${dump.attestations.length} attestations`)
+```
+
+## Utility Functions
+
+### submitTransaction
+- **Signature:** `async submitTransaction(signedXdr: string, options?: SubmitOptions): Promise<any>`
+- **Description:** Submit a signed transaction to the Stellar network
+- **Inputs:**
+  - signedXdr: string (XDR-encoded signed transaction)
+  - options?: SubmitOptions (submission options)
+- **Outputs:** Transaction result from network
+- **Example Call:**
+```typescript
+const result = await client.submitTransaction(signedTxXdr)
+```
+
+### getClientInstance
+- **Signature:** `getClientInstance(): ProtocolClient`
+- **Description:** Get the underlying protocol client for advanced usage
+- **Inputs:** None
+- **Outputs:** ProtocolClient instance
+- **Example Call:**
+```typescript
+const protocolClient = client.getClientInstance()
+```
+
+### getServerInstance
+- **Signature:** `getServerInstance(): rpc.Server`
+- **Description:** Get the underlying RPC server instance
+- **Inputs:** None
+- **Outputs:** Stellar RPC Server instance
+- **Example Call:**
+```typescript
+const server = client.getServerInstance()
+```
+
+## Helper Functions
+
+### createDelegatedAttestationRequest
+- **Signature:** `async createDelegatedAttestationRequest(params: {...}, privateKey: Uint8Array, client: ProtocolClient): Promise<DelegatedAttestationRequest>`
+- **Description:** Create a complete delegated attestation request with BLS signature
+- **Inputs:**
+  - schemaUid: Buffer, subject: string, data: string, expirationTime?: number, nonce?: bigint
+  - privateKey: Uint8Array (BLS private key for signing)
+  - client: ProtocolClient (for fetching DST and nonce)
+- **Outputs:** DelegatedAttestationRequest ready for submission
+- **Example Call:**
+```typescript
+const request = await createDelegatedAttestationRequest({
+  schemaUid: Buffer.from('abc...', 'hex'),
+  subject: 'GSUBJECT...',
+  data: JSON.stringify({verified: true})
+}, blsPrivateKey, client.getClientInstance())
+```
+
+### createDelegatedRevocationRequest
+- **Signature:** `async createDelegatedRevocationRequest(params: {...}, privateKey: Uint8Array, client: ProtocolClient): Promise<DelegatedRevocationRequest>`
+- **Description:** Create a complete delegated revocation request with BLS signature
+- **Inputs:**
+  - attestationUid: Buffer, nonce?: bigint
+  - privateKey: Uint8Array (BLS private key for signing)
+  - client: ProtocolClient (for fetching DST and nonce)
+- **Outputs:** DelegatedRevocationRequest ready for submission
+- **Example Call:**
+```typescript
+const request = await createDelegatedRevocationRequest({
+  attestationUid: Buffer.from('def...', 'hex')
+}, blsPrivateKey, client.getClientInstance())
+```
+
+## Type Definitions
+
+### ContractAttestation
+Properties: uid (Buffer), schemaUid (Buffer), subject (string), attester (string), value (any), timestamp (number), expirationTime? (number), revocationTime? (number), revoked (boolean)
+
+### ContractSchema
+Properties: uid (Buffer), definition (string), authority (string), resolver (string), revocable (boolean), timestamp (number)
+
+### BlsKeyPair
+Properties: privateKey (Buffer, 32 bytes), publicKey (Buffer, 192 bytes uncompressed)
+
+### VerificationResult
+Properties: isValid (boolean), metadata? (any)
+
+### ClientOptions
+Properties: rpcUrl (string), network ('testnet'|'mainnet'), publicKey (string), contractId? (string), networkPassphrase? (string), allowHttp? (boolean)
+
+### TxOptions
+Properties: signer? (TransactionSigner), simulate? (boolean)

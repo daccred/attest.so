@@ -21,7 +21,7 @@ export type AttestProtocolResponse<T = undefined> =
  * Base configuration for any chain-specific SDK
  */
 export interface ChainConfig {
-  url?: string
+  rpcUrl?: string
   [key: string]: any
 }
 
@@ -65,7 +65,6 @@ export interface Attestation {
   [key: string]: any
 }
 
-
 /**
  * Generic schema creation configuration
  */
@@ -73,7 +72,7 @@ export interface SchemaDefinition {
   name: string
   content: string
   revocable?: boolean
-  resolver?: string | null
+  resolver: string | undefined
 }
 
 /**
@@ -168,7 +167,7 @@ export enum AttestProtocolErrorType {
   INVALID_SIGNATURE_ERROR = 'INVALID_SIGNATURE_ERROR',
   EXPIRED_ERROR = 'EXPIRED_ERROR',
   REVOKED_ERROR = 'REVOKED_ERROR',
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
 }
 
 /**

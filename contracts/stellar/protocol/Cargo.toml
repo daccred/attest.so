@@ -13,9 +13,12 @@ crate-type = ["cdylib", "rlib"]
 testutils = []
 
 [dependencies]
-soroban-sdk = { workspace = true, features = ["testutils"] }
-stellar-xdr = { workspace = true, features = ["base64"] }
+soroban-sdk = { workspace = true }
+resolvers = { path = "../resolvers", default-features = false }
 
 [dev-dependencies]
-serde_json = "1.0.111"
+soroban-sdk = { version = "22.0.7", features = ["testutils"] }
 bls12_381 = "0.8.0"
+blst = "0.3.0"
+hex = "0.4.3"
+

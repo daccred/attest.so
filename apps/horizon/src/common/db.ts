@@ -21,10 +21,10 @@ export async function getLastProcessedLedgerFromDB(): Promise<number> {
   }
 
   try {
-    const metadata = await db.horizonMetadata.findUnique({
-      where: { key: 'lastProcessedLedgerMeta' },
+    const state = await db.horizonIndexerState.findFirst({
+      orderBy: { updatedAt: 'desc' },
     })
-    return metadata ? parseInt(metadata.value) : 0
+    return state?.lastProcessedLedger || 0
   } catch (error) {
     console.error('Error fetching last processed ledger from DB:', error)
     return 0
@@ -39,14 +39,26 @@ export async function updateLastProcessedLedgerInDB(ledgerSequence: number) {
   }
 
   try {
-    await db.horizonMetadata.upsert({
-      where: { key: 'lastProcessedLedgerMeta' },
-      update: { value: ledgerSequence.toString() },
-      create: {
-        key: 'lastProcessedLedgerMeta',
-        value: ledgerSequence.toString(),
-      },
-    })
+    const existingState = await db.horizonIndexerState.findFirst()
+    
+    if (existingState) {
+      await db.horizonIndexerState.update({
+        where: { id: existingState.id },
+        data: {
+          lastProcessedLedger: ledgerSequence,
+          lastProcessedAt: new Date(),
+          syncStatus: 'syncing',
+        },
+      })
+    } else {
+      await db.horizonIndexerState.create({
+        data: {
+          lastProcessedLedger: ledgerSequence,
+          lastProcessedAt: new Date(),
+          syncStatus: 'syncing',
+        },
+      })
+    }
     console.log(`Updated lastProcessedLedger in DB to: ${ledgerSequence}`)
   } catch (error) {
     console.error('Error updating last processed ledger in DB:', error)

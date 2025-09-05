@@ -13,7 +13,7 @@
 
 import { getHorizonBaseUrl } from '../common/constants'
 import { getDB } from '../common/db'
-import { IndexerErrorHandler, PerformanceMonitor, RateLimiter } from '../common/errors'
+import { IndexerHostError, PerformanceMonitor, RateLimiter } from '../common/errors'
 
 /**
  * Fetches operations from Horizon API with filtering options.
@@ -44,7 +44,7 @@ export async function fetchOperationsFromHorizon(params: {
   return await PerformanceMonitor.measureAsync('fetchOperationsFromHorizon', async () => {
     // Rate limiting: max 50 requests per minute
     if (!RateLimiter.canProceed('operations', 50, 60000)) {
-      IndexerErrorHandler.logWarning('Rate limit reached for operations API')
+      IndexerHostError.logWarning('Rate limit reached for operations API')
       return []
     }
 
@@ -58,7 +58,7 @@ export async function fetchOperationsFromHorizon(params: {
       if (transactionHash) baseParams.for_transaction = transactionHash
       if (accountId) baseParams.for_account = accountId
 
-      IndexerErrorHandler.logInfo('Fetching operations from Horizon', baseParams)
+      IndexerHostError.logInfo('Fetching operations from Horizon', baseParams)
 
       // Use Stellar Horizon API for operations (not Soroban RPC)
       const horizonUrl = getHorizonBaseUrl()
@@ -81,10 +81,10 @@ export async function fetchOperationsFromHorizon(params: {
       const data = await response.json()
       const operations = data._embedded?.records || []
 
-      IndexerErrorHandler.logSuccess(`Fetched ${operations.length} operations`)
+      IndexerHostError.logSuccess(`Fetched ${operations.length} operations`)
       return operations
     } catch (error: any) {
-      IndexerErrorHandler.handleRpcError(error, 'fetchOperationsFromHorizon')
+      IndexerHostError.handleRpcError(error, 'fetchOperationsFromHorizon')
       return []
     }
   })
@@ -98,12 +98,12 @@ export async function fetchOperationsFromHorizon(params: {
  * and maintains data integrity through foreign key constraints.
  *
  * @async
- * @function storeContractOperationsInDB
+ * @function storeOperationsInDB
  * @param {Array} operations - Operations with contract mapping
  * @param {string[]} [contractIds] - Associated contract identifiers
  * @returns {Promise<number>} Count of stored operations
  */
-export async function storeContractOperationsInDB(operations: any[], contractIds: string[] = []) {
+export async function storeOperationsInDB(operations: any[], contractIds: string[] = []): Promise<number> {
   const db = await getDB()
   if (!db || operations.length === 0) return 0
 
@@ -143,15 +143,11 @@ export async function storeContractOperationsInDB(operations: any[], contractIds
             parameters: operation.parameters || null,
           }
 
-          // Skip if already present
-          const existing = await db.horizonContractOperation.findUnique({
+          await db.horizonOperation.upsert({
             where: { operationId: operation.id },
+            update: operationData,
+            create: operationData,
           })
-          if (existing) {
-            continue
-          }
-
-          await db.horizonContractOperation.create({ data: operationData })
           totalCreated++
         } catch (opErr: any) {
           console.error('Error storing single contract operation:', opErr?.message || opErr)

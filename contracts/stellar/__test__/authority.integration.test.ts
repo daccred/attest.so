@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
 import { Keypair, Transaction } from '@stellar/stellar-sdk'
 import * as AuthorityContract from '../bindings/src/authority'
-import { loadTestConfig } from './test-utils'
+import { loadTestConfig, fundAccountIfNeeded } from './testutils'
 
 describe('Authority Contract Integration Tests', () => {
   let authorityClient: AuthorityContract.Client
@@ -34,7 +34,8 @@ describe('Authority Contract Integration Tests', () => {
       contractId: config.authorityContractId,
       networkPassphrase: AuthorityContract.networks.testnet.networkPassphrase,
       rpcUrl: config.rpcUrl,
-      allowHttp: true
+      allowHttp: true,
+      publicKey: adminKeypair.publicKey()
     })
 
     // Generate test accounts
@@ -47,7 +48,7 @@ describe('Authority Contract Integration Tests', () => {
     schemaUid = randomBytes(32)
     metadata = `{"name":"Test Authority ${testRunId}"}`
 
-    // Fund all accounts using Friendbot
+    // Fund all accounts that need it (skip admin as it's already funded)
     const accounts = [
       adminKeypair.publicKey(),
       authorityToRegisterKp.publicKey(),
@@ -56,15 +57,7 @@ describe('Authority Contract Integration Tests', () => {
     ]
 
     for (const account of accounts) {
-      try {
-        console.log(`Funding account: ${account}`)
-        const response = await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(account)}`)
-        if (!response.ok) {
-          console.warn(`Friendbot funding failed for ${account}: ${response.statusText}`)
-        }
-      } catch (error) {
-        console.warn(`Error funding account ${account}:`, error)
-      }
+      await fundAccountIfNeeded(account)
     }
 
     // Wait for accounts to be ready
@@ -81,94 +74,36 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    // Check if additional signing is needed
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr) => {
+        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
+        transaction.sign(adminKeypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    const res = sent.result as AuthorityContract.contract.Result<void>
+    expect(res.isOk()).toBe(true)
+  }, 60000)
+
+  it('should check contract is initialized', async () => {
+    const tx = await authorityClient.get_admin_address()
+    const result = await tx.simulate()
     
-    const sent = await tx.signAndSend({
-      signTransaction: async (xdr) => {
-        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
-        transaction.sign(adminKeypair)
-        
-        // Sign with any additional required signers
-        for (const signer of needsSigningBy) {
-          if (signer === adminKeypair.publicKey()) {
-            // Already signed above
-            continue
-          }
-          // For this test, admin should be the only signer needed
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
-        return { signedTxXdr: transaction.toXDR() }
-      }
-    })
-
-    const res = sent.result as AuthorityContract.contract.Result<void>
-    expect(res.isOk()).toBe(true)
+    expect(result.result).toBeDefined()
+    // Admin address should be set during initialization
+    const adminResult = tx.result as AuthorityContract.contract.Result<string>
+    expect(adminResult.unwrap()).toBeDefined()
   }, 60000)
 
-  it('should register a schema through admin', async () => {
-    const schemaRules: AuthorityContract.SchemaRules = {
-      levy_amount: 10000000n, // 1 XLM in stroops
-      levy_recipient: levyRecipientKp.publicKey()
-    }
-
-    const tx = await authorityClient.admin_register_schema({
-      admin: adminKeypair.publicKey(),
-      schema_uid: schemaUid,
-      rules: schemaRules
-    }, {
-      fee: 1000000,
-      timeoutInSeconds: 30
-    })
-
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
-    const sent = await tx.signAndSend({
-      signTransaction: async (xdr) => {
-        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
-        transaction.sign(adminKeypair)
-        
-        for (const signer of needsSigningBy) {
-          if (signer === adminKeypair.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
-        return { signedTxXdr: transaction.toXDR() }
-      }
-    })
-
-    const res = sent.result as AuthorityContract.contract.Result<void>
-    expect(res.isOk()).toBe(true)
-  }, 60000)
-
-  it('should set schema levy through admin', async () => {
-    const tx = await authorityClient.admin_set_schema_levy({
-      admin: adminKeypair.publicKey(),
-      schema_uid: schemaUid,
-      levy_amount: 10000000n, // 1 XLM in stroops
-      levy_recipient: levyRecipientKp.publicKey()
-    }, {
-      fee: 1000000,
-      timeoutInSeconds: 30
-    })
-
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
-    const sent = await tx.signAndSend({
-      signTransaction: async (xdr) => {
-        const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
-        transaction.sign(adminKeypair)
-        
-        for (const signer of needsSigningBy) {
-          if (signer === adminKeypair.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
-        return { signedTxXdr: transaction.toXDR() }
-      }
-    })
-
-    const res = sent.result as AuthorityContract.contract.Result<void>
-    expect(res.isOk()).toBe(true)
+  it('should check token ID is set', async () => {
+    const tx = await authorityClient.get_token_id()
+    const result = await tx.simulate()
+    
+    expect(result.result).toBeDefined()
+    // Token ID should be the SAC token we provided
+    const tokenResult = tx.result as AuthorityContract.contract.Result<string>
+    expect(tokenResult.unwrap()).toBeDefined()
   }, 60000)
 
   it('should register an authority through admin', async () => {
@@ -181,17 +116,10 @@ describe('Authority Contract Integration Tests', () => {
       timeoutInSeconds: 30
     })
 
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
     const sent = await tx.signAndSend({
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
         transaction.sign(adminKeypair)
-        
-        for (const signer of needsSigningBy) {
-          if (signer === adminKeypair.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
         return { signedTxXdr: transaction.toXDR() }
       }
     })
@@ -211,37 +139,31 @@ describe('Authority Contract Integration Tests', () => {
   }, 60000)
 
   it('should create an attestation', async () => {
-    const attestationRecord: AuthorityContract.AttestationRecord = {
+    const attestation: AuthorityContract.Attestation = {
       uid: randomBytes(32),
-      schema_uid: schemaUid,
-      recipient: subjectKp.publicKey(),
+      value: BigInt(0),
+      time: BigInt(Date.now()),
+      schema_uid: schemaUid, 
       attester: adminKeypair.publicKey(),
-      time: BigInt(Math.floor(Date.now() / 1000)),
-      expiration_time: undefined,
-      revocable: true,
-      ref_uid: undefined,
+      recipient: subjectKp.publicKey(),
       data: Buffer.from(`test_data_${testRunId}`),
-      value: undefined
+      expiration_time: undefined,
+      ref_uid: undefined,
+      revocable: true
     }
 
     const tx = await authorityClient.attest({
-      attestation: attestationRecord
+      attestation: attestation
     }, {
       fee: 1000000,
       timeoutInSeconds: 30
     })
 
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
     const sent = await tx.signAndSend({
+      force: true, // Force the transaction even if SDK thinks it's read-only
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
         transaction.sign(adminKeypair)
-        
-        for (const signer of needsSigningBy) {
-          if (signer === adminKeypair.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
         return { signedTxXdr: transaction.toXDR() }
       }
     })
@@ -262,37 +184,31 @@ describe('Authority Contract Integration Tests', () => {
   }, 60000)
 
   it('should revoke an attestation', async () => {
-    const attestationRecord: AuthorityContract.AttestationRecord = {
+    const attestation: AuthorityContract.Attestation = {
       uid: randomBytes(32),
+      value: BigInt(0),
+      time: BigInt(Date.now()),
       schema_uid: schemaUid,
-      recipient: subjectKp.publicKey(),
       attester: adminKeypair.publicKey(),
-      time: BigInt(Math.floor(Date.now() / 1000)),
-      expiration_time: undefined,
-      revocable: true,
-      ref_uid: undefined,
+      recipient: subjectKp.publicKey(),
       data: Buffer.from(`test_data_${testRunId}`),
-      value: undefined
+      expiration_time: undefined,
+      ref_uid: undefined,
+      revocable: true
     }
 
     const tx = await authorityClient.revoke({
-      attestation: attestationRecord
+      attestation: attestation
     }, {
       fee: 1000000,
       timeoutInSeconds: 30
     })
 
-    const needsSigningBy = tx.needsNonInvokerSigningBy()
     const sent = await tx.signAndSend({
+      force: true, // Force the transaction even if SDK thinks it's read-only
       signTransaction: async (xdr) => {
         const transaction = new Transaction(xdr, AuthorityContract.networks.testnet.networkPassphrase)
         transaction.sign(adminKeypair)
-        
-        for (const signer of needsSigningBy) {
-          if (signer === adminKeypair.publicKey()) continue
-          console.log(`Additional signer required: ${signer}`)
-        }
-        
         return { signedTxXdr: transaction.toXDR() }
       }
     })

@@ -80,7 +80,7 @@ export async function fetchPaymentsFromHorizon(params: {
  * @param {Array} payments - Payment records to store
  * @returns {Promise<void>} Completes when storage is done
  */
-export async function storePaymentsInDB(payments: any[]) {
+export async function storePaymentsInDB(payments: any[]): Promise<void> {
   const db = await getDB()
   if (!db || payments.length === 0) return
 

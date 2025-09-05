@@ -12,5 +12,10 @@ export default defineConfig({
   treeshake: true,
   esbuildOptions: (options, context) => {
     options.platform = 'neutral'
+  },
+  // Copy llm.txt to dist for package consumers
+  onSuccess: async () => {
+    const { copyFile } = await import('fs/promises')
+    await copyFile('llm.txt', 'dist/llm.txt')
   }
 })

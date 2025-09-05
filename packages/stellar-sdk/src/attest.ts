@@ -18,7 +18,7 @@ import {
   createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/bindings/src/protocol'
+import { Client as ProtocolClient } from '@attestprotocol/stellar-contracts/protocol'
 import { Address, xdr, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
 
@@ -34,9 +34,7 @@ export class StellarAttestationService {
   /**
    * Issue a new attestation on the Stellar network
    */
-  async issueAttestation(
-    config: AttestationDefinition
-  ): Promise<AttestProtocolResponse<Attestation>> {
+  async issueAttestation(config: AttestationDefinition): Promise<AttestProtocolResponse<any>> {
     try {
       const validationError = this.validateAttestationDefinition(config)
       if (validationError) return createErrorResponse(validationError)
@@ -48,41 +46,34 @@ export class StellarAttestationService {
         )
       }
 
-      const caller = this.publicKey
+      const attester = this.publicKey
       const schemaUid = Buffer.from(config.schemaUid, 'hex')
-      const subject = config.subject
       const value = config.data
-      const reference = config.reference || null
+      const expiration_time = config.expirationTime ? BigInt(config.expirationTime) : undefined
+
+      // In the new protocol, attester is also the subject
+      // TODO: Add support for attestations about other subjects via delegated attestations
+      if (config.subject !== this.publicKey) {
+        throw createAttestProtocolError(
+          AttestProtocolErrorType.VALIDATION_ERROR,
+          'Direct attestations can only be made where attester is the subject. Use delegated attestation for other subjects.'
+        )
+      }
 
       const tx = await this.protocolClient.attest({
-        caller,
+        attester,
         schema_uid: schemaUid,
-        subject,
         value,
-        reference
+        expiration_time,
       })
 
       const result = await tx.signAndSend()
-      const timestamp = Date.now()
 
-      return createSuccessResponse({
-        uid: result.transactionHash || Date.now().toString(),
-        schemaUid: config.schemaUid,
-        subject: config.subject,
-        attester: this.publicKey,
-        data: config.data,
-        timestamp,
-        expirationTime: config.expirationTime || null,
-        revocationTime: null,
-        revoked: false,
-        reference: config.reference || null,
-      })
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to issue attestation'
-        )
+        createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to issue attestation')
       )
     }
   }
@@ -92,27 +83,18 @@ export class StellarAttestationService {
    */
   private validateAttestationDefinition(config: AttestationDefinition): any {
     if (!config.schemaUid || config.schemaUid.trim() === '') {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Schema UID is required'
-      )
+      return createAttestProtocolError(AttestProtocolErrorType.VALIDATION_ERROR, 'Schema UID is required')
     }
 
     if (!config.subject || config.subject.trim() === '') {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Subject is required'
-      )
+      return createAttestProtocolError(AttestProtocolErrorType.VALIDATION_ERROR, 'Subject is required')
     }
 
     // Validate subject as Stellar address
     try {
       Address.fromString(config.subject)
     } catch {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Invalid subject address format'
-      )
+      return createAttestProtocolError(AttestProtocolErrorType.VALIDATION_ERROR, 'Invalid subject address format')
     }
 
     return null
@@ -121,17 +103,22 @@ export class StellarAttestationService {
   /**
    * Fetch an attestation by its ID
    */
-  async fetchAttestationById(id: string): Promise<AttestProtocolResponse<Attestation | null>> {
+  async fetchAttestationById(id: string): Promise<AttestProtocolResponse<any>> {
     try {
-      // The current protocol doesn't have direct UID-based lookup
-      // This would require indexing or parsing transaction history
-      return createSuccessResponse(null)
+      // Convert the attestation UID string to Buffer
+      const attestationUidBuffer = Buffer.from(id, 'hex')
+
+      const tx = await this.protocolClient.get_attestation({
+        attestation_uid: attestationUidBuffer,
+      })
+
+      const result = await tx.simulate()
+
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to fetch attestation'
-        )
+        createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to fetch attestation')
       )
     }
   }
@@ -152,40 +139,19 @@ export class StellarAttestationService {
         )
       }
 
-      const schemaUidBuffer = Buffer.from(schemaUid, 'hex')
-      
-      const tx = await this.protocolClient.get_attestation({
-        schema_uid: schemaUidBuffer,
-        subject,
-        reference: reference || null
-      })
-
-      const result = await tx.simulate()
-      
-      if (!result.result?.returnValue) {
-        return createSuccessResponse(null)
-      }
-
-      const attestationRecord = scValToNative(result.result.returnValue)
-      
-      return createSuccessResponse({
-        uid: `${schemaUid}-${subject}-${reference || 'default'}`,
-        schemaUid,
-        subject,
-        attester: this.publicKey, // This should come from the contract
-        data: attestationRecord.value,
-        timestamp: Date.now(), // This should come from the contract
-        expirationTime: null,
-        revocationTime: null,
-        revoked: attestationRecord.revoked || false,
-        reference: attestationRecord.reference || null,
-      })
-    } catch (error: any) {
+      // The new protocol doesn't support getting attestations by schema/subject/reference
+      // It requires the attestation UID directly
       return createErrorResponse(
         createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to get attestation'
+          AttestProtocolErrorType.NOT_FOUND_ERROR,
+          'Getting attestation by schema/subject/reference not supported. Use fetchAttestationById with attestation UID instead.'
         )
+      )
+
+      // Code unreachable due to early return above
+    } catch (error: any) {
+      return createErrorResponse(
+        createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to get attestation')
       )
     }
   }
@@ -203,9 +169,9 @@ export class StellarAttestationService {
         total: 0,
         limit: params.limit ?? 10,
         offset: params.offset ?? 0,
-        hasMore: false
+        hasMore: false,
       }
-      
+
       return createSuccessResponse(emptyResponse)
     } catch (error: any) {
       return createErrorResponse(
@@ -230,9 +196,9 @@ export class StellarAttestationService {
         total: 0,
         limit: params.limit ?? 10,
         offset: params.offset ?? 0,
-        hasMore: false
+        hasMore: false,
       }
-      
+
       return createSuccessResponse(emptyResponse)
     } catch (error: any) {
       return createErrorResponse(
@@ -252,15 +218,17 @@ export class StellarAttestationService {
       const validationError = this.validateRevocationDefinition(config)
       if (validationError) return createErrorResponse(validationError)
 
-      // For Stellar, we need to parse the attestation UID to extract schema UID and subject
-      // This is a simplified implementation - in practice, you'd need a proper mapping
-      // For now, we'll return an error indicating this needs to be implemented
-      return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NOT_FOUND_ERROR,
-          'Revocation by attestation UID not yet implemented. Use revokeAttestationByComponents instead.'
-        )
-      )
+      // Convert the attestation UID string to Buffer
+      const attestationUidBuffer = Buffer.from(config.attestationUid, 'hex')
+      const revoker = this.publicKey
+
+      const tx = await this.protocolClient.revoke({
+        revoker,
+        attestation_uid: attestationUidBuffer,
+      })
+
+      await tx.signAndSend()
+      return createSuccessResponse(undefined)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(
@@ -273,33 +241,22 @@ export class StellarAttestationService {
 
   /**
    * Revoke an attestation by its components (Stellar-specific)
+   * @deprecated Use revokeAttestation with attestation UID instead
    */
   async revokeAttestationByComponents(
-    schemaUid: string,
-    subject: string,
-    reference?: string
+    _schemaUid: string,
+    _subject: string,
+    _reference?: string
   ): Promise<AttestProtocolResponse<void>> {
     try {
-      if (!/^[0-9a-fA-F]{64}$/.test(schemaUid)) {
-        throw createAttestProtocolError(
-          AttestProtocolErrorType.VALIDATION_ERROR,
-          'Invalid schema UID format. Must be a 64-character hex string.'
+      // This method is deprecated as the new protocol requires attestation UID
+      // Not the individual components
+      return createErrorResponse(
+        createAttestProtocolError(
+          AttestProtocolErrorType.NOT_FOUND_ERROR,
+          'This method is deprecated. Use revokeAttestation with attestation UID instead.'
         )
-      }
-
-      const caller = this.publicKey
-      const schemaUidBuffer = Buffer.from(schemaUid, 'hex')
-
-      const tx = await this.protocolClient.revoke_attestation({
-        caller,
-        schema_uid: schemaUidBuffer,
-        subject,
-        reference: reference || null
-      })
-
-      await tx.signAndSend()
-
-      return createSuccessResponse(undefined)
+      )
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(
@@ -313,9 +270,7 @@ export class StellarAttestationService {
   /**
    * Attest by delegation (not implemented in current Stellar contracts)
    */
-  async attestByDelegation(
-    config: DelegatedAttestationDefinition
-  ): Promise<AttestProtocolResponse<Attestation>> {
+  async attestByDelegation(_config: DelegatedAttestationDefinition): Promise<AttestProtocolResponse<Attestation>> {
     return createErrorResponse(
       createAttestProtocolError(
         AttestProtocolErrorType.NOT_FOUND_ERROR,
@@ -327,9 +282,7 @@ export class StellarAttestationService {
   /**
    * Revoke by delegation (not implemented in current Stellar contracts)
    */
-  async revokeByDelegation(
-    config: DelegatedRevocationDefinition
-  ): Promise<AttestProtocolResponse<void>> {
+  async revokeByDelegation(_config: DelegatedRevocationDefinition): Promise<AttestProtocolResponse<void>> {
     return createErrorResponse(
       createAttestProtocolError(
         AttestProtocolErrorType.NOT_FOUND_ERROR,
@@ -338,18 +291,15 @@ export class StellarAttestationService {
     )
   }
 
-
   /**
    * Validate revocation definition
    */
   private validateRevocationDefinition(config: RevocationDefinition): any {
     if (!config.attestationUid || config.attestationUid.trim() === '') {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Attestation UID is required'
-      )
+      return createAttestProtocolError(AttestProtocolErrorType.VALIDATION_ERROR, 'Attestation UID is required')
     }
 
     return null
   }
 }
+

@@ -1,13 +1,15 @@
 {
   "name": "@attestprotocol/stellar-sdk",
   "description": "Stellar implementation of the Attest Protocol SDK",
-  "version": "1.7.0",
+  "version": "1.7.4",
   "author": "daccred",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
-    "@attestprotocol/core": "1.7.0",
-    "@attestprotocol/stellar": "1.7.0",
-    "@stellar/stellar-sdk": "14.0.0-rc.3"
+    "@attestprotocol/core": "1.7.4",
+    "@attestprotocol/stellar-contracts": "1.7.4",
+    "@noble/curves": "^2.0.0",
+    "@noble/hashes": "^2.0.0",
+    "js-sha3": "^0.9.3"
   },
   "devDependencies": {
     "@types/node": "^24.2.1",
@@ -23,11 +25,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    }
+    },
+    "./llm.txt": "./dist/llm.txt"
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "llm.txt"
   ],
   "homepage": "https://github.com/daccred/attest.so#readme",
   "keywords": [
@@ -40,6 +44,9 @@
   "license": "MIT",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
+  "peerDependencies": {
+    "@stellar/stellar-sdk": ">=14.1.0"
+  },
   "publishConfig": {
     "access": "public"
   },

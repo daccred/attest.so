@@ -14,10 +14,10 @@ import {
   createAttestProtocolError,
 } from '@attestprotocol/core'
 
-import { Client as ProtocolClient } from '@attestprotocol/stellar/dist/protocol'
+import { Client as ProtocolClient } from '@attestprotocol/stellar-contracts/protocol'
 import { Address, scValToNative } from '@stellar/stellar-sdk'
 import { StellarConfig } from './types'
-import { StellarSchemaEncoder, StellarSchemaDefinition } from './common/schema-encoder'
+import { SorobanSchemaEncoder, StellarSchemaDefinition } from './common/schemaEncoder'
 
 export class StellarSchemaRegistry {
   private protocolClient: ProtocolClient
@@ -34,89 +34,72 @@ export class StellarSchemaRegistry {
   async createStructuredSchema(
     schemaDefinition: StellarSchemaDefinition,
     options?: {
-      resolver?: string;
-      revocable?: boolean;
-      format?: 'xdr' | 'json';
+      resolver?: string
+      revocable?: boolean
+      format?: 'xdr' | 'json'
     }
   ): Promise<AttestProtocolResponse<Schema>> {
     try {
       // Validate and encode the structured schema
-      const encoder = new StellarSchemaEncoder(schemaDefinition);
-      
+      const encoder = new SorobanSchemaEncoder(schemaDefinition)
+
       // Choose encoding format
-      let schemaString: string;
+      let schemaString: string
       switch (options?.format || 'xdr') {
         case 'xdr':
-          schemaString = encoder.toXDR();
-          break;
+          schemaString = encoder.toXDR()
+          break
         case 'json':
-          schemaString = JSON.stringify(schemaDefinition);
-          break;
+          schemaString = JSON.stringify(schemaDefinition)
+          break
         default:
-          schemaString = encoder.toXDR();
+          schemaString = encoder.toXDR()
       }
-      
+
       // Use the standard createSchema method with encoded string
       return await this.createSchema({
         name: schemaDefinition.name,
         content: schemaString,
         resolver: options?.resolver,
-        revocable: options?.revocable ?? true
-      });
+        revocable: options?.revocable ?? true,
+      })
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(
           AttestProtocolErrorType.VALIDATION_ERROR,
           `Schema validation failed: ${error.message}`
         )
-      );
+      )
     }
   }
 
   /**
    * Create a new schema on the Stellar network (accepts raw string or structured definition)
    */
-  async createSchema(config: SchemaDefinition): Promise<AttestProtocolResponse<Schema>> {
+  async createSchema(config: SchemaDefinition): Promise<AttestProtocolResponse<any>> {
     try {
       const validationError = this.validateSchemaDefinition(config)
       if (validationError) return createErrorResponse(validationError)
 
       const caller = this.publicKey
       const schemaDefinition = config.content
-      const resolver = config.resolver || null
+      const resolver = config.resolver || undefined
       const revocable = config.revocable ?? true
 
       const tx = await this.protocolClient.register({
         caller,
+        resolver: resolver || undefined,
         schema_definition: schemaDefinition,
-        resolver,
-        revocable
+        revocable,
       })
 
       const result = await tx.signAndSend()
-      
-      if (!result.returnValue) {
-        throw createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          'Failed to get schema UID from transaction'
-        )
-      }
 
-      const uid = scValToNative(result.returnValue).toString('hex')
-
-      return createSuccessResponse({
-        uid,
-        definition: config.content,
-        authority: caller,
-        revocable: config.revocable ?? true,
-        resolver: config.resolver || null,
-      })
+      // Return the full result for SDK consumers to decide what they need
+      return createSuccessResponse(result)
     } catch (error: any) {
       return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to create schema'
-        )
+        createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to create schema')
       )
     }
   }
@@ -124,7 +107,7 @@ export class StellarSchemaRegistry {
   /**
    * Fetch a schema by its UID
    */
-  async fetchSchemaById(id: string): Promise<AttestProtocolResponse<Schema | null>> {
+  async fetchSchemaById(id: string): Promise<AttestProtocolResponse<any>> {
     try {
       if (!/^[0-9a-fA-F]{64}$/.test(id)) {
         throw createAttestProtocolError(
@@ -137,13 +120,11 @@ export class StellarSchemaRegistry {
 
       // Note: The current protocol contract doesn't have a get_schema method
       // This would need to be implemented in the contract or we'd need to use events/indexing
+      // For now, return null to indicate schema not found/not supported
       return createSuccessResponse(null)
     } catch (error: any) {
       return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to fetch schema'
-        )
+        createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to fetch schema')
       )
     }
   }
@@ -151,74 +132,58 @@ export class StellarSchemaRegistry {
   /**
    * Parse a schema definition string into structured format if possible
    */
-  parseSchemaDefinition(schemaString: string): { 
-    encoder: StellarSchemaEncoder | null; 
-    format: 'xdr' | 'json' | 'unknown' 
+  parseSchemaDefinition(schemaString: string): {
+    encoder: SorobanSchemaEncoder | null
+    format: 'xdr' | 'json' | 'unknown'
   } {
     // Try XDR format first
     if (schemaString.startsWith('XDR:')) {
       try {
-        const encoder = StellarSchemaEncoder.fromXDR(schemaString);
-        return { encoder, format: 'xdr' };
+        const encoder = SorobanSchemaEncoder.fromXDR(schemaString)
+        return { encoder, format: 'xdr' }
       } catch {
-        return { encoder: null, format: 'unknown' };
+        return { encoder: null, format: 'unknown' }
       }
     }
 
     // Try JSON format
     try {
-      const parsed = JSON.parse(schemaString);
-      
+      const parsed = JSON.parse(schemaString)
+
       // Check if it looks like our structured format
       if (parsed.name && parsed.version && parsed.fields && Array.isArray(parsed.fields)) {
-        const encoder = new StellarSchemaEncoder(parsed as StellarSchemaDefinition);
-        return { encoder, format: 'json' };
+        const encoder = new SorobanSchemaEncoder(parsed as StellarSchemaDefinition)
+        return { encoder, format: 'json' }
       }
     } catch {
       // Not JSON
     }
 
-    return { encoder: null, format: 'unknown' };
+    return { encoder: null, format: 'unknown' }
   }
 
   /**
    * Create a schema encoder from a schema UID (fetch from contract and parse)
    */
-  async createEncoderFromSchema(schemaUID: string): Promise<AttestProtocolResponse<{
-    encoder: StellarSchemaEncoder | null;
-    format: 'xdr' | 'json' | 'unknown';
-  }>> {
+  async createEncoderFromSchema(schemaUID: string): Promise<
+    AttestProtocolResponse<{
+      encoder: SorobanSchemaEncoder | null
+      format: 'xdr' | 'json' | 'unknown'
+    }>
+  > {
     try {
-      const schemaResponse = await this.fetchSchemaById(schemaUID);
+      const schemaResponse = await this.fetchSchemaById(schemaUID)
       if (schemaResponse.error || !schemaResponse.data) {
-        return createSuccessResponse({ encoder: null, format: 'unknown' });
+        return createSuccessResponse({ encoder: null, format: 'unknown' })
       }
 
-      const parsed = this.parseSchemaDefinition(schemaResponse.data.definition);
-      return createSuccessResponse(parsed);
+      const parsed = this.parseSchemaDefinition(schemaResponse.data.definition)
+      return createSuccessResponse(parsed)
     } catch (error: any) {
       return createErrorResponse(
         createAttestProtocolError(
           AttestProtocolErrorType.VALIDATION_ERROR,
           `Failed to create encoder: ${error.message}`
-        )
-      );
-    }
-  }
-
-  /**
-   * Generate a deterministic ID from schema definition
-   */
-  async generateIdFromSchema(schema: SchemaDefinition): Promise<AttestProtocolResponse<string>> {
-    try {
-      const { generateIdFromSchema: generateId } = await import('./common')
-      const uid = await generateId(schema, this.publicKey)
-      return createSuccessResponse(uid)
-    } catch (error: any) {
-      return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.VALIDATION_ERROR,
-          error.message || 'Failed to generate schema ID'
         )
       )
     }
@@ -238,16 +203,13 @@ export class StellarSchemaRegistry {
         total: 0,
         limit: params.limit ?? 10,
         offset: params.offset ?? 0,
-        hasMore: false
+        hasMore: false,
       }
-      
+
       return createSuccessResponse(emptyResponse)
     } catch (error: any) {
       return createErrorResponse(
-        createAttestProtocolError(
-          AttestProtocolErrorType.NETWORK_ERROR,
-          error.message || 'Failed to list schemas'
-        )
+        createAttestProtocolError(AttestProtocolErrorType.NETWORK_ERROR, error.message || 'Failed to list schemas')
       )
     }
   }
@@ -257,23 +219,18 @@ export class StellarSchemaRegistry {
    */
   private validateSchemaDefinition(config: SchemaDefinition): any {
     if (!config.content || config.content.trim() === '') {
-      return createAttestProtocolError(
-        AttestProtocolErrorType.VALIDATION_ERROR,
-        'Schema content is required'
-      )
+      return createAttestProtocolError(AttestProtocolErrorType.VALIDATION_ERROR, 'Schema content is required')
     }
 
     if (config.resolver) {
       try {
         Address.fromString(config.resolver)
       } catch {
-        return createAttestProtocolError(
-          AttestProtocolErrorType.VALIDATION_ERROR,
-          'Invalid resolver address format'
-        )
+        return createAttestProtocolError(AttestProtocolErrorType.VALIDATION_ERROR, 'Invalid resolver address format')
       }
     }
 
     return null
   }
 }
+

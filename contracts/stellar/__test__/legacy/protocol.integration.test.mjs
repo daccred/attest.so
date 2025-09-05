@@ -490,14 +490,14 @@ t.test('Protocol Contract Integration Test', async (t) => {
 
     const invokeContractArgs = new xdr.InvokeContractArgs({
       contractAddress: Address.fromString(PROTOCOL_CONTRACT_ID).toScAddress(),
-      functionName: 'revoke_attestation', // Correct function name
+      functionName: 'revoke', // Correct function name
       args: argsVec,
     })
     const hostFunction = xdr.HostFunction.hostFunctionTypeInvokeContract(invokeContractArgs)
     const operation = Operation.invokeHostFunction({ func: hostFunction, auth: [] })
 
     try {
-      // revoke_attestation returns Result<(), Error> -> void on success
+      // revoke returns Result<(), Error> -> void on success
       const result = await robustInvokeContract(server, operation, source)
       t.ok(
         result === undefined || result === null,
