@@ -878,3 +878,5 @@ export const allSchemas = [
 // Save the list to a file called schemas.jsonl
 // const CONTRACT_ID = 'CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5';
 //  const plainSchemaExample = travelMeetingAgentSchema.toJSONSchema();
+
+console.log(travelMeetingAgentSchema.toJSONSchema(), travelMeetingAgentSchema.toXDR(), travelMeetingAgentSchema.getSchemaHash());
