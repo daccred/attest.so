@@ -877,5 +877,4 @@ export const allSchemas = [
 // Retrieve the Schema UIDs for each schema create and append to a jsonl of {name: schemaName, uid: schemaUid, category: schemaCategory}
 // Save the list to a file called schemas.jsonl
 // const CONTRACT_ID = 'CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5';
-
- 
+//  const plainSchemaExample = travelMeetingAgentSchema.toJSONSchema();
