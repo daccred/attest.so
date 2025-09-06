@@ -866,6 +866,8 @@ export const allSchemas = [
   ...categorizedSchemas.institution.schemas,
   ...categorizedSchemas.financialServices.schemas,
 ]
+
+// @TODO 
 // Batch create all schemas
 // use the AttestProtocolClient to create the schemas
 // Generate a new Keypair with the stellar-sdk
@@ -875,11 +877,11 @@ export const allSchemas = [
 // Retrieve the Schema UIDs for each schema create and append to a jsonl of {name: schemaName, uid: schemaUid, category: schemaCategory}
 // Save the list to a file called schemas.jsonl
 
-const main = async () => {
-  const client = new AttestProtocolClient({
-    network: 'testnet',
-    keypair: Keypair.generate(),
-  });
-}
+// const main = async () => {
+//   const client = new AttestProtocolClient({
+//     network: 'testnet',
+//     keypair: Keypair.generate(),
+//   });
+// }
 
-main();
+// main();
