@@ -876,12 +876,6 @@ export const allSchemas = [
 // Create all the schemas in batches of their categories
 // Retrieve the Schema UIDs for each schema create and append to a jsonl of {name: schemaName, uid: schemaUid, category: schemaCategory}
 // Save the list to a file called schemas.jsonl
+// const CONTRACT_ID = 'CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5';
 
-// const main = async () => {
-//   const client = new AttestProtocolClient({
-//     network: 'testnet',
-//     keypair: Keypair.generate(),
-//   });
-// }
-
-// main();
+ 
