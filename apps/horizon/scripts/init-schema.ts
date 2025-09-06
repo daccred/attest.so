@@ -880,11 +880,8 @@ export const allSchemas = [
 //  const plainSchemaExample = travelMeetingAgentSchema.toJSONSchema();
 
 console.log(
-  travelMeetingAgentSchema.toJSONSchema(), 
-  travelMeetingAgentSchema.toXDR(),
- travelMeetingAgentSchema.getSchemaHash(), 
- travelMeetingAgentSchema.generateDefaults(), 
- travelMeetingAgentSchema.getSchema(),
- travelMeetingAgentSchema.decodeData(''),
- travelMeetingAgentSchema.encodeData({})
+travelMeetingAgentSchema.toJSONSchema(), 
+travelMeetingAgentSchema.toXDR(), 
+travelMeetingAgentSchema.getSchemaHash(), 
+travelMeetingAgentSchema.getSchema(),
 );
