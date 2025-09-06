@@ -879,4 +879,10 @@ export const allSchemas = [
 // const CONTRACT_ID = 'CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5';
 //  const plainSchemaExample = travelMeetingAgentSchema.toJSONSchema();
 
-console.log(travelMeetingAgentSchema.toJSONSchema(), travelMeetingAgentSchema.toXDR(), travelMeetingAgentSchema.getSchemaHash(), travelMeetingAgentSchema.generateDefaults);
+console.log(
+  travelMeetingAgentSchema.toJSONSchema(), 
+  travelMeetingAgentSchema.toXDR(),
+ travelMeetingAgentSchema.getSchemaHash(), 
+ travelMeetingAgentSchema.generateDefaults(), 
+ travelMeetingAgentSchema.getSchema()
+);
