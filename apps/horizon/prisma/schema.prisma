@@ -227,6 +227,7 @@ model Schema {
   // Indexer metadata
   ingestedAt                DateTime @default(now())
   lastUpdated               DateTime @updatedAt
+  categ
   
   @@index([ledger])
   @@index([deployerAddress])
