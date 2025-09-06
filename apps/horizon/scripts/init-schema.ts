@@ -867,17 +867,18 @@ export const allSchemas = [
   ...categorizedSchemas.financialServices.schemas,
 ]
 
-// @TODO 
-// Batch create all schemas
-// use the AttestProtocolClient to create the schemas
-// Generate a new Keypair with the stellar-sdk
-// Fund Keypair with Friendbot
-// Create a new AttestProtocolClient with the Keypair
-// Create all the schemas in batches of their categories
-// Retrieve the Schema UIDs for each schema create and append to a jsonl of {name: schemaName, uid: schemaUid, category: schemaCategory}
-// Save the list to a file called schemas.jsonl
-// const CONTRACT_ID = 'CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5';
-//  const plainSchemaExample = travelMeetingAgentSchema.toJSONSchema();
+/*
+@TODO 
+Batch create all schemas
+use the AttestProtocolClient to create the schemas
+Generate a new Keypair with the stellar-sdk
+Fund Keypair with Friendbot
+Create a new AttestProtocolClient with the Keypair
+Create all the schemas in batches of their categories
+Retrieve the Schema UIDs for each schema create and append to a jsonl of {name: schemaName, uid: schemaUid, category: schemaCategory}
+Save the list to a file called schemas.jsonl
+const CONTRACT_ID = 'CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5';
+const plainSchemaExample = travelMeetingAgentSchema.toJSONSchema();
 
 console.log(
 travelMeetingAgentSchema.toJSONSchema(), 
@@ -885,3 +886,42 @@ travelMeetingAgentSchema.toXDR(),
 travelMeetingAgentSchema.getSchemaHash(), 
 travelMeetingAgentSchema.getSchema(),
 );
+
+{
+  '$schema': 'https://json-schema.org/draft/2020-12/schema',
+  type: 'object',
+  title: 'Travel & Meeting Agent Permission',
+  description: 'Permissions for an automated travel and meeting agent.',
+  properties: {
+    agent_id: { type: 'string', description: undefined },
+    principal: { type: 'string', description: undefined },
+    can_book_flights: { type: 'boolean', description: undefined },
+    max_flight_cost: { type: 'number', description: undefined },
+    can_book_hotels: { type: 'boolean', description: undefined },
+    max_hotel_nightly: { type: 'number', description: undefined },
+    can_attend_meetings: { type: 'boolean', description: undefined }
+  },
+  required: [
+    'agent_id',
+    'principal',
+    'can_book_flights',
+    'max_flight_cost',
+    'can_book_hotels',
+    'max_hotel_nightly',
+    'can_attend_meetings'
+  ],
+  additionalProperties: false
+} XDR:AAAAEQAAAAEAAAADAAAADwAAAARuYW1lAAAADgAAACFUcmF2ZWwgJiBNZWV0aW5nIEFnZW50IFBlcm1pc3Npb24AAAAAAAAPAAAAC2Rlc2NyaXB0aW9uAAAAAA4AAAA2UGVybWlzc2lvbnMgZm9yIGFuIGF1dG9tYXRlZCB0cmF2ZWwgYW5kIG1lZXRpbmcgYWdlbnQuAAAAAAAPAAAABmZpZWxkcwAAAAAAEAAAAAEAAAAHAAAAEQAAAAEAAAADAAAADwAAAARuYW1lAAAADgAAAAhhZ2VudF9pZAAAAA8AAAAEdHlwZQAAAA4AAAAGc3RyaW5nAAAAAAAPAAAACG9wdGlvbmFsAAAAAAAAAAAAAAARAAAAAQAAAAMAAAAPAAAABG5hbWUAAAAOAAAACXByaW5jaXBhbAAAAAAAAA8AAAAEdHlwZQAAAA4AAAAGc3RyaW5nAAAAAAAPAAAACG9wdGlvbmFsAAAAAAAAAAAAAAARAAAAAQAAAAMAAAAPAAAABG5hbWUAAAAOAAAAEGNhbl9ib29rX2ZsaWdodHMAAAAPAAAABHR5cGUAAAAOAAAABGJvb2wAAAAPAAAACG9wdGlvbmFsAAAAAAAAAAAAAAARAAAAAQAAAAMAAAAPAAAABG5hbWUAAAAOAAAAD21heF9mbGlnaHRfY29zdAAAAAAPAAAABHR5cGUAAAAOAAAAA3UzMgAAAAAPAAAACG9wdGlvbmFsAAAAAAAAAAAAAAARAAAAAQAAAAMAAAAPAAAABG5hbWUAAAAOAAAAD2Nhbl9ib29rX2hvdGVscwAAAAAPAAAABHR5cGUAAAAOAAAABGJvb2wAAAAPAAAACG9wdGlvbmFsAAAAAAAAAAAAAAARAAAAAQAAAAMAAAAPAAAABG5hbWUAAAAOAAAAEW1heF9ob3RlbF9uaWdodGx5AAAAAAAADwAAAAR0eXBlAAAADgAAAAN1MzIAAAAADwAAAAhvcHRpb25hbAAAAAAAAAAAAAAAEQAAAAEAAAADAAAADwAAAARuYW1lAAAADgAAABNjYW5fYXR0ZW5kX21lZXRpbmdzAAAAAA8AAAAEdHlwZQAAAA4AAAAEYm9vbAAAAA8AAAAIb3B0aW9uYWwAAAAAAAAAAA== 7b226e616d65223a2254726176656c2026204d656574696e67204167656e7420 {
+  name: 'Travel & Meeting Agent Permission',
+  description: 'Permissions for an automated travel and meeting agent.',
+  fields: [
+    { name: 'agent_id', type: 'string' },
+    { name: 'principal', type: 'string' },
+    { name: 'can_book_flights', type: 'bool' },
+    { name: 'max_flight_cost', type: 'u32' },
+    { name: 'can_book_hotels', type: 'bool' },
+    { name: 'max_hotel_nightly', type: 'u32' },
+    { name: 'can_attend_meetings', type: 'bool' }
+  ]
+}
+*/
