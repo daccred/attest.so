@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",
+    "@attestprotocol/stellar-sdk": "workspace:*",
     "@stellar/stellar-sdk": "^14.1.0",
     "@types/pg": "^8.15.5",
     "cors": "^2.8.5",
@@ -50,6 +51,7 @@
     "typescript": "5.8.2"
   },
   "devDependencies": {
+    "@noble/hashes": "^2.0.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.20",
     "@types/lodash": "^4.17.20",

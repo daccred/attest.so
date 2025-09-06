@@ -9,7 +9,7 @@
 
 // --- Identity & Verification ---
 
-const nationalIdSchema = {
+const nationalIdSchemaValue = {
   is_valid: true,
   name: "John Smith",
   nationality: "US",
@@ -17,26 +17,26 @@ const nationalIdSchema = {
   expiry: "2030-03-15",
 };
 
-const passportSchema = {
+const passportSchemaValue = {
   is_valid: true,
   issuer: "USA",
   name: "Jane Doe",
   expiry: "2030-01-15",
 };
 
-const driversLicenseSchema = {
+const driversLicenseSchemaValue = {
   is_valid: true,
   name: "Mike Johnson",
   expiry: "2026-12-03",
 };
 
-const digitalWalletIdentitySchema = {
+const digitalWalletIdentitySchemaValue = {
   publicKey: "0x742d35Cc6634C0532925a3b8D404C6d86b",
   controller: "did:ethr:0x742d35...",
   permissions: ["read", "write"],
 };
 
-const biometricAuthSchema = {
+const biometricAuthSchemaValue = {
   type: "fingerprint",
   accuracy: 0.9987,
   device: "TouchID-Gen3",
@@ -44,7 +44,7 @@ const biometricAuthSchema = {
   liveness: 0.98,
 };
 
-const ageVerificationSchema = {
+const ageVerificationSchemaValue = {
   isOver18: true,
   isOver21: true,
   isOver65: false,
@@ -53,14 +53,14 @@ const ageVerificationSchema = {
   jurisdiction: "California"
 };
 
-const trustScoreSchema = {
+const trustScoreSchemaValue = {
   subject: "did:ethr:0x1234...",
   score: 8.7,
   sources: ["credit-bureau", "linkedin", "github"],
   updated: "2024-09-05T12:00:00Z"
 };
 
-const backgroundCheckSchema = {
+const backgroundCheckSchemaValue = {
   subject: "Robert Wilson",
   has_criminal_record: false,
   jurisdictions: ["TX", "CA"],
@@ -71,7 +71,7 @@ const backgroundCheckSchema = {
   valid_for: 365 // days
 };
 
-const multiFactorAuthenticationSchema = {
+const multiFactorAuthenticationSchemaValue = {
   session: "sess_abc123xyz",
   factors: ["password", "sms", "biometric"],
   completed_at: "2024-09-05T11:45:22Z",
@@ -81,7 +81,7 @@ const multiFactorAuthenticationSchema = {
 
 // --- Education & Credentials ---
 
-const bachelorsDegreeSchema = {
+const bachelorsDegreeSchemaValue = {
   degree: "Bachelor of Science",
   major: "Computer Science",
   institution: "University of Texas at Austin",
@@ -90,7 +90,7 @@ const bachelorsDegreeSchema = {
   transcript_hash: "sha256:b8c9d2e3..."
 };
 
-const mastersDegreeSchema = {
+const mastersDegreeSchemaValue = {
   degree: "Master of Business Administration",
   institution: "Stanford Graduate School of Business",
   thesis: "AI Impact on Financial Markets",
@@ -99,7 +99,7 @@ const mastersDegreeSchema = {
   credits: 60
 };
 
-const phdSchema = {
+const phdSchemaValue = {
   degree: "Doctor of Philosophy",
   field: "Artificial Intelligence",
   institution: "MIT",
@@ -108,7 +108,7 @@ const phdSchema = {
   num_publications: 2,
 };
 
-const itCertificationSchema = {
+const itCertificationSchemaValue = {
   certification: "AWS Certified Solutions Architect",
   issuer: "Amazon Web Services",
   id: "AWS-SAA-123456",
@@ -117,7 +117,7 @@ const itCertificationSchema = {
   score: 895,
 };
 
-const skillBadgeSchema = {
+const skillBadgeSchemaValue = {
   skill: "React Development",
   category: "web-development",
   id: "React-123456",
@@ -125,7 +125,7 @@ const skillBadgeSchema = {
   score: 895,
 };
 
-const courseCompletionSchema = {
+const courseCompletionSchemaValue = {
   course: "Machine Learning Fundamentals",
   institution: "University of California Berkeley",
   instructor: "Dr. Andrew Ng",
@@ -135,7 +135,7 @@ const courseCompletionSchema = {
   score: 895,
 };
 
-const languageProficiencySchema = {
+const languageProficiencySchemaValue = {
   language: "Spanish",
   framework: "CEFR",
   id: "DELE-B2-567890",
@@ -145,7 +145,7 @@ const languageProficiencySchema = {
   score: 78,
 };
 
-const academicTranscriptSchema = {
+const academicTranscriptSchemaValue = {
   institution: "Harvard University",
   program: "Computer Science",
   year: "2024",
@@ -156,7 +156,7 @@ const academicTranscriptSchema = {
 
 // --- Professional ---
 
-const professionalLicenseSchema = {
+const professionalLicenseSchemaValue = {
   license: "Registered Nurse",
   profession: "nursing",
   id: "RN-TX-789012",
@@ -166,7 +166,7 @@ const professionalLicenseSchema = {
   status: "active"
 };
 
-const industryCertificationSchema = {
+const industryCertificationSchemaValue = {
   certification: "Project Management Professional",
   industry: "project-management",
   id: "PMP-123456",
@@ -175,7 +175,7 @@ const industryCertificationSchema = {
   score: 895,
 };
 
-const competencyAssessmentSchema = {
+const competencyAssessmentSchemaValue = {
   competency: "Data Analysis",
   level: "proficient",
   assessor: "Jane Smith, Senior Analyst",
@@ -183,7 +183,7 @@ const competencyAssessmentSchema = {
   score: 895,
 };
 
-const employeeIDSchema = {
+const employeeIDSchemaValue = {
   id: "EMP001234",
   name: "Sarah Chen",
   department: "Engineering",
@@ -194,14 +194,14 @@ const employeeIDSchema = {
 
 // --- Technology & Security ---
 
-const codeSigningSchema = {
+const codeSigningSchemaValue = {
   artifact_hash: "sha256:a1b2c3d4e5f6...",
   signer: "dev@company.com",
   timestamp: "2024-09-05T14:30:00Z",
   repository: "github.com/company/app",
 };
 
-const sbomSchema = {
+const sbomSchemaValue = {
   package: "web-app-v2.1.0",
   version: "2.1.0",
   supplier: "TechCorp Inc",
@@ -209,7 +209,7 @@ const sbomSchema = {
   integrity_hash: "sha512:abc123...",
 };
 
-const hardwareAttestationSchema = {
+const hardwareAttestationSchemaValue = {
   device_id: "TPM-DEV-789012",
   manufacturer: "Dell Technologies",
   model: "OptiPlex 7090",
@@ -218,7 +218,7 @@ const hardwareAttestationSchema = {
   tpm_present: true,
 };
 
-const apiSecuritySchema = {
+const apiSecuritySchemaValue = {
   endpoint: "https://api.company.com/v2/users",
   version: "2.1.0",
   authentication: "OAuth2-PKCE",
@@ -227,7 +227,7 @@ const apiSecuritySchema = {
   compliance: ["SOC2", "GDPR"],
 };
 
-const vulnerabilityAssessmentSchema = {
+const vulnerabilityAssessmentSchemaValue = {
   target: "web-app-production",
   scan_date: "2024-09-01T02:00:00Z",
   has_vulnerabilities: true,
@@ -235,7 +235,7 @@ const vulnerabilityAssessmentSchema = {
   pci_compliant: false,
 };
 
-const oauthServiceSchema = {
+const oauthServiceSchemaValue = {
   provider: "auth0-prod-001",
   protocol: "OAuth2.1",
   security: ["JWKS-rotation", "token-binding"],
@@ -243,7 +243,7 @@ const oauthServiceSchema = {
   mfa: true
 };
 
-const slaSchema = {
+const slaSchemaValue = {
   service: "Cloud Database Service",
   provider: "AWS RDS",
   agreement: "enterprise",
@@ -252,7 +252,7 @@ const slaSchema = {
   regions: ["US", "EU"],
 };
 
-const contentProvenanceSchema = {
+const contentProvenanceSchemaValue = {
   content: "NEWS-PHOTO-20240905-789",
   original_source: "Reuters-Photographer-License-123",
   timestamp: "2024-09-05T12:15:30Z",
@@ -262,7 +262,7 @@ const contentProvenanceSchema = {
 
 // --- Civic & Public Service --- //
 
-const voterEligibilitySchema = {
+const voterEligibilitySchemaValue = {
   id: "VTR123456789",
   is_eligible: true,
   residency: true,
@@ -271,7 +271,7 @@ const voterEligibilitySchema = {
   expiry: "2026-11-01"
 };
 
-const publicServiceVerificationSchema = {
+const publicServiceVerificationSchemaValue = {
   service: "Free School Meals Program",
   authority: "Ministry of Education",
   service_type: "education-support",
@@ -283,7 +283,7 @@ const publicServiceVerificationSchema = {
 
 // --- Institutional ---
 
-const institutionalAccreditationSchema = {
+const institutionalAccreditationSchemaValue = {
   id: "INST-UT-AUSTIN-001",
   institution: "University of Texas at Austin",
   accreditor: "SACS",
@@ -293,7 +293,7 @@ const institutionalAccreditationSchema = {
   on_probation: false,
 };
 
-const governanceAuditSchema = {
+const governanceAuditSchemaValue = {
   organization: "TechCorp Inc",
   audit_type: "governance-effectiveness",
   auditor: "Deloitte & Touche LLP",
@@ -301,7 +301,7 @@ const governanceAuditSchema = {
   governance_framework: "NYSE-Listed-Company-Manual",
 };
 
-const partnershipAgreementSchema = {
+const partnershipAgreementSchemaValue = {
   id: "PARTNER-2024-MIT-IBM-AI-001",
   parties: ["MIT", "IBM"],
   type: "research-collaboration",
@@ -310,7 +310,7 @@ const partnershipAgreementSchema = {
   ip_ownership: "shared-ownership",
 };
 
-const publicServiceQualitySchema = {
+const publicServiceQualitySchemaValue = {
   id: "SVC-DMV-LICENSE-RENEWAL-001",
   agency: "DMV",
   service: "Driver License Renewal",
@@ -321,7 +321,7 @@ const publicServiceQualitySchema = {
 
 // --- Financial Services ---
 
-const creditAssessmentSchema = {
+const creditAssessmentSchemaValue = {
   applicant: "APPL-789012345",
   lender: "First National Bank",
   timestamp: "2024-09-05T10:30:00Z",
@@ -329,14 +329,14 @@ const creditAssessmentSchema = {
   scoring_model: "FICO-Score-10T",
 };
 
-const altCreditScoreSchema = {
+const altCreditScoreSchemaValue = {
   id: "ALT-SCORE-20240905-111222",
   provider: "FinTech Credit Analytics",
   score: 678,
   data_sources: ["utility-payments", "rent-payments"],
 };
 
-const amlTransactionMonitoringSchema = {
+const amlTransactionMonitoringSchemaValue = {
   id: "AML-MON-20240905-789012",
   transaction_id: "TXN-987654321",
   risk_score: 8.7,
@@ -344,7 +344,7 @@ const amlTransactionMonitoringSchema = {
   status: "under-review",
 };
 
-const investmentAdvisorSchema = {
+const investmentAdvisorSchemaValue = {
   id: "IA-REG-456789123",
   firm: "Wealth Management Partners LLC",
   advisor: "Sarah Thompson CFA",
@@ -353,7 +353,7 @@ const investmentAdvisorSchema = {
   aum: 250000000,
 };
 
-const insuranceClaimSchema = {
+const insuranceClaimSchemaValue = {
   id: "CLAIM-AUTO-20240905-123456",
   policy_id: "POL-789012345",
   type: "auto-collision",
@@ -362,7 +362,7 @@ const insuranceClaimSchema = {
   is_approved: true,
 };
 
-const crossBorderPaymentSchema = {
+const crossBorderPaymentSchemaValue = {
   id: "XBORDER-PAY-20240905-456789",
   sender_country: "USA",
   receiver_country: "Germany",
@@ -371,7 +371,7 @@ const crossBorderPaymentSchema = {
   sanctions_clear: true,
 };
 
-const esgReportingSchema = {
+const esgReportingSchemaValue = {
   id: "ESG-REPORT-2024-TECHCORP-001",
   organization: "TechCorp Inc",
   year: 2024,
@@ -380,7 +380,7 @@ const esgReportingSchema = {
   third_party_verified: true,
 };
 
-const financialAuditSchema = {
+const financialAuditSchemaValue = {
   entity: "State University System",
   audit_firm: "PwC LLP",
   audit_type: "financial-statement-audit",
@@ -389,7 +389,7 @@ const financialAuditSchema = {
   verdict: "unqualified",
 };
 
-const complianceAuditSchema = {
+const complianceAuditSchemaValue = {
   organization: "Community National Bank",
   regulatory_framework: "banking-regulations",
   regulator: "FDIC",
@@ -397,7 +397,7 @@ const complianceAuditSchema = {
   verdict: "compliant"
 };
 
-const incomeStatementSchema = {
+const incomeStatementSchemaValue = {
   entity: "Bank of America",
   timestamp: "2024-09-05T10:30:00Z",
   credit: 1000000,
@@ -407,7 +407,7 @@ const incomeStatementSchema = {
 
 // --- AI, LLMs & AI Agents ---
 
-const modelTrainingProvenanceSchema = {
+const modelTrainingProvenanceSchemaValue = {
   model: "llama-3-8b-instruct-v1.2",
   version: "1.2",
   dataset: "OpenWebText",
@@ -415,7 +415,7 @@ const modelTrainingProvenanceSchema = {
   dataset_license: "MIT"
 };
 
-const aiSafetyCertificationSchema = {
+const aiSafetyCertificationSchemaValue = {
   model_id: "gpt-5-safe-v1.0",
   certifier: "AI Safety Institute",
   framework: "NIST-AI-RMF",
@@ -423,7 +423,7 @@ const aiSafetyCertificationSchema = {
   level: "enterprise-ready",
 };
 
-const biasAuditSchema = {
+const biasAuditSchemaValue = {
   model_id: "hiring-ai-model-v2.4",
   audit_date: "2024-07-30",
   auditor: "FairAI Consulting LLC",
@@ -431,7 +431,7 @@ const biasAuditSchema = {
   nyc_law_144_compliant: false,
 };
 
-const aiGeneratedContentSchema = {
+const aiGeneratedContentSchemaValue = {
   content: "IMG-20240905-143022",
   type: "image",
   model: "DALL-E-3",
@@ -441,21 +441,21 @@ const aiGeneratedContentSchema = {
   confidence: 0.98,
 };
 
-const agentCapabilitySchema = {
+const agentCapabilitySchemaValue = {
   agent_id: "financial-advisor-agent-v3.1",
   capabilities: ["portfolio-analysis", "risk-assessment"],
   limitations: ["no-investment-execution"],
   accuracy: 0.91,
 };
 
-const modelInterpretabilitySchema = {
+const modelInterpretabilitySchemaValue = {
   model_id: "credit-scoring-model-v4.1",
   prediction_id: "PRED-20240905-789012",
   explanation_method: "SHAP",
   confidence: 0.92,
 };
 
-const trainingConsentSchema = {
+const trainingConsentSchemaValue = {
   id: "CONSENT-20240905-567890",
   subject: "user@example.com",
   purpose: "LLM training",
@@ -463,7 +463,7 @@ const trainingConsentSchema = {
   gdpr_basis: "consent-GDPR-6a",
 };
 
-const trainingDataQualitySchema = {
+const trainingDataQualitySchemaValue = {
   dataset: "dataset-web-crawl-2024-q2",
   quality_score: 7.8,
   gdpr_compliant: true,
@@ -471,7 +471,7 @@ const trainingDataQualitySchema = {
   last_audited: "2024-08-15"
 };
 
-const deepfakeDetectionSchema = {
+const deepfakeDetectionSchemaValue = {
   media: "VID-20240905-001234",
   type: "video",
   model: "DeepfakeDetector-v4.2",
@@ -482,7 +482,7 @@ const deepfakeDetectionSchema = {
 
 // --- AI Agent Permissions ---
 
-const tradingAgentPermissionSchema = {
+const tradingAgentPermissionSchemaValue = {
   agent_id: "trading-bot-alpha-v2.1",
   principal: "user-john-doe-123456",
   max_trade_value: 10000,
@@ -490,7 +490,7 @@ const tradingAgentPermissionSchema = {
   asset_classes: ["stocks", "etfs", "bonds"],
 };
 
-const shoppingAgentPermissionSchema = {
+const shoppingAgentPermissionSchemaValue = {
   agent_id: "shopping-assistant-v3.4",
   principal: "user-sarah-chen-789012",
   daily_spend_limit: 500,
@@ -498,7 +498,7 @@ const shoppingAgentPermissionSchema = {
   merchant_whitelist: ["amazon.com", "target.com"],
 };
 
-const travelMeetingAgentSchema = {
+const travelMeetingAgentSchemaValue = {
   agent_id: "executive-assistant-ai-v1.8",
   principal: "user-michael-rodriguez-345678",
   can_book_flights: true,
@@ -517,111 +517,111 @@ const categorizedSchemas = {
     name: "Identity & Verification",
     description: "Schemas related to personal identity, authentication, and verification.",
     schemas: {
-      nationalIdSchema,
-      passportSchema,
-      driversLicenseSchema,
-      digitalWalletIdentitySchema,
-      biometricAuthSchema,
-      ageVerificationSchema,
-      trustScoreSchema,
-      backgroundCheckSchema,
-      multiFactorAuthenticationSchema,
+      nationalIdSchema: nationalIdSchemaValue,
+      passportSchema: passportSchemaValue,
+      driversLicenseSchema: driversLicenseSchemaValue,
+      digitalWalletIdentitySchema: digitalWalletIdentitySchemaValue,
+      biometricAuthSchema: biometricAuthSchemaValue,
+      ageVerificationSchema: ageVerificationSchemaValue,
+      trustScoreSchema: trustScoreSchemaValue,
+      backgroundCheckSchema: backgroundCheckSchemaValue,
+      multiFactorAuthenticationSchema: multiFactorAuthenticationSchemaValue,
     }
   },
   education: {
     name: "Education & Credentials",
     description: "Schemas for academic achievements, certifications, and skills.",
     schemas: {
-      bachelorsDegreeSchema,
-      mastersDegreeSchema,
-      phdSchema,
-      itCertificationSchema,
-      skillBadgeSchema,
-      courseCompletionSchema,
-      languageProficiencySchema,
-      academicTranscriptSchema,
+      bachelorsDegreeSchema: bachelorsDegreeSchemaValue,
+      mastersDegreeSchema: mastersDegreeSchemaValue,
+      phdSchema: phdSchemaValue,
+      itCertificationSchema: itCertificationSchemaValue,
+      skillBadgeSchema: skillBadgeSchemaValue,
+      courseCompletionSchema: courseCompletionSchemaValue,
+      languageProficiencySchema: languageProficiencySchemaValue,
+      academicTranscriptSchema: academicTranscriptSchemaValue,
     }
   },
   professional: {
     name: "Professional",
     description: "Schemas for professional licenses, industry certifications, and employment.",
     schemas: {
-      professionalLicenseSchema,
-      industryCertificationSchema,
-      competencyAssessmentSchema,
-      employeeIDSchema,
+      professionalLicenseSchema: professionalLicenseSchemaValue,
+      industryCertificationSchema: industryCertificationSchemaValue,
+      competencyAssessmentSchema: competencyAssessmentSchemaValue,
+      employeeIDSchema: employeeIDSchemaValue,
     }
   },
   technology: {
     name: "Technology & Security",
     description: "Schemas for software, hardware, security, and IT infrastructure.",
     schemas: {
-      codeSigningSchema,
-      sbomSchema,
-      hardwareAttestationSchema,
-      apiSecuritySchema,
-      vulnerabilityAssessmentSchema,
-      oauthServiceSchema,
-      slaSchema,
-      contentProvenanceSchema,
+      codeSigningSchema: codeSigningSchemaValue,
+      sbomSchema: sbomSchemaValue,
+      hardwareAttestationSchema: hardwareAttestationSchemaValue,
+      apiSecuritySchema: apiSecuritySchemaValue,
+      vulnerabilityAssessmentSchema: vulnerabilityAssessmentSchemaValue,
+      oauthServiceSchema: oauthServiceSchemaValue,
+      slaSchema: slaSchemaValue,
+      contentProvenanceSchema: contentProvenanceSchemaValue,
     }
   },
   civic: {
     name: "Civic & Public Service",
     description: "Schemas related to civic duties and public service verification.",
     schemas: {
-      voterEligibilitySchema,
-      publicServiceVerificationSchema,
+      voterEligibilitySchema: voterEligibilitySchemaValue,
+      publicServiceVerificationSchema: publicServiceVerificationSchemaValue,
     }
   },
   institution: {
     name: "Institutional",
     description: "Schemas for institutional accreditation, governance, and agreements.",
     schemas: {
-      institutionalAccreditationSchema,
-      governanceAuditSchema,
-      partnershipAgreementSchema,
-      publicServiceQualitySchema,
+      institutionalAccreditationSchema: institutionalAccreditationSchemaValue,
+      governanceAuditSchema: governanceAuditSchemaValue,
+      partnershipAgreementSchema: partnershipAgreementSchemaValue,
+      publicServiceQualitySchema: publicServiceQualitySchemaValue,
     }
   },
   financialServices: {
     name: "Financial Services",
     description: "Schemas for finance, credit, insurance, and regulatory compliance.",
     schemas: {
-      creditAssessmentSchema,
-      altCreditScoreSchema,
-      amlTransactionMonitoringSchema,
-      investmentAdvisorSchema,
-      insuranceClaimSchema,
-      crossBorderPaymentSchema,
-      esgReportingSchema,
-      financialAuditSchema,
-      complianceAuditSchema,
-      incomeStatementSchema,
+      creditAssessmentSchema: creditAssessmentSchemaValue,
+      altCreditScoreSchema: altCreditScoreSchemaValue,
+      amlTransactionMonitoringSchema: amlTransactionMonitoringSchemaValue,
+      investmentAdvisorSchema: investmentAdvisorSchemaValue,
+      insuranceClaimSchema: insuranceClaimSchemaValue,
+      crossBorderPaymentSchema: crossBorderPaymentSchemaValue,
+      esgReportingSchema: esgReportingSchemaValue,
+      financialAuditSchema: financialAuditSchemaValue,
+      complianceAuditSchema: complianceAuditSchemaValue,
+      incomeStatementSchema: incomeStatementSchemaValue,
     }
   },
   aiLanguageModels: {
     name: "AI, LLMs & AI Agents",
     description: "Schemas for AI models, training data, safety, and content generation.",
     schemas: {
-      modelTrainingProvenanceSchema,
-      aiSafetyCertificationSchema,
-      biasAuditSchema,
-      aiGeneratedContentSchema,
-      agentCapabilitySchema,
-      modelInterpretabilitySchema,
-      trainingConsentSchema,
-      trainingDataQualitySchema,
-      deepfakeDetectionSchema,
+      modelTrainingProvenanceSchema: modelTrainingProvenanceSchemaValue,
+      aiSafetyCertificationSchema: aiSafetyCertificationSchemaValue,
+      biasAuditSchema: biasAuditSchemaValue,
+      aiGeneratedContentSchema: aiGeneratedContentSchemaValue,
+      agentCapabilitySchema: agentCapabilitySchemaValue,
+      modelInterpretabilitySchema: modelInterpretabilitySchemaValue,
+      trainingConsentSchema: trainingConsentSchemaValue,
+      trainingDataQualitySchema: trainingDataQualitySchemaValue,
+      deepfakeDetectionSchema: deepfakeDetectionSchemaValue,
     }
   },
   aiAgentPermissions: {
     name: "AI Agent Permissions",
     description: "Schemas for granting and managing permissions for autonomous AI agents.",
     schemas: {
-      tradingAgentPermissionSchema,
-      shoppingAgentPermissionSchema,
-      travelMeetingAgentSchema,
+      tradingAgentPermissionSchema: tradingAgentPermissionSchemaValue,
+      shoppingAgentPermissionSchema: shoppingAgentPermissionSchemaValue,
+      travelMeetingAgentSchema: travelMeetingAgentSchemaValue,
     }
   }
 };
@@ -629,7 +629,6 @@ const categorizedSchemas = {
 const allSchemas = Object.values(categorizedSchemas).reduce((acc, category) => {
   return { ...acc, ...category.schemas };
 }, {});
-
 
 console.log("Total schemas defined:", Object.keys(allSchemas).length);
 console.log("Schema categories covered:", Object.keys(categorizedSchemas).join(', '));

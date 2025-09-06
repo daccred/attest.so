@@ -1,10 +1,9 @@
 /**
  * Stellar Schema Encoder - Standardized schema definition and data encoding for Stellar attestations
- *
  * Provides type-safe schema definitions and encoding/decoding utilities.
  */
 
-import { Address, xdr, Keypair } from '@stellar/stellar-sdk'
+import { Address, xdr } from '@stellar/stellar-sdk'
 
 /**
  * Supported Stellar attestation data types
@@ -53,7 +52,6 @@ export interface StellarSchemaDefinition {
   metadata?: {
     category?: string
     tags?: string[]
-    authority?: string
     revocable?: boolean
     expirable?: boolean
   }
