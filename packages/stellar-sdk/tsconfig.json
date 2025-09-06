@@ -20,7 +20,7 @@
   },
   "include": [
     "src/**/*"
-  ],
+, "__tests__/testutils"  ],
   "exclude": [
     "node_modules",
     "dist",

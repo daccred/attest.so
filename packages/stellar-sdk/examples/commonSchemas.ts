@@ -60,30 +60,28 @@ export function registerCommonSchemas(): void {
   // Identity verification schema
   SchemaRegistry.register('identity-verification', new SorobanSchemaEncoder({
     name: 'Identity Verification',
-    version: '1.0.0',
     description: 'Standard identity verification attestation',
     fields: [
-      { name: 'fullName', type: StellarDataType.STRING, description: 'Legal full name' },
-      { name: 'dateOfBirth', type: StellarDataType.TIMESTAMP, description: 'Date of birth' },
-      { name: 'nationality', type: StellarDataType.STRING, description: 'Nationality' },
+      { name: 'fullName', type: StellarDataType.STRING },
+      { name: 'dateOfBirth', type: StellarDataType.TIMESTAMP },
+      { name: 'nationality', type: StellarDataType.STRING },
       { name: 'documentType', type: StellarDataType.STRING, validation: { enum: ['passport', 'drivers_license', 'national_id'] } },
       { name: 'verificationLevel', type: StellarDataType.STRING, validation: { enum: ['basic', 'enhanced', 'premium'] } },
-      { name: 'verifiedBy', type: StellarDataType.ADDRESS, description: 'Verifying authority address' }
+      { name: 'verifiedBy', type: StellarDataType.ADDRESS }
     ]
   }))
 
   // Academic credential schema
   SchemaRegistry.register('academic-credential', new SorobanSchemaEncoder({
     name: 'Academic Credential',
-    version: '1.0.0', 
     description: 'University degree or academic achievement',
     fields: [
-      { name: 'studentName', type: StellarDataType.STRING, description: 'Name of the student' },
-      { name: 'institution', type: StellarDataType.STRING, description: 'Educational institution' },
-      { name: 'degree', type: StellarDataType.STRING, description: 'Type of degree' },
-      { name: 'fieldOfStudy', type: StellarDataType.STRING, description: 'Major or field' },
-      { name: 'graduationDate', type: StellarDataType.TIMESTAMP, description: 'Graduation date' },
-      { name: 'gpa', type: StellarDataType.U32, optional: true, validation: { min: 0, max: 400 } }, // GPA * 100
+      { name: 'studentName', type: StellarDataType.STRING },
+      { name: 'institution', type: StellarDataType.STRING },
+      { name: 'degree', type: StellarDataType.STRING },
+      { name: 'fieldOfStudy', type: StellarDataType.STRING },
+      { name: 'graduationDate', type: StellarDataType.TIMESTAMP },
+      { name: 'gpa', type: StellarDataType.U32, optional: true, validation: { min: 0, max: 400 } },
       { name: 'honors', type: StellarDataType.STRING, optional: true, validation: { enum: ['summa_cum_laude', 'magna_cum_laude', 'cum_laude', 'none'] } }
     ]
   }))
@@ -91,15 +89,14 @@ export function registerCommonSchemas(): void {
   // Professional certification schema
   SchemaRegistry.register('professional-certification', new SorobanSchemaEncoder({
     name: 'Professional Certification',
-    version: '1.0.0',
     description: 'Professional certification or license',
     fields: [
-      { name: 'holderName', type: StellarDataType.STRING, description: 'Certification holder name' },
-      { name: 'certificationName', type: StellarDataType.STRING, description: 'Name of certification' },
-      { name: 'issuingOrganization', type: StellarDataType.STRING, description: 'Issuing organization' },
-      { name: 'certificationNumber', type: StellarDataType.STRING, description: 'Certification number' },
-      { name: 'issueDate', type: StellarDataType.TIMESTAMP, description: 'Issue date' },
-      { name: 'expirationDate', type: StellarDataType.TIMESTAMP, optional: true, description: 'Expiration date' },
+      { name: 'holderName', type: StellarDataType.STRING },
+      { name: 'certificationName', type: StellarDataType.STRING },
+      { name: 'issuingOrganization', type: StellarDataType.STRING },
+      { name: 'certificationNumber', type: StellarDataType.STRING },
+      { name: 'issueDate', type: StellarDataType.TIMESTAMP },
+      { name: 'expirationDate', type: StellarDataType.TIMESTAMP, optional: true },
       { name: 'level', type: StellarDataType.STRING, validation: { enum: ['entry', 'associate', 'professional', 'expert', 'master'] } }
     ]
   }))

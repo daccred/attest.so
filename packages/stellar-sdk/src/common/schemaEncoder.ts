@@ -48,8 +48,7 @@ export interface SchemaField {
  */
 export interface StellarSchemaDefinition {
   name: string
-  version: string
-  description: string
+  description?: string
   fields: SchemaField[]
   metadata?: {
     category?: string
@@ -107,7 +106,6 @@ export class SorobanSchemaEncoder {
   getSchemaHash(): string {
     const schemaString = JSON.stringify({
       name: this.schema.name,
-      version: this.schema.version,
       fields: this.schema.fields.map((f) => ({ name: f.name, type: f.type, optional: f.optional })),
     })
 
@@ -166,12 +164,8 @@ export class SorobanSchemaEncoder {
           val: xdr.ScVal.scvString(this.schema.name),
         }),
         new xdr.ScMapEntry({
-          key: xdr.ScVal.scvSymbol('version'),
-          val: xdr.ScVal.scvString(this.schema.version),
-        }),
-        new xdr.ScMapEntry({
           key: xdr.ScVal.scvSymbol('description'),
-          val: xdr.ScVal.scvString(this.schema.description),
+          val: xdr.ScVal.scvString(this.schema.description || this.schema.name),
         }),
         new xdr.ScMapEntry({
           key: xdr.ScVal.scvSymbol('fields'),
@@ -279,11 +273,6 @@ export class SorobanSchemaEncoder {
               schema.name = val.str().toString()
             }
             break
-          case 'version':
-            if (val.switch() === xdr.ScValType.scvString()) {
-              schema.version = val.str().toString()
-            }
-            break
           case 'description':
             if (val.switch() === xdr.ScValType.scvString()) {
               schema.description = val.str().toString()
@@ -298,7 +287,7 @@ export class SorobanSchemaEncoder {
       }
 
       // Validate required fields
-      if (!schema.name || !schema.version || !schema.fields) {
+      if (!schema.name || !schema.fields) {
         throw new Error('Missing required schema fields')
       }
 
@@ -511,7 +500,6 @@ export class SorobanSchemaEncoder {
       type: 'object',
       title: this.schema.name,
       description: this.schema.description,
-      version: this.schema.version,
       properties,
       required,
       additionalProperties: false,
@@ -551,7 +539,6 @@ export class SorobanSchemaEncoder {
 
     const schema: StellarSchemaDefinition = {
       name: jsonSchema.title || 'Untitled Schema',
-      version: jsonSchema.version || '1.0.0',
       description: jsonSchema.description || '',
       fields,
     }
@@ -565,10 +552,6 @@ export class SorobanSchemaEncoder {
   private validateSchema(schema: StellarSchemaDefinition): void {
     if (!schema.name || typeof schema.name !== 'string') {
       throw new SchemaValidationError('Schema must have a valid name')
-    }
-
-    if (!schema.version || typeof schema.version !== 'string') {
-      throw new SchemaValidationError('Schema must have a valid version')
     }
 
     if (!schema.fields || !Array.isArray(schema.fields) || schema.fields.length === 0) {
