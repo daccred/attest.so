@@ -1,5 +1,14 @@
 # @attestprotocol/stellar-sdk
 
+## 1.7.5
+
+### Patch Changes
+
+- 122527c: sdk references, update wash hash and contract spec with graph URL
+- Updated dependencies [122527c]
+  - @attestprotocol/stellar-contracts@1.7.5
+  - @attestprotocol/core@1.7.5
+
 ## 1.7.4
 
 ### Patch Changes

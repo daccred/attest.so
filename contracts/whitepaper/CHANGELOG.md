@@ -1,5 +1,11 @@
 # @attestprotocol/whitepaper
 
+## 1.7.5
+
+### Patch Changes
+
+- 122527c: sdk references, update wash hash and contract spec with graph URL
+
 ## 1.7.4
 
 ### Patch Changes

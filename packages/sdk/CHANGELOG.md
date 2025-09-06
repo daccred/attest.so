@@ -1,5 +1,16 @@
 # @attestprotocol/sdk
 
+## 1.7.5
+
+### Patch Changes
+
+- 122527c: sdk references, update wash hash and contract spec with graph URL
+- Updated dependencies [122527c]
+  - @attestprotocol/core@1.7.5
+  - @attestprotocol/solana-sdk@1.7.5
+  - @attestprotocol/starknet-sdk@1.7.5
+  - @attestprotocol/stellar-sdk@1.7.5
+
 ## 1.7.4
 
 ### Patch Changes
