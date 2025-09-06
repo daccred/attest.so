@@ -884,5 +884,7 @@ console.log(
   travelMeetingAgentSchema.toXDR(),
  travelMeetingAgentSchema.getSchemaHash(), 
  travelMeetingAgentSchema.generateDefaults(), 
- travelMeetingAgentSchema.getSchema()
+ travelMeetingAgentSchema.getSchema(),
+ travelMeetingAgentSchema.decodeData(''),
+ travelMeetingAgentSchema.encodeData({})
 );
