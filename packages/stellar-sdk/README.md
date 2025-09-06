@@ -14,16 +14,16 @@ A powerful TypeScript SDK for building attestation services on the Stellar block
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
   - [StellarAttestationClient](#stellarattestationclient)
-  - [Schema Management](#schema-management)
+- [Schema Management](#schema-management)
   - [Attestations](#attestations)
   - [Revocation](#revocation)
-  - [Delegated Attestations](#delegated-attestations)
+- [Delegated Attestations](#delegated-attestations)
   - [Delegated Revocation](#delegated-revocation)
   - [UID Generation](#uid-generation)
   - [BLS Signatures](#bls-signatures)
   - [Data Fetching](#data-fetching)
   - [Schema Encoding](#schema-encoding)
-  - [Utility Functions](#utility-functions)
+- [Utility Functions](#utility-functions)
 - [Common Workflows](#common-workflows)
   - [Full Attestation Lifecycle](#full-attestation-lifecycle)
   - [Delegated Attestation Flow](#delegated-attestation-flow)
@@ -415,8 +415,8 @@ async function runFullLifecycle() {
   // 1. Setup Client and Signer
   const signer = Keypair.random(); // In a real app, load a secret key
   const client = new StellarAttestationClient({
-    rpcUrl: 'https://soroban-testnet.stellar.org',
-    network: 'testnet',
+      rpcUrl: 'https://soroban-testnet.stellar.org',
+      network: 'testnet',
     publicKey: signer.publicKey(),
     contractId: 'YOUR_CONTRACT_ID' // Replace with your contract ID
   });
@@ -428,8 +428,8 @@ async function runFullLifecycle() {
   const schemaDefinition = 'name:string,verified:bool';
   const schemaTxResult = await client.createSchema({
     definition: schemaDefinition,
-    revocable: true,
-    options: { signer }
+      revocable: true,
+      options: { signer }
   });
 
   // The UID is typically derived from the transaction result
@@ -442,10 +442,10 @@ async function runFullLifecycle() {
   const subject = Keypair.random().publicKey();
 
   const attestTxResult = await client.attest({
-    schemaUid,
+      schemaUid,
     value: attestationValue,
-    subject,
-    options: { signer }
+      subject,
+      options: { signer }
   });
 
   // The attestation UID is derived deterministically
