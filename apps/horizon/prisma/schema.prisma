@@ -227,7 +227,8 @@ model Schema {
   // Indexer metadata
   ingestedAt                DateTime @default(now())
   lastUpdated               DateTime @updatedAt
-  categ
+  category                  String   @default("default") // Category label
+  featured                  Boolean  @default(false)
   
   @@index([ledger])
   @@index([deployerAddress])
