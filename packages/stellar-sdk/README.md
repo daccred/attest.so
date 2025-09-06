@@ -24,6 +24,9 @@ A powerful TypeScript SDK for building attestation services on the Stellar block
   - [Data Fetching](#data-fetching)
   - [Schema Encoding](#schema-encoding)
   - [Utility Functions](#utility-functions)
+- [Common Workflows](#common-workflows)
+  - [Full Attestation Lifecycle](#full-attestation-lifecycle)
+  - [Delegated Attestation Flow](#delegated-attestation-flow)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -96,6 +99,8 @@ await client.createSchema({
 
 ## API Reference
 
+This section provides a detailed reference for the core components of the Stellar Attestation Service SDK.
+
 ### StellarAttestationClient
 
 The main client class for interacting with the Attest Protocol on Stellar.
@@ -115,6 +120,7 @@ interface ClientOptions {
   contractId?: string;
   networkPassphrase?: string;
   allowHttp?: boolean;
+  utility: StellarUtility;
 }
 ```
 
@@ -356,6 +362,8 @@ The SDK provides several methods to fetch data from the Attestation Protocol's i
 - `getSchemaByUid(uid: string)`: Fetch a single schema by its UID.
 - `fetchRegistryDump()`: Fetch a complete dump of all schemas and attestations.
 
+**Note:** The data fetching methods rely on an indexer service that monitors the blockchain. Ensure you are connected to a service that provides this indexing capability.
+
 ### Schema Encoding
 
 #### SorobanSchemaEncoder
@@ -390,6 +398,146 @@ The SDK includes helper functions to simplify the creation of delegated requests
 
 - `createDelegatedAttestationRequest(...)`
 - `createDelegatedRevocationRequest(...)`
+
+## Common Workflows
+
+This section provides guided examples for common tasks and workflows you can achieve with the SDK.
+
+### 1. Full Attestation Lifecycle
+
+This example demonstrates the complete lifecycle of an attestation: creating a schema, issuing an attestation, retrieving it, and finally revoking it.
+
+```typescript
+import { StellarAttestationClient } from '@attestprotocol/stellar-sdk';
+import { Keypair } from '@stellar/stellar-sdk';
+
+async function runFullLifecycle() {
+  // 1. Setup Client and Signer
+  const signer = Keypair.random(); // In a real app, load a secret key
+  const client = new StellarAttestationClient({
+    rpcUrl: 'https://soroban-testnet.stellar.org',
+    network: 'testnet',
+    publicKey: signer.publicKey(),
+    contractId: 'YOUR_CONTRACT_ID' // Replace with your contract ID
+  });
+
+  // Note: Ensure the signer account is funded on the testnet.
+
+  // 2. Create a Schema
+  console.log('Creating a new schema...');
+  const schemaDefinition = 'name:string,verified:bool';
+  const schemaTxResult = await client.createSchema({
+    definition: schemaDefinition,
+    revocable: true,
+    options: { signer }
+  });
+
+  // The UID is typically derived from the transaction result
+  const schemaUid = client.generateSchemaUid(schemaDefinition, signer.publicKey());
+  console.log(`Schema created with UID: ${schemaUid.toString('hex')}`);
+
+  // 3. Issue an Attestation
+  console.log('Issuing an attestation...');
+  const attestationValue = JSON.stringify({ name: 'John Doe', verified: true });
+  const subject = Keypair.random().publicKey();
+
+  const attestTxResult = await client.attest({
+    schemaUid,
+    value: attestationValue,
+    subject,
+    options: { signer }
+  });
+
+  // The attestation UID is derived deterministically
+  // For this, you'd need the nonce, which is managed by the contract.
+  // For simplicity, we'll fetch it, but in a real app, you might parse it from tx results.
+  
+  // 4. Retrieve the Attestation
+  // To get the UID, you'd need to know the nonce. Let's assume we can query for it.
+  // (Note: Direct querying by subject/schema is an indexer feature)
+  console.log('Fetching attestations for wallet...');
+  const { attestations } = await client.fetchAttestationsByWallet({ walletAddress: signer.publicKey() });
+  const myAttestation = attestations.find(a => a.subject === subject);
+
+  if (myAttestation) {
+    console.log('Attestation found:', myAttestation);
+    const attestationUid = myAttestation.uid;
+
+    // 5. Revoke the Attestation
+    console.log('Revoking the attestation...');
+    await client.revoke({
+      attestationUid,
+      options: { signer }
+    });
+    console.log('Attestation revoked successfully.');
+  } else {
+    console.log('Could not find the created attestation to revoke.');
+  }
+}
+
+runFullLifecycle().catch(console.error);
+```
+
+### 2. Delegated Attestation Flow
+
+This workflow allows an authority to sign an attestation request off-chain using BLS signatures. A separate entity (e.g., a gas fee payer or the user themselves) can then submit this signed request to the blockchain.
+
+```typescript
+import { StellarAttestationClient } from '@attestprotocol/stellar-sdk';
+import { Keypair } from '@stellar/stellar-sdk';
+
+async function runDelegatedFlow() {
+  // --- Off-Chain (Authority's side) ---
+
+  // 1. Setup client and generate BLS keys for the authority
+  const authorityClient = new StellarAttestationClient({ /* ... options ... */ });
+  const { privateKey: blsPrivateKey, publicKey: blsPublicKey } = authorityClient.generateBlsKeys();
+
+  // 2. Create the attestation request payload
+  const attestationRequest = {
+    schemaUid: Buffer.from('your_schema_uid_here', 'hex'),
+    subject: 'G_SUBJECT_PUBLIC_KEY',
+    value: JSON.stringify({ credential: 'verified_developer' }),
+    expirationTime: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year
+    nonce: BigInt(0) // Should be fetched from the contract for the authority
+  };
+
+  // 3. Create the message to be signed
+  const dst = await authorityClient.getAttestDST();
+  const messagePoint = authorityClient.createAttestMessage(attestationRequest, dst);
+
+  // 4. Sign the message with the BLS private key
+  const signature = authorityClient.signHashedMessage(messagePoint, blsPrivateKey);
+
+  // The signed request is now ready to be sent to the on-chain submitter
+  const delegatedRequest = {
+    ...attestationRequest,
+    signature,
+    publicKey: blsPublicKey,
+  };
+
+  // --- On-Chain (Submitter's side) ---
+
+  // 5. Submitter (e.g., a service or the user) sets up their client
+  const submitterSigner = Keypair.random(); // The keypair that pays the transaction fee
+  const submitterClient = new StellarAttestationClient({
+    rpcUrl: 'https://soroban-testnet.stellar.org',
+    network: 'testnet',
+    publicKey: submitterSigner.publicKey(),
+    contractId: 'YOUR_CONTRACT_ID'
+  });
+
+  // 6. Submit the delegated attestation to the contract
+  console.log('Submitting delegated attestation...');
+  const txResult = await submitterClient.attestByDelegation(delegatedRequest, {
+    signer: submitterSigner,
+  });
+
+  console.log('Delegated attestation submitted successfully:', txResult);
+}
+
+runDelegatedFlow().catch(console.error);
+```
 
 ## Contributing
 
