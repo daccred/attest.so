@@ -39,10 +39,10 @@ importers:
   apps/horizon:
     dependencies:
       '@attestprotocol/stellar-contracts':
-        specifier: 1.7.5
+        specifier: workspace:*
         version: link:../../contracts/stellar
       '@attestprotocol/stellar-sdk':
-        specifier: 1.7.5-beta.1
+        specifier: workspace:*
         version: link:../../packages/stellar-sdk
       '@prisma/client':
         specifier: ^6.15.0

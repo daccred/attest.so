@@ -36,8 +36,8 @@
     "url": "https://github.com/daccred/attest.so.git"
   },
   "dependencies": {
-    "@attestprotocol/stellar-contracts": "1.7.5",
-    "@attestprotocol/stellar-sdk": "1.7.5-beta.1",
+    "@attestprotocol/stellar-contracts": "workspace:*",
+    "@attestprotocol/stellar-sdk": "workspace:*",
     "@prisma/client": "^6.15.0",
     "@stellar/stellar-sdk": "^14.1.0",
     "@types/pg": "^8.15.5",
