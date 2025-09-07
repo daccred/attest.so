@@ -44,6 +44,7 @@ export interface SchemaData {
   deployerAddress: string
   type?: string
   transactionHash: string
+  createdAt?: Date  // Add optional createdAt to preserve blockchain timestamp
 }
 
 /**
@@ -65,6 +66,7 @@ export async function singleUpsertSchema(schemaData: SchemaData) {
       update: {
         parsedSchemaDefinition: schemaData.parsedSchemaDefinition,
         lastUpdated: new Date(),
+        // DO NOT update createdAt or ingestedAt - preserve original timestamps
       },
       create: {
         uid: schemaData.uid,
@@ -76,6 +78,7 @@ export async function singleUpsertSchema(schemaData: SchemaData) {
         deployerAddress: schemaData.deployerAddress,
         type: schemaData.type || 'default',
         transactionHash: schemaData.transactionHash,
+        createdAt: schemaData.createdAt,  // Use blockchain timestamp only - no fallback
       },
       // Removed attestations include due to removed foreign key constraint
     })
@@ -201,6 +204,7 @@ export async function bulkUpsertSchemas(schemas: SchemaData[]) {
             update: {
               parsedSchemaDefinition: schemaData.parsedSchemaDefinition,
               lastUpdated: new Date(),
+              // DO NOT update createdAt or ingestedAt - preserve original timestamps
             },
             create: {
               uid: schemaData.uid,
@@ -212,6 +216,7 @@ export async function bulkUpsertSchemas(schemas: SchemaData[]) {
               deployerAddress: schemaData.deployerAddress,
               type: schemaData.type || 'default',
               transactionHash: schemaData.transactionHash,
+              createdAt: schemaData.createdAt,  // Use blockchain timestamp only - no fallback
             },
           })
           processedCount++

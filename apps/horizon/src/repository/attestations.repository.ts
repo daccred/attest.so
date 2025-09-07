@@ -49,6 +49,7 @@ export interface AttestationData {
   value?: Record<string, any>
   revoked?: boolean
   revokedAt?: Date
+  createdAt?: Date  // Add optional createdAt to preserve blockchain timestamp
 }
 
 /**
@@ -71,6 +72,7 @@ export async function singleUpsertAttestation(attestationData: AttestationData) 
         revoked: attestationData.revoked || false,
         revokedAt: attestationData.revokedAt,
         lastUpdated: new Date(),
+        // DO NOT update createdAt or ingestedAt - preserve original timestamps
       },
       create: {
         attestationUid: attestationData.attestationUid,
@@ -84,6 +86,7 @@ export async function singleUpsertAttestation(attestationData: AttestationData) 
         value: attestationData.value,
         revoked: attestationData.revoked || false,
         revokedAt: attestationData.revokedAt,
+        createdAt: attestationData.createdAt,  // Use blockchain timestamp only - no fallback
       },
       // Removed schema include due to removed foreign key constraint
     })
@@ -212,6 +215,7 @@ export async function bulkUpsertAttestations(attestations: AttestationData[]) {
               revoked: attestationData.revoked || false,
               revokedAt: attestationData.revokedAt,
               lastUpdated: new Date(),
+              // DO NOT update createdAt or ingestedAt - preserve original timestamps
             },
             create: {
               attestationUid: attestationData.attestationUid,
@@ -225,6 +229,7 @@ export async function bulkUpsertAttestations(attestations: AttestationData[]) {
               value: attestationData.value,
               revoked: attestationData.revoked || false,
               revokedAt: attestationData.revokedAt,
+              createdAt: attestationData.createdAt,  // Use blockchain timestamp only - no fallback
             },
           })
           processedCount++
