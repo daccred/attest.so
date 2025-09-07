@@ -123,11 +123,7 @@ async function main() {
     schemaHash: encoder.getSchemaHash(),
     schema: encoder.getSchema(),
     schemaEncoded: encoder.encodeData({ test: 'test' }),
-    schemaValid: encoder.validateData({ test: 'test' }), 
   });
- 
-
-
 
   console.log('🧪 Schema Processing Test Suite\n');
   

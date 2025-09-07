@@ -2,7 +2,7 @@
  * Schema Parser Utility
  * 
  * Provides utilities for parsing schema definitions from various formats
- * (XDR, JSON Schema, or Schema String) into JSONSchema equivalents using
+ * (XDR, JSON Schema, TYPED or Schema String) into JSONSchema equivalents using
  * the SorobanSchemaEncoder from @attestprotocol/stellar-sdk.
  */
 
