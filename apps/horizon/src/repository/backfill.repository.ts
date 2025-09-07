@@ -21,7 +21,6 @@ import {
 } from '../common/constants'
 import { getDB, updateLastProcessedLedgerInDB } from '../common/db'
 import { fetchTransactionDetails } from './transactions.repository'
-import { fetchOperationsFromHorizon } from './operations.repository'
 import { singleUpsertSchema } from './schemas.repository'
 import { singleUpsertAttestation } from './attestations.repository'
 import { upsertContractTransaction } from './contract-transactions.repository'
@@ -29,6 +28,7 @@ import { upsertContractTransaction } from './contract-transactions.repository'
 const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://'),
 })
+
 
 /**
  * Result interface for backfill operations.
@@ -152,6 +152,10 @@ export async function performBackfill(
           params: eventsRequestParams,
         }),
       })
+
+      console.log('=============== RPC Response ===============')
+      console.log({rpcResponse})
+      console.log('=============== RPC Response ===============')
 
       const rpcData = await rpcResponse.json()
       if (rpcData.error) {
