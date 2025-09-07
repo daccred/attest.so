@@ -14,7 +14,6 @@
     "js-sha3": "^0.9.3"
   },
   "devDependencies": {
-    "@types/ajv": "^1.0.4",
     "@types/node": "^24.2.1",
     "prettier": "^3.2.5",
     "rimraf": "^6.0.1",
