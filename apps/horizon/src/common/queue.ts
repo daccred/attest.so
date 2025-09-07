@@ -371,7 +371,15 @@ class IngestQueue extends EventEmitter {
           processedUpToLedger < (job.payload.endLedger as number)
 
         if (shouldContinue) {
-          const delayMs = this.pollIntervalMs
+          // Check if we're waiting for blockchain to catch up (no events processed and message indicates waiting)
+          const isWaitingForBlockchain = result.eventsProcessed === 0 && 
+            result.message?.includes('Waiting for blockchain')
+          
+          // Use longer delay when waiting for blockchain, shorter for normal processing
+          const delayMs = isWaitingForBlockchain ? 
+            Math.max(5000, this.pollIntervalMs * 5) : // Wait at least 5 seconds when blockchain is behind
+            this.pollIntervalMs
+            
           const nextJob: IngestJob = {
             ...job,
             payload: {
@@ -389,6 +397,7 @@ class IngestQueue extends EventEmitter {
             processedUpToLedger,
             continuingFromLedger: processedUpToLedger + 1,
             endLedger: job.payload.endLedger ?? null,
+            waitingForBlockchain: isWaitingForBlockchain,
           })
         }
       }

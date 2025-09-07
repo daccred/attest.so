@@ -125,6 +125,20 @@ export async function performRecurringIngestion(
       console.log(`📊 Resuming from last processed ledger: ${lastProcessedLedger} -> starting at ${currentStartLedger}`)
     }
 
+    // Safety check: Don't try to fetch ledgers that don't exist yet
+    if (currentStartLedger > latestLedger.sequence) {
+      console.log(`⏸️ Requested ledger ${currentStartLedger} is ahead of latest blockchain ledger ${latestLedger.sequence}. Waiting for blockchain to catch up...`)
+      return {
+        success: true,
+        message: `Waiting for blockchain to reach ledger ${currentStartLedger}. Current latest: ${latestLedger.sequence}`,
+        eventsProcessed: 0,
+        transactionsProcessed: 0,
+        operationsProcessed: 0,
+        processedUpToLedger: currentStartLedger - 1, // Return the last processed ledger
+        errors: []
+      }
+    }
+
     console.log(`📋 Ingesting from ledger ${currentStartLedger} (latest: ${latestLedger.sequence})`)
     processedUpToLedger = currentStartLedger - 1 // Initialize to one before start
 
@@ -167,16 +181,25 @@ export async function performRecurringIngestion(
 
     const eventsResponse = rpcData.result
     const events = eventsResponse.events || []
+    
+    // Update processedUpToLedger to the latest ledger we checked
+    // This ensures we don't re-check the same ledger range
+    if (eventsResponse.latestLedger) {
+      processedUpToLedger = eventsResponse.latestLedger
+    } else if (currentStartLedger) {
+      // If no latestLedger in response, at least we checked up to currentStartLedger
+      processedUpToLedger = currentStartLedger
+    }
 
     if (events.length === 0) {
-      console.log('📭 No new events found')
+      console.log(`📭 No new events found. Processed up to ledger ${processedUpToLedger}`)
       return {
         success: true,
-        message: 'No new events to process',
+        message: `No new events to process. Checked up to ledger ${processedUpToLedger}`,
         eventsProcessed: 0,
         transactionsProcessed: 0,
         operationsProcessed: 0,
-        processedUpToLedger: startLedger || 0,
+        processedUpToLedger: processedUpToLedger,
         errors: []
       }
     }
