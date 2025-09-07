@@ -29,6 +29,8 @@ const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://'),
 })
 
+console.log(`📡 [BACKFILL] Soroban Server initialized with URL: ${sorobanRpcUrl}`)
+
 
 /**
  * Result interface for backfill operations.
@@ -111,10 +113,39 @@ export async function performBackfill(
   const errors: string[] = []
 
   try {
-    // Get RPC ledger info
-    const latestLedger = await sorobanServer.getLatestLedger()
-    if (!latestLedger || typeof latestLedger.sequence !== 'number') {
-      throw new Error('Failed to get latest ledger from RPC')
+    // Get RPC ledger info with timeout and retry
+    let latestLedger: any = null
+    let rpcAttempts = 0
+    const maxRpcAttempts = 3
+    
+    while (!latestLedger && rpcAttempts < maxRpcAttempts) {
+      rpcAttempts++
+      console.log(`📡 Attempting to connect to Soroban RPC (attempt ${rpcAttempts}/${maxRpcAttempts})...`)
+      
+      try {
+        // Add timeout to the RPC call
+        const rpcPromise = sorobanServer.getLatestLedger()
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('RPC timeout after 10 seconds')), 10000)
+        )
+        
+        latestLedger = await Promise.race([rpcPromise, timeoutPromise])
+        
+        if (!latestLedger || typeof latestLedger.sequence !== 'number') {
+          throw new Error('Invalid response: missing sequence number')
+        }
+        
+        console.log(`✅ Connected to RPC, latest ledger: ${latestLedger.sequence}`)
+        break
+        
+      } catch (rpcError: any) {
+        console.error(`❌ RPC attempt ${rpcAttempts} failed:`, rpcError.message)
+        if (rpcAttempts >= maxRpcAttempts) {
+          throw new Error(`Failed to get latest ledger from RPC after ${maxRpcAttempts} attempts: ${rpcError.message}`)
+        }
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, rpcAttempts) * 1000))
+      }
     }
 
     const targetEndLedger = endLedger || latestLedger.sequence
@@ -611,6 +642,7 @@ async function upsertEventIndividually(db: any, eventData: EventData, operationI
           deployerAddress: schemaObj.authority || txDetails?.sourceAccount || '',
           type: 'default',
           transactionHash: eventData.transactionHash,
+          createdAt: new Date(eventData.timestamp),  // Use blockchain timestamp
         })
       } else {
         console.log('⚠️ [Projection] SCHEMA missing expected fields', { schemaUidType: typeof val[0], objType: typeof val[1] })
@@ -662,6 +694,7 @@ async function upsertEventIndividually(db: any, eventData: EventData, operationI
           message,
           value,
           revoked: false,
+          createdAt: new Date(eventData.timestamp),  // Use blockchain timestamp
         })
       } else {
         console.log('⚠️ [Projection] ATTEST create missing ids', { attestationUid: !!attestationUid, schemaUid: !!schemaUid, attester: !!attesterAddress })
@@ -716,6 +749,7 @@ async function upsertEventIndividually(db: any, eventData: EventData, operationI
           value: undefined,
           revoked: revokedFlag === true,
           revokedAt,
+          createdAt: new Date(eventData.timestamp),  // Use blockchain timestamp
         })
       } else {
         console.log('⚠️ [Projection] ATTEST revoke missing required fields', { 
