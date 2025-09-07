@@ -4,11 +4,28 @@ This directory contains scripts for processing attestation schemas, creating att
 
 ## Files Overview
 
-- **`write-schema.ts`** - Contains schema value definitions for all attestation schemas
-- **`seed-schema.ts`** - Original script for registering schemas on the Stellar network
-- **`process-schema-attestations.ts`** - Main script for processing JSONL files and creating attestations
-- **`test-schema-processing.ts`** - Test script to verify setup before running the main processor
-- **`schemas-*.jsonl`** - JSONL files containing registered schema information by category
+- **`seed-schema.ts`** - Script for registering new schemas on the Stellar network using SorobanSchemaEncoder
+- **`write-schema.ts`** - Schema attestation processor that creates attestations for existing schemas and updates database categories
+- **`descript.ts`** - Test script for validating schema processing functionality and database connectivity
+- **`schemas-*.jsonl`** - JSONL files containing registered schema information organized by category
+
+## Manual Workflow Overview
+
+These describe the steps needed to manually process the entire schema > attestations > categories backfill workflow:
+
+1. **Register Schemas**: Use the seed script to register new schemas on a newly deployed contract
+   ```bash
+   pnpm tsx scripts/seed-schema.ts <category>
+   ```
+
+2. **Backfill Data**: Invoke the `/backfill` route either through `curl` on the horizon API or through the integration tests in `apps/horizon/__tests__/integration/backfill.test.ts`
+
+3. **Create Attestations**: Use the write-schema script to create attestations for registered schemas and update database categories
+   ```bash
+   pnpm tsx scripts/write-schema.ts
+   ```
+
+4. **Continuous Ingestion**: For ongoing monitoring, use the `ingest/recurring` route to have the server continuously listen for new schemas, attestations and events
 
 ## Available Schema Categories
 
@@ -44,10 +61,10 @@ The following schema categories are available:
 
 ### 1. Test the Setup
 
-Before running the main processing script, test your setup:
+Before running the main processing scripts, test your setup:
 
 ```bash
-npx ts-node test-schema-processing.ts
+pnpm tsx scripts/descript.ts
 ```
 
 This will verify:
@@ -55,64 +72,81 @@ This will verify:
 - Schema value matching
 - Database schema lookup
 
-### 2. Process All Schema Categories
+### 2. Register New Schemas
 
-Run the main processing script to create attestations and update categories:
+To register new schemas on the Stellar network by category:
 
 ```bash
-npx ts-node process-schema-attestations.ts
+pnpm tsx scripts/seed-schema.ts identity
+pnpm tsx scripts/seed-schema.ts education
+pnpm tsx scripts/seed-schema.ts professional
+pnpm tsx scripts/seed-schema.ts technology
+pnpm tsx scripts/seed-schema.ts civic
+```
+
+### 3. Process Existing Schemas and Create Attestations
+
+Run the attestation processor to create attestations for existing schemas:
+
+```bash
+pnpm tsx scripts/write-schema.ts
 ```
 
 This script will:
 - Generate a new Stellar keypair for attestations
 - Fund the account using Friendbot
 - Process each JSONL file in batch
-- Create attestations for each schema using values from `write-schema.ts`
+- Create attestations for each schema using predefined values
 - Update the database with category information
 - Provide detailed progress and summary reports
 
-### 3. Process Individual Categories
+## Script Details
 
-If you want to process schemas individually, you can use the original seeding script:
+### `seed-schema.ts`
 
+**Purpose:** Registers new schemas on the Stellar network using SorobanSchemaEncoder
+
+**What it does:**
+1. Defines schema structures using SorobanSchemaEncoder with proper field types
+2. Registers schemas on the Stellar testnet via the attestation protocol contract
+3. Outputs schema UIDs and saves them to category-specific JSONL files
+4. Supports processing individual categories or all categories
+
+**Usage:**
 ```bash
-npx ts-node seed-schema.ts identity
-npx ts-node seed-schema.ts education
-npx ts-node seed-schema.ts professional
-npx ts-node seed-schema.ts technology
-npx ts-node seed-schema.ts civic
+pnpm tsx scripts/seed-schema.ts [category]
 ```
 
-## Script Behavior
+### `write-schema.ts`
 
-### `process-schema-attestations.ts`
+**Purpose:** Creates attestations for existing schemas and updates database categories
 
 **What it does:**
 1. Reads all `schemas-*.jsonl` files in the scripts directory
 2. For each schema entry:
-   - Matches the schema name to a value in `write-schema.ts`
+   - Matches the schema name to predefined attestation values
    - Creates an attestation on Stellar testnet using that value
    - Updates the database schema record with the correct category
 3. Provides comprehensive logging and error handling
 4. Generates a summary report of all operations
 
-**Output:**
+**Features:**
 - Real-time progress logging with emojis
 - Detailed error reporting for failed operations
 - Summary statistics for each category
-- Total counts for processed schemas, attestations, and database updates
-
-**Rate Limiting:**
-- 2-second delay between schema operations to avoid network issues
+- Rate limiting (2-second delay between operations)
 - Robust error handling for network timeouts
 
-### `test-schema-processing.ts`
+### `descript.ts`
+
+**Purpose:** Test script for validating schema processing functionality
 
 **What it does:**
 1. Tests database connectivity
 2. Verifies schema value matching works correctly
 3. Checks database schema lookup functionality
-4. Provides a go/no-go decision for running the main script
+4. Provides a go/no-go decision for running the main scripts
+5. Processes a single test schema to validate the entire pipeline
 
 ## Database Updates
 
@@ -123,11 +157,11 @@ The scripts update the following fields in the `schemas` table:
 
 ## Error Handling
 
-Both scripts include comprehensive error handling:
+All scripts include comprehensive error handling:
 
 - **Network Issues**: Automatic retries and graceful degradation
 - **Database Errors**: Detailed logging with specific error messages  
-- **Missing Schema Values**: Warnings for schemas not found in `write-schema.ts`
+- **Missing Schema Values**: Warnings for schemas not found in predefined values
 - **Invalid JSONL**: Parsing error handling with line-by-line processing
 
 ## Monitoring
@@ -160,7 +194,7 @@ npx prisma db push --preview-feature
 - Check Stellar testnet status if issues persist
 
 ### Missing Schema Values
-- Verify schema names match exactly between JSONL files and `write-schema.ts`
+- Verify schema names match exactly between JSONL files and predefined values
 - Check for typos in schema names
 - Review the error output for specific missing schemas
 

@@ -1,9 +1,8 @@
-{"name":"nationalIdSchema","uid":"3f7ad183064c77d60eaea2a50b180992d6e34bf38e49ef951449d2921e75a849","category":"identity"}
-{"name":"passportSchema","uid":"70940d5f57d6f7a986c18d187decc1f60ef33922211e821d4cf6813fc95bd796","category":"identity"}
-{"name":"driversLicenseSchema","uid":"238c73f22d10023de063a5d83fd01b9e2b1bf38b3ed612048fcde5dcd220bbbd","category":"identity"}
-{"name":"digitalWalletIdentitySchema","uid":"4e721b86129908ab912e68b19d71a3d721eb7bbbdbcfe37f8706e137005de8dc","category":"identity"}
-{"name":"biometricAuthSchema","uid":"71c282b305ddd1f22b7016e5866896e4b246234853df7e5ff21c22972d841ce1","category":"identity"}
-{"name":"ageVerificationSchema","uid":"bde5f6f9b58ee8953cf78a1d0cffc91d00ab4e6046a217a7a415e508579192d0","category":"identity"}
-{"name":"trustScoreSchema","uid":"03a9ccb913c092305c7566a3be59eff0b4c07fac3b3086960d6199da71f06932","category":"identity"}
-{"name":"backgroundCheckSchema","uid":"98a01bfae3c06a16ddbc2abd2e8c611e780ee8ad036c04625a79170bddaa965d","category":"identity"}
-{"name":"multiFactorAuthenticationSchema","uid":"d8664bbfcdcc2a25c1f4ea475a6c74dc184edacccf7afad3555d1691129128df","category":"identity"}
+{"name":"digitalWalletIdentitySchema","uid":"610605292a5e8299c72a050043ed73f8ae3b9c55f33a1ad26ac9d2736f63d2a3","category":"identity"}
+{"name":"nationalIdSchema","uid":"4773a8dd6898abb897d551efd2ba845ec119df6381e2710fc77f182d49dd421e","category":"identity"}
+{"name":"passportSchema","uid":"3f9b746847650da3debe67a046788d7d71e25ae421495668714cad9c1ad03788","category":"identity"}
+{"name":"biometricAuthSchema","uid":"974ad696a6827646efd34b57dbd05e855cb5a8f453952bfcb95e8a74046fd978","category":"identity"}
+{"name":"ageVerificationSchema","uid":"5bffac333979acd9d842ea30496c382349ce5cbec52d7fdcd46e32cbfdabac3b","category":"identity"}
+{"name":"trustScoreSchema","uid":"067fcddd1453718c75fe8b1a124bd07611a697fc39a546b076c30bcf6fc40e51","category":"identity"}
+{"name":"backgroundCheckSchema","uid":"81bd31b7ed4a4d939740b3c749f617674f8ed21f6debfacd779ea0b086ec1a3f","category":"identity"}
+{"name":"multiFactorAuthenticationSchema","uid":"257c7d2fb7dd24696cf7c856cc11124c3e86a646d8b7b9456a271f26f253c39a","category":"identity"}
