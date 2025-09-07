@@ -27,6 +27,14 @@ import {
 import { queueLogger } from './logger'
 
 /**
+ * Constants for ingestion job types.
+ */
+export const INGEST_JOB_TYPE_FETCH_EVENTS = 'fetch-events'
+export const INGEST_JOB_TYPE_FETCH_CONTRACT_OPERATIONS = 'fetch-contract-operations'
+export const INGEST_JOB_TYPE_FETCH_COMPREHENSIVE_DATA = 'fetch-comprehensive-data'
+export const INGEST_JOB_TYPE_BACKFILL_MISSING_OPERATIONS = 'backfill-missing-operations'
+
+/**
  * Type definition for supported ingestion job types.
  *
  * Defines the various types of blockchain data ingestion jobs that can be
@@ -143,7 +151,7 @@ class IngestQueue extends EventEmitter {
   ): string {
     const job: IngestJob = {
       id: `fetch-events-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: 'fetch-events',
+      type: INGEST_JOB_TYPE_FETCH_EVENTS,
       payload: { startLedger, endLedger: opts?.endLedger },
       attempts: 0,
       maxAttempts: opts?.maxAttempts ?? 5,
@@ -183,7 +191,7 @@ class IngestQueue extends EventEmitter {
   ): string {
     const job: IngestJob = {
       id: `contract-ops-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: 'fetch-contract-operations',
+      type: INGEST_JOB_TYPE_FETCH_CONTRACT_OPERATIONS,
       payload: { startLedger, contractIds, includeFailedTx: opts?.includeFailedTx ?? true },
       attempts: 0,
       maxAttempts: opts?.maxAttempts ?? 5,
@@ -222,7 +230,7 @@ class IngestQueue extends EventEmitter {
   ): string {
     const job: IngestJob = {
       id: `comprehensive-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: 'fetch-comprehensive-data',
+      type: INGEST_JOB_TYPE_FETCH_COMPREHENSIVE_DATA,
       payload: { startLedger, contractIds, endLedger: opts?.endLedger },
       attempts: 0,
       maxAttempts: opts?.maxAttempts ?? 3,
@@ -295,7 +303,7 @@ class IngestQueue extends EventEmitter {
     try {
       let result: any
 
-      if (job.type === 'fetch-events') {
+      if (job.type === INGEST_JOB_TYPE_FETCH_EVENTS) {
         queueLogger.debug('fetchAndStoreEvents request', { id: job.id, payload: job.payload })
         result = await fetchAndStoreEvents(job.payload.startLedger)
         queueLogger.info('fetchAndStoreEvents result', { id: job.id, result })
@@ -322,7 +330,7 @@ class IngestQueue extends EventEmitter {
             endLedger: job.payload.endLedger ?? null,
           })
         }
-      } else if (job.type === 'fetch-contract-operations') {
+      } else if (job.type === INGEST_JOB_TYPE_FETCH_CONTRACT_OPERATIONS) {
         queueLogger.debug('fetchContractOperations request', { id: job.id, payload: job.payload })
         result = await fetchContractOperations(
           job.payload.contractIds || [],
@@ -330,7 +338,7 @@ class IngestQueue extends EventEmitter {
           job.payload.includeFailedTx
         )
         queueLogger.info('fetchContractOperations result', { id: job.id, result })
-      } else if (job.type === 'fetch-comprehensive-data') {
+      } else if (job.type === INGEST_JOB_TYPE_FETCH_COMPREHENSIVE_DATA) {
         queueLogger.debug('fetchContractComprehensiveData request', {
           id: job.id,
           payload: job.payload,
@@ -375,10 +383,10 @@ class IngestQueue extends EventEmitter {
         attempts: job.attempts,
       })
       const isContinuousEventsJob =
-        job.type === 'fetch-events' &&
+        job.type === INGEST_JOB_TYPE_FETCH_EVENTS &&
         (typeof job.payload.endLedger !== 'number' || job.payload.endLedger <= 0)
       const isContinuousComprehensiveJob =
-        job.type === 'fetch-comprehensive-data' &&
+        job.type === INGEST_JOB_TYPE_FETCH_COMPREHENSIVE_DATA &&
         (typeof job.payload.endLedger !== 'number' || job.payload.endLedger <= 0)
       if (isContinuousEventsJob || isContinuousComprehensiveJob) {
         const backoff = this.computeBackoffMs(job.attempts - 1)
