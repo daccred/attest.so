@@ -20,7 +20,7 @@
 
 import { EventEmitter } from 'events'
 import { fetchAndStoreEvents } from '../repository/events.repository'
-import { fetchContractOperations } from '../repository/contracts.repository'
+import { fetchContractOperations } from '../repository/operations.repository'
 import { performRecurringIngestion } from '../repository/ingest.repository'
 import { queueLogger } from './logger'
 

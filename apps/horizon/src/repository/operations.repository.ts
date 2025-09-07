@@ -11,9 +11,10 @@
  * @requires common/errors
  */
 
-import { getHorizonBaseUrl } from '../common/constants'
 import { getDB } from '../common/db'
+import { getHorizonBaseUrl, CONTRACT_IDS_TO_INDEX, MAX_OPERATIONS_PER_FETCH } from '../common/constants'
 import { IndexerHostError, PerformanceMonitor, RateLimiter } from '../common/errors'
+import { fetchTransactionDetails, storeTransactionsInDB } from './transactions.repository'
 
 /**
  * Fetches operations from Horizon API with filtering options.
@@ -161,5 +162,138 @@ export async function storeOperationsInDB(operations: any[], contractIds: string
   } catch (error) {
     console.error('❌ Error storing contract operations:', error)
     return 0
+  }
+}
+
+/**
+ * Fetches and stores contract operations from Horizon.
+ *
+ * Retrieves all operations for specified contracts using Horizon's
+ * account-based queries. Fetches associated transaction details and
+ * stores both operations and transactions in the database with proper
+ * foreign key relationships.
+ *
+ * @async
+ * @function fetchContractOperations
+ * @param {string[]} [contractIds] - Target contract IDs (defaults to config)
+ * @param {number} [startLedger] - Starting ledger for filtering
+ * @param {boolean} [includeFailedTx] - Include failed transactions
+ * @returns {Promise<Object>} Operation fetch results
+ * @returns {Array} result.operations - Fetched operation records
+ * @returns {Array} result.transactions - Associated transactions
+ * @returns {Set} result.accounts - Unique account identifiers
+ * @returns {Array} result.failedOperations - Failed operation records
+ * @returns {number} result.operationsFetched - Total operations count
+ * @returns {number} result.transactionsFetched - Total transactions count
+ */
+export async function fetchContractOperations(
+  contractIds: string[] = CONTRACT_IDS_TO_INDEX,
+  startLedger?: number,
+  includeFailedTx?: boolean
+): Promise<{
+  operations: any[]
+  transactions: any[]
+  accounts: Set<string>
+  failedOperations: any[]
+  operationsFetched: number
+  transactionsFetched: number
+}> {
+  const operations: any[] = []
+  const accountsSet = new Set<string>()
+  const failedOperations: any[] = []
+
+  console.log(
+    `🔍 Fetching contract operations for ${contractIds.length} contracts from ledger ${
+      startLedger || 'latest'
+    }`
+  )
+
+  // For each contract, fetch all operations using account-based queries
+  // In Stellar, contracts are accounts, so we can fetch operations by account
+  for (const contractId of contractIds) {
+    try {
+      console.log(`📋 Fetching operations for contract: ${contractId}`)
+
+      const contractOps = await fetchOperationsFromHorizon({
+        accountId: contractId, // Use accountId instead of contractId
+        limit: MAX_OPERATIONS_PER_FETCH,
+      })
+
+      console.log(`✅ Found ${contractOps.length} operations for contract ${contractId}`)
+
+      // Filter operations and extract accounts
+      for (const op of contractOps) {
+        if (op.source_account) {
+          accountsSet.add(op.source_account)
+        }
+
+        // Check if operation was in a failed transaction
+        const isFailedOp = !op.successful || op.transaction_successful === false
+        if (isFailedOp) {
+          failedOperations.push(op)
+          // Only include failed operations in results if explicitly requested
+          if (includeFailedTx) {
+            operations.push(op)
+          }
+        } else {
+          // Always include successful operations
+          operations.push(op)
+        }
+      }
+    } catch (error: any) {
+      console.error(`❌ Error fetching operations for contract ${contractId}:`, error.message)
+    }
+  }
+
+  // Get unique transaction hashes and fetch full transaction details
+  const txHashes = [...new Set(operations.map((op) => op.transaction_hash).filter(Boolean))]
+  console.log(`📦 Fetching ${txHashes.length} unique transactions for operations`)
+
+  const txDetailsList: any[] = []
+  for (const txHash of txHashes) {
+    try {
+      const txDetails = await fetchTransactionDetails(txHash as string)
+      if (txDetails) {
+        txDetailsList.push(txDetails)
+      }
+    } catch (error: any) {
+      console.error(`❌ Error fetching transaction ${txHash}:`, error.message)
+    }
+  }
+
+  // Ensure transactions are stored before operations (satisfy FK)
+  if (txDetailsList.length > 0) {
+    await storeTransactionsInDB(txDetailsList)
+  }
+
+  // Store contract operations in database with proper contract mapping
+  if (operations.length > 0) {
+    console.log(`💾 Storing ${operations.length} contract operations in database...`)
+
+    // Add contract ID mapping to each operation before storing
+    const operationsWithContract = operations.map((op) => ({
+      ...op,
+      _contractId:
+        contractIds.find(
+          (id) =>
+            // The operation belongs to whichever contract account we fetched it from
+            op.source_account === id || op.account === id || JSON.stringify(op).includes(id)
+        ) || contractIds[0],
+    }))
+
+    const storedCount = await storeOperationsInDB(operationsWithContract, contractIds)
+    console.log(`✅ Stored ${storedCount} contract operations successfully`)
+  }
+
+  // Use the original transactions array for return (operationsResult.transactions expected)
+  const transactions = txDetailsList
+
+  return {
+    operations,
+    transactions,
+    accounts: accountsSet,
+    failedOperations,
+    operationsFetched: operations.length,
+    transactionsFetched: transactions.length,
   }
 }

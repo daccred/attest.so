@@ -9,7 +9,6 @@
  * @requires common/db
  */
 
-import { scValToNative, xdr } from '@stellar/stellar-sdk'
 import { getDB } from '../common/db'
 
 // TypeScript interface for schema API response (source of truth)
