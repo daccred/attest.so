@@ -20,10 +20,8 @@
 
 import { EventEmitter } from 'events'
 import { fetchAndStoreEvents } from '../repository/events.repository'
-import {
-  fetchContractOperations,
-  fetchContractComprehensiveData,
-} from '../repository/contracts.repository'
+import { fetchContractOperations } from '../repository/contracts.repository'
+import { performRecurringIngestion } from '../repository/ingest.repository'
 import { queueLogger } from './logger'
 
 /**
@@ -31,7 +29,7 @@ import { queueLogger } from './logger'
  */
 export const INGEST_JOB_TYPE_FETCH_EVENTS = 'fetch-events'
 export const INGEST_JOB_TYPE_FETCH_CONTRACT_OPERATIONS = 'fetch-contract-operations'
-export const INGEST_JOB_TYPE_FETCH_COMPREHENSIVE_DATA = 'fetch-comprehensive-data'
+export const INGEST_JOB_TYPE_FETCH_RECURRING = 'fetch-recurring'
 export const INGEST_JOB_TYPE_BACKFILL_MISSING_OPERATIONS = 'backfill-missing-operations'
 
 /**
@@ -43,7 +41,7 @@ export const INGEST_JOB_TYPE_BACKFILL_MISSING_OPERATIONS = 'backfill-missing-ope
 export type IngestJobType =
   | 'fetch-events'
   | 'fetch-contract-operations'
-  | 'fetch-comprehensive-data'
+  | 'fetch-recurring'
   | 'backfill-missing-operations'
 
 /**
@@ -209,28 +207,29 @@ class IngestQueue extends EventEmitter {
   }
 
   /**
-   * Enqueues a job for comprehensive contract data collection.
+   * Enqueues a job for recurring data ingestion.
    *
-   * Creates a comprehensive data job that fetches events, operations, and
-   * transactions for specified contracts. Provides complete synchronization
+   * Creates a recurring ingestion job that fetches events, operations, and
+   * transactions for specified contracts. Provides continuous synchronization
    * with configurable retry behavior.
    *
-   * @method enqueueComprehensiveData
+   * @method enqueueRecurringIngestion
    * @param {string[]} contractIds - Target contract IDs for data collection
    * @param {number} [startLedger] - Starting ledger sequence number
    * @param {Object} [opts] - Job configuration options
    * @param {number} [opts.maxAttempts=3] - Maximum retry attempts
    * @param {number} [opts.delayMs=0] - Initial execution delay
+   * @param {number} [opts.endLedger] - End ledger sequence number (optional)
    * @returns {string} Unique job ID for tracking
    */
-  enqueueComprehensiveData(
+  enqueueRecurringIngestion(
     contractIds: string[],
     startLedger?: number,
     opts?: { maxAttempts?: number; delayMs?: number; endLedger?: number }
   ): string {
     const job: IngestJob = {
-      id: `comprehensive-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: INGEST_JOB_TYPE_FETCH_COMPREHENSIVE_DATA,
+      id: `recurring-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      type: INGEST_JOB_TYPE_FETCH_RECURRING,
       payload: { startLedger, contractIds, endLedger: opts?.endLedger },
       attempts: 0,
       maxAttempts: opts?.maxAttempts ?? 3,
@@ -245,6 +244,17 @@ class IngestQueue extends EventEmitter {
       nextRunAt: job.nextRunAt,
     })
     return job.id
+  }
+
+  /**
+   * @deprecated Use enqueueRecurringIngestion instead
+   */
+  enqueueComprehensiveData(
+    contractIds: string[],
+    startLedger?: number,
+    opts?: { maxAttempts?: number; delayMs?: number; endLedger?: number }
+  ): string {
+    return this.enqueueRecurringIngestion(contractIds, startLedger, opts)
   }
 
   /**
@@ -338,18 +348,18 @@ class IngestQueue extends EventEmitter {
           job.payload.includeFailedTx
         )
         queueLogger.info('fetchContractOperations result', { id: job.id, result })
-      } else if (job.type === INGEST_JOB_TYPE_FETCH_COMPREHENSIVE_DATA) {
-        queueLogger.debug('[fetchContractComprehensiveData] request', {
+      } else if (job.type === INGEST_JOB_TYPE_FETCH_RECURRING) {
+        queueLogger.debug('[performRecurringIngestion] request', {
           id: job.id,
           payload: job.payload,
         })
-        result = await fetchContractComprehensiveData(
+        result = await performRecurringIngestion(
           job.payload.startLedger,
           job.payload.contractIds || []
         )
-        queueLogger.info('[fetchContractComprehensiveData] result', { id: job.id, result })
+        queueLogger.info('[performRecurringIngestion] result', { id: job.id, result })
 
-        const processedUpToLedger: number = result?.summary?.processedUpToLedger ?? 0
+        const processedUpToLedger: number = result?.processedUpToLedger ?? 0
         const shouldContinue =
           typeof job.payload.endLedger !== 'number' ||
           job.payload.endLedger <= 0 ||
@@ -364,7 +374,7 @@ class IngestQueue extends EventEmitter {
           }
           this.pendingJobs.push(nextJob)
           this.emit('requeued:job', { job: nextJob, backoffMs: delayMs })
-          queueLogger.info('scheduled next [fetch-comprehensive-data] iteration', {
+          queueLogger.info('scheduled next [fetch-recurring] iteration', {
             id: nextJob.id,
             nextRunInMs: delayMs,
             processedUpToLedger,
@@ -385,10 +395,10 @@ class IngestQueue extends EventEmitter {
       const isContinuousEventsJob =
         job.type === INGEST_JOB_TYPE_FETCH_EVENTS &&
         (typeof job.payload.endLedger !== 'number' || job.payload.endLedger <= 0)
-      const isContinuousComprehensiveJob =
-        job.type === INGEST_JOB_TYPE_FETCH_COMPREHENSIVE_DATA &&
+      const isContinuousRecurringJob =
+        job.type === INGEST_JOB_TYPE_FETCH_RECURRING &&
         (typeof job.payload.endLedger !== 'number' || job.payload.endLedger <= 0)
-      if (isContinuousEventsJob || isContinuousComprehensiveJob) {
+      if (isContinuousEventsJob || isContinuousRecurringJob) {
         const backoff = this.computeBackoffMs(job.attempts - 1)
         job.nextRunAt = Date.now() + backoff
         this.pendingJobs.push(job)

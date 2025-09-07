@@ -21,7 +21,7 @@ import { CONTRACT_IDS_TO_INDEX } from '../common/constants'
 // Route constants for ingest endpoints
 const INGEST_EVENTS_ROUTE = '/events'
 const INGEST_BACKFILL_ROUTE = '/backfill'
-const INGEST_FULL_ROUTE = '/full'
+const INGEST_RECURRING_ROUTE = '/recurring'
 
 const router = Router()
 
@@ -157,17 +157,17 @@ router.post(INGEST_BACKFILL_ROUTE, async (req: Request, res: Response) => {
 })
 
 /**
- * POST /ingest/full - Enqueue full data synchronization job.
+ * POST /ingest/recurring - Enqueue recurring data synchronization job.
  *
- * Queues a comprehensive data collection job that fetches events, operations,
- * transactions, and account data for specified contracts. This is the most
- * complete ingestion option, suitable for ongoing synchronization.
+ * Queues a recurring ingestion job that continuously fetches events, operations,
+ * transactions, and account data for specified contracts. This provides ongoing
+ * synchronization with automatic continuation until endLedger is reached.
  *
- * @route POST /ingest/full
+ * @route POST /ingest/recurring
  * @param {number} [startLedger] - Starting ledger sequence
  * @param {number} [endLedger] - Ending ledger sequence (optional)
  * @param {string[]} [contractIds] - Target contract IDs (defaults to config)
- * @returns {Object} Full sync job response
+ * @returns {Object} Recurring sync job response
  * @returns {boolean} response.success - Operation success indicator
  * @returns {string} response.jobId - Unique job identifier
  * @returns {string} response.message - Status message
@@ -177,7 +177,7 @@ router.post(INGEST_BACKFILL_ROUTE, async (req: Request, res: Response) => {
  * @status 400 - Invalid parameters
  * @status 500 - Failed to enqueue job
  */
-router.post(INGEST_FULL_ROUTE, async (req: Request, res: Response) => {
+router.post(INGEST_RECURRING_ROUTE, async (req: Request, res: Response) => {
   try {
     const { startLedger, contractIds } = req.body
 
@@ -199,13 +199,13 @@ router.post(INGEST_FULL_ROUTE, async (req: Request, res: Response) => {
       }
     }
 
-    const jobId = ingestQueue.enqueueComprehensiveData(targetContractIds, startLedgerFromRequest, {
+    const jobId = ingestQueue.enqueueRecurringIngestion(targetContractIds, startLedgerFromRequest, {
       endLedger: endLedgerFromRequest,
     })
 
     res.status(202).json({
       success: true,
-      message: `Full data synchronization job enqueued for ${
+      message: `Recurring data synchronization job enqueued for ${
         targetContractIds.length
       } contracts. Start ledger: ${startLedgerFromRequest || 'latest'}.`,
       jobId,
@@ -215,7 +215,7 @@ router.post(INGEST_FULL_ROUTE, async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to enqueue full data synchronization',
+      error: error.message || 'Failed to enqueue recurring data synchronization',
     })
   }
 })
