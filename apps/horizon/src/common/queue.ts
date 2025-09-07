@@ -306,7 +306,7 @@ class IngestQueue extends EventEmitter {
       if (job.type === INGEST_JOB_TYPE_FETCH_EVENTS) {
         queueLogger.debug('fetchAndStoreEvents request', { id: job.id, payload: job.payload })
         result = await fetchAndStoreEvents(job.payload.startLedger)
-        queueLogger.info('fetchAndStoreEvents result', { id: job.id, result })
+        queueLogger.info('[fetchAndStoreEvents] result', { id: job.id, result })
 
         const shouldContinue =
           typeof job.payload.endLedger !== 'number' ||
@@ -331,7 +331,7 @@ class IngestQueue extends EventEmitter {
           })
         }
       } else if (job.type === INGEST_JOB_TYPE_FETCH_CONTRACT_OPERATIONS) {
-        queueLogger.debug('fetchContractOperations request', { id: job.id, payload: job.payload })
+        queueLogger.debug('[fetchContractOperations] request', { id: job.id, payload: job.payload })
         result = await fetchContractOperations(
           job.payload.contractIds || [],
           job.payload.startLedger,
@@ -339,7 +339,7 @@ class IngestQueue extends EventEmitter {
         )
         queueLogger.info('fetchContractOperations result', { id: job.id, result })
       } else if (job.type === INGEST_JOB_TYPE_FETCH_COMPREHENSIVE_DATA) {
-        queueLogger.debug('fetchContractComprehensiveData request', {
+        queueLogger.debug('[fetchContractComprehensiveData] request', {
           id: job.id,
           payload: job.payload,
         })
@@ -347,7 +347,7 @@ class IngestQueue extends EventEmitter {
           job.payload.startLedger,
           job.payload.contractIds || []
         )
-        queueLogger.info('fetchContractComprehensiveData result', { id: job.id, result })
+        queueLogger.info('[fetchContractComprehensiveData] result', { id: job.id, result })
 
         const processedUpToLedger: number = result?.summary?.processedUpToLedger ?? 0
         const shouldContinue =
@@ -364,7 +364,7 @@ class IngestQueue extends EventEmitter {
           }
           this.pendingJobs.push(nextJob)
           this.emit('requeued:job', { job: nextJob, backoffMs: delayMs })
-          queueLogger.info('scheduled next fetch-comprehensive-data iteration', {
+          queueLogger.info('scheduled next [fetch-comprehensive-data] iteration', {
             id: nextJob.id,
             nextRunInMs: delayMs,
             processedUpToLedger,
