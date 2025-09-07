@@ -38,6 +38,9 @@ importers:
 
   apps/horizon:
     dependencies:
+      '@attestprotocol/stellar-contracts':
+        specifier: workspace:*
+        version: link:../../contracts/stellar
       '@attestprotocol/stellar-sdk':
         specifier: workspace:*
         version: link:../../packages/stellar-sdk
