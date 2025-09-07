@@ -9,6 +9,7 @@
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { SorobanSchemaEncoder, StellarDataType, StellarSchemaDefinition } from '@attestprotocol/stellar-sdk';
 import { getDB } from '../src/common/db';
 import schemaValues from './write-schema';
 
@@ -105,6 +106,29 @@ async function testSchemaLookup() {
 }
 
 async function main() {
+
+  const schema: StellarSchemaDefinition = {
+    name: 'test',
+    description: 'test',
+    fields: [
+      { name: 'test', type: StellarDataType.STRING }
+    ]
+  }
+
+  const encoder = new SorobanSchemaEncoder(schema);
+
+  console.log({
+    schemaXDR: encoder.toXDR(),
+    schemaJSON: encoder.toJSONSchema(),
+    schemaHash: encoder.getSchemaHash(),
+    schema: encoder.getSchema(),
+    schemaEncoded: encoder.encodeData({ test: 'test' }),
+    schemaValid: encoder.validateData({ test: 'test' }), 
+  });
+ 
+
+
+
   console.log('🧪 Schema Processing Test Suite\n');
   
   const tests = [
