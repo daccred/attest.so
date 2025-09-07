@@ -304,7 +304,7 @@ class IngestQueue extends EventEmitter {
       let result: any
 
       if (job.type === INGEST_JOB_TYPE_FETCH_EVENTS) {
-        queueLogger.debug('fetchAndStoreEvents request', { id: job.id, payload: job.payload })
+        queueLogger.debug('[fetchAndStoreEvents] request', { id: job.id, payload: job.payload })
         result = await fetchAndStoreEvents(job.payload.startLedger)
         queueLogger.info('[fetchAndStoreEvents] result', { id: job.id, result })
 
