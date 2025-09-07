@@ -3,8 +3,13 @@
 // This file contains the SorobanSchemaEncoder definitions for all common schemas.
 // ============================================================================
 
-import { Keypair } from '@stellar/stellar-sdk';
-import { SorobanSchemaEncoder, StellarAttestationClient, StellarDataType } from '@attestprotocol/stellar-sdk';
+import { Keypair, Transaction } from '@stellar/stellar-sdk';
+import { SorobanSchemaEncoder, StellarDataType } from '@attestprotocol/stellar-sdk';
+import * as ProtocolContract from '@attestprotocol/stellar-contracts/protocol';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
+
+const ATTEST_PROTOCOL_CONTRACT_ID = 'CBLG2QQ4BLFB7SSOPGYYJJHO5SLQROPRCLKBDMFQWRDXRA4ZXRIRWZW3'
 
 // ============================================================================
 // SCHEMA DEFINITIONS
@@ -313,7 +318,7 @@ const hardwareAttestationSchema = new SorobanSchemaEncoder({
     { name: 'model', type: StellarDataType.STRING },
     { name: 'hardware_hash', type: StellarDataType.STRING },
     { name: 'secure_boot', type: StellarDataType.BOOL },
-    { name: 'tpm_present', type: StellarDataType.BOOL },
+    { name: 'tmp_present', type: StellarDataType.BOOL },
   ]
 });
 
@@ -748,180 +753,303 @@ export const categorizedSchemas = {
     name: "Identity & Verification",
     description: "Schemas related to personal identity, authentication, and verification.",
     schemas: [
-      nationalIdSchema,
-      passportSchema,
-      driversLicenseSchema,
-      digitalWalletIdentitySchema,
-      biometricAuthSchema,
-      ageVerificationSchema,
-      trustScoreSchema,
-      backgroundCheckSchema,
-      multiFactorAuthenticationSchema,
+      { name: 'digitalWalletIdentitySchema', schema: digitalWalletIdentitySchema },
+      { name: 'nationalIdSchema', schema: nationalIdSchema },
+      { name: 'passportSchema', schema: passportSchema },
+      { name: 'biometricAuthSchema', schema: biometricAuthSchema },
+      { name: 'ageVerificationSchema', schema: ageVerificationSchema },
+      { name: 'trustScoreSchema', schema: trustScoreSchema },
+      { name: 'backgroundCheckSchema', schema: backgroundCheckSchema },
+      { name: 'multiFactorAuthenticationSchema', schema: multiFactorAuthenticationSchema },
     ]
   },
   education: {
     name: "Education & Credentials",
-    description: "Schemas for academic achievements, certifications, and skills.",
+    description: "Schemas for academic achievements, professional licenses, industry certifications and skills.",
     schemas: [
-      bachelorsDegreeSchema,
-      mastersDegreeSchema,
-      phdSchema,
-      itCertificationSchema,
-      skillBadgeSchema,
-      courseCompletionSchema,
-      languageProficiencySchema,
-      academicTranscriptSchema,
-    ]
-  },
-  professional: {
-    name: "Professional",
-    description: "Schemas for professional licenses, industry certifications, and employment.",
-    schemas: [
-      professionalLicenseSchema,
-      industryCertificationSchema,
-      competencyAssessmentSchema,
-      employeeIDSchema,
+      { name: 'bachelorsDegreeSchema', schema: bachelorsDegreeSchema },
+      { name: 'mastersDegreeSchema', schema: mastersDegreeSchema },
+      { name: 'phdSchema', schema: phdSchema },
+      { name: 'itCertificationSchema', schema: itCertificationSchema },
+      { name: 'skillBadgeSchema', schema: skillBadgeSchema },
+      { name: 'professionalLicenseSchema', schema: professionalLicenseSchema },
+      { name: 'industryCertificationSchema', schema: industryCertificationSchema },
+      { name: 'languageProficiencySchema', schema: languageProficiencySchema },
+      { name: 'competencyAssessmentSchema', schema: competencyAssessmentSchema },
+      { name: 'employeeIDSchema', schema: employeeIDSchema },
+      { name: 'courseCompletionSchema', schema: courseCompletionSchema },
+      { name: 'academicTranscriptSchema', schema: academicTranscriptSchema },
     ]
   },
   technology: {
     name: "Technology & Security",
     description: "Schemas for software, hardware, security, and IT infrastructure.",
     schemas: [
-      codeSigningSchema,
-      sbomSchema,
-      hardwareAttestationSchema,
-      apiSecuritySchema,
-      vulnerabilityAssessmentSchema,
-      oauthServiceSchema,
-      slaSchema,
-      contentProvenanceSchema,
-    ]
-  },
-  civic: {
-    name: "Civic & Public Service",
-    description: "Schemas related to civic duties and public service verification.",
-    schemas: [
-      voterEligibilitySchema,
-      publicServiceVerificationSchema,
+      { name: 'codeSigningSchema', schema: codeSigningSchema },
+      { name: 'sbomSchema', schema: sbomSchema },
+      { name: 'hardwareAttestationSchema', schema: hardwareAttestationSchema },
+      { name: 'apiSecuritySchema', schema: apiSecuritySchema },
+      { name: 'vulnerabilityAssessmentSchema', schema: vulnerabilityAssessmentSchema },
+      { name: 'oauthServiceSchema', schema: oauthServiceSchema },
+      { name: 'slaSchema', schema: slaSchema },
+      { name: 'contentProvenanceSchema', schema: contentProvenanceSchema },
     ]
   },
   institution: {
     name: "Institutional",
-    description: "Schemas for institutional accreditation, governance, and agreements.",
+    description: "Schemas for institutional accreditation, Public Service, governance, and agreements.",
     schemas: [
-      institutionalAccreditationSchema,
-      governanceAuditSchema,
-      partnershipAgreementSchema,
-      publicServiceQualitySchema,
+      { name: 'driversLicenseSchema', schema: driversLicenseSchema },
+      { name: 'institutionalAccreditationSchema', schema: institutionalAccreditationSchema },
+      { name: 'voterEligibilitySchema', schema: voterEligibilitySchema },
+      { name: 'publicServiceVerificationSchema', schema: publicServiceVerificationSchema },
+      { name: 'governanceAuditSchema', schema: governanceAuditSchema },
+      { name: 'esgReportingSchema', schema: esgReportingSchema },
+      { name: 'partnershipAgreementSchema', schema: partnershipAgreementSchema },
+      { name: 'publicServiceQualitySchema', schema: publicServiceQualitySchema },
     ]
   },
-  financialServices: {
-    name: "Financial Services",
+  finance: {
+    name: "Finance",
     description: "Schemas for finance, credit, insurance, and regulatory compliance.",
     schemas: [
-      creditAssessmentSchema,
-      altCreditScoreSchema,
-      amlTransactionMonitoringSchema,
-      investmentAdvisorSchema,
-      insuranceClaimSchema,
-      crossBorderPaymentSchema,
-      esgReportingSchema,
-      financialAuditSchema,
-      complianceAuditSchema,
-      incomeStatementSchema,
+      { name: 'creditAssessmentSchema', schema: creditAssessmentSchema },
+      { name: 'altCreditScoreSchema', schema: altCreditScoreSchema },
+      { name: 'amlTransactionMonitoringSchema', schema: amlTransactionMonitoringSchema },
+      { name: 'investmentAdvisorSchema', schema: investmentAdvisorSchema },
+      { name: 'insuranceClaimSchema', schema: insuranceClaimSchema },
+      { name: 'crossBorderPaymentSchema', schema: crossBorderPaymentSchema },
+      { name: 'financialAuditSchema', schema: financialAuditSchema },
+      { name: 'complianceAuditSchema', schema: complianceAuditSchema },
+      { name: 'incomeStatementSchema', schema: incomeStatementSchema },
     ]
   },
-  aiLanguageModels: {
-    name: "AI, LLMs & AI Agents",
+  gpt: {
+    name: "LLMs & AI Agents",
     description: "Schemas for AI models, training data, safety, and content generation.",
     schemas: [
-      modelTrainingProvenanceSchema,
-      aiSafetyCertificationSchema,
-      biasAuditSchema,
-      aiGeneratedContentSchema,
-      agentCapabilitySchema,
-      modelInterpretabilitySchema,
-      trainingConsentSchema,
-      trainingDataQualitySchema,
-      deepfakeDetectionSchema,
+      { name: 'modelTrainingProvenanceSchema', schema: modelTrainingProvenanceSchema },
+      { name: 'aiSafetyCertificationSchema', schema: aiSafetyCertificationSchema },
+      { name: 'biasAuditSchema', schema: biasAuditSchema },
+      { name: 'aiGeneratedContentSchema', schema: aiGeneratedContentSchema },
+      { name: 'agentCapabilitySchema', schema: agentCapabilitySchema },
+      { name: 'modelInterpretabilitySchema', schema: modelInterpretabilitySchema },
+      { name: 'trainingConsentSchema', schema: trainingConsentSchema },
+      { name: 'trainingDataQualitySchema', schema: trainingDataQualitySchema },
+      { name: 'tradingAgentPermissionSchema', schema: tradingAgentPermissionSchema },
+      { name: 'shoppingAgentPermissionSchema', schema: shoppingAgentPermissionSchema },
+      { name: 'travelMeetingAgentSchema', schema: travelMeetingAgentSchema },
+      { name: 'deepfakeDetectionSchema', schema: deepfakeDetectionSchema },
     ]
   },
-  aiAgentPermissions: {
-    name: "AI Agent Permissions",
-    description: "Schemas for granting and managing permissions for autonomous AI agents.",
-    schemas: [
-      tradingAgentPermissionSchema,
-      shoppingAgentPermissionSchema,
-      travelMeetingAgentSchema,
-    ]
-  }
 };
 
-export const allSchemas = [
-  ...categorizedSchemas.identity.schemas,
-  ...categorizedSchemas.education.schemas,
-  ...categorizedSchemas.professional.schemas,
-  ...categorizedSchemas.technology.schemas,
-  ...categorizedSchemas.civic.schemas,
-  ...categorizedSchemas.institution.schemas,
-  ...categorizedSchemas.financialServices.schemas,
-]
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
-/*
-@TODO 
-Batch create all schemas
-use the AttestProtocolClient to create the schemas
-Generate a new Keypair with the stellar-sdk
-Fund Keypair with Friendbot
-Create a new AttestProtocolClient with the Keypair
-Create all the schemas in batches of their categories
-Retrieve the Schema UIDs for each schema create and append to a jsonl of {name: schemaName, uid: schemaUid, category: schemaCategory}
-Save the list to a file called schemas.jsonl
-const CONTRACT_ID = 'CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5';
-const plainSchemaExample = travelMeetingAgentSchema.toJSONSchema();
-
-console.log(
-travelMeetingAgentSchema.toJSONSchema(), 
-travelMeetingAgentSchema.toXDR(), 
-travelMeetingAgentSchema.getSchemaHash(), 
-travelMeetingAgentSchema.getSchema(),
-);
-
-{
-  '$schema': 'https://json-schema.org/draft/2020-12/schema',
-  type: 'object',
-  title: 'Travel & Meeting Agent Permission',
-  description: 'Permissions for an automated travel and meeting agent.',
-  properties: {
-    agent_id: { type: 'string', description: undefined },
-    principal: { type: 'string', description: undefined },
-    can_book_flights: { type: 'boolean', description: undefined },
-    max_flight_cost: { type: 'number', description: undefined },
-    can_book_hotels: { type: 'boolean', description: undefined },
-    max_hotel_nightly: { type: 'number', description: undefined },
-    can_attend_meetings: { type: 'boolean', description: undefined }
-  },
-  required: [
-    'agent_id',
-    'principal',
-    'can_book_flights',
-    'max_flight_cost',
-    'can_book_hotels',
-    'max_hotel_nightly',
-    'can_attend_meetings'
-  ],
-  additionalProperties: false
-} XDR:AAAAEQAAAAEAAAADAAAADwAAAARuYW1lAAAADgAAACFUcmF2ZWwgJiBNZWV0aW5nIEFnZW50IFBlcm1pc3Npb24AAAAAAAAPAAAAC2Rlc2NyaXB0aW9uAAAAAA4AAAA2UGVybWlzc2lvbnMgZm9yIGFuIGF1dG9tYXRlZCB0cmF2ZWwgYW5kIG1lZXRpbmcgYWdlbnQuAAAAAAAPAAAABmZpZWxkcwAAAAAAEAAAAAEAAAAHAAAAEQAAAAEAAAADAAAADwAAAARuYW1lAAAADgAAAAhhZ2VudF9pZAAAAA8AAAAEdHlwZQAAAA4AAAAGc3RyaW5nAAAAAAAPAAAACG9wdGlvbmFsAAAAAAAAAAAAAAARAAAAAQAAAAMAAAAPAAAABG5hbWUAAAAOAAAACXByaW5jaXBhbAAAAAAAAA8AAAAEdHlwZQAAAA4AAAAGc3RyaW5nAAAAAAAPAAAACG9wdGlvbmFsAAAAAAAAAAAAAAARAAAAAQAAAAMAAAAPAAAABG5hbWUAAAAOAAAAEGNhbl9ib29rX2ZsaWdodHMAAAAPAAAABHR5cGUAAAAOAAAABGJvb2wAAAAPAAAACG9wdGlvbmFsAAAAAAAAAAAAAAARAAAAAQAAAAMAAAAPAAAABG5hbWUAAAAOAAAAD21heF9mbGlnaHRfY29zdAAAAAAPAAAABHR5cGUAAAAOAAAAA3UzMgAAAAAPAAAACG9wdGlvbmFsAAAAAAAAAAAAAAARAAAAAQAAAAMAAAAPAAAABG5hbWUAAAAOAAAAD2Nhbl9ib29rX2hvdGVscwAAAAAPAAAABHR5cGUAAAAOAAAABGJvb2wAAAAPAAAACG9wdGlvbmFsAAAAAAAAAAAAAAARAAAAAQAAAAMAAAAPAAAABG5hbWUAAAAOAAAAEW1heF9ob3RlbF9uaWdodGx5AAAAAAAADwAAAAR0eXBlAAAADgAAAAN1MzIAAAAADwAAAAhvcHRpb25hbAAAAAAAAAAAAAAAEQAAAAEAAAADAAAADwAAAARuYW1lAAAADgAAABNjYW5fYXR0ZW5kX21lZXRpbmdzAAAAAA8AAAAEdHlwZQAAAA4AAAAEYm9vbAAAAA8AAAAIb3B0aW9uYWwAAAAAAAAAAA== 7b226e616d65223a2254726176656c2026204d656574696e67204167656e7420 {
-  name: 'Travel & Meeting Agent Permission',
-  description: 'Permissions for an automated travel and meeting agent.',
-  fields: [
-    { name: 'agent_id', type: 'string' },
-    { name: 'principal', type: 'string' },
-    { name: 'can_book_flights', type: 'bool' },
-    { name: 'max_flight_cost', type: 'u32' },
-    { name: 'can_book_hotels', type: 'bool' },
-    { name: 'max_hotel_nightly', type: 'u32' },
-    { name: 'can_attend_meetings', type: 'bool' }
-  ]
+async function fundAccountIfNeeded(publicKey: string): Promise<void> {
+  try {
+    console.log(`Funding account: ${publicKey}`)
+    const response = await fetch(`https://friendbot.stellar.org?addr=${encodeURIComponent(publicKey)}`)
+    if (!response.ok) {
+      console.warn(`Friendbot funding failed for ${publicKey}: ${response.statusText}`)
+    } else {
+      console.log(`Successfully funded account: ${publicKey}`)
+    }
+    // Wait a bit for the account to be ready
+    await new Promise(resolve => setTimeout(resolve, 2000))
+  } catch (error) {
+    console.warn(`Error funding account ${publicKey}:`, error)
+  }
 }
-*/
+
+async function registerSchema(
+  client: ProtocolContract.Client,
+  keypair: Keypair,
+  schemaName: string,
+  schema: SorobanSchemaEncoder,
+  category: string
+): Promise<{ name: string; uid: string; category: string } | null> {
+  try {
+    console.log(`Registering schema: ${schemaName}`)
+    
+    // Convert schema to JSON string format
+    const schemaDefinition = JSON.stringify(schema.getSchema())
+    console.log(`Schema definition for ${schemaName}:`, schemaDefinition.substring(0, 100) + '...')
+    
+    const tx = await client.register({
+      caller: keypair.publicKey(),
+      schema_definition: schemaDefinition,
+      resolver: undefined, // No resolver for these schemas
+      revocable: true
+    }, {
+      fee: 100000, // Reduced from 1,000,000 to 100,000 stroops (0.01 XLM)
+      timeoutInSeconds: 60
+    })
+
+    console.log(`Transaction created for ${schemaName}, signing and sending...`)
+    
+    const sent = await tx.signAndSend({
+      signTransaction: async (xdr: string) => {
+        const transaction = new Transaction(xdr, ProtocolContract.networks.testnet.networkPassphrase)
+        transaction.sign(keypair)
+        return { signedTxXdr: transaction.toXDR() }
+      }
+    })
+
+    console.log(`Transaction completed for ${schemaName}`)
+    
+    // Check if result exists before trying to access it
+    if (!sent.result) {
+      console.error(`❌ No result returned for schema '${schemaName}' - transaction may have failed`)
+      console.log(`Full sent object:`, JSON.stringify(sent, null, 2))
+      return null
+    }
+
+    const res = sent.result as ProtocolContract.contract.Result<Buffer>
+    if (res.isOk()) {
+      const schemaUid = res.unwrap()
+      const uidHex = schemaUid.toString('hex')
+      console.log(`✅ Schema '${schemaName}' registered with UID: ${uidHex}`)
+      
+      return {
+        name: schemaName,
+        uid: uidHex,
+        category: category
+      }
+    } else {
+      console.error(`❌ Failed to register schema '${schemaName}':`, res.unwrapErr())
+      return null
+    }
+  } catch (error) {
+    console.error(`❌ Error registering schema '${schemaName}':`, error)
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error(`Error message: ${error.message}`)
+      console.error(`Error stack: ${error.stack}`)
+    }
+    return null
+  }
+}
+
+// ============================================================================
+// MAIN FUNCTION - BATCH CREATE SCHEMAS BY CATEGORY
+// ============================================================================
+
+async function main() {
+  console.log('🚀 Starting schema registration process...')
+  
+  // Get category to process from command line argument
+  const categoryToProcess = process.argv[2]
+  const availableCategories = Object.keys(categorizedSchemas)
+  
+  if (categoryToProcess && !availableCategories.includes(categoryToProcess)) {
+    console.error(`❌ Invalid category: ${categoryToProcess}`)
+    console.log(`Available categories: ${availableCategories.join(', ')}`)
+    process.exit(1)
+  }
+  
+  if (!categoryToProcess) {
+    console.log(`📋 Available categories to process:`)
+    availableCategories.forEach((cat, index) => {
+      const categoryData = categorizedSchemas[cat as keyof typeof categorizedSchemas]
+      console.log(`  ${index + 1}. ${cat} - ${categoryData.name} (${categoryData.schemas.length} schemas)`)
+    })
+    console.log(`\n💡 Usage: npx ts-node init-schema.ts <category>`)
+    console.log(`   Example: npx ts-node init-schema.ts identity`)
+    return
+  }
+  
+  try {
+    // Generate a new keypair
+    const keypair = Keypair.random()
+    console.log(`Generated keypair: ${keypair.publicKey()}`)
+    
+    // Fund the account with Friendbot
+    await fundAccountIfNeeded(keypair.publicKey())
+    
+    // Get contract ID from environment or use default testnet deployment
+    const protocolContractId =  ATTEST_PROTOCOL_CONTRACT_ID
+    const rpcUrl = 'https://soroban-testnet.stellar.org'
+    
+    console.log(`Using protocol contract: ${protocolContractId}`)
+    
+    // Create Protocol client
+    const protocolClient = new ProtocolContract.Client({
+      contractId: protocolContractId,
+      networkPassphrase: ProtocolContract.networks.testnet.networkPassphrase,
+      rpcUrl: rpcUrl,
+      allowHttp: true,
+      publicKey: keypair.publicKey()
+    })
+    
+    const results: Array<{ name: string; uid: string; category: string }> = []
+    
+    // Process the specified category
+    const categoryData = categorizedSchemas[categoryToProcess as keyof typeof categorizedSchemas]
+    console.log(`\n📂 Processing category: ${categoryData.name}`)
+    console.log(`📊 Total schemas in category: ${categoryData.schemas.length}`)
+    
+    let successCount = 0
+    let failCount = 0
+    
+    for (let i = 0; i < categoryData.schemas.length; i++) {
+      const schemaItem = categoryData.schemas[i]
+      console.log(`\n[${i + 1}/${categoryData.schemas.length}] Processing: ${schemaItem.name}`)
+      
+      const result = await registerSchema(
+        protocolClient,
+        keypair,
+        schemaItem.name,
+        schemaItem.schema,
+        categoryToProcess
+      )
+      
+      if (result) {
+        results.push(result)
+        successCount++
+      } else {
+        failCount++
+      }
+      
+      // Add delay between registrations to avoid rate limiting
+      if (i < categoryData.schemas.length - 1) {
+        console.log(`⏱️  Waiting 3 seconds before next schema...`)
+        await new Promise(resolve => setTimeout(resolve, 3000))
+      }
+    }
+    
+    // Save results to category-specific file
+    const outputPath = join(__dirname, `schemas-${categoryToProcess}.jsonl`)
+    const jsonlContent = results.map(result => JSON.stringify(result)).join('\n')
+    writeFileSync(outputPath, jsonlContent, 'utf8')
+    
+    console.log(`\n✅ Category '${categoryToProcess}' processing complete!`)
+    console.log(`📝 Results saved to: ${outputPath}`)
+    console.log(`📊 Success: ${successCount}, Failed: ${failCount}, Total: ${categoryData.schemas.length}`)
+    console.log(`💰 Account used: ${keypair.publicKey()}`)
+    
+    if (results.length > 0) {
+      console.log(`\n🎉 Successfully registered schemas:`)
+      results.forEach(result => {
+        console.log(`  • ${result.name}: ${result.uid}`)
+      })
+    }
+    
+    if (failCount > 0) {
+      console.log(`\n⚠️  ${failCount} schemas failed to register. Check the logs above for details.`)
+    }
+    
+  } catch (error) {
+    console.error('❌ Schema registration failed:', error)
+    process.exit(1)
+  }
+}
+
+// Execute the main function
+if (require.main === module) {
+  main().catch(console.error)
+}
+
+export { main }

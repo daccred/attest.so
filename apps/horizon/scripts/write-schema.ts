@@ -512,124 +512,64 @@ const travelMeetingAgentSchemaValue = {
 // EXPORT ALL SCHEMAS FOR REFERENCE
 // ============================================================================
 
-const categorizedSchemas = {
-  identity: {
-    name: "Identity & Verification",
-    description: "Schemas related to personal identity, authentication, and verification.",
-    schemas: {
-      nationalIdSchema: nationalIdSchemaValue,
-      passportSchema: passportSchemaValue,
-      driversLicenseSchema: driversLicenseSchemaValue,
-      digitalWalletIdentitySchema: digitalWalletIdentitySchemaValue,
-      biometricAuthSchema: biometricAuthSchemaValue,
-      ageVerificationSchema: ageVerificationSchemaValue,
-      trustScoreSchema: trustScoreSchemaValue,
-      backgroundCheckSchema: backgroundCheckSchemaValue,
-      multiFactorAuthenticationSchema: multiFactorAuthenticationSchemaValue,
-    }
-  },
-  education: {
-    name: "Education & Credentials",
-    description: "Schemas for academic achievements, certifications, and skills.",
-    schemas: {
-      bachelorsDegreeSchema: bachelorsDegreeSchemaValue,
-      mastersDegreeSchema: mastersDegreeSchemaValue,
-      phdSchema: phdSchemaValue,
-      itCertificationSchema: itCertificationSchemaValue,
-      skillBadgeSchema: skillBadgeSchemaValue,
-      courseCompletionSchema: courseCompletionSchemaValue,
-      languageProficiencySchema: languageProficiencySchemaValue,
-      academicTranscriptSchema: academicTranscriptSchemaValue,
-    }
-  },
-  professional: {
-    name: "Professional",
-    description: "Schemas for professional licenses, industry certifications, and employment.",
-    schemas: {
-      professionalLicenseSchema: professionalLicenseSchemaValue,
-      industryCertificationSchema: industryCertificationSchemaValue,
-      competencyAssessmentSchema: competencyAssessmentSchemaValue,
-      employeeIDSchema: employeeIDSchemaValue,
-    }
-  },
-  technology: {
-    name: "Technology & Security",
-    description: "Schemas for software, hardware, security, and IT infrastructure.",
-    schemas: {
-      codeSigningSchema: codeSigningSchemaValue,
-      sbomSchema: sbomSchemaValue,
-      hardwareAttestationSchema: hardwareAttestationSchemaValue,
-      apiSecuritySchema: apiSecuritySchemaValue,
-      vulnerabilityAssessmentSchema: vulnerabilityAssessmentSchemaValue,
-      oauthServiceSchema: oauthServiceSchemaValue,
-      slaSchema: slaSchemaValue,
-      contentProvenanceSchema: contentProvenanceSchemaValue,
-    }
-  },
-  civic: {
-    name: "Civic & Public Service",
-    description: "Schemas related to civic duties and public service verification.",
-    schemas: {
-      voterEligibilitySchema: voterEligibilitySchemaValue,
-      publicServiceVerificationSchema: publicServiceVerificationSchemaValue,
-    }
-  },
-  institution: {
-    name: "Institutional",
-    description: "Schemas for institutional accreditation, governance, and agreements.",
-    schemas: {
-      institutionalAccreditationSchema: institutionalAccreditationSchemaValue,
-      governanceAuditSchema: governanceAuditSchemaValue,
-      partnershipAgreementSchema: partnershipAgreementSchemaValue,
-      publicServiceQualitySchema: publicServiceQualitySchemaValue,
-    }
-  },
-  financialServices: {
-    name: "Financial Services",
-    description: "Schemas for finance, credit, insurance, and regulatory compliance.",
-    schemas: {
-      creditAssessmentSchema: creditAssessmentSchemaValue,
-      altCreditScoreSchema: altCreditScoreSchemaValue,
-      amlTransactionMonitoringSchema: amlTransactionMonitoringSchemaValue,
-      investmentAdvisorSchema: investmentAdvisorSchemaValue,
-      insuranceClaimSchema: insuranceClaimSchemaValue,
-      crossBorderPaymentSchema: crossBorderPaymentSchemaValue,
-      esgReportingSchema: esgReportingSchemaValue,
-      financialAuditSchema: financialAuditSchemaValue,
-      complianceAuditSchema: complianceAuditSchemaValue,
-      incomeStatementSchema: incomeStatementSchemaValue,
-    }
-  },
-  aiLanguageModels: {
-    name: "AI, LLMs & AI Agents",
-    description: "Schemas for AI models, training data, safety, and content generation.",
-    schemas: {
-      modelTrainingProvenanceSchema: modelTrainingProvenanceSchemaValue,
-      aiSafetyCertificationSchema: aiSafetyCertificationSchemaValue,
-      biasAuditSchema: biasAuditSchemaValue,
-      aiGeneratedContentSchema: aiGeneratedContentSchemaValue,
-      agentCapabilitySchema: agentCapabilitySchemaValue,
-      modelInterpretabilitySchema: modelInterpretabilitySchemaValue,
-      trainingConsentSchema: trainingConsentSchemaValue,
-      trainingDataQualitySchema: trainingDataQualitySchemaValue,
-      deepfakeDetectionSchema: deepfakeDetectionSchemaValue,
-    }
-  },
-  aiAgentPermissions: {
-    name: "AI Agent Permissions",
-    description: "Schemas for granting and managing permissions for autonomous AI agents.",
-    schemas: {
-      tradingAgentPermissionSchema: tradingAgentPermissionSchemaValue,
-      shoppingAgentPermissionSchema: shoppingAgentPermissionSchemaValue,
-      travelMeetingAgentSchema: travelMeetingAgentSchemaValue,
-    }
-  }
+const schemaValues = {
+  nationalIdSchema: nationalIdSchemaValue,
+  passportSchema: passportSchemaValue,
+  driversLicenseSchema: driversLicenseSchemaValue,
+  digitalWalletIdentitySchema: digitalWalletIdentitySchemaValue,
+  biometricAuthSchema: biometricAuthSchemaValue,
+  ageVerificationSchema: ageVerificationSchemaValue,
+  trustScoreSchema: trustScoreSchemaValue,
+  backgroundCheckSchema: backgroundCheckSchemaValue,
+  multiFactorAuthenticationSchema: multiFactorAuthenticationSchemaValue,
+  bachelorsDegreeSchema: bachelorsDegreeSchemaValue,
+  mastersDegreeSchema: mastersDegreeSchemaValue,
+  phdSchema: phdSchemaValue,
+  itCertificationSchema: itCertificationSchemaValue,
+  skillBadgeSchema: skillBadgeSchemaValue,
+  courseCompletionSchema: courseCompletionSchemaValue,
+  languageProficiencySchema: languageProficiencySchemaValue,
+  academicTranscriptSchema: academicTranscriptSchemaValue,
+  professionalLicenseSchema: professionalLicenseSchemaValue,
+  industryCertificationSchema: industryCertificationSchemaValue,
+  competencyAssessmentSchema: competencyAssessmentSchemaValue,
+  employeeIDSchema: employeeIDSchemaValue,
+  codeSigningSchema: codeSigningSchemaValue,
+  sbomSchema: sbomSchemaValue,
+  hardwareAttestationSchema: hardwareAttestationSchemaValue,
+  apiSecuritySchema: apiSecuritySchemaValue,
+  vulnerabilityAssessmentSchema: vulnerabilityAssessmentSchemaValue,
+  oauthServiceSchema: oauthServiceSchemaValue,
+  slaSchema: slaSchemaValue,
+  contentProvenanceSchema: contentProvenanceSchemaValue,
+  voterEligibilitySchema: voterEligibilitySchemaValue,
+  publicServiceVerificationSchema: publicServiceVerificationSchemaValue,
+  institutionalAccreditationSchema: institutionalAccreditationSchemaValue,
+  governanceAuditSchema: governanceAuditSchemaValue,
+  partnershipAgreementSchema: partnershipAgreementSchemaValue,
+  publicServiceQualitySchema: publicServiceQualitySchemaValue,
+  creditAssessmentSchema: creditAssessmentSchemaValue,
+  altCreditScoreSchema: altCreditScoreSchemaValue,
+  amlTransactionMonitoringSchema: amlTransactionMonitoringSchemaValue,
+  investmentAdvisorSchema: investmentAdvisorSchemaValue,
+  insuranceClaimSchema: insuranceClaimSchemaValue,
+  crossBorderPaymentSchema: crossBorderPaymentSchemaValue,
+  esgReportingSchema: esgReportingSchemaValue,
+  financialAuditSchema: financialAuditSchemaValue,
+  complianceAuditSchema: complianceAuditSchemaValue,
+  incomeStatementSchema: incomeStatementSchemaValue,
+  modelTrainingProvenanceSchema: modelTrainingProvenanceSchemaValue,
+  aiSafetyCertificationSchema: aiSafetyCertificationSchemaValue,
+  biasAuditSchema: biasAuditSchemaValue,
+  aiGeneratedContentSchema: aiGeneratedContentSchemaValue,
+  agentCapabilitySchema: agentCapabilitySchemaValue,
+  modelInterpretabilitySchema: modelInterpretabilitySchemaValue,
+  trainingConsentSchema: trainingConsentSchemaValue,
+  trainingDataQualitySchema: trainingDataQualitySchemaValue,
+  deepfakeDetectionSchema: deepfakeDetectionSchemaValue,
+  tradingAgentPermissionSchema: tradingAgentPermissionSchemaValue,
+  shoppingAgentPermissionSchema: shoppingAgentPermissionSchemaValue,
+  travelMeetingAgentSchema: travelMeetingAgentSchemaValue,
 };
 
-const allSchemas = Object.values(categorizedSchemas).reduce((acc, category) => {
-  return { ...acc, ...category.schemas };
-}, {});
-
-console.log("Total schemas defined:", Object.keys(allSchemas).length);
-console.log("Schema categories covered:", Object.keys(categorizedSchemas).join(', '));
-console.log("Sample schema from 'financialServices':", categorizedSchemas.financialServices.schemas.altCreditScoreSchema);
+export default schemaValues;
