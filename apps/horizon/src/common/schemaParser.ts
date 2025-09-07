@@ -8,6 +8,7 @@
 
 import { SorobanSchemaEncoder } from '@attestprotocol/stellar-sdk'
 
+
 /**
  * Attempts to parse a schema definition string and convert it to JSONSchema.
  * 
