@@ -328,6 +328,10 @@ class IngestQueue extends EventEmitter {
           const delayMs = this.pollIntervalMs
           const nextJob: IngestJob = {
             ...job,
+            payload: {
+              ...job.payload,
+              startLedger: result.processedUpToLedger + 1, // Continue from the next ledger
+            },
             attempts: result.eventsFetched === 0 ? job.attempts + 1 : 0,
             nextRunAt: Date.now() + delayMs,
           }
@@ -337,6 +341,7 @@ class IngestQueue extends EventEmitter {
             id: nextJob.id,
             nextRunInMs: delayMs,
             processedUpToLedger: result.processedUpToLedger,
+            continuingFromLedger: result.processedUpToLedger + 1,
             endLedger: job.payload.endLedger ?? null,
           })
         }
@@ -369,6 +374,10 @@ class IngestQueue extends EventEmitter {
           const delayMs = this.pollIntervalMs
           const nextJob: IngestJob = {
             ...job,
+            payload: {
+              ...job.payload,
+              startLedger: processedUpToLedger + 1, // Continue from the next ledger
+            },
             attempts: 0,
             nextRunAt: Date.now() + delayMs,
           }
@@ -378,6 +387,7 @@ class IngestQueue extends EventEmitter {
             id: nextJob.id,
             nextRunInMs: delayMs,
             processedUpToLedger,
+            continuingFromLedger: processedUpToLedger + 1,
             endLedger: job.payload.endLedger ?? null,
           })
         }

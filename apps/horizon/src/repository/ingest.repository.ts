@@ -18,7 +18,7 @@ import {
   MAX_EVENTS_PER_FETCH,
   getHorizonBaseUrl,
 } from '../common/constants'
-import { getDB, updateLastProcessedLedgerInDB } from '../common/db'
+import { getDB, getLastProcessedLedgerFromDB, updateLastProcessedLedgerInDB } from '../common/db'
 import { fetchTransactionDetails } from './transactions.repository'
 import { singleUpsertSchema } from './schemas.repository'
 import { singleUpsertAttestation } from './attestations.repository'
@@ -106,7 +106,7 @@ export async function performRecurringIngestion(
   let eventsProcessed = 0
   let transactionsProcessed = 0
   let operationsProcessed = 0
-  let processedUpToLedger = startLedger || 0
+  let processedUpToLedger = 0
   const errors: string[] = []
 
   try {
@@ -116,11 +116,18 @@ export async function performRecurringIngestion(
       throw new Error('Failed to get latest ledger from RPC')
     }
 
-    console.log(`📋 Ingesting from ledger ${startLedger} (latest: ${latestLedger.sequence})`)
+    // Determine starting ledger: use provided startLedger, or fetch from database, or default to 1
+    let currentStartLedger = startLedger
+    if (!currentStartLedger) {
+      const lastProcessedLedger = await getLastProcessedLedgerFromDB()
+      // Start from the next ledger after the last processed one
+      currentStartLedger = lastProcessedLedger > 0 ? lastProcessedLedger + 1 : 1
+      console.log(`📊 Resuming from last processed ledger: ${lastProcessedLedger} -> starting at ${currentStartLedger}`)
+    }
 
-    // Fetch events in a single batch for this iteration
-    const currentStartLedger = startLedger || 1
-    
+    console.log(`📋 Ingesting from ledger ${currentStartLedger} (latest: ${latestLedger.sequence})`)
+    processedUpToLedger = currentStartLedger - 1 // Initialize to one before start
+
     // Prepare RPC request
     const eventsRequestParams: any = {
       filters: [{ type: 'contract', contractIds: targetContractIds, topics: [] }],

@@ -1,8 +1,8 @@
-{"name":"codeSigningSchema","uid":"90dbff544cd5df46a0989c8870098068750c1af74a7234709c3788d3ba75ef0b","category":"technology"}
-{"name":"sbomSchema","uid":"15f5c5e1b800c838c4594b499d0cb90aedc012ff1dc00acfbc6d0ed718650b28","category":"technology"}
-{"name":"hardwareAttestationSchema","uid":"0376888992b4797636ef4b2688f5979dd71bce724e1b433960fda19baee5d2e5","category":"technology"}
-{"name":"apiSecuritySchema","uid":"e7cdb0bc4e2b6f31c4e86ebc5236446c70d1554c632fa3a76c0f854f820c4154","category":"technology"}
-{"name":"vulnerabilityAssessmentSchema","uid":"0f94e6b4e212a9d03cf60579bd969dd1888468556bba58939c513e4fe14d6d85","category":"technology"}
-{"name":"oauthServiceSchema","uid":"19a024cc5553293f83f53186df371278e678a35dc595661167ef8da82f132630","category":"technology"}
-{"name":"slaSchema","uid":"7de0ffa3a2c9ed0d8d26adfd7fba59f8c93b458573d4479a4fdec536dd470ece","category":"technology"}
-{"name":"contentProvenanceSchema","uid":"6f44cdf268fa489b6595f3b7ee9fff75fcb124ec83ac534c8b54c74510a35f44","category":"technology"}
+{"name":"codeSigningSchema","uid":"ca91a0b378e649a0f00bbcbb7c038a4ed7d034970fb4db867543e29f44c77aa7","category":"technology"}
+{"name":"sbomSchema","uid":"0c40fb6b1773634800f12efffbe752e12d3c38dd79e2bf5687da4c82bcdcb7c6","category":"technology"}
+{"name":"hardwareAttestationSchema","uid":"914f3d90647eff5e9a0eef3c65614ebab959d62ce6554f09e164ed508e2c6d83","category":"technology"}
+{"name":"apiSecuritySchema","uid":"4682316cfa2ab69567f6aea0141bebcc6fac26ab84bcb6cbf4a289dc5ea5b5d9","category":"technology"}
+{"name":"vulnerabilityAssessmentSchema","uid":"618316781e7ab2539382ac86852bb114ccfeaa615ef2239574756299a4971037","category":"technology"}
+{"name":"oauthServiceSchema","uid":"656de1edf74a9cbaf3868ca87d62abee7472d3de7f862f2769404135a00b4f7d","category":"technology"}
+{"name":"slaSchema","uid":"fcb0e647ce96758d1709f9a8f67ba99087942d3dfd17f008e47166c7c8ed8157","category":"technology"}
+{"name":"contentProvenanceSchema","uid":"9fdd46f7612bdae06f19068d675c4b4850ee35a20362595fcd3837d0f98ae5f2","category":"technology"}
