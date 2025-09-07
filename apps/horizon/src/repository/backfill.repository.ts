@@ -24,7 +24,7 @@ import { fetchTransactionDetails } from './transactions.repository'
 import { singleUpsertSchema } from './schemas.repository'
 import { singleUpsertAttestation } from './attestations.repository'
 import { upsertContractTransaction } from './contract-transactions.repository'
-import { parseSchemaDefinition } from '../common/schemaParser'
+import { parseSchemaDefinition } from '../common/schema-parser'
 
 const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://'),
