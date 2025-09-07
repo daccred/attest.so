@@ -10,7 +10,9 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/horizon/package.json ./apps/horizon/
-COPY packages/*/package.json ./packages/*/
+COPY packages/core/package.json ./packages/core/
+COPY packages/stellar-sdk/package.json ./packages/stellar-sdk/
+COPY contracts/stellar/package.json ./contracts/stellar/
 
 # Install dependencies with increased memory
 ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -21,8 +23,8 @@ COPY . .
 
 # Build workspace dependencies first
 RUN pnpm --filter "@attestprotocol/core" build
-RUN pnpm --filter "@attestprotocol/stellar-sdk" build
 RUN pnpm --filter "@attestprotocol/stellar-contracts" build
+RUN pnpm --filter "@attestprotocol/stellar-sdk" build
 
 # Generate Prisma client and build
 WORKDIR /app/apps/horizon
