@@ -20,7 +20,7 @@
   },
   "include": [
     "src/**/*"
-, "__tests__/testutils"  ],
+, "__tests__/testutils", "__tests__/schema-encoder.test.ts"  ],
   "exclude": [
     "node_modules",
     "dist",
