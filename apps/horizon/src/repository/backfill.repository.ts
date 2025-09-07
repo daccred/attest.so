@@ -24,6 +24,7 @@ import { fetchTransactionDetails } from './transactions.repository'
 import { singleUpsertSchema } from './schemas.repository'
 import { singleUpsertAttestation } from './attestations.repository'
 import { upsertContractTransaction } from './contract-transactions.repository'
+import { parseSchemaDefinition } from '../common/schemaParser'
 
 const sorobanServer = new rpc.Server(sorobanRpcUrl, {
   allowHttp: sorobanRpcUrl.startsWith('http://'),
@@ -636,7 +637,7 @@ async function upsertEventIndividually(db: any, eventData: EventData, operationI
           uid: schemaUid,
           ledger: eventData.ledger,
           schemaDefinition: defString,
-          parsedSchemaDefinition: (() => { try { return JSON.parse(defString) } catch { return undefined } })(),
+          parsedSchemaDefinition: parseSchemaDefinition(defString),
           resolverAddress: schemaObj.resolver ?? null,
           revocable: schemaObj.revocable !== false,
           deployerAddress: schemaObj.authority || txDetails?.sourceAccount || '',
