@@ -34,11 +34,7 @@ if (typeof window !== 'undefined') {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5",
-  },
-  mainnet: {
-    networkPassphrase: "Public Global Stellar Network ; September 2015",
-    contractId: "CAHF7BNSBQWMB74EHGTLL5W4M2B73QGVJQQK3CQDGEHW5XU5SYKOSXYK",
+    contractId: "CBLG2QQ4BLFB7SSOPGYYJJHO5SLQROPRCLKBDMFQWRDXRA4ZXRIRWZW3",
   }
 } as const
 
