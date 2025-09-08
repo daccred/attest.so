@@ -8,13 +8,13 @@
     "@attestprotocol/core": "1.7.6",
     "@attestprotocol/solana-sdk": "1.7.6",
     "@attestprotocol/starknet-sdk": "1.7.6",
-    "@attestprotocol/stellar-sdk": "1.7.5"
+    "@attestprotocol/stellar-sdk": "1.7.6"
   },
   "devDependencies": {
     "@sebbo2002/semantic-release-jsr": "3.0.0",
     "@semantic-release/exec": "^7.0.3",
     "semantic-release-plugin-update-version-in-files": "^2.0.0",
-    "tsup": "^8.4.0"
+    "tsup": "^8.5.0"
   },
   "directories": {
     "test": "test"
