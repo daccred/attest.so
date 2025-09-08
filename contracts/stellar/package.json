@@ -1,7 +1,7 @@
 {
   "name": "@attestprotocol/stellar-contracts",
   "description": "Stellar Attestation Service",
-  "version": "1.7.5",
+  "version": "1.7.6",
   "author": "",
   "dependencies": {
     "@noble/curves": "^2.0.0",

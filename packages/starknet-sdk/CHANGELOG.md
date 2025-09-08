@@ -1,5 +1,13 @@
 # @attestprotocol/starknet-sdk
 
+## 1.7.6
+
+### Patch Changes
+
+- b14b837: integration refinements across SDK, horizon and schema deployer dApp
+- Updated dependencies [b14b837]
+  - @attestprotocol/core@1.7.6
+
 ## 1.7.5
 
 ### Patch Changes

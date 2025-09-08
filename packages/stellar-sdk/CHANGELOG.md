@@ -4,6 +4,15 @@
 
 ### Patch Changes
 
+- b14b837: integration refinements across SDK, horizon and schema deployer dApp
+- Updated dependencies [b14b837]
+  - @attestprotocol/stellar-contracts@1.7.6
+  - @attestprotocol/core@1.7.6
+
+## 1.7.5
+
+### Patch Changes
+
 - 122527c: sdk references, update wash hash and contract spec with graph URL
 - Updated dependencies [122527c]
   - @attestprotocol/stellar-contracts@1.7.5
