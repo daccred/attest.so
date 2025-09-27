@@ -30,4 +30,5 @@ pub enum Error {
     ResolverCallFailed = 24,
     InvalidSignaturePoint = 25,
     BlsPubKeyNotRegistered = 26,
+    IntegerOverflow = 27,
 }

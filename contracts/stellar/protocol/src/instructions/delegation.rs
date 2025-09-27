@@ -218,9 +218,9 @@ fn verify_and_increment_nonce(env: &Env, attester: &Address, expected_nonce: u64
         return Err(Error::InvalidNonce);
     }
 
-    // ATOMIC OPERATION: Increment and store new nonce
+    // ATOMIC OPERATION: Increment and store new nonce (using checked arithmetic to prevent overflow)
     // This ensures the nonce can never be used again
-    let new_nonce = current_nonce + 1;
+    let new_nonce = current_nonce.checked_add(1).ok_or(Error::IntegerOverflow)?;
     env.storage().persistent().set(&nonce_key, &new_nonce);
 
     Ok(())

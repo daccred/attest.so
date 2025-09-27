@@ -38,6 +38,10 @@ impl AttestationContract {
             return Err(errors::Error::AlreadyInitialized);
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
+
+        // Emit contract initialization event
+        events::publish_contract_initialized(&env, &admin);
+
         Ok(())
     }
 
