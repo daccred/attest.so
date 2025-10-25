@@ -36,7 +36,6 @@ async function main() {
     const attestationsResult = await client.fetchAttestationsByWallet(
       walletAddress,
       10,  // limit to 10 results
-      0    // start from beginning
     )
     
     log(an_ac, `Found ${attestationsResult.total} total attestations`)
@@ -58,7 +57,6 @@ async function main() {
     const schemasResult = await client.fetchSchemasByWallet(
       walletAddress,
       10,  // limit to 10 results
-      0    // start from beginning
     )
     
     log(an_ac, `Found ${schemasResult.total} total schemas`)
@@ -83,7 +81,6 @@ async function main() {
       const nextPage = await client.fetchAttestationsByWallet(
         walletAddress,
         10,   // limit
-        10    // offset by previous limit to get next page
       )
       
       log(an_ac, `Next page has ${nextPage.attestations.length} attestations`)
@@ -108,7 +105,7 @@ async function main() {
     log(an_v, '\n📊 Analyzing wallet activity...')
     
     // Get all attestations (up to 100)
-    const allAttestations = await client.fetchAttestationsByWallet(walletAddress, 100, 0)
+    const allAttestations = await client.fetchAttestationsByWallet(walletAddress, 100)
     
     // Analyze attestation patterns
     const stats = {

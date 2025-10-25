@@ -5,7 +5,7 @@
  * on the Stellar blockchain, implementing all methods defined in the requirements.
  */
 
-import { Keypair, Networks, rpc, scValToNative, Address, nativeToScVal, xdr, Transaction } from '@stellar/stellar-sdk'
+import { Networks, rpc, xdr, Transaction } from '@stellar/stellar-sdk'
 
 import {
   type Client as ClientType,

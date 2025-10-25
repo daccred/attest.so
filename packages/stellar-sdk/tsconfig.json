@@ -19,8 +19,9 @@
     "emitDecoratorMetadata": true
   },
   "include": [
-    "src/**/*"
-, "__tests__/testutils", "__tests__/schema-encoder.test.ts"  ],
+    "src/**/*",
+    "__tests__/testutils"
+  ],
   "exclude": [
     "node_modules",
     "dist",
