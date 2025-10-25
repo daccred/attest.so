@@ -1,5 +1,17 @@
 # @attestprotocol/stellar-sdk
 
+## 2.0.0
+
+### Major Changes
+
+- 13e3f7f: prepare mainnet and setup graphs and rpc
+
+### Patch Changes
+
+- Updated dependencies [13e3f7f]
+  - @attestprotocol/stellar-contracts@2.0.0
+  - @attestprotocol/core@2.0.0
+
 ## 1.7.5
 
 ### Patch Changes

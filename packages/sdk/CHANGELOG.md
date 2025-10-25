@@ -1,5 +1,19 @@
 # @attestprotocol/sdk
 
+## 2.0.0
+
+### Major Changes
+
+- 13e3f7f: prepare mainnet and setup graphs and rpc
+
+### Patch Changes
+
+- Updated dependencies [13e3f7f]
+  - @attestprotocol/starknet-sdk@2.0.0
+  - @attestprotocol/stellar-sdk@2.0.0
+  - @attestprotocol/solana-sdk@2.0.0
+  - @attestprotocol/core@2.0.0
+
 ## 1.7.6
 
 ### Patch Changes

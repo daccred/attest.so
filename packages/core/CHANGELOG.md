@@ -1,5 +1,11 @@
 # @attestprotocol/core
 
+## 2.0.0
+
+### Major Changes
+
+- 13e3f7f: prepare mainnet and setup graphs and rpc
+
 ## 1.7.6
 
 ### Patch Changes
