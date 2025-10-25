@@ -15,7 +15,7 @@ import { HorizonError, NetworkError } from '../common/errors'
  */
 export interface HorizonConfig {
   baseUrl: string
-  network: 'testnet' | 'mainnet'
+  network: 'testnet' | 'mainnet' | 'local'
   registryUrl?: string
 }
 
@@ -73,6 +73,11 @@ export interface RawSchemaData {
  * Default Horizon configurations with registry endpoints
  */
 export const HORIZON_CONFIGS: Record<string, HorizonConfig> = {
+  local: {
+    network: 'local',
+    baseUrl: 'http://localhost:8000',
+    registryUrl: 'http://localhost:8000/api/registry',
+  },
   testnet: {
     network: 'testnet',
     baseUrl: 'https://horizon-testnet.stellar.org',

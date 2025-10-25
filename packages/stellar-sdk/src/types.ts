@@ -56,7 +56,7 @@ export interface ClientOptions {
   /** Soroban RPC URL */
   rpcUrl: string
   /** Network type: 'testnet' | 'mainnet' | 'futurenet' */
-  network?: 'testnet' | 'mainnet' | 'futurenet'
+  network?: 'testnet' | 'mainnet' | 'futurenet' | 'local'
   /** Protocol contract ID */
   contractId?: string
   /** Public Key for client instance*/
