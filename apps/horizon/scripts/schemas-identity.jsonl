@@ -1,8 +1,8 @@
-{"name":"digitalWalletIdentitySchema","uid":"610605292a5e8299c72a050043ed73f8ae3b9c55f33a1ad26ac9d2736f63d2a3","category":"identity"}
-{"name":"nationalIdSchema","uid":"4773a8dd6898abb897d551efd2ba845ec119df6381e2710fc77f182d49dd421e","category":"identity"}
-{"name":"passportSchema","uid":"3f9b746847650da3debe67a046788d7d71e25ae421495668714cad9c1ad03788","category":"identity"}
-{"name":"biometricAuthSchema","uid":"974ad696a6827646efd34b57dbd05e855cb5a8f453952bfcb95e8a74046fd978","category":"identity"}
-{"name":"ageVerificationSchema","uid":"5bffac333979acd9d842ea30496c382349ce5cbec52d7fdcd46e32cbfdabac3b","category":"identity"}
-{"name":"trustScoreSchema","uid":"067fcddd1453718c75fe8b1a124bd07611a697fc39a546b076c30bcf6fc40e51","category":"identity"}
-{"name":"backgroundCheckSchema","uid":"81bd31b7ed4a4d939740b3c749f617674f8ed21f6debfacd779ea0b086ec1a3f","category":"identity"}
-{"name":"multiFactorAuthenticationSchema","uid":"257c7d2fb7dd24696cf7c856cc11124c3e86a646d8b7b9456a271f26f253c39a","category":"identity"}
+{"name":"digitalWalletIdentitySchema","uid":"be16471b716ca7eb8ab6e5a96bc70a37562a44fc9c4efcabf40703b53838340f","category":"identity"}
+{"name":"nationalIdSchema","uid":"97431a70d322387160dd2e4e624c90355bdbed43410b46f56bed886d6c282343","category":"identity"}
+{"name":"passportSchema","uid":"f33ed9599755241a146981f7dfdf203d5d8b01b35aefab5bed0ead7d920f41c0","category":"identity"}
+{"name":"biometricAuthSchema","uid":"5c3b1e7c5b3e5b370defcc55bc9a2880530150cde3c71ca6f3388bef3b187c09","category":"identity"}
+{"name":"ageVerificationSchema","uid":"a272473ecf122bd64c9d3ebb535469d2626c845fdf5a255cd6a67309c2bdde5c","category":"identity"}
+{"name":"trustScoreSchema","uid":"61a79c6374ce7ed4756462dbe70f31501df30fb5043bcc473c159eda0975a04d","category":"identity"}
+{"name":"backgroundCheckSchema","uid":"29c193f9e2098552a46325b52b3ec4a551aab17c17f68b65d906f8c7d592dbbd","category":"identity"}
+{"name":"multiFactorAuthenticationSchema","uid":"79403fc0e64351cf4fe668c3baf79f01b1ca045bcf4bd6e9082a3eef7d3441d5","category":"identity"}
