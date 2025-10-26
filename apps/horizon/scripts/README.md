@@ -34,6 +34,7 @@ The following schema categories are available:
 1. **Education** (`schemas-education.jsonl`)
    - Bachelor's/Master's/PhD Degrees, IT Certification, Skill Badge
    - Course Completion, Language Proficiency, Academic Transcript
+   - Professional License, Industry Certification, Competency Assessment, Employee ID
 
 2. **Finance** (`schemas-finance.jsonl`)
    - Financial attestations and verifications
@@ -41,12 +42,12 @@ The following schema categories are available:
 3. **GPT** (`schemas-gpt.jsonl`)
    - AI and GPT-related attestations
 
-4. **Institution** (`schemas-institution.jsonl`)
-   - Institutional verifications
+4. **Identity** (`schemas-identity.jsonl`)
+   - National ID, Passport, Digital Wallet Identity
+   - Biometric Auth, Age Verification, Trust Score, Background Check, Multi-Factor Authentication
 
-5. **Professional** (`schemas-professional.jsonl`)
-   - Professional License, Industry Certification
-   - Competency Assessment, Employee ID
+5. **Institution** (`schemas-institution.jsonl`)
+   - Institutional verifications, Driver's License, Voter Eligibility, Public Service
 
 6. **Technology** (`schemas-technology.jsonl`)
    - Code Signing, SBOM, Hardware Attestation, API Security
@@ -81,8 +82,8 @@ To register new schemas on the Stellar network by category:
 pnpm tsx scripts/importSchema.ts education
 pnpm tsx scripts/importSchema.ts finance
 pnpm tsx scripts/importSchema.ts gpt
+pnpm tsx scripts/importSchema.ts identity
 pnpm tsx scripts/importSchema.ts institution
-pnpm tsx scripts/importSchema.ts professional
 pnpm tsx scripts/importSchema.ts technology
 ```
 
