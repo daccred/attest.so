@@ -7,9 +7,19 @@
     "dev": "mintlify dev",
     "build": "echo 'Building documentation...'"
   },
-  "devDependencies": {
-    "@mintlify/cli": "^4.0.0"
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
-  "keywords": ["attestation", "blockchain", "documentation", "web3", "trust"],
+  "devDependencies": {
+    "@mintlify/cli": "^4.0.782"
+  },
+  "keywords": [
+    "attestation",
+    "blockchain",
+    "documentation",
+    "web3",
+    "trust"
+  ],
   "license": "MIT"
 }
