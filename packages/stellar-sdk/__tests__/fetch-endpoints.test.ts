@@ -1,6 +1,6 @@
 /**
  * Comprehensive tests for all fetch endpoints in the Stellar SDK
- * 
+ *
  * This test suite verifies all API fetch operations including:
  * - Attestation fetching (by ledger, wallet, latest)
  * - Schema fetching (by ledger, wallet, latest)
@@ -24,10 +24,18 @@ import {
 } from '../src/utils/indexer'
 import type { ContractAttestation, ContractSchema } from '../src/types'
 
-// Mock fetch globally
-global.fetch = vi.fn()
+// Mock ky
+vi.mock('ky', () => ({
+  default: {
+    get: vi.fn(),
+  },
+}))
+
+import ky from 'ky'
 
 describe('Fetch Endpoints Test Suite', () => {
+  const mockKy = ky as any
+
   afterEach(() => {
     vi.clearAllMocks()
   })
@@ -52,23 +60,15 @@ describe('Fetch Endpoints Test Suite', () => {
         pagination: { total: 1, hasMore: false, limit: 100, offset: 0 },
       }
 
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       const result = await fetchAttestationsByLedger(12345)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${REGISTRY_ENDPOINTS.testnet}/attestations?by_ledger=12345&limit=100`,
-        {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { by_ledger: 12345, limit: 100 },
+      })
 
       expect(result).toHaveLength(1)
       expect(result[0].uid).toBeInstanceOf(Buffer)
@@ -78,45 +78,40 @@ describe('Fetch Endpoints Test Suite', () => {
 
     it('should respect custom limit (max 100)', async () => {
       const mockResponse = { success: true, data: [] }
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       await fetchAttestationsByLedger(12345, 50)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('limit=50'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { by_ledger: 12345, limit: 50 },
+      })
     })
 
     it('should handle mainnet network', async () => {
       const mockResponse = { success: true, data: [] }
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       await fetchAttestationsByLedger(12345, 100, 'mainnet')
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining(REGISTRY_ENDPOINTS.mainnet),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.mainnet}/attestations`, {
+        searchParams: { by_ledger: 12345, limit: 100 },
+      })
     })
 
     it('should handle API errors gracefully', async () => {
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockRejectedValueOnce(new Error('HTTP Error')),
       })
 
-      await expect(fetchAttestationsByLedger(12345)).rejects.toThrow('Failed to fetch attestations for ledger')
+      await expect(fetchAttestationsByLedger(12345)).rejects.toThrow('Failed to fetch attestations by ledger')
     })
 
     it('should handle network errors', async () => {
-      ;(global.fetch as any).mockRejectedValueOnce(new Error('Network error'))
+      mockKy.get.mockRejectedValueOnce(new Error('Network error'))
 
       await expect(fetchAttestationsByLedger(12345)).rejects.toThrow('Failed to fetch attestations by ledger')
     })
@@ -139,17 +134,15 @@ describe('Fetch Endpoints Test Suite', () => {
         ],
       }
 
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       const result = await fetchSchemasByLedger(12345)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${REGISTRY_ENDPOINTS.testnet}/schemas?by_ledger=12345&limit=100`,
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/schemas`, {
+        searchParams: { by_ledger: 12345, limit: 100 },
+      })
 
       expect(result).toHaveLength(1)
       expect(result[0].uid).toBeInstanceOf(Buffer)
@@ -158,9 +151,8 @@ describe('Fetch Endpoints Test Suite', () => {
 
     it('should handle empty schema responses', async () => {
       const mockResponse = { success: true, data: [] }
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       const result = await fetchSchemasByLedger(12345, 50)
@@ -189,17 +181,15 @@ describe('Fetch Endpoints Test Suite', () => {
         pagination: { total: 1, hasMore: false, limit: 100 },
       }
 
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       const result = await fetchAttestationsByWallet(walletAddress)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${REGISTRY_ENDPOINTS.testnet}/attestations?attester=${walletAddress}&limit=100`,
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { attester: walletAddress, limit: 100 },
+      })
 
       expect(result.attestations).toHaveLength(1)
       expect(result.total).toBe(1)
@@ -209,36 +199,32 @@ describe('Fetch Endpoints Test Suite', () => {
     it('should respect custom limit (max 100)', async () => {
       const walletAddress = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
       const mockResponse = { success: true, data: [], pagination: { total: 0, hasMore: false, limit: 50 } }
-      
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       await fetchAttestationsByWallet(walletAddress, 50)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('limit=50'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { attester: walletAddress, limit: 50 },
+      })
     })
 
     it('should enforce maximum limit of 100', async () => {
       const walletAddress = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
       const mockResponse = { success: true, data: [], pagination: { total: 0, hasMore: false, limit: 100 } }
-      
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       // Should cap at 100 even if higher limit requested
       await fetchAttestationsByWallet(walletAddress, 200)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('limit=100'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { attester: walletAddress, limit: 100 },
+      })
     })
   })
 
@@ -261,17 +247,15 @@ describe('Fetch Endpoints Test Suite', () => {
         pagination: { total: 1, hasMore: false, limit: 100 },
       }
 
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       const result = await fetchSchemasByWallet(walletAddress)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${REGISTRY_ENDPOINTS.testnet}/schemas?deployer=${walletAddress}&limit=100`,
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/schemas`, {
+        searchParams: { deployer: walletAddress, limit: 100 },
+      })
 
       expect(result.schemas).toHaveLength(1)
       expect(result.total).toBe(1)
@@ -297,17 +281,15 @@ describe('Fetch Endpoints Test Suite', () => {
         ],
       }
 
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       const result = await fetchLatestAttestations()
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${REGISTRY_ENDPOINTS.testnet}/attestations?limit=100`,
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { limit: 100 },
+      })
 
       expect(result).toHaveLength(1)
       expect(result[0].value.latest).toBe(true)
@@ -315,17 +297,15 @@ describe('Fetch Endpoints Test Suite', () => {
 
     it('should respect custom limit (max 100)', async () => {
       const mockResponse = { success: true, data: [] }
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       await fetchLatestAttestations(75)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('limit=75'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { limit: 75 },
+      })
     })
   })
 
@@ -346,17 +326,15 @@ describe('Fetch Endpoints Test Suite', () => {
         ],
       }
 
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       const result = await fetchLatestSchemas()
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${REGISTRY_ENDPOINTS.testnet}/schemas?limit=100`,
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/schemas`, {
+        searchParams: { limit: 100 },
+      })
 
       expect(result).toHaveLength(1)
       expect(result[0].definition).toBe('latest:bool')
@@ -380,17 +358,13 @@ describe('Fetch Endpoints Test Suite', () => {
         },
       }
 
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       const result = await getAttestationByUid(uid)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${REGISTRY_ENDPOINTS.testnet}/attestations/${uid}`,
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations/${uid}`)
 
       expect(result).toBeDefined()
       expect(result?.uid.toString('hex')).toBe(uid)
@@ -398,10 +372,11 @@ describe('Fetch Endpoints Test Suite', () => {
 
     it('should return null for non-existent attestation', async () => {
       const uid = 'nonexistent1234567890123456789012345678901234567890123456789'
-      
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 404,
+
+      const error: any = new Error('HTTP Error')
+      error.response = { status: 404 }
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockRejectedValueOnce(error),
       })
 
       const result = await getAttestationByUid(uid)
@@ -426,17 +401,13 @@ describe('Fetch Endpoints Test Suite', () => {
         },
       }
 
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       const result = await getSchemaByUid(uid)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${REGISTRY_ENDPOINTS.testnet}/schemas/${uid}`,
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/schemas/${uid}`)
 
       expect(result).toBeDefined()
       expect(result?.uid.toString('hex')).toBe(uid)
@@ -445,26 +416,25 @@ describe('Fetch Endpoints Test Suite', () => {
     it('should support includeAttestations parameter', async () => {
       const uid = 'f1e2d3c4b5a6789012345678901234567890123456789012345678901234'
       const mockResponse = { success: true, data: { uid, schema_definition: 'test', deployerAddress: 'GAAA...', resolverAddress: 'GBBB...', revocable: true, createdAt: '2024-01-01T00:00:00Z', ledger: 12345 } }
-      
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       await getSchemaByUid(uid, true)
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('include_attestations=true'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/schemas/${uid}`, {
+        searchParams: { include_attestations: 'true' },
+      })
     })
 
     it('should return null for non-existent schema', async () => {
       const uid = 'nonexistent1234567890123456789012345678901234567890123456789'
-      
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 404,
+
+      const error: any = new Error('HTTP Error')
+      error.response = { status: 404 }
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockRejectedValueOnce(error),
       })
 
       const result = await getSchemaByUid(uid)
@@ -506,27 +476,23 @@ describe('Fetch Endpoints Test Suite', () => {
         ],
       }
 
-      ;(global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => mockSchemasResponse,
+      mockKy.get
+        .mockReturnValueOnce({
+          json: vi.fn().mockResolvedValueOnce(mockSchemasResponse),
         })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => mockAttestationsResponse,
+        .mockReturnValueOnce({
+          json: vi.fn().mockResolvedValueOnce(mockAttestationsResponse),
         })
 
       const result = await fetchRegistryDump()
 
-      expect(global.fetch).toHaveBeenCalledTimes(2)
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/schemas?limit=1000'),
-        expect.any(Object)
-      )
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/attestations?limit=1000'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledTimes(2)
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/schemas`, {
+        searchParams: { limit: 1000 },
+      })
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { limit: 1000 },
+      })
 
       expect(result.schemas).toHaveLength(1)
       expect(result.attestations).toHaveLength(1)
@@ -537,14 +503,12 @@ describe('Fetch Endpoints Test Suite', () => {
     it('should handle empty registry', async () => {
       const mockEmptyResponse = { success: true, data: [] }
 
-      ;(global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => mockEmptyResponse,
+      mockKy.get
+        .mockReturnValueOnce({
+          json: vi.fn().mockResolvedValueOnce(mockEmptyResponse),
         })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => mockEmptyResponse,
+        .mockReturnValueOnce({
+          json: vi.fn().mockResolvedValueOnce(mockEmptyResponse),
         })
 
       const result = await fetchRegistryDump()
@@ -555,14 +519,12 @@ describe('Fetch Endpoints Test Suite', () => {
     })
 
     it('should handle partial failures in registry dump', async () => {
-      ;(global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 500,
+      mockKy.get
+        .mockReturnValueOnce({
+          json: vi.fn().mockRejectedValueOnce(new Error('HTTP Error')),
         })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ success: true, data: [] }),
+        .mockReturnValueOnce({
+          json: vi.fn().mockResolvedValueOnce({ success: true, data: [] }),
         })
 
       await expect(fetchRegistryDump()).rejects.toThrow('Failed to fetch registry dump')
@@ -571,26 +533,22 @@ describe('Fetch Endpoints Test Suite', () => {
 
   describe('Error Handling', () => {
     it('should handle malformed JSON responses', async () => {
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => {
-          throw new Error('Invalid JSON')
-        },
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockRejectedValueOnce(new Error('Invalid JSON')),
       })
 
       await expect(fetchLatestAttestations()).rejects.toThrow()
     })
 
     it('should handle timeout errors', async () => {
-      ;(global.fetch as any).mockRejectedValueOnce(new Error('Request timeout'))
+      mockKy.get.mockRejectedValueOnce(new Error('Request timeout'))
 
-      await expect(fetchLatestSchemas()).rejects.toThrow('Request timeout')
+      await expect(fetchLatestSchemas()).rejects.toThrow('Failed to fetch latest schemas')
     })
 
     it('should handle rate limiting (429 status)', async () => {
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 429,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockRejectedValueOnce(new Error('HTTP Error')),
       })
 
       await expect(fetchLatestAttestations()).rejects.toThrow()
@@ -600,85 +558,73 @@ describe('Fetch Endpoints Test Suite', () => {
   describe('Limit Parameter Validation', () => {
     it('should enforce maximum limit of 100 for all fetch functions', async () => {
       const mockResponse = { success: true, data: [] }
-      
+
       // Test fetchLatestAttestations
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
       await fetchLatestAttestations(150)
-      expect(global.fetch).toHaveBeenLastCalledWith(
-        expect.stringContaining('limit=100'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenLastCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { limit: 100 },
+      })
 
       // Test fetchLatestSchemas
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
       await fetchLatestSchemas(200)
-      expect(global.fetch).toHaveBeenLastCalledWith(
-        expect.stringContaining('limit=100'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenLastCalledWith(`${REGISTRY_ENDPOINTS.testnet}/schemas`, {
+        searchParams: { limit: 100 },
+      })
 
       // Test fetchAttestationsByLedger
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
       await fetchAttestationsByLedger(12345, 500)
-      expect(global.fetch).toHaveBeenLastCalledWith(
-        expect.stringContaining('limit=100'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenLastCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { by_ledger: 12345, limit: 100 },
+      })
 
       // Test fetchSchemasByLedger
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
       await fetchSchemasByLedger(12345, 1000)
-      expect(global.fetch).toHaveBeenLastCalledWith(
-        expect.stringContaining('limit=100'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenLastCalledWith(`${REGISTRY_ENDPOINTS.testnet}/schemas`, {
+        searchParams: { by_ledger: 12345, limit: 100 },
+      })
     })
 
     it('should use default limit of 100 when not specified', async () => {
       const mockResponse = { success: true, data: [] }
-      
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
+
+      mockKy.get.mockReturnValueOnce({
+        json: vi.fn().mockResolvedValueOnce(mockResponse),
       })
 
       await fetchLatestAttestations()
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('limit=100'),
-        expect.any(Object)
-      )
+      expect(mockKy.get).toHaveBeenCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+        searchParams: { limit: 100 },
+      })
     })
 
     it('should accept valid limits under 100', async () => {
       const mockResponse = { success: true, data: [] }
-      
+
       const validLimits = [1, 10, 25, 50, 75, 99, 100]
-      
+
       for (const limit of validLimits) {
-        ;(global.fetch as any).mockResolvedValueOnce({
-          ok: true,
-          json: async () => mockResponse,
+        mockKy.get.mockReturnValueOnce({
+          json: vi.fn().mockResolvedValueOnce(mockResponse),
         })
-        
+
         await fetchLatestAttestations(limit)
-        
-        expect(global.fetch).toHaveBeenLastCalledWith(
-          expect.stringContaining(`limit=${limit}`),
-          expect.any(Object)
-        )
+
+        expect(mockKy.get).toHaveBeenLastCalledWith(`${REGISTRY_ENDPOINTS.testnet}/attestations`, {
+          searchParams: { limit },
+        })
       }
     })
   })

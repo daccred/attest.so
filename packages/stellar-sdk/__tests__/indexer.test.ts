@@ -1,10 +1,10 @@
 /**
  * Real API tests for all fetch endpoints in the Stellar SDK
  * 
- * This test suite makes actual HTTP requests to localhost:3001
+ * This test suite makes actual HTTP requests to testnet-graph.attest.so
  * to verify all API fetch operations work correctly without mocking.
  * 
- * NOTE: Requires the local horizon server to be running at http://localhost:3001
+ * NOTE: Requires the local horizon server to be running at http://testnet-graph.attest.so
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
@@ -22,20 +22,20 @@ import {
 } from '../src/utils/indexer'
 import type { ContractAttestation, ContractSchema } from '../src/types'
 
-// Override the registry endpoint to use localhost:3001
-REGISTRY_ENDPOINTS.testnet = 'http://localhost:3001/api/registry'
+// Override the registry endpoint to use testnet-graph.attest.so
+REGISTRY_ENDPOINTS.testnet = 'http://testnet-graph.attest.so/api/registry'
 
 describe('Real API Fetch Endpoints Test Suite', () => {
   
   beforeAll(async () => {
     // Check if the local server is running
     try {
-      const response = await fetch('http://localhost:3001/api/registry/health')
+      const response = await fetch('http://testnet-graph.attest.so/api/health')
       if (!response.ok) {
-        console.warn('Warning: Local horizon server may not be running at http://localhost:3001')
+        console.warn('Warning: Local horizon server may not be running at http://testnet-graph.attest.so')
       }
     } catch (error) {
-      console.error('Error: Cannot connect to http://localhost:3001. Please ensure the local horizon server is running.')
+      console.error('Error: Cannot connect to http://testnet-graph.attest.so. Please ensure the local horizon server is running.')
     }
   })
 

@@ -7,6 +7,7 @@
  * as complementary data source.
  */
 
+import ky from 'ky'
 import { ContractSchema, ContractAttestation } from '../types'
 import { HorizonError, NetworkError } from '../common/errors'
 
@@ -143,21 +144,13 @@ export async function fetchAttestationsByLedger(
   try {
     // Enforce maximum limit of 100 items
     const validLimit = Math.min(limit, 100)
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?by_ledger=${ledger}&limit=${validLimit}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations`
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new HorizonError(`Failed to fetch attestations for ledger ${ledger}`, response.status, endpoint)
-    }
-
-    const apiResponse = (await response.json()) as RegistryResponse<RawAttestationData>
+    const apiResponse = await ky
+      .get(endpoint, {
+        searchParams: { by_ledger: ledger, limit: validLimit },
+      })
+      .json<RegistryResponse<RawAttestationData>>()
 
     // Transform the horizon registry API response to match our ContractAttestation type
     return (apiResponse.data || []).map(transformAttestation)
@@ -180,21 +173,13 @@ export async function fetchSchemasByLedger(
   try {
     // Enforce maximum limit of 100 items
     const validLimit = Math.min(limit, 100)
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?by_ledger=${ledger}&limit=${validLimit}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas`
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new HorizonError(`Failed to fetch schemas for ledger ${ledger}`, response.status, endpoint)
-    }
-
-    const apiResponse = (await response.json()) as RegistryResponse<RawSchemaData>
+    const apiResponse = await ky
+      .get(endpoint, {
+        searchParams: { by_ledger: ledger, limit: validLimit },
+      })
+      .json<RegistryResponse<RawSchemaData>>()
 
     // Transform the horizon registry API response to match our ContractSchema type
     return (apiResponse.data || []).map(transformSchema)
@@ -222,21 +207,13 @@ export async function fetchAttestationsByWallet(
   try {
     // Enforce maximum limit of 100 items
     const validLimit = Math.min(limit, 100)
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?attester=${walletAddress}&limit=${validLimit}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations`
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new HorizonError(`Failed to fetch attestations for wallet ${walletAddress}`, response.status, endpoint)
-    }
-
-    const apiResponse = (await response.json()) as RegistryResponse<RawAttestationData>
+    const apiResponse = await ky
+      .get(endpoint, {
+        searchParams: { attester: walletAddress, limit: validLimit },
+      })
+      .json<RegistryResponse<RawAttestationData>>()
 
     return {
       attestations: (apiResponse.data || []).map(transformAttestation),
@@ -267,21 +244,13 @@ export async function fetchSchemasByWallet(
   try {
     // Enforce maximum limit of 100 items
     const validLimit = Math.min(limit, 100)
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?deployer=${walletAddress}&limit=${validLimit}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas`
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new HorizonError(`Failed to fetch schemas for wallet ${walletAddress}`, response.status, endpoint)
-    }
-
-    const apiResponse = (await response.json()) as RegistryResponse<RawSchemaData>
+    const apiResponse = await ky
+      .get(endpoint, {
+        searchParams: { deployer: walletAddress, limit: validLimit },
+      })
+      .json<RegistryResponse<RawSchemaData>>()
 
     return {
       schemas: (apiResponse.data || []).map(transformSchema),
@@ -306,21 +275,13 @@ export async function fetchLatestAttestations(
   try {
     // Enforce maximum limit of 100 items
     const validLimit = Math.min(limit, 100)
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations?limit=${validLimit}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations`
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new HorizonError('Failed to fetch latest attestations', response.status, endpoint)
-    }
-
-    const apiResponse = (await response.json()) as RegistryResponse<RawAttestationData>
+    const apiResponse = await ky
+      .get(endpoint, {
+        searchParams: { limit: validLimit },
+      })
+      .json<RegistryResponse<RawAttestationData>>()
 
     return (apiResponse.data || []).map(transformAttestation)
   } catch (error: any) {
@@ -341,21 +302,13 @@ export async function fetchLatestSchemas(
   try {
     // Enforce maximum limit of 100 items
     const validLimit = Math.min(limit, 100)
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas?limit=${validLimit}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas`
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new HorizonError('Failed to fetch latest schemas', response.status, endpoint)
-    }
-
-    const apiResponse = (await response.json()) as RegistryResponse<RawSchemaData>
+    const apiResponse = await ky
+      .get(endpoint, {
+        searchParams: { limit: validLimit },
+      })
+      .json<RegistryResponse<RawSchemaData>>()
 
     return (apiResponse.data || []).map(transformSchema)
   } catch (error: any) {
@@ -376,26 +329,14 @@ export async function getAttestationByUid(
   try {
     const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations/${uid}`
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (response.status === 404) {
-      return null
-    }
-
-    if (!response.ok) {
-      throw new HorizonError(`Failed to fetch attestation ${uid}`, response.status, endpoint)
-    }
-
-    const apiResponse = (await response.json()) as RegistrySingleResponse<RawAttestationData>
+    const apiResponse = await ky.get(endpoint).json<RegistrySingleResponse<RawAttestationData>>()
 
     return transformAttestation(apiResponse.data)
   } catch (error: any) {
+    // ky throws HTTPError for 404 responses
+    if (error?.response?.status === 404) {
+      return null
+    }
     if (error instanceof HorizonError) {
       throw error
     }
@@ -412,28 +353,18 @@ export async function getSchemaByUid(
   network: 'testnet' | 'mainnet' = 'testnet'
 ): Promise<ContractSchema | null> {
   try {
-    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas/${uid}${includeAttestations ? '?include_attestations=true' : ''}`
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas/${uid}`
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (response.status === 404) {
-      return null
-    }
-
-    if (!response.ok) {
-      throw new HorizonError(`Failed to fetch schema ${uid}`, response.status, endpoint)
-    }
-
-    const apiResponse = (await response.json()) as RegistrySingleResponse<RawSchemaData>
+    const apiResponse = includeAttestations
+      ? await ky.get(endpoint, { searchParams: { include_attestations: 'true' } }).json<RegistrySingleResponse<RawSchemaData>>()
+      : await ky.get(endpoint).json<RegistrySingleResponse<RawSchemaData>>()
 
     return transformSchema(apiResponse.data)
   } catch (error: any) {
+    // ky throws HTTPError for 404 responses
+    if (error?.response?.status === 404) {
+      return null
+    }
     if (error instanceof HorizonError) {
       throw error
     }
@@ -457,28 +388,17 @@ export interface RegistryDump {
 export async function fetchRegistryDump(network: 'testnet' | 'mainnet' = 'testnet'): Promise<RegistryDump> {
   try {
     // Fetch both schemas and attestations in parallel since no single dump endpoint exists
-    const [schemasResponse, attestationsResponse] = await Promise.all([
-      fetch(`${REGISTRY_ENDPOINTS[network]}/schemas?limit=1000`, {
-        method: 'GET',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      }),
-      fetch(`${REGISTRY_ENDPOINTS[network]}/attestations?limit=1000`, {
-        method: 'GET',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      }),
-    ])
-
-    if (!schemasResponse.ok || !attestationsResponse.ok) {
-      throw new HorizonError(
-        'Failed to fetch registry dump',
-        schemasResponse.status || attestationsResponse.status,
-        `${REGISTRY_ENDPOINTS[network]}/schemas and /attestations`
-      )
-    }
-
     const [schemasApiResponse, attestationsApiResponse] = await Promise.all([
-      schemasResponse.json() as Promise<RegistryResponse<RawSchemaData>>,
-      attestationsResponse.json() as Promise<RegistryResponse<RawAttestationData>>,
+      ky
+        .get(`${REGISTRY_ENDPOINTS[network]}/schemas`, {
+          searchParams: { limit: 1000 },
+        })
+        .json<RegistryResponse<RawSchemaData>>(),
+      ky
+        .get(`${REGISTRY_ENDPOINTS[network]}/attestations`, {
+          searchParams: { limit: 1000 },
+        })
+        .json<RegistryResponse<RawAttestationData>>(),
     ])
 
     return {
