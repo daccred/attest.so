@@ -11,7 +11,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { SorobanSchemaEncoder, StellarDataType, StellarSchemaDefinition } from '@attestprotocol/stellar-sdk';
 import { getDB } from '../src/common/db';
-import schemaValues from './write-schema';
+import schemaValues from './importSchemaEntries';
 
 interface SchemaEntry {
   name: string;
