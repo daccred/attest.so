@@ -24,8 +24,8 @@ on-chain verification logic.
 ------------------------------------------------------------------------------------------
 
 ```javascript
-import { bls12_381 } from '@noble/curves/bls12-381';
-import { sha256 } from '@noble/hashes/sha256';
+import { bls12_381 } from '@noble/curves/bls12-381.js';
+import { sha256 } from '@noble/hashes/sha256.js';
 
 // 1. Attester generates their keypair (done once).
 const attesterPrivateKey = bls12_381.utils.randomPrivateKey();

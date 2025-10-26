@@ -53,7 +53,7 @@ import {
   ConfigurationError,
   ErrorFactory,
 } from './common/errors'
-import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass'
+import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass.js'
 
 /**
  * Main Stellar client for the Attest Protocol
