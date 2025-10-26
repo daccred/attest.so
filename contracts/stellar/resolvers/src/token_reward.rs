@@ -1,25 +1,23 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// ► Token Reward Resolver - Dual Interface Implementation
+// ► Token Reward Resolver
 // ►
-// ► This contract implements BOTH the ResolverInterface for attestation processing
-// ► AND the OpenZeppelin Fungible interface for token standard compliance.
+// ► This contract implements the ResolverInterface for attestation processing
+// ► with automatic token reward distribution.
 // ►
 // ► ARCHITECTURE OVERVIEW:
 // ► ┌─────────────────────────────────────────────────────────────────────────┐
-// ► │  TokenRewardResolver (Dual Interface Contract)                         │
+// ► │  TokenRewardResolver                                                    │
 // ► │                                                                         │
-// ► │  ┌─────────────────────┐    ┌──────────────────────────────────────┐   │
-// ► │  │  ResolverInterface  │    │    OpenZeppelin Fungible             │   │
-// ► │  │                     │    │                                      │   │
-// ► │  │  onattest()    │    │  name(), symbol(), decimals()       │   │
-// ► │  │  onresolve()     │    │  balance(), total_supply()           │   │
-// ► │  │  onrevoke()    │    │  transfer(), approve(), allowance()  │   │
-// ► │  │  onresolve()     │    │                                      │   │
-// ► │  │  metadata()     │    │                                      │   │
-// ► │  └─────────────────────┘    └──────────────────────────────────────┘   │
+// ► │  ┌─────────────────────┐                                               │
+// ► │  │  ResolverInterface  │                                               │
+// ► │  │                     │                                               │
+// ► │  │  onattest()         │                                               │
+// ► │  │  onresolve()        │                                               │
+// ► │  │  onrevoke()         │                                               │
+// ► │  │  metadata()         │                                               │
+// ► │  └─────────────────────┘                                               │
 // ► │                                                                         │
-// ► │  Shared State:                                                          │
-// ► │  - Token metadata (name, symbol, decimals)                             │
+// ► │  State:                                                                 │
 // ► │  - Reward tracking (user balances, total distributed)                  │
 // ► │  - Pool management (reward token, amount, admin controls)              │
 // ► │                                                                         │
@@ -30,18 +28,16 @@
 // ► 1. Organizations create attestations (permissionless model)
 // ► 2. Each attestation automatically triggers reward distribution
 // ► 3. Rewards are distributed from a managed token pool
-// ► 4. Users can query their earned rewards via standard token interface
-// ► 5. Pool is managed by admin using OpenZeppelin-compliant functions
+// ► 4. Users can query their earned rewards via getter functions
+// ► 5. Pool is managed by admin functions
 // ►
 // ► SECURITY MODEL:
 // ► - **ResolverInterface**: Permissionless (economic spam resistance via gas costs)
-// ► - **Fungible Interface**: Limited (balance queries public, transfers admin-only)
 // ► - **Pool Management**: Admin-controlled (funding, configuration)
 // ► - **Reward Distribution**: Automatic (triggered by successful attestations)
 // ►
 // ► INTEGRATION PATTERN:
 // ► - **Protocol Integration**: Contract acts as resolver for specific schemas
-// ► - **Token Integration**: Standard fungible token for wallet/dapp compatibility
 // ► - **Pool Management**: Admin funds pool, users earn through attestations
 // ► - **Economic Balance**: Gas costs vs reward amounts provide natural rate limiting
 // ══════════════════════════════════════════════════════════════════════════════
@@ -75,7 +71,6 @@ pub struct TokenRewardResolver;
 #[contractimpl]
 impl TokenRewardResolver {
     /// Initialize the resolver with reward token and amount
-    /// This also sets up the token metadata for OpenZeppelin compatibility
     pub fn initialize(
         env: Env,
         admin: Address,
@@ -136,8 +131,7 @@ impl TokenRewardResolver {
     /// Fund the reward pool with tokens (admin only)
     ///
     /// This function allows the admin to add tokens to the reward pool,
-    /// enabling continued reward distribution. This follows OpenZeppelin
-    /// patterns for token pool management.
+    /// enabling continued reward distribution.
     pub fn fund_reward_pool(env: Env, admin: Address, amount: i128) -> Result<(), ResolverError> {
         Self::require_admin(&env, &admin)?;
 
@@ -365,3 +359,4 @@ impl ResolverInterface for TokenRewardResolver {
 impl FungibleToken for TokenRewardResolver {
     type ContractType = Base;
 }
+

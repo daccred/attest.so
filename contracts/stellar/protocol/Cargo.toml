@@ -17,7 +17,7 @@ soroban-sdk = { workspace = true }
 resolvers = { path = "../resolvers", default-features = false }
 
 [dev-dependencies]
-soroban-sdk = { version = "23.0.2", features = ["testutils"] }
+soroban-sdk = { workspace = true, features = ["testutils"] }
 bls12_381 = "0.8.0"
 blst = "0.3.0"
 hex = "0.4.3"
