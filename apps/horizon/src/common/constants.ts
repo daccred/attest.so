@@ -33,8 +33,8 @@ export const STELLAR_NETWORK = process.env.STELLAR_NETWORK || 'testnet'
  * This replaces the legacy CONTRACT_ID_TO_INDEX environment variable approach.
  */
 export const CONTRACT_IDS_TO_INDEX = [
-  'CBLG2QQ4BLFB7SSOPGYYJJHO5SLQROPRCLKBDMFQWRDXRA4ZXRIRWZW3',
-  'CAYV5JVC4S7NDR7SDZVXVVCC3OP4V4EULMXFW67XEWGH7PSE7NANWBHN',
+  process.env.PROTOCOL_CONTRACT_ID as string,
+  process.env.AUTHORITY_CONTRACT_ID as string,
 ] 
 
 
