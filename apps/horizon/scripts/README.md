@@ -5,7 +5,7 @@ This directory contains scripts for processing attestation schemas, creating att
 ## Files Overview
 
 - **`importSchema.ts`** - Script for registering new schemas on the Stellar network using SorobanSchemaEncoder
-- **`importSchemaEntries.ts`** - Schema attestation processor that creates attestations for existing schemas and updates database categories
+- **`writeSchemaEntries.ts.ts`** - Schema attestation processor that creates attestations for existing schemas and updates database categories
 - **`checkImportStatus.ts`** - Test script for validating schema processing functionality and database connectivity
 - **`schemas-*.jsonl`** - JSONL files containing registered schema information organized by category
 
@@ -20,9 +20,9 @@ These describe the steps needed to manually process the entire schema > attestat
 
 2. **Backfill Data**: Invoke the `/backfill` route either through `curl` on the horizon API or through the integration tests in `apps/horizon/__tests__/integration/backfill.test.ts`
 
-3. **Create Attestations**: Use the importSchemaEntries script to create attestations for registered schemas and update database categories
+3. **Create Attestations**: Use the writeSchemaEntries.ts script to create attestations for registered schemas and update database categories
    ```bash
-   pnpm tsx scripts/importSchemaEntries.ts
+   pnpm tsx scripts/writeSchemaEntries.ts.ts
    ```
 
 4. **Continuous Ingestion**: For ongoing monitoring, use the `ingest/recurring` route to have the server continuously listen for new schemas, attestations and events
@@ -92,7 +92,7 @@ pnpm tsx scripts/importSchema.ts technology
 Run the attestation processor to create attestations for existing schemas:
 
 ```bash
-pnpm tsx scripts/importSchemaEntries.ts
+pnpm tsx scripts/writeSchemaEntries.ts.ts
 ```
 
 This script will:
@@ -120,7 +120,7 @@ This script will:
 pnpm tsx scripts/importSchema.ts [category]
 ```
 
-### `importSchemaEntries.ts`
+### `writeSchemaEntries.ts.ts`
 
 **Purpose:** Creates attestations for existing schemas and updates database categories
 
