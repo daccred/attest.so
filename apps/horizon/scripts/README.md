@@ -4,25 +4,25 @@ This directory contains scripts for processing attestation schemas, creating att
 
 ## Files Overview
 
-- **`seed-schema.ts`** - Script for registering new schemas on the Stellar network using SorobanSchemaEncoder
-- **`write-schema.ts`** - Schema attestation processor that creates attestations for existing schemas and updates database categories
-- **`descript.ts`** - Test script for validating schema processing functionality and database connectivity
+- **`importSchema.ts`** - Script for registering new schemas on the Stellar network using SorobanSchemaEncoder
+- **`importSchemaEntries.ts`** - Schema attestation processor that creates attestations for existing schemas and updates database categories
+- **`checkImportStatus.ts`** - Test script for validating schema processing functionality and database connectivity
 - **`schemas-*.jsonl`** - JSONL files containing registered schema information organized by category
 
 ## Manual Workflow Overview
 
 These describe the steps needed to manually process the entire schema > attestations > categories backfill workflow:
 
-1. **Register Schemas**: Use the seed script to register new schemas on a newly deployed contract
+1. **Register Schemas**: Use the import script to register new schemas on a newly deployed contract
    ```bash
-   pnpm tsx scripts/seed-schema.ts <category>
+   pnpm tsx scripts/importSchema.ts <category>
    ```
 
 2. **Backfill Data**: Invoke the `/backfill` route either through `curl` on the horizon API or through the integration tests in `apps/horizon/__tests__/integration/backfill.test.ts`
 
-3. **Create Attestations**: Use the write-schema script to create attestations for registered schemas and update database categories
+3. **Create Attestations**: Use the importSchemaEntries script to create attestations for registered schemas and update database categories
    ```bash
-   pnpm tsx scripts/write-schema.ts
+   pnpm tsx scripts/importSchemaEntries.ts
    ```
 
 4. **Continuous Ingestion**: For ongoing monitoring, use the `ingest/recurring` route to have the server continuously listen for new schemas, attestations and events
@@ -31,25 +31,26 @@ These describe the steps needed to manually process the entire schema > attestat
 
 The following schema categories are available:
 
-1. **Identity** (`schemas-identity.jsonl`) - 9 schemas
-   - National ID, Passport, Driver's License, Digital Wallet Identity
-   - Biometric Auth, Age Verification, Trust Score, Background Check
-   - Multi-Factor Authentication
-
-2. **Education** (`schemas-education.jsonl`) - 8 schemas
+1. **Education** (`schemas-education.jsonl`)
    - Bachelor's/Master's/PhD Degrees, IT Certification, Skill Badge
    - Course Completion, Language Proficiency, Academic Transcript
 
-3. **Professional** (`schemas-professional.jsonl`) - 4 schemas
+2. **Finance** (`schemas-finance.jsonl`)
+   - Financial attestations and verifications
+
+3. **GPT** (`schemas-gpt.jsonl`)
+   - AI and GPT-related attestations
+
+4. **Institution** (`schemas-institution.jsonl`)
+   - Institutional verifications
+
+5. **Professional** (`schemas-professional.jsonl`)
    - Professional License, Industry Certification
    - Competency Assessment, Employee ID
 
-4. **Technology** (`schemas-technology.jsonl`) - 8 schemas
+6. **Technology** (`schemas-technology.jsonl`)
    - Code Signing, SBOM, Hardware Attestation, API Security
    - Vulnerability Assessment, OAuth Service, SLA, Content Provenance
-
-5. **Civic** (`schemas-civic.jsonl`) - 2 schemas
-   - Voter Eligibility, Public Service Verification
 
 ## Prerequisites
 
@@ -64,7 +65,7 @@ The following schema categories are available:
 Before running the main processing scripts, test your setup:
 
 ```bash
-pnpm tsx scripts/descript.ts
+pnpm tsx scripts/checkImportStatus.ts
 ```
 
 This will verify:
@@ -77,11 +78,12 @@ This will verify:
 To register new schemas on the Stellar network by category:
 
 ```bash
-pnpm tsx scripts/seed-schema.ts identity
-pnpm tsx scripts/seed-schema.ts education
-pnpm tsx scripts/seed-schema.ts professional
-pnpm tsx scripts/seed-schema.ts technology
-pnpm tsx scripts/seed-schema.ts civic
+pnpm tsx scripts/importSchema.ts education
+pnpm tsx scripts/importSchema.ts finance
+pnpm tsx scripts/importSchema.ts gpt
+pnpm tsx scripts/importSchema.ts institution
+pnpm tsx scripts/importSchema.ts professional
+pnpm tsx scripts/importSchema.ts technology
 ```
 
 ### 3. Process Existing Schemas and Create Attestations
@@ -89,7 +91,7 @@ pnpm tsx scripts/seed-schema.ts civic
 Run the attestation processor to create attestations for existing schemas:
 
 ```bash
-pnpm tsx scripts/write-schema.ts
+pnpm tsx scripts/importSchemaEntries.ts
 ```
 
 This script will:
@@ -102,7 +104,7 @@ This script will:
 
 ## Script Details
 
-### `seed-schema.ts`
+### `importSchema.ts`
 
 **Purpose:** Registers new schemas on the Stellar network using SorobanSchemaEncoder
 
@@ -114,10 +116,10 @@ This script will:
 
 **Usage:**
 ```bash
-pnpm tsx scripts/seed-schema.ts [category]
+pnpm tsx scripts/importSchema.ts [category]
 ```
 
-### `write-schema.ts`
+### `importSchemaEntries.ts`
 
 **Purpose:** Creates attestations for existing schemas and updates database categories
 
@@ -137,7 +139,7 @@ pnpm tsx scripts/seed-schema.ts [category]
 - Rate limiting (2-second delay between operations)
 - Robust error handling for network timeouts
 
-### `descript.ts`
+### `checkImportStatus.ts`
 
 **Purpose:** Test script for validating schema processing functionality
 
