@@ -79,3 +79,10 @@ export {
 
 // Internal utilities (for advanced usage and testing)
 export * as common from './common'
+
+
+console.log('Stellar SDK loaded')
+console.log({
+  StellarAttestationClient: "StellarAttestationClient",
+  StellarSchemaRegistry: "StellarSchemaRegistry",
+})
