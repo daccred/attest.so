@@ -18,11 +18,11 @@ export enum StellarDataType {
   I32 = 'i32',
   I64 = 'i64',
   I128 = 'i128',
+  NUMBER = 'number',
   ADDRESS = 'address',
   BYTES = 'bytes',
   SYMBOL = 'symbol',
   ARRAY = 'array',
-  OPTION = 'option',
   MAP = 'map',
   TIMESTAMP = 'timestamp',
   AMOUNT = 'amount',
@@ -805,6 +805,7 @@ export class SorobanSchemaEncoder {
       case StellarDataType.I32:
       case StellarDataType.I64:
       case StellarDataType.I128:
+      case StellarDataType.NUMBER:
       case StellarDataType.AMOUNT:
       case StellarDataType.TIMESTAMP:
         return 'number'
