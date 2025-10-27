@@ -1,9 +1,10 @@
-// THIS IS A TEST COMMENT
+mod testutils;
+
 use protocol::{interfaces::resolver::ResolverAttestation, AttestationContract, AttestationContractClient};
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, Ledger},
-    Address, Env, String as SorobanString,
+    Address, BytesN, Env, String as SorobanString,
 };
 
 // Mock resolver contracts for testing
@@ -247,4 +248,137 @@ fn test_multiple_schemas_with_different_resolvers() {
     assert!(result.is_err());
     let attestation_2 = client.get_attestation(&attestation_uid_2);
     assert!(!attestation_2.revoked);
+}
+
+/// **Test: Resolver onresolve Hook is Called**
+/// - Create schema with DummyResolver that tracks onresolve calls
+/// - Create an attestation
+/// - Verify onresolve was called with correct parameters
+#[test]
+fn test_resolver_onresolve_hook_called() {
+    use testutils::DummyResolver;
+    use soroban_sdk::symbol_short;
+
+    let env = Env::default();
+    env.mock_all_auths();
+
+    // Set ledger timestamp
+    env.ledger().with_mut(|li| {
+        li.timestamp = 1000;
+    });
+
+    let contract_id = env.register(AttestationContract {}, ());
+    let client = AttestationContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let attester = Address::generate(&env);
+
+    // Deploy the DummyResolver that tracks onresolve calls
+    let resolver_id = env.register(DummyResolver, ());
+
+    // Initialize protocol
+    client.initialize(&admin);
+
+    // Register schema with DummyResolver
+    let schema_definition = SorobanString::from_str(&env, "test_schema");
+    let resolver = Some(resolver_id.clone());
+    let revocable = true;
+    let schema_uid = client.register(&attester, &schema_definition, &resolver, &revocable);
+
+    // Create attestation - should succeed and trigger onresolve
+    let value = SorobanString::from_str(&env, "{\"test\":\"data\"}");
+    let expiration_time = None;
+    let attestation_uid = client.attest(&attester, &schema_uid, &value, &expiration_time);
+
+    // Verify attestation was created
+    let attestation = client.get_attestation(&attestation_uid);
+    assert!(!attestation.revoked);
+
+    // Verify onresolve was called by checking resolver storage
+    let stored_uid: Option<BytesN<32>> = env.as_contract(&resolver_id, || {
+        env.storage()
+            .instance()
+            .get(&symbol_short!("ONRES_UID"))
+    });
+    let stored_attester: Option<Address> = env.as_contract(&resolver_id, || {
+        env.storage()
+            .instance()
+            .get(&symbol_short!("ONRES_ATT"))
+    });
+
+    assert!(stored_uid.is_some(), "onresolve was not called");
+    assert_eq!(stored_uid.unwrap(), attestation_uid);
+    assert!(stored_attester.is_some());
+    assert_eq!(stored_attester.unwrap(), attester);
+}
+
+/// **Test: Resolver onresolve Hook Called After Revocation**
+/// - Create and then revoke an attestation
+/// - Verify onresolve is called after revocation
+#[test]
+fn test_resolver_onresolve_hook_called_after_revocation() {
+    use testutils::DummyResolver;
+    use soroban_sdk::symbol_short;
+
+    let env = Env::default();
+    env.mock_all_auths();
+
+    // Set ledger timestamp
+    env.ledger().with_mut(|li| {
+        li.timestamp = 1000;
+    });
+
+    let contract_id = env.register(AttestationContract {}, ());
+    let client = AttestationContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let attester = Address::generate(&env);
+
+    // Deploy the DummyResolver
+    let resolver_id = env.register(DummyResolver, ());
+
+    // Initialize protocol
+    client.initialize(&admin);
+
+    // Register schema with DummyResolver
+    let schema_definition = SorobanString::from_str(&env, "test_schema");
+    let resolver = Some(resolver_id.clone());
+    let revocable = true;
+    let schema_uid = client.register(&attester, &schema_definition, &resolver, &revocable);
+
+    // Create attestation
+    let value = SorobanString::from_str(&env, "{\"test\":\"data\"}");
+    let attestation_uid = client.attest(&attester, &schema_uid, &value, &None);
+
+    // Clear the onresolve tracking to verify revocation triggers new call
+    env.as_contract(&resolver_id, || {
+        env.storage()
+            .instance()
+            .remove(&symbol_short!("ONRES_UID"));
+        env.storage()
+            .instance()
+            .remove(&symbol_short!("ONRES_ATT"));
+    });
+
+    // Revoke the attestation - should trigger onresolve again
+    client.revoke(&attester, &attestation_uid);
+
+    // Verify attestation is revoked
+    let attestation = client.get_attestation(&attestation_uid);
+    assert!(attestation.revoked);
+
+    // Verify onresolve was called again after revocation
+    let stored_uid: Option<BytesN<32>> = env.as_contract(&resolver_id, || {
+        env.storage()
+            .instance()
+            .get(&symbol_short!("ONRES_UID"))
+    });
+    let stored_attester: Option<Address> = env.as_contract(&resolver_id, || {
+        env.storage()
+            .instance()
+            .get(&symbol_short!("ONRES_ATT"))
+    });
+
+    assert!(stored_uid.is_some(), "onresolve was not called after revocation");
+    assert_eq!(stored_uid.unwrap(), attestation_uid);
+    assert!(stored_attester.is_some());
+    assert_eq!(stored_attester.unwrap(), attester);
 }

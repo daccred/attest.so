@@ -106,63 +106,46 @@ pub fn create_delegated_attestation_request(
 //                                DUMMY RESOLVER FOR TESTING
 //
 // =======================================================================================
-use resolvers::interface::{ResolverAttestationData, ResolverError, ResolverInterface, ResolverMetadata, ResolverType};
-use soroban_sdk::{contract, contractimpl, symbol_short, Bytes};
+use protocol::interfaces::resolver::ResolverAttestation;
+use soroban_sdk::{contract, contractimpl, symbol_short};
 
 #[contract]
 pub struct DummyResolver;
 
 #[contractimpl]
-impl ResolverInterface for DummyResolver {
-    /// --- METADATA ---
-    fn metadata(_env: Env) -> ResolverMetadata {
-        ResolverMetadata {
-            name: SorobanString::from_str(&_env, "Dummy Resolver"),
-            version: SorobanString::from_str(&_env, "1.0.0"),
-            description: SorobanString::from_str(&_env, "A resolver for testing purposes."),
-            resolver_type: ResolverType::Custom,
-        }
-    }
-
-    /// --- VALIDATION HOOKS ---
-
+impl DummyResolver {
     /// Validates an attestation. In this dummy, it allows attestations by default
     /// but can be configured to deny them for testing failure paths.
-    fn onattest(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
+    pub fn onattest(env: Env, attestation: ResolverAttestation) -> bool {
         env.storage().instance().set(&symbol_short!("LASTONATT"), &attestation);
 
         // Default to allowing the attestation.
         // A test can change this value to simulate a rejection.
-        let should_allow = env
-            .storage()
+        env.storage()
             .instance()
             .get(&symbol_short!("ALLOW_ATT"))
-            .unwrap_or(true);
-        Ok(should_allow)
+            .unwrap_or(true)
     }
 
     /// Validates a revocation. In this dummy, it allows revocations by default.
-    fn onrevoke(env: Env, attestation: ResolverAttestationData) -> Result<bool, ResolverError> {
+    pub fn onrevoke(env: Env, attestation: ResolverAttestation) -> bool {
         env.storage().instance().set(&symbol_short!("LASTONREV"), &attestation);
 
         // Default to allowing the revocation.
-        let should_allow = env
-            .storage()
+        env.storage()
             .instance()
             .get(&symbol_short!("ALLOW_REV"))
-            .unwrap_or(true);
-        Ok(should_allow)
+            .unwrap_or(true)
     }
-
-    /// --- POST-PROCESSING HOOK ---
 
     /// Post-processing callback. This dummy resolver just records the UID and attester
     /// that were passed to it, so tests can verify it was called.
-    fn onresolve(env: Env, attestation_uid: BytesN<32>, attester: Address) -> Result<(), ResolverError> {
+    pub fn onresolve(env: Env, attestation: ResolverAttestation) {
         env.storage()
             .instance()
-            .set(&symbol_short!("ONRES_UID"), &attestation_uid);
-        env.storage().instance().set(&symbol_short!("ONRES_ATT"), &attester);
-        Ok(())
+            .set(&symbol_short!("ONRES_UID"), &attestation.uid);
+        env.storage()
+            .instance()
+            .set(&symbol_short!("ONRES_ATT"), &attestation.attester);
     }
 }
