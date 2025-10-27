@@ -105,6 +105,7 @@ export const REGISTRY_ENDPOINTS = {
  * Transform raw attestation data to ContractAttestation
  */
 function transformAttestation(item: RawAttestationData): ContractAttestation {
+  console.log('transformAttestation', item)
   return {
     uid: Buffer.from(item.attestation_uid, 'hex'),
     schemaUid: Buffer.from(item.schema_uid, 'hex'),
@@ -122,6 +123,7 @@ function transformAttestation(item: RawAttestationData): ContractAttestation {
  * Transform raw schema data to ContractSchema
  */
 function transformSchema(item: RawSchemaData): ContractSchema {
+  console.log('transformSchema', item)
   return {
     uid: Buffer.from(item.uid, 'hex'),
     definition: item.schema_definition || item.parsed_schema_definition,
@@ -344,6 +346,31 @@ export async function getAttestationByUid(
 }
 
 /**
+ * Get a single attestation by transaction hash
+ */
+export async function getAttestationByTxHash(
+  txHash: string,
+  network: 'testnet' | 'mainnet' = 'testnet'
+): Promise<ContractAttestation | null> {
+  try {
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/attestations/tx/${txHash}`
+
+    const apiResponse = await ky.get(endpoint).json<RegistrySingleResponse<RawAttestationData>>()
+
+    return transformAttestation(apiResponse.data)
+  } catch (error: any) {
+    // ky throws HTTPError for 404 responses
+    if (error?.response?.status === 404) {
+      return null
+    }
+    if (error instanceof HorizonError) {
+      throw error
+    }
+    throw new NetworkError(`Failed to get attestation by transaction hash: ${error.message}`, error)
+  }
+}
+
+/**
  * Get a single schema by UID
  */
 export async function getSchemaByUid(
@@ -368,6 +395,34 @@ export async function getSchemaByUid(
       throw error
     }
     throw new NetworkError(`Failed to get schema by UID: ${error.message}`, error)
+  }
+}
+
+/**
+ * Get a single schema by transaction hash
+ */
+export async function getSchemaByTxHash(
+  txHash: string,
+  includeAttestations: boolean = false,
+  network: 'testnet' | 'mainnet' = 'testnet'
+): Promise<ContractSchema | null> {
+  try {
+    const endpoint = `${REGISTRY_ENDPOINTS[network]}/schemas/tx/${txHash}`
+
+    const apiResponse = includeAttestations
+      ? await ky.get(endpoint, { searchParams: { include_attestations: 'true' } }).json<RegistrySingleResponse<RawSchemaData>>()
+      : await ky.get(endpoint).json<RegistrySingleResponse<RawSchemaData>>()
+
+    return transformSchema(apiResponse.data)
+  } catch (error: any) {
+    // ky throws HTTPError for 404 responses
+    if (error?.response?.status === 404) {
+      return null
+    }
+    if (error instanceof HorizonError) {
+      throw error
+    }
+    throw new NetworkError(`Failed to get schema by transaction hash: ${error.message}`, error)
   }
 }
 
