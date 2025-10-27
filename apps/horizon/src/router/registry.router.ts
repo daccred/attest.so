@@ -15,19 +15,23 @@ import { Router, Request, Response } from 'express'
 import {
   getAttestations,
   getAttestationByUid,
+  getAttestationByTxHash,
   Attestation,
 } from '../repository/attestations.repository'
 import {
   getSchemas,
   getSchemaByUid,
+  getSchemaByTxHash,
   Schema,
 } from '../repository/schemas.repository'
 
 // Route constants for registry endpoints
 const ATTESTATIONS_LIST_ROUTE = '/attestations'
 const ATTESTATIONS_BY_UID_ROUTE = '/attestations/:uid'
+const ATTESTATIONS_BY_TX_ROUTE = '/attestations/tx/:txHash'
 const SCHEMAS_LIST_ROUTE = '/schemas'
 const SCHEMAS_BY_UID_ROUTE = '/schemas/:uid'
+const SCHEMAS_BY_TX_ROUTE = '/schemas/tx/:txHash'
 
 const router = Router()
 
@@ -223,9 +227,52 @@ router.get(ATTESTATIONS_BY_UID_ROUTE, async (req: Request, res: Response) => {
     })
   } catch (error: any) {
     console.error('Error fetching attestation:', error)
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Failed to fetch attestation' 
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch attestation'
+    })
+  }
+})
+
+/**
+ * GET /registry/attestations/tx/:txHash - Fetch an attestation by transaction hash.
+ *
+ * Retrieves a specific attestation by its transaction hash with full
+ * metadata including schema details and current status.
+ *
+ * @route GET /registry/attestations/tx/:txHash
+ * @param {string} txHash - Transaction hash
+ * @returns {Object} Attestation response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {Object} response.data - Single attestation object
+ * @status 200 - Success with attestation data
+ * @status 404 - Attestation not found
+ * @status 500 - Internal server error
+ */
+router.get(ATTESTATIONS_BY_TX_ROUTE, async (req: Request, res: Response) => {
+  try {
+    const { txHash } = req.params
+
+    const attestation = await getAttestationByTxHash(txHash)
+
+    if (!attestation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Attestation not found for transaction hash'
+      })
+    }
+
+    const transformedAttestation = transformAttestationForAPI(attestation)
+
+    res.json({
+      success: true,
+      data: transformedAttestation,
+    })
+  } catch (error: any) {
+    console.error('Error fetching attestation by tx hash:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch attestation by transaction hash'
     })
   }
 })
@@ -365,9 +412,55 @@ router.get(SCHEMAS_BY_UID_ROUTE, async (req: Request, res: Response) => {
     })
   } catch (error: any) {
     console.error('Error fetching schema:', error)
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Failed to fetch schema' 
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch schema'
+    })
+  }
+})
+
+/**
+ * GET /registry/schemas/tx/:txHash - Fetch a schema by transaction hash.
+ *
+ * Retrieves a specific schema by its transaction hash with full
+ * definition, parsed fields, and deployment metadata.
+ *
+ * @route GET /registry/schemas/tx/:txHash
+ * @param {string} txHash - Transaction hash
+ * @param {boolean} [include_attestations=false] - Include full attestation data
+ * @returns {Object} Schema response
+ * @returns {boolean} response.success - Operation success indicator
+ * @returns {Object} response.data - Single schema object
+ * @status 200 - Success with schema data
+ * @status 404 - Schema not found
+ * @status 500 - Internal server error
+ */
+router.get(SCHEMAS_BY_TX_ROUTE, async (req: Request, res: Response) => {
+  try {
+    const { txHash } = req.params
+    const { include_attestations } = req.query
+
+    const includeAttestations = include_attestations === 'true'
+    const schema = await getSchemaByTxHash(txHash, includeAttestations)
+
+    if (!schema) {
+      return res.status(404).json({
+        success: false,
+        error: 'Schema not found for transaction hash'
+      })
+    }
+
+    const transformedSchema = transformSchemaForAPI(schema)
+
+    res.json({
+      success: true,
+      data: transformedSchema,
+    })
+  } catch (error: any) {
+    console.error('Error fetching schema by tx hash:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch schema by transaction hash'
     })
   }
 })

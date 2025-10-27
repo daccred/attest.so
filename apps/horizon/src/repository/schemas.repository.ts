@@ -182,6 +182,40 @@ export async function getSchemaByUid(uid: string, includeAttestations: boolean =
 }
 
 /**
+ * Retrieves a schema by transaction hash.
+ *
+ * @param transactionHash - The transaction hash to search for
+ * @param includeAttestations - Whether to include related attestations (not used currently)
+ * @returns The schema object or null if not found
+ */
+export async function getSchemaByTxHash(transactionHash: string, includeAttestations: boolean = false) {
+  const db = await getDB()
+  if (!db) {
+    console.error('Database not available for getSchemaByTxHash')
+    return null
+  }
+
+  try {
+    const results = await db.schema.findMany({
+      where: { transactionHash },
+      take: 1,
+    })
+    const schema = results[0] || null
+
+    if (schema) {
+      console.log(`📋 Retrieved schema by tx hash: ${transactionHash}`)
+    } else {
+      console.log(`❌ Schema not found for tx hash: ${transactionHash}`)
+    }
+
+    return schema
+  } catch (error: any) {
+    console.error(`Error retrieving schema by tx hash`, transactionHash, error.message)
+    return null
+  }
+}
+
+/**
  * Bulk upsert schemas from blockchain events.
  *
  * Processes multiple schemas for efficient database insertion

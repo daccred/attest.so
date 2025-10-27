@@ -192,6 +192,39 @@ export async function getAttestationByUid(attestationUid: string) {
 }
 
 /**
+ * Retrieves an attestation by transaction hash.
+ *
+ * @param transactionHash - The transaction hash to search for
+ * @returns The attestation object or null if not found
+ */
+export async function getAttestationByTxHash(transactionHash: string) {
+  const db = await getDB()
+  if (!db) {
+    console.error('Database not available for getAttestationByTxHash')
+    return null
+  }
+
+  try {
+    const results = await db.attestation.findMany({
+      where: { transactionHash },
+      take: 1,
+    })
+    const attestation = results[0] || null
+
+    if (attestation) {
+      console.log(`📋 Retrieved attestation by tx hash: ${transactionHash}`)
+    } else {
+      console.log(`❌ Attestation not found for tx hash: ${transactionHash}`)
+    }
+
+    return attestation
+  } catch (error: any) {
+    console.error(`Error retrieving attestation by tx hash`, transactionHash, error.message)
+    return null
+  }
+}
+
+/**
  * Bulk upsert attestations from blockchain events.
  *
  * Processes multiple attestations for efficient database insertion
