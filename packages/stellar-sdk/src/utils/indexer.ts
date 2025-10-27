@@ -77,12 +77,13 @@ export const HORIZON_CONFIGS: Record<string, HorizonConfig> = {
   local: {
     network: 'local',
     baseUrl: 'http://localhost:8000',
-    registryUrl: 'http://localhost:8000/api/registry',
+    registryUrl: 'http://localhost:3001/api/registry',
   },
   testnet: {
     network: 'testnet',
     baseUrl: 'https://horizon-testnet.stellar.org',
-    registryUrl: 'https://testnet-graph.attest.so/api/registry',
+    registryUrl: 'http://localhost:3001/api/registry',
+    // registryUrl: 'https://testnet-graph.attest.so/api/registry',
   },
   mainnet: {
     network: 'mainnet',
