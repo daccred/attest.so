@@ -1,6 +1,6 @@
 //! # Resolvers Library
 //!
-//! This library provides a collection of resolver implementations for the Stellar attestation system.
+//! This library provides a collection of resolver implementations for the Stellar attestation Service.
 //! Resolvers are responsible for validating and processing attestations according to specific
 //! business logic rules, enabling flexible attestation workflows with custom validation and processing.
 //!
