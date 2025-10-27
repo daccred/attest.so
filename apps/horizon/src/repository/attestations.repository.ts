@@ -192,7 +192,10 @@ export async function getAttestationByUid(attestationUid: string) {
 }
 
 /**
- * Retrieves an attestation by transaction hash.
+ * Retrieves an attestation by transaction hash using two-step lookup.
+ *
+ * First queries the transactions table to get the UID from metadata,
+ * then fetches the full attestation record.
  *
  * @param transactionHash - The transaction hash to search for
  * @returns The attestation object or null if not found
@@ -205,16 +208,41 @@ export async function getAttestationByTxHash(transactionHash: string) {
   }
 
   try {
+    // Step 1: Query transactions table to get metadata
+    const transaction = await db.transaction.findFirst({
+      where: {
+        transactionHash,
+        action: 'ATTEST:CREATE', // Verify it's an attestation action
+      },
+      orderBy: { timestamp: 'desc' },
+    })
+
+    if (!transaction || !transaction.metadata) {
+      console.log(`❌ Transaction not found or missing metadata for tx hash: ${transactionHash}`)
+      return null
+    }
+
+    // Step 2: Parse metadata array to extract UID
+    // Expected format: [UID, payload, sourceAccount]
+    const metadata = Array.isArray(transaction.metadata) ? transaction.metadata : []
+    const attestationUid = metadata[0] as string // UID is first element
+
+    if (!attestationUid) {
+      console.log(`❌ No UID found in metadata for tx hash: ${transactionHash}`)
+      return null
+    }
+
+    // Step 3: Fetch attestation by UID
     const results = await db.attestation.findMany({
-      where: { transactionHash },
+      where: { attestationUid },
       take: 1,
     })
     const attestation = results[0] || null
 
     if (attestation) {
-      console.log(`📋 Retrieved attestation by tx hash: ${transactionHash}`)
+      console.log(`📋 Retrieved attestation by tx hash: ${transactionHash} -> UID: ${attestationUid}`)
     } else {
-      console.log(`❌ Attestation not found for tx hash: ${transactionHash}`)
+      console.log(`❌ Attestation not found for UID: ${attestationUid}`)
     }
 
     return attestation

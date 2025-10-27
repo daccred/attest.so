@@ -182,7 +182,10 @@ export async function getSchemaByUid(uid: string, includeAttestations: boolean =
 }
 
 /**
- * Retrieves a schema by transaction hash.
+ * Retrieves a schema by transaction hash using two-step lookup.
+ *
+ * First queries the transactions table to get the UID from metadata,
+ * then fetches the full schema record.
  *
  * @param transactionHash - The transaction hash to search for
  * @param includeAttestations - Whether to include related attestations (not used currently)
@@ -195,17 +198,45 @@ export async function getSchemaByTxHash(transactionHash: string, includeAttestat
     return null
   }
 
+  
   try {
+    // Step 1: Query transactions table to get metadata
+    const transaction = await db.transaction.findFirst({
+      where: {
+        transactionHash,
+        action: 'SCHEMA:REGISTER', // Verify it's a schema registration action
+      },
+      orderBy: { timestamp: 'desc' },
+    })
+
+    if (!transaction || !transaction.metadata) {
+      console.log(`❌ Transaction not found or missing metadata for tx hash: ${transactionHash}`)
+      return null
+    }
+
+    // Step 2: Parse metadata array to extract UID
+    // Expected format: [UID, { resolver, authority, revocable, definition }, sourceAccount]
+    const metadata = Array.isArray(transaction.metadata) ? transaction.metadata : []
+
+    console.log({metadata}, "metadata")
+    const schemaUid = metadata[0] as string// UID is first element
+
+    if (!schemaUid) {
+      console.log(`❌ No UID found in metadata for tx hash: ${transactionHash}`)
+      return null
+    }
+
+    // Step 3: Fetch schema by UID
     const results = await db.schema.findMany({
-      where: { transactionHash },
+      where: { uid: schemaUid },
       take: 1,
     })
     const schema = results[0] || null
 
     if (schema) {
-      console.log(`📋 Retrieved schema by tx hash: ${transactionHash}`)
+      console.log(`📋 Retrieved schema by tx hash: ${transactionHash} -> UID: ${schemaUid}`)
     } else {
-      console.log(`❌ Schema not found for tx hash: ${transactionHash}`)
+      console.log(`❌ Schema not found for UID: ${schemaUid}`)
     }
 
     return schema

@@ -132,6 +132,38 @@ export async function getContractTransactionByEventId(eventId: string) {
 }
 
 /**
+ * Retrieves a single contract transaction by transaction hash.
+ *
+ * Fetches specific transaction with full metadata including the metadata
+ * array which contains [UID, payload, sourceAccount] for schema/attestation actions.
+ */
+export async function getContractTransactionByHash(transactionHash: string) {
+  const db = await getDB()
+  if (!db) {
+    console.error('Database not available for getContractTransactionByHash')
+    return null
+  }
+
+  try {
+    const transaction = await db.transaction.findFirst({
+      where: { transactionHash },
+      orderBy: { timestamp: 'desc' }, // Get most recent if multiple
+    })
+
+    if (transaction) {
+      console.log(`📋 Retrieved contract transaction for hash: ${transactionHash}`)
+    } else {
+      console.log(`❌ Contract transaction not found for hash: ${transactionHash}`)
+    }
+
+    return transaction
+  } catch (error: any) {
+    console.error(`Error retrieving contract transaction for hash ${transactionHash}:`, error.message)
+    return null
+  }
+}
+
+/**
  * Retrieves contract transactions by action type.
  *
  * Gets all transactions of a specific action type (e.g., SCHEMA:REGISTER).
