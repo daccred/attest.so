@@ -244,6 +244,29 @@ describe('Registry Router Integration Tests', () => {
       expect(response.body.success).toBe(false)
       expect(response.body.error).toBe('Attestation not found')
     })
+
+    it('should retrieve single attestation by transaction hash', async () => {
+      const txHash = `integration-test-transaction-hash-${testSuffix}`
+
+      const response = await request(app)
+        .get(`/api/registry/attestations/tx/${txHash}`)
+        .expect(200)
+
+      expect(response.body.success).toBe(true)
+      expect(response.body.data.transaction_hash).toBe(txHash)
+      expect(response.body.data.ledger).toBe(REQUEST_LEDGER)
+      expect(response.body.data.attesterAddress).toBe(baseAttestationData.attesterAddress)
+      expect(response.body.data.attestation_uid).toBe(`integration-test-attestation-1-${testSuffix}`)
+    })
+
+    it('should return 404 for non-existent attestation transaction hash', async () => {
+      const response = await request(app)
+        .get('/api/registry/attestations/tx/non-existent-tx-hash')
+        .expect(404)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.error).toBe('Attestation not found for transaction hash')
+    })
   })
 
   describe('Database Query Formation - Schemas', () => {
@@ -380,6 +403,29 @@ describe('Registry Router Integration Tests', () => {
 
       expect(response.body.success).toBe(false)
       expect(response.body.error).toBe('Schema not found')
+    })
+
+    it('should retrieve single schema by transaction hash', async () => {
+      const txHash = 'integration-test-schema-tx-hash-1'
+
+      const response = await request(app)
+        .get(`/api/registry/schemas/tx/${txHash}`)
+        .expect(200)
+
+      expect(response.body.success).toBe(true)
+      expect(response.body.data.transaction_hash).toBe(txHash)
+      expect(response.body.data.ledger).toBe(REQUEST_LEDGER)
+      expect(response.body.data.deployerAddress).toBe(baseSchemaData.deployerAddress)
+      expect(response.body.data.type).toBe('identity')
+    })
+
+    it('should return 404 for non-existent schema transaction hash', async () => {
+      const response = await request(app)
+        .get('/api/registry/schemas/tx/non-existent-tx-hash')
+        .expect(404)
+
+      expect(response.body.success).toBe(false)
+      expect(response.body.error).toBe('Schema not found for transaction hash')
     })
   })
 
