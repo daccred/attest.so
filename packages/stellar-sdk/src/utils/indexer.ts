@@ -82,7 +82,7 @@ export const HORIZON_CONFIGS: Record<string, HorizonConfig> = {
   testnet: {
     network: 'testnet',
     baseUrl: 'https://horizon-testnet.stellar.org',
-    registryUrl: 'https://graph.attest.so/api/registry',
+    registryUrl: 'https://testnet-graph.attest.so/api/registry',
   },
   mainnet: {
     network: 'mainnet',
@@ -96,11 +96,10 @@ export const HORIZON_CONFIGS: Record<string, HorizonConfig> = {
  * Primarily uses local horizon server instance
  */
 export const REGISTRY_ENDPOINTS = {
-  testnet:
-    process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.testnet.registryUrl || 'https://graph.attest.so/api/registry',
-  mainnet:
-    process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.mainnet.registryUrl || 'https://graph.attest.so/api/registry',
+  testnet: process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.testnet.registryUrl, 
+  mainnet: process.env.HORIZON_REGISTRY_URL || HORIZON_CONFIGS.mainnet.registryUrl,
 }
+
 
 /**
  * Transform raw attestation data to ContractAttestation
