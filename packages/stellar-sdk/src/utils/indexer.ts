@@ -82,8 +82,7 @@ export const HORIZON_CONFIGS: Record<string, HorizonConfig> = {
   testnet: {
     network: 'testnet',
     baseUrl: 'https://horizon-testnet.stellar.org',
-    registryUrl: 'http://localhost:3001/api/registry',
-    // registryUrl: 'https://testnet-graph.attest.so/api/registry',
+    registryUrl: 'https://testnet-graph.attest.so/api/registry',
   },
   mainnet: {
     network: 'mainnet',
