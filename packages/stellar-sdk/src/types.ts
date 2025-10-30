@@ -142,7 +142,7 @@ export interface DelegatedRevocationRequest {
  */
 export interface BlsKeyPair {
   /** Public key (192 bytes uncompressed) */
-  publicKey: Uint8Array
+  publicKey: Uint8Array<ArrayBufferLike>
   /** Private key (32 bytes) */
   privateKey: Uint8Array
 }
@@ -167,11 +167,15 @@ export interface VerificationResult {
  */
 export interface ContractSchema {
   uid: Buffer
-  definition: string
+  definition: string | any
+  parsedDefinition?: any
   authority: string
   resolver?: string
   revocable: boolean
   timestamp: number
+  ledger?: number
+  type?: string
+  transactionHash?: string
 }
 
 /**

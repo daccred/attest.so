@@ -61,13 +61,17 @@ export interface RawAttestationData {
 export interface RawSchemaData {
   uid: string
   schema_definition?: string
+  schemaDefinition?: string
   parsed_schema_definition?: any
+  parsedSchemaDefinition?: any
   deployerAddress: string
-  resolverAddress: string
+  resolverAddress: string | null
   revocable: boolean
   createdAt: string
   ledger: number
   type?: string
+  transaction_hash?: string
+  transactionHash?: string
 }
 
 /**
@@ -124,13 +128,22 @@ function transformAttestation(item: RawAttestationData): ContractAttestation {
  */
 function transformSchema(item: RawSchemaData): ContractSchema {
   console.log('transformSchema', item)
+
+  if (!item.uid) {
+    throw new Error('Schema UID is required but was not provided in the API response')
+  }
+
   return {
     uid: Buffer.from(item.uid, 'hex'),
-    definition: item.schema_definition || item.parsed_schema_definition,
+    definition: item.schema_definition || item.schemaDefinition || item.parsed_schema_definition || item.parsedSchemaDefinition,
+    parsedDefinition: item.parsed_schema_definition || item.parsedSchemaDefinition,
     authority: item.deployerAddress,
-    resolver: item.resolverAddress,
+    resolver: item.resolverAddress || '',
     revocable: item.revocable ?? true,
     timestamp: new Date(item.createdAt).getTime(),
+    ledger: item.ledger,
+    type: item.type,
+    transactionHash: item.transaction_hash || item.transactionHash,
   }
 }
 
