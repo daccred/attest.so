@@ -191,6 +191,10 @@ export interface ContractAttestation {
   expirationTime?: number
   revocationTime?: number
   revoked: boolean
+  ledger?: number
+  transactionHash?: string
+  schemaEncoding?: string
+  message?: string
 }
 
 /**

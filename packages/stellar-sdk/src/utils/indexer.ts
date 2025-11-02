@@ -56,6 +56,11 @@ export interface RawAttestationData {
   revokedAt?: string
   revoked: boolean
   ledger: number
+  transaction_hash?: string
+  transactionHash?: string
+  schema_encoding?: string
+  schemaEncoding?: string
+  message?: string
 }
 
 export interface RawSchemaData {
@@ -120,6 +125,10 @@ function transformAttestation(item: RawAttestationData): ContractAttestation {
     expirationTime: item.expiration_time,
     revocationTime: item.revokedAt ? new Date(item.revokedAt).getTime() : undefined,
     revoked: item.revoked || false,
+    ledger: item.ledger,
+    transactionHash: item.transaction_hash || item.transactionHash,
+    schemaEncoding: item.schema_encoding || item.schemaEncoding,
+    message: item.message,
   }
 }
 
