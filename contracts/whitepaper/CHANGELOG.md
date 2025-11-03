@@ -1,5 +1,11 @@
 # @attestprotocol/whitepaper
 
+## 2.0.1
+
+### Patch Changes
+
+- 4b56c67: SDK enhancements
+
 ## 2.0.0
 
 ### Major Changes

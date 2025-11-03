@@ -1,5 +1,16 @@
 # @attestprotocol/sdk
 
+## 2.0.1
+
+### Patch Changes
+
+- 4b56c67: SDK enhancements
+- Updated dependencies [4b56c67]
+  - @attestprotocol/starknet-sdk@2.0.1
+  - @attestprotocol/stellar-sdk@2.0.1
+  - @attestprotocol/solana-sdk@2.0.1
+  - @attestprotocol/core@2.0.1
+
 ## 2.0.0
 
 ### Major Changes

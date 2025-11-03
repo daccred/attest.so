@@ -1,5 +1,13 @@
 # @attestprotocol/cli
 
+## 2.0.1
+
+### Patch Changes
+
+- 4b56c67: SDK enhancements
+- Updated dependencies [4b56c67]
+  - @attestprotocol/sdk@2.0.1
+
 ## 2.0.0
 
 ### Major Changes
