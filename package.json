@@ -1,6 +1,6 @@
 {
   "name": "attestprotocol",
-  "version": "1.7.7",
+  "version": "1.7.8",
   "author": "Andrew Miracle <andrew@daccred.co>",
   "devDependencies": {
     "@changesets/cli": "^2.29.4",
