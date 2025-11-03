@@ -251,7 +251,7 @@ importers:
   packages/cli:
     dependencies:
       '@attestprotocol/sdk':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../sdk
       '@stellar/stellar-sdk':
         specifier: '>=14.1.0'
@@ -336,16 +336,16 @@ importers:
   packages/sdk:
     dependencies:
       '@attestprotocol/core':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../core
       '@attestprotocol/solana-sdk':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../solana-sdk
       '@attestprotocol/starknet-sdk':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../starknet-sdk
       '@attestprotocol/stellar-sdk':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../stellar-sdk
     devDependencies:
       '@sebbo2002/semantic-release-jsr':
@@ -364,7 +364,7 @@ importers:
   packages/solana-sdk:
     dependencies:
       '@attestprotocol/core':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../core
       '@coral-xyz/anchor':
         specifier: 0.31.1
@@ -398,7 +398,7 @@ importers:
   packages/starknet-sdk:
     dependencies:
       '@attestprotocol/core':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../core
       starknet:
         specifier: ^6.6.6
@@ -423,10 +423,10 @@ importers:
   packages/stellar-sdk:
     dependencies:
       '@attestprotocol/core':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../core
       '@attestprotocol/stellar-contracts':
-        specifier: 2.0.0
+        specifier: 2.0.1
         version: link:../../contracts/stellar
       '@noble/curves':
         specifier: ^2.0.0
