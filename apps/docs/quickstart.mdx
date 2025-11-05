@@ -1,107 +1,87 @@
 ---
 title: 'Quickstart'
-description: 'Get up and running with AttestProtocol in minutes. Create your first attestation.'
+description: 'Get up and running with AttestProtocol on Stellar. Create your first attestation with BLS delegation.'
 ---
 
 ## Overview
 
-This quickstart guide will walk you through creating and verifying your first attestation using AttestProtocol. You'll learn how to:
+This quickstart guide will walk you through creating attestations using the Stellar SDK. You'll learn how to:
 
-1. Install and initialize the SDK
-2. Register as an authority
-3. Create or select a schema
-4. Issue your first attestation
-5. Verify attestations
+1. Install and initialize the Stellar client
+2. Create schemas for structured credentials
+3. Issue basic attestations
+4. Use BLS delegation for off-chain signing
+5. Query attestations from the Horizon indexer
 
 <Note>
-This guide uses testnet environments for safe experimentation. Switch to mainnet when you're ready for production.
+This guide uses Stellar testnet for safe experimentation. Switch to mainnet when ready for production with actual deployed contracts.
 </Note>
 
 ## Prerequisites
 
-- Node.js 16+ installed
-- Basic familiarity with JavaScript/TypeScript
-- Wallet for your target blockchain (Stellar or Solana)
+- Node.js 18+ installed
+- TypeScript familiarity recommended
+- Stellar wallet (testnet account with XLM for gas)
+- Basic understanding of Soroban smart contracts
 
 ## Step 1: Installation
 
-Install the AttestProtocol SDK for your target blockchain:
+Install the Stellar SDK and dependencies:
 
 <CodeGroup>
 ```bash npm
-npm install @attestprotocol/sdk
-```
-
-```bash yarn
-yarn add @attestprotocol/sdk
+npm install @attestprotocol/stellar-sdk @stellar/stellar-sdk
 ```
 
 ```bash pnpm
-pnpm add @attestprotocol/sdk
+pnpm add @attestprotocol/stellar-sdk @stellar/stellar-sdk
+```
+
+```bash yarn
+yarn add @attestprotocol/stellar-sdk @stellar/stellar-sdk
 ```
 </CodeGroup>
 
-### Optional Packages
+### Get Testnet Account
 
-<CodeGroup>
-```bash CLI Tools
-# Unified CLI (supports all chains)
-npm install -g @attestprotocol/cli
+Create a Stellar testnet account with Friendbot:
+
+```bash
+curl "https://friendbot.stellar.org?addr=YOUR_PUBLIC_KEY"
 ```
 
-```bash Development
-# TypeScript types
-npm install -D @attestprotocol/types
+Or use Stellar Laboratory: https://laboratory.stellar.org/#account-creator
 
-# Testing utilities
-npm install -D @attestprotocol/test-utils
-```
-</CodeGroup>
+## Step 2: Initialize the Client
 
-## Step 2: Initialize the SDK
+Initialize the Stellar attestation client with your configuration:
 
-Choose your blockchain and initialize the SDK:
+```typescript
+import { StellarAttestationClient } from '@attestprotocol/stellar-sdk';
+import { Keypair } from '@stellar/stellar-sdk';
 
-<CodeGroup>
-```typescript Stellar
-<<<<<<< HEAD
-import { AttestSDK } from '@attestprotocol/sdk';
-
-const sdk = await AttestSDK.initializeStellar({
-=======
-import { AttestProtocol } from '@attestprotocol/sdk';
-
-const sdk = await AttestProtocol.initializeStellar({
->>>>>>> canary
-  secretKeyOrCustomSigner: process.env.STELLAR_SECRET_KEY,
-  publicKey: process.env.STELLAR_PUBLIC_KEY,
-  url: 'https://soroban-testnet.stellar.org'
+// Initialize client
+const client = new StellarAttestationClient({
+  rpcUrl: 'https://soroban-testnet.stellar.org',
+  network: 'testnet',
+  publicKey: 'GBXXXXXXXXXXXXXXXXXXXXX',
+  // Optional: specify custom contract ID
+  contractId: 'CDBWGWEZ3P4DZ3YUZSCEUKOVV2UGF2PYQEPW3E5OKNLYS5SNW4SQLDUA'
 });
 
-console.log('Stellar SDK initialized');
+// Create signer from secret key
+const signer = Keypair.fromSecret(process.env.STELLAR_SECRET_KEY);
+
+console.log('Client initialized for testnet');
 ```
-
-```typescript Solana
-<<<<<<< HEAD
-import { AttestSDK } from '@attestprotocol/sdk';
-
-const sdk = await AttestSDK.initializeSolana({
-=======
-import { AttestProtocol } from '@attestprotocol/sdk';
-
-const sdk = await AttestProtocol.initializeSolana({
->>>>>>> canary
-  walletOrSecretKey: process.env.SOLANA_SECRET_KEY,
-  url: 'https://api.devnet.solana.com'
-});
-
-console.log('Solana SDK initialized');
-```
-</CodeGroup>
 
 <Warning>
-Never commit private keys to version control. Use environment variables in production.
+Never commit private keys to version control. Always use environment variables for secrets.
 </Warning>
+
+### Network Configuration
+
+The client automatically uses the correct contract addresses for testnet and mainnet based on your `network` parameter.
 
 ## Step 3: Register as Authority
 
