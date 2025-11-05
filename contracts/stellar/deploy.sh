@@ -7,12 +7,23 @@
 # Features: Multi-contract support, deployment history tracking, network selection,
 # clean build mode, automatic initialization, and robust error handling.
 #
-# Usage: ./deploy.sh [--authority] [--protocol] [--network <network_name>] [--source <identity_name>] [--mode <default|clean>] [--initialize] [--token-id <token_id>] [--bindings] [-h|--help]
+# Usage: ./deploy.sh [--authority] [--protocol] [--network <network_name>] [--rpc-url <url>] [--network-passphrase <passphrase>] [--source <identity_name>] [--mode <default|clean>] [--initialize] [--token-id <token_id>] [--bindings] [-h|--help]
 # Configuration can be set via command-line flags or by creating an env.sh file
 # in the parent directory (flags override env.sh).
 # Required env.sh variables if not using flags:
 #   - SOURCE_IDENTITY (for --source)
 #   - TOKEN_CONTRACT_ID (for --token-id when initializing authority)
+# Optional env.sh variables:
+#   - RPC_URL (for --rpc-url)
+#   - NETWORK_PASSPHRASE (for --network-passphrase)
+#   - SOROBAN_NETWORK (for --network)
+#
+# Network Configuration:
+#   Networks can be configured in three ways:
+#   1. Use --rpc-url and --network-passphrase flags (script will auto-configure)
+#   2. Pre-configure using 'stellar network add <network_name>'
+#   3. Set RPC_URL and NETWORK_PASSPHRASE in env.sh
+#   The script will verify network configuration before deployment.
 # ================================================================================
 
 # === Safety Settings ===
@@ -47,6 +58,8 @@ fi
 network_name="${SOROBAN_NETWORK:-$DEFAULT_NETWORK}" # Use SOROBAN_NETWORK from env if set
 source_identity="${SOURCE_IDENTITY:-}" # Use SOURCE_IDENTITY from env if set
 token_contract_id="${TOKEN_CONTRACT_ID:-}" # Use TOKEN_CONTRACT_ID from env if set
+rpc_url="${RPC_URL:-}" # Use RPC_URL from env if set
+network_passphrase="${NETWORK_PASSPHRASE:-}" # Use NETWORK_PASSPHRASE from env if set
 
 # Contract definitions (WASM paths relative to project root)
 AUTHORITY_CONTRACT_NAME="authority"    # Handles permissions/access control
@@ -61,27 +74,196 @@ deploy_protocol=false    # Deploy protocol contract flag
 mode="default"           # Mode: 'default' (build+deploy) or 'clean' (clean+test+build+deploy)
 initialize_contracts=false # Initialize contracts after deployment flag
 generate_bindings=false # Generate TypeScript bindings after deployment flag
+skip_confirmation=false # Skip interactive confirmation prompt
 # token_contract_id is now initialized above
 
 # === Helper Functions ===
 
+# Verify and configure network settings
+# Args: network_name, rpc_url (optional), network_passphrase (optional)
+# Exit: 0=success, 1=network not configured or invalid
+verify_network_configuration() {
+    local network="$1"
+    local rpc="$2"
+    local passphrase="$3"
+
+    echo "Verifying network configuration for: ${network}"
+
+    # If both RPC URL and passphrase are provided, configure/update the network
+    if [[ -n "$rpc" && -n "$passphrase" ]]; then
+        echo "Configuring network with provided RPC URL and passphrase..."
+
+        # Check if network already exists
+        local network_exists=false
+        set +e
+        if stellar network ls 2>&1 | grep -q "^${network}"; then
+            network_exists=true
+        fi
+        set -e
+
+        # Remove existing network if it exists
+        if [[ "$network_exists" = true ]]; then
+            echo "Removing existing network configuration..."
+            set +e
+            stellar network rm "$network" 2>&1
+            set -e
+        fi
+
+        # Add the network with provided parameters
+        echo "Adding network: ${network}"
+        echo "  RPC URL: ${rpc}"
+        echo "  Passphrase: ${passphrase}"
+
+        set +e
+        local add_output
+        add_output=$(stellar network add "$network" \
+            --rpc-url "$rpc" \
+            --network-passphrase "$passphrase" 2>&1)
+        local add_exit=$?
+        set -e
+
+        if [[ $add_exit -ne 0 ]]; then
+            echo "❌ Failed to add network configuration"
+            echo "$add_output"
+            return 1
+        fi
+
+        echo "✓ Network configured successfully"
+        return 0
+    fi
+
+    # Otherwise, verify existing configuration
+    # Try to get network configuration
+    local network_check
+    set +e
+    network_check=$(stellar network ls 2>&1)
+    local network_ls_exit=$?
+    set -e
+
+    # Check if the network exists in the configuration
+    if ! echo "$network_check" | grep -q "^${network}"; then
+        echo "❌ Network '${network}' is not configured in Stellar CLI"
+        echo ""
+        echo "To configure the network, you can either:"
+        echo ""
+        echo "1. Use the --rpc-url and --network-passphrase flags with this script"
+        echo "2. Manually configure using stellar CLI:"
+        echo ""
+        echo "For testnet:"
+        echo "  stellar network add testnet \\"
+        echo "    --rpc-url https://soroban-testnet.stellar.org \\"
+        echo "    --network-passphrase 'Test SDF Network ; September 2015'"
+        echo ""
+        echo "For mainnet:"
+        echo "  stellar network add mainnet \\"
+        echo "    --rpc-url https://mainnet.stellar.validationcloud.io/v1/<YOUR_API_KEY> \\"
+        echo "    --network-passphrase 'Public Global Stellar Network ; September 2015'"
+        echo ""
+        echo "For futurenet:"
+        echo "  stellar network add futurenet \\"
+        echo "    --rpc-url https://rpc-futurenet.stellar.org \\"
+        echo "    --network-passphrase 'Test SDF Future Network ; October 2022'"
+        echo ""
+        echo "Or add it to your Stellar CLI config at: ~/.config/soroban/networks.toml"
+        echo ""
+        return 1
+    fi
+
+    echo "✓ Network '${network}' is configured"
+
+    # Get network details to verify RPC URL and passphrase
+    local network_details
+    set +e
+    network_details=$(stellar network ls --long 2>&1 | grep "^${network}")
+    set -e
+
+    if [[ -n "$network_details" ]]; then
+        echo "  Network details: ${network_details}"
+    fi
+
+    # Test the connection by trying to get the latest ledger
+    # This will fail if the passphrase doesn't match the RPC URL
+    echo "Testing network connection..."
+    local connection_test
+    set +e
+    connection_test=$(stellar network container ls --network "$network" 2>&1)
+    local connection_exit=$?
+    set -e
+
+    # If the connection test shows a passphrase mismatch, provide clear error
+    if echo "$connection_test" | grep -q "provided network passphrase.*does not match"; then
+        echo ""
+        echo "❌ Network passphrase mismatch detected!"
+        echo ""
+        echo "Your network configuration has a passphrase that doesn't match the RPC server."
+        echo "$connection_test"
+        echo ""
+        echo "Common causes:"
+        echo "  1. Network configured with mainnet passphrase but testnet RPC URL"
+        echo "  2. Network configured with testnet passphrase but mainnet RPC URL"
+        echo ""
+        echo "To fix this, you can either:"
+        echo ""
+        echo "1. Use the --rpc-url and --network-passphrase flags with this script to reconfigure"
+        echo "2. Manually fix the configuration:"
+        echo ""
+        echo "   Remove the misconfigured network:"
+        echo "   stellar network rm ${network}"
+        echo ""
+        echo "   Add it back with the correct configuration:"
+        echo ""
+        echo "   For testnet:"
+        echo "   stellar network add testnet \\"
+        echo "     --rpc-url https://soroban-testnet.stellar.org \\"
+        echo "     --network-passphrase 'Test SDF Network ; September 2015'"
+        echo ""
+        echo "   For mainnet:"
+        echo "   stellar network add mainnet \\"
+        echo "     --rpc-url https://mainnet.stellar.validationcloud.io/v1/<YOUR_API_KEY> \\"
+        echo "     --network-passphrase 'Public Global Stellar Network ; September 2015'"
+        echo ""
+        echo "You can also manually edit: ~/.config/soroban/network/${network}.toml"
+        echo ""
+        return 1
+    fi
+
+    echo "✓ Network connection successful"
+    return 0
+}
+
 # Display usage info (exit: 1 = help displayed)
 usage() {
-  echo "Usage: $0 [--authority] [--protocol] [--network <network_name>] [--source <identity_name>] [--mode <default|clean>] [--initialize] [--token-id <token_id>] [--bindings] [-h|--help]"
+  echo "Usage: $0 [--authority] [--protocol] [--network <network_name>] [--rpc-url <url>] [--network-passphrase <passphrase>] [--source <identity_name>] [--mode <default|clean>] [--initialize] [--token-id <token_id>] [--bindings] [--yes] [-h|--help]"
   echo ""
   echo "Builds, tests (optional), deploys, and optionally initializes Soroban contracts, storing details in ${CONTRACTS_JSON_FILE}."
   echo "Configuration defaults can be set in '${ENV_FILE_PATH}'. Command-line flags override environment settings."
   echo ""
   echo "Options:"
-  echo "  --authority         Deploy the authority contract."
-  echo "  --protocol          Deploy the protocol contract."
-  echo "  --network <name>    Specify the network (e.g., testnet, mainnet). Default: ${DEFAULT_NETWORK} (or from SOROBAN_NETWORK in env.sh)"
-  echo "  --source <identity> Specify the source identity for deployment and initialization. (Can be set via SOURCE_IDENTITY in env.sh)"
-  echo "  --mode <mode>       Deployment mode: 'clean' (clean, test, build, deploy) or 'default' (build, deploy). Default: default"
-  echo "  --initialize        Initialize deployed contracts using the source identity as admin. Default: false"
-  echo "  --token-id <id>     The contract ID of the token for the authority contract (required if --initialize and --authority). (Can be set via TOKEN_CONTRACT_ID in env.sh)"
-  echo "  --bindings          Generate TypeScript bindings for deployed contracts and organize them in bindings/src/. Default: false"
-  echo "  -h, --help          Display this help message."
+  echo "  --authority                Deploy the authority contract."
+  echo "  --protocol                 Deploy the protocol contract."
+  echo "  --network <name>           Specify the network (e.g., testnet, mainnet). Default: ${DEFAULT_NETWORK} (or from SOROBAN_NETWORK in env.sh)"
+  echo "  --rpc-url <url>            RPC URL for the network. If provided with --network-passphrase, will configure/update the network."
+  echo "                             (Can be set via RPC_URL in env.sh)"
+  echo "  --network-passphrase <p>   Network passphrase. If provided with --rpc-url, will configure/update the network."
+  echo "                             (Can be set via NETWORK_PASSPHRASE in env.sh)"
+  echo "  --source <identity>        Specify the source identity for deployment and initialization. (Can be set via SOURCE_IDENTITY in env.sh)"
+  echo "  --mode <mode>              Deployment mode: 'clean' (clean, test, build, deploy) or 'default' (build, deploy). Default: default"
+  echo "  --initialize               Initialize deployed contracts using the source identity as admin. Default: false"
+  echo "  --token-id <id>            The contract ID of the token for the authority contract (required if --initialize and --authority). (Can be set via TOKEN_CONTRACT_ID in env.sh)"
+  echo "  --bindings                 Generate TypeScript bindings for deployed contracts and organize them in bindings/src/. Default: false"
+  echo "  --yes, -y                  Skip confirmation prompt and proceed with deployment automatically. Default: false"
+  echo "  -h, --help                 Display this help message."
+  echo ""
+  echo "Network Configuration:"
+  echo "  You can configure networks in three ways:"
+  echo "  1. Use --rpc-url and --network-passphrase flags (will auto-configure)"
+  echo "  2. Pre-configure using: stellar network add <name> --rpc-url <url> --network-passphrase <passphrase>"
+  echo "  3. Set RPC_URL and NETWORK_PASSPHRASE in env.sh"
+  echo ""
+  echo "  Examples:"
+  echo "    Testnet:   --rpc-url https://soroban-testnet.stellar.org --network-passphrase 'Test SDF Network ; September 2015'"
+  echo "    Mainnet:   --rpc-url https://mainnet.stellar.validationcloud.io/v1/YOUR_API_KEY --network-passphrase 'Public Global Stellar Network ; September 2015'"
+  echo "    Futurenet: --rpc-url https://rpc-futurenet.stellar.org --network-passphrase 'Test SDF Future Network ; October 2022'"
   exit 1
 }
 
@@ -308,6 +490,16 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
+    --rpc-url)
+      rpc_url="$2" # Override value from env if flag is used
+      shift # past argument
+      shift # past value
+      ;;
+    --network-passphrase)
+      network_passphrase="$2" # Override value from env if flag is used
+      shift # past argument
+      shift # past value
+      ;;
     --source)
       source_identity="$2" # Override value from env if flag is used
       shift # past argument
@@ -335,6 +527,10 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
+    --yes|-y)
+      skip_confirmation=true
+      shift # past argument
+      ;;
     -h|--help)
       usage
       ;;
@@ -355,6 +551,24 @@ fi
 # === Validation ===
 check_jq  # Ensure required tools exist
 
+# Validate that both RPC URL and passphrase are provided together (if either is provided)
+if [[ -n "$rpc_url" && -z "$network_passphrase" ]]; then
+    echo "Error: --rpc-url provided without --network-passphrase. Both are required for network configuration."
+    usage
+fi
+if [[ -z "$rpc_url" && -n "$network_passphrase" ]]; then
+    echo "Error: --network-passphrase provided without --rpc-url. Both are required for network configuration."
+    usage
+fi
+
+# Verify network configuration before deployment
+verify_network_configuration "$network_name" "$rpc_url" "$network_passphrase"
+if [[ $? -ne 0 ]]; then
+    echo ""
+    echo "Error: Network configuration validation failed. Please configure the network and try again."
+    exit 1
+fi
+
 # Prevent accidental empty runs
 if [[ "$deploy_authority" = false && "$deploy_protocol" = false ]]; then
   echo "Error: No contracts specified for deployment. Use --authority and/or --protocol."
@@ -369,6 +583,10 @@ fi
 
 # Confirm deployment settings to prevent accidents
 echo "Selected Network: ${network_name}"
+if [[ -n "$rpc_url" && -n "$network_passphrase" ]]; then
+    echo "RPC URL: ${rpc_url}"
+    echo "Network Passphrase: ${network_passphrase}"
+fi
 echo "Deployment Identity: ${source_identity}"
 echo "Mode: ${mode}"
 echo "Deploy Authority: ${deploy_authority}"
@@ -380,13 +598,26 @@ if [[ "$initialize_contracts" = true && "$deploy_authority" = true ]]; then
 fi
 echo "Contracts JSON: ${CONTRACTS_JSON_FILE}"
 echo ""
-read -p "Proceed with deployment? (y/N): " confirm && [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]] || exit 1
-echo ""
+
+# Skip confirmation if --yes flag is provided
+if [[ "$skip_confirmation" = true ]]; then
+  echo "Skipping confirmation (--yes flag provided)"
+  echo ""
+else
+  read -p "Proceed with deployment? (y/N): " confirm && [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]] || exit 1
+  echo ""
+fi
 
 # === Directory Setup ===
 # Ensure correct path resolution - already done above script_dir
 cd "$script_dir"
 echo "Changed directory to: $(pwd)"
+
+# Export network passphrase if provided (needed for stellar CLI commands)
+if [[ -n "$network_passphrase" ]]; then
+    export STELLAR_NETWORK_PASSPHRASE="$network_passphrase"
+    echo "Exported STELLAR_NETWORK_PASSPHRASE for deployment commands"
+fi
 
 # === Build Process ===
 # Clean build + test if requested
