@@ -68,7 +68,7 @@ export const LEDGER_HISTORY_LIMIT_DAYS = 7
  */
 export let sorobanRpcUrl: string
 if (STELLAR_NETWORK === 'mainnet') {
-  sorobanRpcUrl = 'https://soroban-rpc.stellar.org'
+  sorobanRpcUrl = 'https://rpc.lightsail.network'
 } else {
   sorobanRpcUrl = 'https://soroban-testnet.stellar.org'
 }
