@@ -1,8 +1,8 @@
-{"name":"digitalWalletIdentitySchema","uid":"be16471b716ca7eb8ab6e5a96bc70a37562a44fc9c4efcabf40703b53838340f","category":"identity"}
-{"name":"nationalIdSchema","uid":"97431a70d322387160dd2e4e624c90355bdbed43410b46f56bed886d6c282343","category":"identity"}
-{"name":"passportSchema","uid":"f33ed9599755241a146981f7dfdf203d5d8b01b35aefab5bed0ead7d920f41c0","category":"identity"}
-{"name":"biometricAuthSchema","uid":"5c3b1e7c5b3e5b370defcc55bc9a2880530150cde3c71ca6f3388bef3b187c09","category":"identity"}
-{"name":"ageVerificationSchema","uid":"a272473ecf122bd64c9d3ebb535469d2626c845fdf5a255cd6a67309c2bdde5c","category":"identity"}
-{"name":"trustScoreSchema","uid":"61a79c6374ce7ed4756462dbe70f31501df30fb5043bcc473c159eda0975a04d","category":"identity"}
-{"name":"backgroundCheckSchema","uid":"29c193f9e2098552a46325b52b3ec4a551aab17c17f68b65d906f8c7d592dbbd","category":"identity"}
-{"name":"multiFactorAuthenticationSchema","uid":"79403fc0e64351cf4fe668c3baf79f01b1ca045bcf4bd6e9082a3eef7d3441d5","category":"identity"}
+{"name":"digitalWalletIdentitySchema","uid":"2273566fca4b0509aa67802f90288651ccf69394174dcbe0208ad78f5b17154f","category":"identity"}
+{"name":"nationalIdSchema","uid":"3085d160743bda00aefc8c117d35ebd742d0efcf69746caaaa1d540acef785d5","category":"identity"}
+{"name":"passportSchema","uid":"6249e92c220ed69d154cc5cad8c17c032ab4abbb0bda610985a2fa5bd61088f5","category":"identity"}
+{"name":"biometricAuthSchema","uid":"a79891d67ad8e95d88e72ea95be3768af897ac4dc3d7e417dc39542a627aa528","category":"identity"}
+{"name":"ageVerificationSchema","uid":"ba306af41465ba3d1b149d0f8cf98eead91ee036a1e4349f7ca3869f758ca028","category":"identity"}
+{"name":"trustScoreSchema","uid":"9d27071e0860d4b609a65d16e17ead57333c9a70c56838a2294414c77eed21cb","category":"identity"}
+{"name":"backgroundCheckSchema","uid":"6699d6b164d876f36ec9a1b3e2fe3c61b4f5499817a708a1e1c080794e8ca929","category":"identity"}
+{"name":"multiFactorAuthenticationSchema","uid":"f62c528a80020aff79d190e2cf03092585bed96cf906c59d0abb3b0c85257cca","category":"identity"}
