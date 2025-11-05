@@ -36,9 +36,9 @@ DEFAULT_NETWORK="testnet"      # Options: testnet, futurenet, mainnet
 CONTRACTS_JSON_FILE="deployments.json"  # JSON: {network: {contract: {id, hash, timestamp}}}
 
 # --- Source env.sh for Defaults ---
-# Look for env.sh in the parent directory relative to this script
+# Look for env.sh in the project root (two levels up from stellar directory)
 script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-ENV_FILE_PATH="${script_dir}/../env.sh" # Assumes env.sh is one level up
+ENV_FILE_PATH="${script_dir}/env.sh" # Assumes env.sh is in project root (attest.so/)
 
 if [[ -f "$ENV_FILE_PATH" ]]; then
   echo "Sourcing configuration from ${ENV_FILE_PATH}..."
@@ -60,6 +60,7 @@ source_identity="${SOURCE_IDENTITY:-}" # Use SOURCE_IDENTITY from env if set
 token_contract_id="${TOKEN_CONTRACT_ID:-}" # Use TOKEN_CONTRACT_ID from env if set
 rpc_url="${RPC_URL:-}" # Use RPC_URL from env if set
 network_passphrase="${NETWORK_PASSPHRASE:-}" # Use NETWORK_PASSPHRASE from env if set
+fee_stroops="${STELLAR_FEE:-10000000}" # Default 10M stroops (1 XLM) for mainnet deployments
 
 # Contract definitions (WASM paths relative to project root)
 AUTHORITY_CONTRACT_NAME="authority"    # Handles permissions/access control
@@ -233,7 +234,7 @@ verify_network_configuration() {
 
 # Display usage info (exit: 1 = help displayed)
 usage() {
-  echo "Usage: $0 [--authority] [--protocol] [--network <network_name>] [--rpc-url <url>] [--network-passphrase <passphrase>] [--source <identity_name>] [--mode <default|clean>] [--initialize] [--token-id <token_id>] [--bindings] [--yes] [-h|--help]"
+  echo "Usage: $0 [--authority] [--protocol] [--network <network_name>] [--rpc-url <url>] [--network-passphrase <passphrase>] [--source <identity_name>] [--fee <stroops>] [--mode <default|clean>] [--initialize] [--token-id <token_id>] [--bindings] [--yes] [-h|--help]"
   echo ""
   echo "Builds, tests (optional), deploys, and optionally initializes Soroban contracts, storing details in ${CONTRACTS_JSON_FILE}."
   echo "Configuration defaults can be set in '${ENV_FILE_PATH}'. Command-line flags override environment settings."
@@ -247,6 +248,7 @@ usage() {
   echo "  --network-passphrase <p>   Network passphrase. If provided with --rpc-url, will configure/update the network."
   echo "                             (Can be set via NETWORK_PASSPHRASE in env.sh)"
   echo "  --source <identity>        Specify the source identity for deployment and initialization. (Can be set via SOURCE_IDENTITY in env.sh)"
+  echo "  --fee <stroops>            Transaction fee in stroops (1 XLM = 10,000,000 stroops). Default: 10000000 (1 XLM). (Can be set via STELLAR_FEE in env.sh)"
   echo "  --mode <mode>              Deployment mode: 'clean' (clean, test, build, deploy) or 'default' (build, deploy). Default: default"
   echo "  --initialize               Initialize deployed contracts using the source identity as admin. Default: false"
   echo "  --token-id <id>            The contract ID of the token for the authority contract (required if --initialize and --authority). (Can be set via TOKEN_CONTRACT_ID in env.sh)"
@@ -505,6 +507,11 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
+    --fee)
+      fee_stroops="$2" # Override value from env if flag is used
+      shift # past argument
+      shift # past value
+      ;;
     --mode)
       mode="$2"
       if [[ "$mode" != "default" && "$mode" != "clean" ]]; then
@@ -613,10 +620,29 @@ fi
 cd "$script_dir"
 echo "Changed directory to: $(pwd)"
 
+# Clear any existing Stellar/Soroban environment variables that might interfere
+# These can override the network configuration and cause unexpected behavior
+if [[ -n "${SOROBAN_RPC_URL:-}" ]]; then
+    echo "Warning: Unsetting conflicting SOROBAN_RPC_URL environment variable: ${SOROBAN_RPC_URL}"
+    unset SOROBAN_RPC_URL
+fi
+
 # Export network passphrase if provided (needed for stellar CLI commands)
 if [[ -n "$network_passphrase" ]]; then
     export STELLAR_NETWORK_PASSPHRASE="$network_passphrase"
     echo "Exported STELLAR_NETWORK_PASSPHRASE for deployment commands"
+fi
+
+# Export RPC URL if provided (takes precedence over network config)
+if [[ -n "$rpc_url" ]]; then
+    export SOROBAN_RPC_URL="$rpc_url"
+    echo "Exported SOROBAN_RPC_URL for deployment commands: $rpc_url"
+fi
+
+# Export fee if provided
+if [[ -n "$fee_stroops" ]]; then
+    export STELLAR_FEE="$fee_stroops"
+    echo "Using transaction fee: $fee_stroops stroops ($(echo "scale=7; $fee_stroops / 10000000" | bc) XLM)"
 fi
 
 # === Build Process ===

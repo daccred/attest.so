@@ -182,6 +182,11 @@ stellar contract deploy \
     --token-id CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC \
     --yes
 
+  (With inline env.sh config)
+  ./deploy.sh --authority --protocol \
+    --initialize \
+    --token-id CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC \
+    --fee 120000000
 
   ./deploy.sh --authority --protocol \
     --network mainnet \
