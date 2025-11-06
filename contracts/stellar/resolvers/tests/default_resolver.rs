@@ -37,12 +37,15 @@ fn build_attestation(
     ResolverAttestationData {
         uid: BytesN::random(env),
         schema_uid: BytesN::random(env),
-        attester: attester.clone(),
         recipient: recipient.clone(),
-        data: Bytes::new(env),
-        timestamp: env.ledger().timestamp(),
+        attester: attester.clone(),
+        time: env.ledger().timestamp(),
         expiration_time,
+        revocation_time: 0,
         revocable: true,
+        ref_uid: Bytes::new(env),
+        data: Bytes::new(env),
+        value: 0,
     }
 }
 

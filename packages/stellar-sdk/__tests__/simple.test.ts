@@ -50,7 +50,6 @@ describe('Stellar SDK Basic Functionality', () => {
       expect(StellarDataType.BYTES).toBe('bytes')
       expect(StellarDataType.SYMBOL).toBe('symbol')
       expect(StellarDataType.ARRAY).toBe('array')
-      expect(StellarDataType.OPTION).toBe('option')
       expect(StellarDataType.MAP).toBe('map')
       expect(StellarDataType.TIMESTAMP).toBe('timestamp')
       expect(StellarDataType.AMOUNT).toBe('amount')

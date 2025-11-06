@@ -1,22 +1,25 @@
 {
   "name": "@attestprotocol/stellar-sdk",
   "description": "Stellar implementation of the Attest Protocol SDK",
-  "version": "1.7.4",
+  "version": "2.0.1",
   "author": "daccred",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
-    "@attestprotocol/core": "1.7.4",
-    "@attestprotocol/stellar-contracts": "1.7.4",
+    "@attestprotocol/core": "2.0.1",
+    "@attestprotocol/stellar-contracts": "2.0.1",
     "@noble/curves": "^2.0.0",
     "@noble/hashes": "^2.0.0",
-    "js-sha3": "^0.9.3"
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "js-sha3": "^0.9.3",
+    "ky": "^1.13.0"
   },
   "devDependencies": {
     "@types/node": "^24.2.1",
     "prettier": "^3.2.5",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
-    "tsup": "^8.4.0",
+    "tsup": "^8.5.0",
     "typescript": "^5.6.2",
     "vitest": "^3.2.4"
   },

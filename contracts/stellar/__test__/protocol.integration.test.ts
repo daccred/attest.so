@@ -7,7 +7,6 @@
  * - Attestation revocation
  * - Basic contract initialization verification
  */
-
 import { describe, it, expect, beforeAll } from 'vitest'
 import { randomBytes } from 'crypto'
 import { Keypair, Transaction, xdr } from '@stellar/stellar-sdk'

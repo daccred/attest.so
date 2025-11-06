@@ -20,7 +20,7 @@
 
 import { describe, it, expect, beforeAll, test } from 'vitest'
 import { randomBytes } from 'crypto'
-import { bls12_381 } from '@noble/curves/bls12-381'
+import { bls12_381 } from '@noble/curves/bls12-381.js'
 import { Keypair, Transaction } from '@stellar/stellar-sdk'
 import * as ProtocolContract from '../bindings/src/protocol'
 import { TransactionSimulationPayload } from '../bindings/src/types'

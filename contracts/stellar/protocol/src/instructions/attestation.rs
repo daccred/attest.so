@@ -168,9 +168,9 @@ pub fn attest(
     let attest_uid_key = DataKey::AttestationUID(attestation_uid.clone());
     env.storage().persistent().set(&attest_uid_key, &attestation);
 
-    // Increment nonce for next attestation
+    // Increment nonce for next attestation (using checked arithmetic to prevent overflow)
     let nonce_key = DataKey::AttesterNonce(attester.clone());
-    let new_nonce = nonce + 1;
+    let new_nonce = nonce.checked_add(1).ok_or(Error::IntegerOverflow)?;
     env.storage().persistent().set(&nonce_key, &new_nonce);
 
     // ═══════════════════════════════════════════════════════════════════════════

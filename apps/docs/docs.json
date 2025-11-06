@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "name": "AttestProtocol",
-  "description": "The trust layer for Web3. Build verifiable reputation systems with one line of code.",
+  "description": "Decentralized attestation infrastructure on Stellar. Build verifiable credential systems with cryptographic delegation and payment-gated resolvers.",
   "theme": "aspen",
   "logo": {
     "light": "/images/logo-light.svg",
@@ -40,45 +40,83 @@
           },
           {
             "group": "Core Concepts",
-            "pages": ["concepts/attestations", "concepts/schemas", "concepts/authorities", "concepts/verification", "concepts/storage"]
+            "pages": [
+              "concepts/attestations",
+              "concepts/schemas",
+              "concepts/authorities",
+              "concepts/verification",
+              "concepts/storage",
+              "concepts/bls-delegation",
+              "concepts/resolvers"
+            ]
           },
           {
-            "group": "Blockchain Support",
+            "group": "Stellar Architecture",
             "pages": [
-              "chains/solana/overview",
               "chains/stellar/overview",
-              "chains/starknet/overview"
+              "chains/stellar/protocol-contract",
+              "chains/stellar/authority-contract",
+              "chains/stellar/deployment",
+              "chains/stellar/horizon-indexer"
             ]
           },
           {
             "group": "Workflow Guides",
             "pages": [
-              "guides/kyc-integration", 
-              "guides/dao-voting", 
-              "guides/github-credentials",
-              "guides/asset-ownership",
-              "guides/event-attendance",
+              "guides/kyc-integration",
+              "guides/enterprise-verification",
+              "guides/delegated-attestations",
+              "guides/payment-gated-authority",
               "guides/custom-schemas",
-              "guides/privacy-options"
+              "guides/resolver-development"
             ]
           }
         ]
       },
       {
-        "tab": "SDKs",
+        "tab": "Stellar SDK",
         "groups": [
           {
-            "group": "TypeScript SDK",
+            "group": "Getting Started",
             "pages": [
-              "sdks/typescript/installation",
-              "sdks/typescript/initialization",
-              "sdks/typescript/methods",
-              "sdks/typescript/examples"
+              "sdks/stellar/installation",
+              "sdks/stellar/initialization",
+              "sdks/stellar/configuration"
             ]
           },
           {
-            "group": "CLI & Tools",
-            "pages": ["sdks/delegated-signatories", "sdks/cli"]
+            "group": "Core Operations",
+            "pages": [
+              "sdks/stellar/attestations",
+              "sdks/stellar/schemas",
+              "sdks/stellar/revocation",
+              "sdks/stellar/queries"
+            ]
+          },
+          {
+            "group": "Advanced Features",
+            "pages": [
+              "sdks/stellar/bls-signatures",
+              "sdks/stellar/delegated-attestations",
+              "sdks/stellar/delegated-revocations",
+              "sdks/stellar/uid-generation"
+            ]
+          },
+          {
+            "group": "Data & Indexing",
+            "pages": [
+              "sdks/stellar/fetching-data",
+              "sdks/stellar/horizon-api",
+              "sdks/stellar/registry-operations"
+            ]
+          },
+          {
+            "group": "Tools & Utilities",
+            "pages": [
+              "sdks/stellar/cli",
+              "sdks/stellar/schema-encoder",
+              "sdks/stellar/examples"
+            ]
           }
         ]
       },
@@ -86,16 +124,67 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "SDK Overview",
-            "pages": ["reference/overview"]
+            "group": "Client Methods",
+            "pages": [
+              "reference/client-initialization",
+              "reference/attestation-methods",
+              "reference/schema-methods",
+              "reference/delegation-methods"
+            ]
           },
           {
-            "group": "Core Modules",
-            "pages": ["reference/authority", "reference/schema", "reference/attest"]
+            "group": "Contract Interfaces",
+            "pages": [
+              "reference/protocol-contract",
+              "reference/authority-contract",
+              "reference/resolver-interface"
+            ]
           },
           {
-            "group": "Administration",
-            "pages": ["reference/administration", "reference/webhooks", "reference/errors"]
+            "group": "Horizon Indexer API",
+            "pages": [
+              "reference/horizon-endpoints",
+              "reference/horizon-events",
+              "reference/horizon-operations"
+            ]
+          },
+          {
+            "group": "Types & Errors",
+            "pages": [
+              "reference/types",
+              "reference/errors"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Architecture",
+        "groups": [
+          {
+            "group": "System Design",
+            "pages": [
+              "architecture/overview",
+              "architecture/contracts",
+              "architecture/resolver-pattern",
+              "architecture/data-flow"
+            ]
+          },
+          {
+            "group": "Security",
+            "pages": [
+              "architecture/security-model",
+              "architecture/trust-boundaries",
+              "architecture/threat-analysis",
+              "architecture/economic-security"
+            ]
+          },
+          {
+            "group": "Infrastructure",
+            "pages": [
+              "architecture/horizon-indexer",
+              "architecture/deployment",
+              "architecture/monitoring"
+            ]
           }
         ]
       }

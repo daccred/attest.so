@@ -1,28 +1,20 @@
 {
   "name": "@attestprotocol/cli",
   "description": "Unified CLI for Attest Protocol across all supported blockchains",
-  "version": "1.7.4",
+  "version": "2.0.1",
   "author": "Andrew Miracle <andrew@daccred.co>",
   "bin": {
     "attest-protocol": "./dist/bin/run.js"
   },
   "bugs": "https://github.com/daccred/attest.so/issues",
-  "config": {
-    "commitizen": {
-      "path": "cz-conventional-changelog"
-    }
-  },
   "dependencies": {
-    "@attestprotocol/sdk": "1.7.4",
-    "@semantic-release/github": "^11.0.1",
+    "@attestprotocol/sdk": "2.0.1",
     "consola": "^3.2.3",
     "dotenv": "^16.4.5",
     "picocolors": "^1.0.1",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@commitlint/cli": "19.8.1",
-    "@commitlint/config-conventional": "19.8.1",
     "@jest/globals": "^29.7.0",
     "@tsconfig/node20": "^20.1.4",
     "@types/jest": "^29.5.12",
@@ -30,16 +22,12 @@
     "@types/prompts": "^2.4.9",
     "@types/signale": "^1.4.7",
     "@types/yargs": "^17.0.32",
-    "commitizen": "^4.3.0",
-    "cz-conventional-changelog": "^3.3.0",
-    "husky": "^9.0.11",
     "jest": "^29.7.0",
     "prettier": "^3.2.5",
     "rimraf": "^6.0.1",
-    "semantic-release": "^24.2.3",
     "ts-jest": "^29.1.4",
     "ts-node": "^10.9.2",
-    "tsup": "^8.4.0",
+    "tsup": "^8.5.0",
     "typescript": "^5.6.2"
   },
   "directories": {
@@ -76,7 +64,6 @@
     "compile": "tsc",
     "format": "prettier . --check",
     "format:fix": "prettier . --write",
-    "prepare": "husky",
     "release": "semantic-release",
     "start": "ts-node ./bin/run.ts",
     "start:node": "node ./bin/run",

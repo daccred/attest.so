@@ -4,8 +4,9 @@
   "description": "Stellar Horizon Indexer for monitoring and processing blockchain events",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "nodemon src/index.ts",
     "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "dev:nodemon": "nodemon src/index.ts",
     "start": "node dist/index.js",
     "start:ts": "ts-node src/index.ts",
     "lint": "eslint --fix src __tests__",
@@ -36,6 +37,8 @@
     "url": "https://github.com/daccred/attest.so.git"
   },
   "dependencies": {
+    "@attestprotocol/stellar-contracts": "workspace:*",
+    "@attestprotocol/stellar-sdk": "workspace:*",
     "@prisma/client": "^6.15.0",
     "@stellar/stellar-sdk": "^14.1.0",
     "@types/pg": "^8.15.5",
@@ -46,10 +49,10 @@
     "lodash": "^4.17.21",
     "morgan": "^1.10.1",
     "pg": "^8.16.3",
-    "prisma": "^6.15.0",
-    "typescript": "5.8.2"
+    "prisma": "^6.15.0"
   },
   "devDependencies": {
+    "@noble/hashes": "^2.0.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.20",
     "@types/lodash": "^4.17.20",
@@ -62,6 +65,7 @@
     "@vitest/coverage-v8": "3.2.4",
     "@vitest/ui": "^3.2.4",
     "eslint": "^9.27.0",
+    "typescript": "5.8.2",
     "eslint-import-resolver-typescript": "^3.6.3",
     "eslint-plugin-import": "^2.31.0",
     "node-fetch": "^3.3.2",

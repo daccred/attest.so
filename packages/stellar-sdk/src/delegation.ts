@@ -7,10 +7,10 @@
 
 import { Client as ProtocolClient } from '@attestprotocol/stellar-contracts/protocol'
 import { scValToNative } from '@stellar/stellar-sdk'
-import { bls12_381 } from '@noble/curves/bls12-381'
-import { sha256 } from '@noble/hashes/sha2'
+import { bls12_381 } from '@noble/curves/bls12-381.js'
+import { sha256 } from '@noble/hashes/sha2.js'
 import { DelegatedAttestationRequest, DelegatedRevocationRequest } from './types'
-import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass'
+import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass.js'
 import { ContractError } from './common/errors'
 
 /**
@@ -21,7 +21,7 @@ import { ContractError } from './common/errors'
  * @param dst - The domain separation tag for attestations
  * @returns A hash of the message, ready to be signed
  */
-export function createAttestMessage(request: DelegatedAttestationRequest, dst: Buffer): WeierstrassPoint<bigint> {
+export function createAttestMessage(request: Omit<DelegatedAttestationRequest, 'signature'>, dst: Buffer): WeierstrassPoint<bigint> {
   // Match exact format from Rust contract:
   // Domain Separator + Schema UID + Nonce + Deadline + [Expiration Time] + Value Length
   const components: Buffer[] = []
@@ -68,7 +68,7 @@ export function createAttestMessage(request: DelegatedAttestationRequest, dst: B
  * @param dst - The domain separation tag for revocations
  * @returns A hash of the message, ready to be signed
  */
-export function createRevokeMessage(request: DelegatedRevocationRequest, dst: Buffer): WeierstrassPoint<bigint> {
+export function createRevokeMessage(request: Omit<DelegatedRevocationRequest, 'signature'>, dst: Buffer): WeierstrassPoint<bigint> {
   const components: Buffer[] = []
 
   // Domain separation tag

@@ -5,7 +5,7 @@
  * on the Stellar blockchain, implementing all methods defined in the requirements.
  */
 
-import { Keypair, Networks, rpc, scValToNative, Address, nativeToScVal, xdr, Transaction } from '@stellar/stellar-sdk'
+import { Networks, rpc, xdr, Transaction } from '@stellar/stellar-sdk'
 
 import {
   type Client as ClientType,
@@ -53,7 +53,7 @@ import {
   ConfigurationError,
   ErrorFactory,
 } from './common/errors'
-import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass'
+import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass.js'
 
 /**
  * Main Stellar client for the Attest Protocol
@@ -173,9 +173,8 @@ export class StellarAttestationClient {
   /**
    * Create an attestation
    *
-   * Usage Examples:
+   * Usage Example:
    *
-   * // Object-based approach (recommended)
    * await client.attest({
    *   schemaUid: Buffer.from('...'),
    *   value: JSON.stringify({ name: 'John', age: 30 }),
@@ -183,43 +182,29 @@ export class StellarAttestationClient {
    *   expirationTime: Date.now() + 365*24*60*60*1000,
    *   options: { signer }
    * })
-   *
-   * // Legacy positional arguments (backward compatibility)
-   * await client.attest(schemaUid, value, expiration, { signer })
    */
-  async attest(params: AttestParams): Promise<any>
-  async attest(schemaUid: Buffer, value: string, expiration?: number, options?: TxOptions): Promise<any>
-  async attest(
-    paramsOrSchemaUid: AttestParams | Buffer,
-    legacyValue?: string,
-    legacyExpiration?: number,
-    legacyOptions?: TxOptions
-  ): Promise<any> {
+  async attest(params: AttestParams): Promise<any> {
     try {
-      // Handle both object and positional arguments
-      const { schemaUid, value, subject, expirationTime, options } = this.normalizeAttestArgs(
-        paramsOrSchemaUid,
-        legacyValue,
-        legacyExpiration,
-        legacyOptions
-      )
+      console.log({params, caller: this.callerPublicKey}, "because we actually got here")
 
       const tx = await this.attestationProtocol.attest({
         attester: this.callerPublicKey,
-        schema_uid: schemaUid,
-        value,
-        expiration_time: BigInt(expirationTime || 0),
+        schema_uid: params.schemaUid,
+        value: params.value,
+        expiration_time: params.expirationTime ? BigInt(params.expirationTime) : undefined,
       })
 
-      if (options?.simulate) {
+      console.log({tx}, "because we actually got here")
+
+      if (params.options?.simulate) {
         const result = await tx.simulate()
         // Return the full simulation result for SDK consumers to decide what they need
         return result
       }
 
       // If signer provided, sign and submit automatically
-      if (options?.signer) {
-        const signedXdr = await options.signer.signTransaction(tx.toXDR())
+      if (params.options?.signer) {
+        const signedXdr = await params.options.signer.signTransaction(tx.toXDR())
         const result = await this.submitTransaction(signedXdr)
         // Return the full transaction result
         return result
@@ -295,57 +280,33 @@ export class StellarAttestationClient {
   /**
    * Create a new schema
    *
-   * Usage Examples:
+   * Usage Example:
    *
-   * // Object-based approach (recommended)
    * await client.createSchema({
    *   definition: 'struct Identity { string name; uint age; }',
    *   resolver: 'GRESOLVER123...',
    *   revocable: true,
    *   options: { signer }
    * })
-   *
-   * // Legacy positional arguments
-   * await client.createSchema(definition, resolver, true, { signer })
    */
-  async createSchema(params: CreateSchemaParams): Promise<any>
-  async createSchema(
-    definition: string,
-    resolver?: string,
-    revocable?: boolean,
-    options?: TxOptions
-  ): Promise<any>
-  async createSchema(
-    paramsOrDefinition: CreateSchemaParams | string,
-    legacyResolver?: string,
-    legacyRevocable?: boolean,
-    legacyOptions?: TxOptions
-  ): Promise<any> {
+  async createSchema(params: CreateSchemaParams): Promise<any> {
     try {
-      // Handle both object and positional arguments
-      const { definition, resolver, revocable, options } = this.normalizeCreateSchemaArgs(
-        paramsOrDefinition,
-        legacyResolver,
-        legacyRevocable,
-        legacyOptions
-      )
-
       const tx = await this.attestationProtocol.register({
         caller: this.callerPublicKey,
-        schema_definition: definition,
-        resolver: resolver || undefined,
-        revocable: revocable ?? true,
+        schema_definition: params.definition,
+        resolver: params.resolver || undefined,
+        revocable: params.revocable ?? true,
       })
 
-      if (options?.simulate) {
+      if (params.options?.simulate) {
         const result = await tx.simulate()
         // Return the full simulation result for SDK consumers to decide what they need
         return result
       }
 
       // If signer provided, sign and submit automatically
-      if (options?.signer) {
-        const signedXdr = await options.signer.signTransaction(tx.toXDR())
+      if (params.options?.signer) {
+        const signedXdr = await params.options.signer.signTransaction(tx.toXDR())
         const result = await this.submitTransaction(signedXdr)
         // Return the full transaction result
         return result
@@ -427,6 +388,60 @@ export class StellarAttestationClient {
    */
   generateBlsKeys(): BlsKeyPair {
     return generateBlsKeys()
+  }
+
+  /**
+   * Register a BLS public key for the caller
+   *
+   * @param publicKey - 192-byte BLS public key (G2 point)
+   * @param options - Transaction options (signer, simulate)
+   * @returns Transaction result or unsigned transaction
+   */
+  async registerBlsKey(publicKey: Buffer, options?: TxOptions): Promise<any> {
+    try {
+      if (publicKey.length !== 192) {
+        throw new Error('BLS public key must be exactly 192 bytes (G2 point)')
+      }
+
+      const tx = await this.attestationProtocol.register_bls_key({
+        attester: this.callerPublicKey,
+        public_key: publicKey,
+      })
+
+      if (options?.simulate) {
+        return await tx.simulate()
+      }
+
+      // If signer provided, sign and submit automatically
+      if (options?.signer) {
+        const signedXdr = await options.signer.signTransaction(tx.toXDR())
+        return await this.submitTransaction(signedXdr)
+      }
+
+      // Return unsigned transaction for manual signing
+      return tx
+    } catch (error: any) {
+      throw ErrorFactory.wrap(error, 'Failed to register BLS key')
+    }
+  }
+
+  /**
+   * Get the registered BLS public key for an attester
+   *
+   * @param attester - Address of the attester (defaults to caller if not provided)
+   * @returns BLS public key data structure
+   */
+  async getBlsKey(attester?: string): Promise<any> {
+    try {
+      const tx = await this.attestationProtocol.get_bls_key({
+        attester: attester || this.callerPublicKey,
+      })
+
+      const result = await tx.simulate()
+      return result
+    } catch (error: any) {
+      throw ErrorFactory.wrap(error, `Failed to fetch BLS key for ${attester || this.callerPublicKey}`)
+    }
   }
 
   /**
@@ -830,30 +845,6 @@ export class StellarAttestationClient {
     }
   }
 
-  private normalizeAttestArgs(
-    paramsOrSchemaUid: AttestParams | Buffer,
-    legacyValue?: string,
-    legacyExpiration?: number,
-    legacyOptions?: TxOptions
-  ): { schemaUid: Buffer; value: string; subject?: string; expirationTime?: number; options?: TxOptions } {
-    if (Buffer.isBuffer(paramsOrSchemaUid)) {
-      return {
-        schemaUid: paramsOrSchemaUid,
-        value: legacyValue || '',
-        subject: this.callerPublicKey,
-        expirationTime: legacyExpiration,
-        options: legacyOptions,
-      }
-    }
-    return {
-      schemaUid: paramsOrSchemaUid.schemaUid,
-      value: paramsOrSchemaUid.value || legacyValue || '',
-      subject: paramsOrSchemaUid.subject || this.callerPublicKey,
-      expirationTime: paramsOrSchemaUid.expirationTime || legacyExpiration,
-      options: paramsOrSchemaUid.options || legacyOptions,
-    }
-  }
-
   private normalizeGenerateAttestationUidArgs(
     paramsOrSchemaUid: GenerateAttestationUidParams | Buffer,
     legacySubject?: string,
@@ -889,28 +880,6 @@ export class StellarAttestationClient {
       definition: paramsOrDefinition.definition,
       authority: paramsOrDefinition.authority || legacyAuthority || '',
       resolver: paramsOrDefinition.resolver || legacyResolver || '',
-    }
-  }
-
-  private normalizeCreateSchemaArgs(
-    paramsOrDefinition: CreateSchemaParams | string,
-    legacyResolver?: string,
-    legacyRevocable?: boolean,
-    legacyOptions?: TxOptions
-  ): { definition: string; resolver?: string; revocable?: boolean; options?: TxOptions } {
-    if (typeof paramsOrDefinition === 'string') {
-      return {
-        definition: paramsOrDefinition,
-        resolver: legacyResolver,
-        revocable: legacyRevocable,
-        options: legacyOptions,
-      }
-    }
-    return {
-      definition: paramsOrDefinition.definition,
-      resolver: paramsOrDefinition.resolver || legacyResolver,
-      revocable: paramsOrDefinition.revocable ?? legacyRevocable,
-      options: paramsOrDefinition.options || legacyOptions,
     }
   }
 

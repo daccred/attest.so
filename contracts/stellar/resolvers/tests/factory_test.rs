@@ -18,7 +18,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 use resolvers::factory::ResolverFactoryClient;
-use resolvers::factory::{ResolverConfig, ResolverFactory, ResolverInstance};
+use resolvers::factory::{ResolverFactory, ResolverInstance};
 use resolvers::interface::{ResolverError, ResolverType};
 use soroban_sdk::{testutils::Address as _, Address, Env, String};
 

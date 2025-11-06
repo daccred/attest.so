@@ -7,7 +7,7 @@
 
 import { Address, nativeToScVal } from '@stellar/stellar-sdk'
 import { keccak256 } from 'js-sha3'
-import { sha256 } from '@noble/hashes/sha2'
+import { sha256 } from '@noble/hashes/sha2.js'
 
 /**
  * Generate an attestation UID matching the Rust contract implementation.

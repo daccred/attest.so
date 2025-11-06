@@ -9,7 +9,6 @@
  * @requires common/db
  */
 
-import { scValToNative, xdr } from '@stellar/stellar-sdk'
 import { getDB } from '../common/db'
 
 // TypeScript interface for schema API response (source of truth)
@@ -45,6 +44,7 @@ export interface SchemaData {
   deployerAddress: string
   type?: string
   transactionHash: string
+  createdAt?: Date  // Add optional createdAt to preserve blockchain timestamp
 }
 
 /**
@@ -66,6 +66,7 @@ export async function singleUpsertSchema(schemaData: SchemaData) {
       update: {
         parsedSchemaDefinition: schemaData.parsedSchemaDefinition,
         lastUpdated: new Date(),
+        // DO NOT update createdAt or ingestedAt - preserve original timestamps
       },
       create: {
         uid: schemaData.uid,
@@ -77,6 +78,7 @@ export async function singleUpsertSchema(schemaData: SchemaData) {
         deployerAddress: schemaData.deployerAddress,
         type: schemaData.type || 'default',
         transactionHash: schemaData.transactionHash,
+        createdAt: schemaData.createdAt,  // Use blockchain timestamp only - no fallback
       },
       // Removed attestations include due to removed foreign key constraint
     })
@@ -180,6 +182,71 @@ export async function getSchemaByUid(uid: string, includeAttestations: boolean =
 }
 
 /**
+ * Retrieves a schema by transaction hash using two-step lookup.
+ *
+ * First queries the transactions table to get the UID from metadata,
+ * then fetches the full schema record.
+ *
+ * @param transactionHash - The transaction hash to search for
+ * @param includeAttestations - Whether to include related attestations (not used currently)
+ * @returns The schema object or null if not found
+ */
+export async function getSchemaByTxHash(transactionHash: string, includeAttestations: boolean = false) {
+  const db = await getDB()
+  if (!db) {
+    console.error('Database not available for getSchemaByTxHash')
+    return null
+  }
+
+  
+  try {
+    // Step 1: Query transactions table to get metadata
+    const transaction = await db.transaction.findFirst({
+      where: {
+        transactionHash,
+        action: 'SCHEMA:REGISTER', // Verify it's a schema registration action
+      },
+      orderBy: { timestamp: 'desc' },
+    })
+
+    if (!transaction || !transaction.metadata) {
+      console.log(`❌ Transaction not found or missing metadata for tx hash: ${transactionHash}`)
+      return null
+    }
+
+    // Step 2: Parse metadata array to extract UID
+    // Expected format: [UID, { resolver, authority, revocable, definition }, sourceAccount]
+    const metadata = Array.isArray(transaction.metadata) ? transaction.metadata : []
+
+    console.log({metadata}, "metadata")
+    const schemaUid = metadata[0] as string// UID is first element
+
+    if (!schemaUid) {
+      console.log(`❌ No UID found in metadata for tx hash: ${transactionHash}`)
+      return null
+    }
+
+    // Step 3: Fetch schema by UID
+    const results = await db.schema.findMany({
+      where: { uid: schemaUid },
+      take: 1,
+    })
+    const schema = results[0] || null
+
+    if (schema) {
+      console.log(`📋 Retrieved schema by tx hash: ${transactionHash} -> UID: ${schemaUid}`)
+    } else {
+      console.log(`❌ Schema not found for UID: ${schemaUid}`)
+    }
+
+    return schema
+  } catch (error: any) {
+    console.error(`Error retrieving schema by tx hash`, transactionHash, error.message)
+    return null
+  }
+}
+
+/**
  * Bulk upsert schemas from blockchain events.
  *
  * Processes multiple schemas for efficient database insertion
@@ -202,6 +269,7 @@ export async function bulkUpsertSchemas(schemas: SchemaData[]) {
             update: {
               parsedSchemaDefinition: schemaData.parsedSchemaDefinition,
               lastUpdated: new Date(),
+              // DO NOT update createdAt or ingestedAt - preserve original timestamps
             },
             create: {
               uid: schemaData.uid,
@@ -213,6 +281,7 @@ export async function bulkUpsertSchemas(schemas: SchemaData[]) {
               deployerAddress: schemaData.deployerAddress,
               type: schemaData.type || 'default',
               transactionHash: schemaData.transactionHash,
+              createdAt: schemaData.createdAt,  // Use blockchain timestamp only - no fallback
             },
           })
           processedCount++

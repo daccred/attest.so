@@ -1,0 +1,12 @@
+{"name":"bachelorsDegreeSchema","uid":"3f03d8e23f4cada39cc768d4bf657642fd498ed576308c2b9be79bc3493ef8d4","category":"education"}
+{"name":"mastersDegreeSchema","uid":"422c0ef71dddb3ecb48766f52d8148a84bb179f594771ed34dedbb21f3a3c917","category":"education"}
+{"name":"phdSchema","uid":"4b0047b76650f47d6fbb7d37368fdd800e98b706397c0b78c5b78d5fdd81280c","category":"education"}
+{"name":"itCertificationSchema","uid":"fb0edf96257af034a6cc9faa9a430c1ebda23510adf1fe94640d2841c1ac85e3","category":"education"}
+{"name":"skillBadgeSchema","uid":"7a088adad910c742a78b4aa1136acf0b9f96ae8ab17beb19baea5fc053247eb1","category":"education"}
+{"name":"professionalLicenseSchema","uid":"e4e1daf788dc0979693561faf3156a98207eea660df3b68fba5d9d2306208b94","category":"education"}
+{"name":"industryCertificationSchema","uid":"6e59b8778916ba3b99718ed8a101f9fbafebec6a430c9a5faed9e2397dd1033b","category":"education"}
+{"name":"languageProficiencySchema","uid":"ce2a49ea7fa3e976afa0f23a5b6cd2d4ef45cad4d674a5b85f9ac945033c0299","category":"education"}
+{"name":"competencyAssessmentSchema","uid":"6f9ad3f123fe0767b6aa88de460632988f144fe1116b5d9c99c4da3d25c64250","category":"education"}
+{"name":"employeeIDSchema","uid":"b5f7797ae1112adbf43cf11a87e2f1a3b90b91fd154a17f1698f715ae56b9785","category":"education"}
+{"name":"courseCompletionSchema","uid":"254ee78b8df706e313b67e9b4a819da71ef54b9fdb72ad7885bd6a5cba5fba0c","category":"education"}
+{"name":"academicTranscriptSchema","uid":"8dff91f10938eb0d7145c0979fd9792341837f63d5721e40aca2033f1d620317","category":"education"}

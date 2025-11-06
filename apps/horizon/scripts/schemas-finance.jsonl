@@ -1,0 +1,9 @@
+{"name":"creditAssessmentSchema","uid":"0672cded968dc30a841a6bc3b3504f0e273e73ce974710b6b54e9591078007e5","category":"finance"}
+{"name":"altCreditScoreSchema","uid":"0d98d9f7c6ada8f4d92c78084d54e17e1dfb3510b10a10b3ad12e724e220627b","category":"finance"}
+{"name":"amlTransactionMonitoringSchema","uid":"bf393e16afd1ae04cfe47ebd51d6694bd0b1359b38568bd182f0e25d815baab4","category":"finance"}
+{"name":"investmentAdvisorSchema","uid":"05b6a1eb624755a7a0c75bca61807f2832a613a7a8f1a0cbb2a6517bbad39d78","category":"finance"}
+{"name":"insuranceClaimSchema","uid":"c6e452d74555bb01c708d64bb69fe47f20352734c5d3a5c2c417d91556a1f56f","category":"finance"}
+{"name":"crossBorderPaymentSchema","uid":"ca456613e5241b4883767970d21bb3dd430057e962aa16672c98f1722db2aade","category":"finance"}
+{"name":"financialAuditSchema","uid":"a1c90eded2a112eaef48b831a2eceacb6e28c32034b548c5d1be2b78528a5523","category":"finance"}
+{"name":"complianceAuditSchema","uid":"334daf6844df9a85a7af9a91db471e8108bee111bb8945336cd1b6fad8b4fc39","category":"finance"}
+{"name":"incomeStatementSchema","uid":"c757b3f72b46eb19c4b90c04cbed3a64ae98ed9d7c69d293bf435c65ba956d09","category":"finance"}

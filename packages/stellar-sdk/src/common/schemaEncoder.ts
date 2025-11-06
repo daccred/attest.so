@@ -1,10 +1,11 @@
 /**
  * Stellar Schema Encoder - Standardized schema definition and data encoding for Stellar attestations
- *
  * Provides type-safe schema definitions and encoding/decoding utilities.
  */
 
-import { Address, xdr, Keypair } from '@stellar/stellar-sdk'
+import { Address, xdr } from '@stellar/stellar-sdk'
+import Ajv from 'ajv'
+import addFormats from 'ajv-formats'
 
 /**
  * Supported Stellar attestation data types
@@ -17,11 +18,11 @@ export enum StellarDataType {
   I32 = 'i32',
   I64 = 'i64',
   I128 = 'i128',
+  NUMBER = 'number',
   ADDRESS = 'address',
   BYTES = 'bytes',
   SYMBOL = 'symbol',
   ARRAY = 'array',
-  OPTION = 'option',
   MAP = 'map',
   TIMESTAMP = 'timestamp',
   AMOUNT = 'amount',
@@ -48,13 +49,11 @@ export interface SchemaField {
  */
 export interface StellarSchemaDefinition {
   name: string
-  version: string
-  description: string
+  description?: string
   fields: SchemaField[]
   metadata?: {
     category?: string
     tags?: string[]
-    authority?: string
     revocable?: boolean
     expirable?: boolean
   }
@@ -88,10 +87,14 @@ export class SchemaValidationError extends Error {
  */
 export class SorobanSchemaEncoder {
   private schema: StellarSchemaDefinition
+  private ajv: Ajv
+  private validator: any // AJV validator function
 
   constructor(schema: StellarSchemaDefinition) {
     this.validateSchema(schema)
     this.schema = schema
+    this.ajv = this.createAjvInstance()
+    this.validator = this.ajv.compile(this.toJSONSchema())
   }
 
   /**
@@ -107,7 +110,6 @@ export class SorobanSchemaEncoder {
   getSchemaHash(): string {
     const schemaString = JSON.stringify({
       name: this.schema.name,
-      version: this.schema.version,
       fields: this.schema.fields.map((f) => ({ name: f.name, type: f.type, optional: f.optional })),
     })
 
@@ -166,12 +168,8 @@ export class SorobanSchemaEncoder {
           val: xdr.ScVal.scvString(this.schema.name),
         }),
         new xdr.ScMapEntry({
-          key: xdr.ScVal.scvSymbol('version'),
-          val: xdr.ScVal.scvString(this.schema.version),
-        }),
-        new xdr.ScMapEntry({
           key: xdr.ScVal.scvSymbol('description'),
-          val: xdr.ScVal.scvString(this.schema.description),
+          val: xdr.ScVal.scvString(this.schema.description || this.schema.name),
         }),
         new xdr.ScMapEntry({
           key: xdr.ScVal.scvSymbol('fields'),
@@ -279,11 +277,6 @@ export class SorobanSchemaEncoder {
               schema.name = val.str().toString()
             }
             break
-          case 'version':
-            if (val.switch() === xdr.ScValType.scvString()) {
-              schema.version = val.str().toString()
-            }
-            break
           case 'description':
             if (val.switch() === xdr.ScValType.scvString()) {
               schema.description = val.str().toString()
@@ -298,7 +291,7 @@ export class SorobanSchemaEncoder {
       }
 
       // Validate required fields
-      if (!schema.name || !schema.version || !schema.fields) {
+      if (!schema.name || !schema.fields) {
         throw new Error('Missing required schema fields')
       }
 
@@ -442,24 +435,98 @@ export class SorobanSchemaEncoder {
   }
 
   /**
-   * Validate data against the schema
+   * Create and configure AJV instance with custom formats for Stellar types
+   */
+  private createAjvInstance(): Ajv {
+    const ajv = new Ajv({ 
+      allErrors: true,
+      verbose: true,
+      strict: false, // Allow custom formats
+      validateSchema: false // Don't validate the schema itself
+    })
+    
+    // Add standard formats (date, time, email, etc.)
+    addFormats(ajv)
+    
+    // Add custom Stellar formats
+    ajv.addFormat('stellar-address', {
+      type: 'string',
+      validate: (value: string) => this.isValidStellarAddress(value)
+    })
+    
+    ajv.addFormat('stellar-amount', {
+      validate: (value: any) => {
+        if (typeof value === 'number') return Number.isFinite(value) && value >= 0
+        if (typeof value === 'string') return /^\d+$/.test(value)
+        return false
+      }
+    })
+    
+    ajv.addFormat('stellar-i128', {
+      validate: (value: any) => {
+        if (typeof value === 'number') return Number.isInteger(value)
+        if (typeof value === 'string') return /^-?\d+$/.test(value)
+        return false
+      }
+    })
+    
+    ajv.addFormat('stellar-timestamp', {
+      validate: (value: any) => {
+        if (typeof value === 'number') return Number.isInteger(value) && value > 0
+        if (typeof value === 'string') {
+          const timestamp = new Date(value).getTime()
+          return !isNaN(timestamp)
+        }
+        return false
+      }
+    })
+    
+    return ajv
+  }
+
+  /**
+   * Validate data against the schema using AJV
    */
   validateData(data: Record<string, any>): void {
-    // Check required fields
-    for (const field of this.schema.fields) {
-      if (!field.optional && !(field.name in data)) {
-        throw new SchemaValidationError(`Required field '${field.name}' is missing`, field.name)
+    const isValid = this.validator(data)
+    
+    if (!isValid && this.validator.errors) {
+      // Convert AJV errors to our custom error format
+      const error = this.validator.errors[0] // Get first error
+      const fieldPath = error.instancePath.replace(/^\//, '') || error.params?.missingProperty
+      const fieldName = fieldPath || 'unknown'
+      
+      let message: string
+      switch (error.keyword) {
+        case 'required':
+          message = `Required field '${error.params.missingProperty}' is missing`
+          break
+        case 'type':
+          message = `Field '${fieldName}' must be a ${error.params.type}`
+          break
+        case 'format':
+          message = `Field '${fieldName}' has invalid format`
+          break
+        case 'enum':
+          message = `Field '${fieldName}' must be one of: ${error.params.allowedValues.join(', ')}`
+          break
+        case 'minimum':
+          message = `Field '${fieldName}' is below minimum value`
+          break
+        case 'maximum':
+          message = `Field '${fieldName}' exceeds maximum value`
+          break
+        case 'pattern':
+          message = `Field '${fieldName}' does not match pattern`
+          break
+        case 'additionalProperties':
+          message = `Unknown field '${error.params.additionalProperty}'`
+          break
+        default:
+          message = error.message || `Validation failed for field '${fieldName}'`
       }
-    }
-
-    // Validate each field
-    for (const [key, value] of Object.entries(data)) {
-      const field = this.schema.fields.find((f) => f.name === key)
-      if (!field) {
-        throw new SchemaValidationError(`Unknown field '${key}'`, key)
-      }
-
-      this.validateFieldValue(field, value)
+      
+      throw new SchemaValidationError(message, fieldName)
     }
   }
 
@@ -491,14 +558,28 @@ export class SorobanSchemaEncoder {
         description: field.description,
       }
 
-      // If this is an address, add encoding and media type hints for round-trip fidelity
+      // Add custom format hints for Stellar types
       if (field.type === StellarDataType.ADDRESS) {
+        properties[field.name].format = 'stellar-address'
         properties[field.name].contentEncoding = 'base32'
         properties[field.name].contentMediaType = 'application/vnd.daccred.address; chain=stellar'
+      } else if (field.type === StellarDataType.AMOUNT) {
+        properties[field.name].format = 'stellar-amount'
+      } else if (field.type === StellarDataType.I128) {
+        properties[field.name].format = 'stellar-i128'
+      } else if (field.type === StellarDataType.TIMESTAMP) {
+        properties[field.name].format = 'stellar-timestamp'
       }
 
       if (field.validation) {
-        Object.assign(properties[field.name], field.validation)
+        // Convert our validation format to JSON Schema format
+        const jsonSchemaValidation: any = {}
+        if (field.validation.min !== undefined) jsonSchemaValidation.minimum = field.validation.min
+        if (field.validation.max !== undefined) jsonSchemaValidation.maximum = field.validation.max
+        if (field.validation.pattern) jsonSchemaValidation.pattern = field.validation.pattern
+        if (field.validation.enum) jsonSchemaValidation.enum = field.validation.enum
+        
+        Object.assign(properties[field.name], jsonSchemaValidation)
       }
 
       if (!field.optional) {
@@ -507,11 +588,9 @@ export class SorobanSchemaEncoder {
     }
 
     return {
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',
       title: this.schema.name,
       description: this.schema.description,
-      version: this.schema.version,
       properties,
       required,
       additionalProperties: false,
@@ -551,7 +630,6 @@ export class SorobanSchemaEncoder {
 
     const schema: StellarSchemaDefinition = {
       name: jsonSchema.title || 'Untitled Schema',
-      version: jsonSchema.version || '1.0.0',
       description: jsonSchema.description || '',
       fields,
     }
@@ -565,10 +643,6 @@ export class SorobanSchemaEncoder {
   private validateSchema(schema: StellarSchemaDefinition): void {
     if (!schema.name || typeof schema.name !== 'string') {
       throw new SchemaValidationError('Schema must have a valid name')
-    }
-
-    if (!schema.version || typeof schema.version !== 'string') {
-      throw new SchemaValidationError('Schema must have a valid version')
     }
 
     if (!schema.fields || !Array.isArray(schema.fields) || schema.fields.length === 0) {
@@ -593,81 +667,7 @@ export class SorobanSchemaEncoder {
     }
   }
 
-  /**
-   * Validate individual field value
-   */
-  private validateFieldValue(field: SchemaField, value: any): void {
-    if (value === null || value === undefined) {
-      if (!field.optional) {
-        throw new SchemaValidationError(`Field '${field.name}' cannot be null`, field.name)
-      }
-      return
-    }
 
-    // Type-specific validation
-    switch (field.type) {
-      case StellarDataType.STRING:
-      case StellarDataType.SYMBOL:
-        if (typeof value !== 'string') {
-          throw new SchemaValidationError(`Field '${field.name}' must be a string`, field.name)
-        }
-        break
-
-      case StellarDataType.BOOL:
-        if (typeof value !== 'boolean') {
-          throw new SchemaValidationError(`Field '${field.name}' must be a boolean`, field.name)
-        }
-        break
-
-      case StellarDataType.U32:
-      case StellarDataType.U64:
-      case StellarDataType.I32:
-      case StellarDataType.I64:
-      case StellarDataType.I128:
-      case StellarDataType.AMOUNT:
-        if (typeof value !== 'number' && typeof value !== 'bigint') {
-          throw new SchemaValidationError(`Field '${field.name}' must be a number`, field.name)
-        }
-        break
-
-      case StellarDataType.ADDRESS:
-        if (typeof value !== 'string' || !this.isValidStellarAddress(value)) {
-          throw new SchemaValidationError(`Field '${field.name}' must be a valid Stellar address`, field.name)
-        }
-        break
-
-      case StellarDataType.TIMESTAMP:
-        if (typeof value !== 'number' && typeof value !== 'string') {
-          throw new SchemaValidationError(`Field '${field.name}' must be a timestamp`, field.name)
-        }
-        break
-    }
-
-    // Validation rules
-    if (field.validation) {
-      if (field.validation.enum && !field.validation.enum.includes(value)) {
-        throw new SchemaValidationError(
-          `Field '${field.name}' must be one of: ${field.validation.enum.join(', ')}`,
-          field.name
-        )
-      }
-
-      if (typeof value === 'string' && field.validation.pattern) {
-        if (!new RegExp(field.validation.pattern).test(value)) {
-          throw new SchemaValidationError(`Field '${field.name}' does not match pattern`, field.name)
-        }
-      }
-
-      if (typeof value === 'number') {
-        if (field.validation.min !== undefined && value < field.validation.min) {
-          throw new SchemaValidationError(`Field '${field.name}' is below minimum value`, field.name)
-        }
-        if (field.validation.max !== undefined && value > field.validation.max) {
-          throw new SchemaValidationError(`Field '${field.name}' exceeds maximum value`, field.name)
-        }
-      }
-    }
-  }
 
   /**
    * Process data for encoding (type conversions, etc.)
@@ -805,6 +805,7 @@ export class SorobanSchemaEncoder {
       case StellarDataType.I32:
       case StellarDataType.I64:
       case StellarDataType.I128:
+      case StellarDataType.NUMBER:
       case StellarDataType.AMOUNT:
       case StellarDataType.TIMESTAMP:
         return 'number'

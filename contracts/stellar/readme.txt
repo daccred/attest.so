@@ -168,3 +168,36 @@ stellar contract deploy \
   --source YOUR_IDENTITY \
   --network testnet
 ```
+
+
+  Deployment Examples
+  ## Deploy to Mainnet (with inline config):
+
+   ./deploy.sh --authority --protocol \
+    --network mainnet \
+    --rpc-url "https://soroban-rpc.mainnet.stellar.gateway.fm" \
+    --network-passphrase "Public Global Stellar Network ; September 2015" \
+    --source YOUR_IDENTITY \
+    --initialize \
+    --token-id CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC \
+    --yes
+
+  (With inline env.sh config)
+  ./deploy.sh --authority --protocol \
+    --initialize \
+    --token-id CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC \
+    --fee 120000000
+
+  ./deploy.sh --authority --protocol \
+    --network mainnet \
+    --rpc-url "https://mainnet.stellar.validationcloud.io/v1/YOUR_API_KEY" \
+    --network-passphrase "Public Global Stellar Network ; September 2015" \
+    --source YOUR_IDENTITY
+
+  ## Deploy to Testnet:
+
+  ./deploy.sh --authority --protocol \
+    --network testnet \
+    --rpc-url "https://soroban-testnet.stellar.org" \
+    --network-passphrase "Test SDF Network ; September 2015" \
+    --source YOUR_IDENTITY

@@ -4,7 +4,7 @@
     "module": "ES2020",
     "lib": ["ES2020"],
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -19,7 +19,8 @@
     "emitDecoratorMetadata": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "__tests__/testutils"
   ],
   "exclude": [
     "node_modules",

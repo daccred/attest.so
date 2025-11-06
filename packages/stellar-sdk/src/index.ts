@@ -4,12 +4,13 @@
  * Stellar implementation of the Attest Protocol SDK
  */
 
+export { getAttesterNonce } from './delegation'
+
 // Export the new StellarAttestationClient (main entry point for SDK requirements)
 export { StellarAttestationClient } from './client'
 
 // Export service classes for direct use
 export { StellarSchemaRegistry } from './schema'
-export { StellarAttestationService } from './attest'
 export { AttestProtocolAuthority } from './authority'
 
 // Export standardized schema encoder
@@ -29,19 +30,36 @@ export * from './types'
 // Export error handling utilities
 export * from './common/errors'
 
-// Export all utilities
-export * as utils from './utils'
-
 // Re-export specific utilities at top level for convenience
 export {
-  generateAttestationUid,
-  generateSchemaUid,
   generateBlsKeys,
   encodeSchema,
   decodeSchema,
+  validateSchema,
   createAttestMessage,
   createRevokeMessage,
+  generateAttestationUid,
+  generateSchemaUid,
+  formatUid,
+  parseFormattedUid,
+  getAttestDST,
+  getRevokeDST,
+  createDelegatedAttestationRequest,
+  createDelegatedRevocationRequest,
+  createSimpleSchema,
+  fetchRegistryDump,
+  getAttestationByUid,
+  getAttestationByTxHash,
+  signHashedMessage,
   verifySignature,
+  aggregateSignatures,
+  aggregatePublicKeys,
+  verifyAggregateSignature,
+  decompressPublicKey,
+  compressPublicKey,
+  getSchemaByUid,
+  getSchemaByTxHash,
+  REGISTRY_ENDPOINTS,
 } from './utils'
 
 // Re-export core types for convenience
@@ -59,6 +77,7 @@ export {
   createErrorResponse,
   createAttestProtocolError,
 } from '@attestprotocol/core'
+
 
 // Re-export contract bindings for advanced usage
 export {
@@ -79,3 +98,10 @@ export {
 
 // Internal utilities (for advanced usage and testing)
 export * as common from './common'
+
+/** TODO: Remove this after testing with sandbox */
+console.log('Stellar SDK loaded')
+console.log({
+  StellarAttestationClient: "StellarAttestationClient",
+  StellarSchemaRegistry: "StellarSchemaRegistry",
+})

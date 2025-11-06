@@ -36,6 +36,7 @@ vi.mock('../src/common/queue', () => ({
   ingestQueue: {
     enqueueFetchEvents: vi.fn().mockReturnValue('job-123'),
     enqueueComprehensiveData: vi.fn().mockReturnValue('job-456'),
+    enqueueRecurringIngestion: vi.fn().mockReturnValue('job-456'),
     getStatus: vi.fn().mockReturnValue({ size: 0, running: false, nextJobs: [] }),
   },
 }));
@@ -154,10 +155,10 @@ describe('Horizon API - Endpoints (refactored)', () => {
       });
     });
 
-    describe('POST /api/ingest/full', () => {
-      it('enqueues full data synchronization', async () => {
+    describe('POST /api/ingest/recurring', () => {
+      it('enqueues recurring data synchronization', async () => {
         const res = await request(app)
-          .post('/api/ingest/full')
+          .post('/api/ingest/recurring')
           .send({ startLedger: 1000, contractIds: ['C1'] });
 
         expect(res.status).toBe(202);

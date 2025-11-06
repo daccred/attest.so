@@ -2,7 +2,7 @@
  * Standardized schema encoder functions
  */
 
-import { SorobanSchemaEncoder, StellarDataType, type StellarSchemaDefinition } from '../../common/schemaEncoder'
+import { SorobanSchemaEncoder, StellarDataType, type StellarSchemaDefinition } from '../../src/common/schemaEncoder'
 import { createTestKeypairs } from './keypairs'
 
 /**
@@ -17,44 +17,41 @@ export function createStandardizedSchemaEncoder(
   const standardSchemas: Record<string, StellarSchemaDefinition> = {
     identity: {
       name: 'Identity Verification',
-      version: '1.0.0',
       description: 'Standardized identity verification attestation',
       fields: [
-        { name: 'fullName', type: StellarDataType.STRING, description: 'Legal full name of the individual' },
-        { name: 'dateOfBirth', type: StellarDataType.TIMESTAMP, description: 'Date of birth' },
-        { name: 'nationality', type: StellarDataType.STRING, description: 'Nationality or citizenship' },
+        { name: 'fullName', type: StellarDataType.STRING },
+        { name: 'dateOfBirth', type: StellarDataType.TIMESTAMP },
+        { name: 'nationality', type: StellarDataType.STRING },
         {
           name: 'documentType',
           type: StellarDataType.STRING,
           validation: { enum: ['passport', 'drivers_license', 'national_id', 'other'] },
         },
-        { name: 'documentNumber', type: StellarDataType.STRING, description: 'Hashed document number for privacy' },
+        { name: 'documentNumber', type: StellarDataType.STRING },
         {
           name: 'verificationLevel',
           type: StellarDataType.STRING,
           validation: { enum: ['basic', 'enhanced', 'premium'] },
         },
-        { name: 'verificationDate', type: StellarDataType.TIMESTAMP, description: 'When verification was completed' },
-        { name: 'verifiedBy', type: StellarDataType.ADDRESS, description: 'Address of verifying authority' },
+        { name: 'verificationDate', type: StellarDataType.TIMESTAMP },
+        { name: 'verifiedBy', type: StellarDataType.ADDRESS },
       ],
       metadata: { category: 'identity', revocable: true, expirable: false },
     },
     degree: {
       name: 'Academic Degree',
-      version: '1.0.0',
       description: 'University degree or academic credential',
       fields: [
-        { name: 'studentName', type: StellarDataType.STRING, description: 'Name of the student' },
-        { name: 'university', type: StellarDataType.STRING, description: 'Name of the university' },
-        { name: 'degree', type: StellarDataType.STRING, description: 'Type of degree' },
-        { name: 'fieldOfStudy', type: StellarDataType.STRING, description: 'Major or field of study' },
-        { name: 'graduationDate', type: StellarDataType.TIMESTAMP, description: 'Date of graduation' },
+        { name: 'studentName', type: StellarDataType.STRING },
+        { name: 'university', type: StellarDataType.STRING },
+        { name: 'degree', type: StellarDataType.STRING },
+        { name: 'fieldOfStudy', type: StellarDataType.STRING },
+        { name: 'graduationDate', type: StellarDataType.TIMESTAMP },
         {
           name: 'gpa',
           type: StellarDataType.U32,
           optional: true,
           validation: { min: 0, max: 400 },
-          description: 'GPA * 100 (e.g., 350 = 3.50)',
         },
         {
           name: 'honors',
@@ -67,25 +64,22 @@ export function createStandardizedSchemaEncoder(
     },
     certification: {
       name: 'Professional Certification',
-      version: '1.0.0',
       description: 'Professional certification or license',
       fields: [
-        { name: 'holderName', type: StellarDataType.STRING, description: 'Name of the certification holder' },
-        { name: 'certificationName', type: StellarDataType.STRING, description: 'Name of the certification' },
+        { name: 'holderName', type: StellarDataType.STRING },
+        { name: 'certificationName', type: StellarDataType.STRING },
         {
           name: 'issuingOrganization',
           type: StellarDataType.STRING,
-          description: 'Organization that issued the certification',
         },
-        { name: 'certificationNumber', type: StellarDataType.STRING, description: 'Unique certification number' },
-        { name: 'issueDate', type: StellarDataType.TIMESTAMP, description: 'Date the certification was issued' },
+        { name: 'certificationNumber', type: StellarDataType.STRING },
+        { name: 'issueDate', type: StellarDataType.TIMESTAMP },
         {
           name: 'expirationDate',
           type: StellarDataType.TIMESTAMP,
           optional: true,
-          description: 'Expiration date if applicable',
         },
-        { name: 'skillsValidated', type: 'array<string>', description: 'List of skills validated' },
+        { name: 'skillsValidated', type: 'array<string>' },
         {
           name: 'certificationLevel',
           type: StellarDataType.STRING,
@@ -96,26 +90,24 @@ export function createStandardizedSchemaEncoder(
     },
     employment: {
       name: 'Employment Verification',
-      version: '1.0.0',
       description: 'Employment history and status verification',
       fields: [
-        { name: 'employeeName', type: StellarDataType.STRING, description: 'Name of the employee' },
-        { name: 'employerName', type: StellarDataType.STRING, description: 'Name of the employer' },
-        { name: 'jobTitle', type: StellarDataType.STRING, description: 'Job title or position' },
-        { name: 'department', type: StellarDataType.STRING, optional: true, description: 'Department or division' },
+        { name: 'employeeName', type: StellarDataType.STRING },
+        { name: 'employerName', type: StellarDataType.STRING },
+        { name: 'jobTitle', type: StellarDataType.STRING },
+        { name: 'department', type: StellarDataType.STRING, optional: true },
         {
           name: 'employmentType',
           type: StellarDataType.STRING,
           validation: { enum: ['full_time', 'part_time', 'contract', 'internship', 'consultant'] },
         },
-        { name: 'startDate', type: StellarDataType.TIMESTAMP, description: 'Employment start date' },
-        { name: 'endDate', type: StellarDataType.TIMESTAMP, optional: true, description: 'Employment end date' },
-        { name: 'currentlyEmployed', type: StellarDataType.BOOL, description: 'Whether currently employed' },
+        { name: 'startDate', type: StellarDataType.TIMESTAMP },
+        { name: 'endDate', type: StellarDataType.TIMESTAMP, optional: true },
+        { name: 'currentlyEmployed', type: StellarDataType.BOOL },
         {
           name: 'annualSalary',
           type: StellarDataType.AMOUNT,
           optional: true,
-          description: 'Annual salary in base currency units',
         },
         {
           name: 'performanceRating',
@@ -196,7 +188,7 @@ export function createStandardizedTestData(
       employmentType: 'full_time',
       startDate: new Date('2022-01-15').getTime(),
       currentlyEmployed: true,
-      annualSalary: 150000, // In base currency units (e.g., cents for USD)
+      annualSalary: 150000,
       performanceRating: 'exceeds_expectations',
     },
   }

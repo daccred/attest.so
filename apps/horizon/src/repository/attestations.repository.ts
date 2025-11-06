@@ -49,6 +49,7 @@ export interface AttestationData {
   value?: Record<string, any>
   revoked?: boolean
   revokedAt?: Date
+  createdAt?: Date  // Add optional createdAt to preserve blockchain timestamp
 }
 
 /**
@@ -71,6 +72,7 @@ export async function singleUpsertAttestation(attestationData: AttestationData) 
         revoked: attestationData.revoked || false,
         revokedAt: attestationData.revokedAt,
         lastUpdated: new Date(),
+        // DO NOT update createdAt or ingestedAt - preserve original timestamps
       },
       create: {
         attestationUid: attestationData.attestationUid,
@@ -84,6 +86,7 @@ export async function singleUpsertAttestation(attestationData: AttestationData) 
         value: attestationData.value,
         revoked: attestationData.revoked || false,
         revokedAt: attestationData.revokedAt,
+        createdAt: attestationData.createdAt,  // Use blockchain timestamp only - no fallback
       },
       // Removed schema include due to removed foreign key constraint
     })
@@ -189,6 +192,67 @@ export async function getAttestationByUid(attestationUid: string) {
 }
 
 /**
+ * Retrieves an attestation by transaction hash using two-step lookup.
+ *
+ * First queries the transactions table to get the UID from metadata,
+ * then fetches the full attestation record.
+ *
+ * @param transactionHash - The transaction hash to search for
+ * @returns The attestation object or null if not found
+ */
+export async function getAttestationByTxHash(transactionHash: string) {
+  const db = await getDB()
+  if (!db) {
+    console.error('Database not available for getAttestationByTxHash')
+    return null
+  }
+
+  try {
+    // Step 1: Query transactions table to get metadata
+    const transaction = await db.transaction.findFirst({
+      where: {
+        transactionHash,
+        action: 'ATTEST:CREATE', // Verify it's an attestation action
+      },
+      orderBy: { timestamp: 'desc' },
+    })
+
+    if (!transaction || !transaction.metadata) {
+      console.log(`❌ Transaction not found or missing metadata for tx hash: ${transactionHash}`)
+      return null
+    }
+
+    // Step 2: Parse metadata array to extract UID
+    // Expected format: [UID, payload, sourceAccount]
+    const metadata = Array.isArray(transaction.metadata) ? transaction.metadata : []
+    const attestationUid = metadata[0] as string // UID is first element
+
+    if (!attestationUid) {
+      console.log(`❌ No UID found in metadata for tx hash: ${transactionHash}`)
+      return null
+    }
+
+    // Step 3: Fetch attestation by UID
+    const results = await db.attestation.findMany({
+      where: { attestationUid },
+      take: 1,
+    })
+    const attestation = results[0] || null
+
+    if (attestation) {
+      console.log(`📋 Retrieved attestation by tx hash: ${transactionHash} -> UID: ${attestationUid}`)
+    } else {
+      console.log(`❌ Attestation not found for UID: ${attestationUid}`)
+    }
+
+    return attestation
+  } catch (error: any) {
+    console.error(`Error retrieving attestation by tx hash`, transactionHash, error.message)
+    return null
+  }
+}
+
+/**
  * Bulk upsert attestations from blockchain events.
  *
  * Processes multiple attestations for efficient database insertion
@@ -212,6 +276,7 @@ export async function bulkUpsertAttestations(attestations: AttestationData[]) {
               revoked: attestationData.revoked || false,
               revokedAt: attestationData.revokedAt,
               lastUpdated: new Date(),
+              // DO NOT update createdAt or ingestedAt - preserve original timestamps
             },
             create: {
               attestationUid: attestationData.attestationUid,
@@ -225,6 +290,7 @@ export async function bulkUpsertAttestations(attestations: AttestationData[]) {
               value: attestationData.value,
               revoked: attestationData.revoked || false,
               revokedAt: attestationData.revokedAt,
+              createdAt: attestationData.createdAt,  // Use blockchain timestamp only - no fallback
             },
           })
           processedCount++

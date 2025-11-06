@@ -26,14 +26,17 @@ export const STELLAR_NETWORK = process.env.STELLAR_NETWORK || 'testnet'
 
 /**
  * CONTRACT_IDS_TO_INDEX
- *
+*
+*   'CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5',
+*   'CBLCL256WVODZVVGGC3TRV5ZSVLZXQFGX4OHE2YM2P4WUQIT2OFAOUQQ',
  * Array of contract IDs that the indexer will track for events, operations, and transactions.
  * This replaces the legacy CONTRACT_ID_TO_INDEX environment variable approach.
  */
 export const CONTRACT_IDS_TO_INDEX = [
-  'CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5',
-  'CBLCL256WVODZVVGGC3TRV5ZSVLZXQFGX4OHE2YM2P4WUQIT2OFAOUQQ',
-]
+  process.env.PROTOCOL_CONTRACT_ID as string,
+  process.env.AUTHORITY_CONTRACT_ID as string,
+] 
+
 
 /**
  * MAX_EVENTS_PER_FETCH
@@ -65,7 +68,7 @@ export const LEDGER_HISTORY_LIMIT_DAYS = 7
  */
 export let sorobanRpcUrl: string
 if (STELLAR_NETWORK === 'mainnet') {
-  sorobanRpcUrl = 'https://soroban-rpc.stellar.org'
+  sorobanRpcUrl = 'https://rpc.lightsail.network'
 } else {
   sorobanRpcUrl = 'https://soroban-testnet.stellar.org'
 }

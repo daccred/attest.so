@@ -6,9 +6,9 @@
  * @packageDocumentation
  */
 
-import { bls12_381 } from '@noble/curves/bls12-381'
+import { bls12_381 } from '@noble/curves/bls12-381.js'
 import { VerificationResult, BlsKeyPair } from '../types'
-import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass'
+import { WeierstrassPoint } from '@noble/curves/abstract/weierstrass.js'
 
 /**
  * The core BLS pairing curve we support is short signatures.

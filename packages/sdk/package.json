@@ -1,20 +1,20 @@
 {
   "name": "@attestprotocol/sdk",
   "description": "Meta-package SDK for interacting with Attest Protocol across multiple blockchains",
-  "version": "1.7.4",
+  "version": "2.0.1",
   "author": "daccred",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
-    "@attestprotocol/core": "1.7.4",
-    "@attestprotocol/solana-sdk": "1.7.4",
-    "@attestprotocol/starknet-sdk": "1.7.4",
-    "@attestprotocol/stellar-sdk": "1.7.4"
+    "@attestprotocol/core": "2.0.1",
+    "@attestprotocol/solana-sdk": "2.0.1",
+    "@attestprotocol/starknet-sdk": "2.0.1",
+    "@attestprotocol/stellar-sdk": "2.0.1"
   },
   "devDependencies": {
     "@sebbo2002/semantic-release-jsr": "3.0.0",
     "@semantic-release/exec": "^7.0.3",
     "semantic-release-plugin-update-version-in-files": "^2.0.0",
-    "tsup": "^8.4.0"
+    "tsup": "^8.5.0"
   },
   "directories": {
     "test": "test"

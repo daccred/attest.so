@@ -187,7 +187,7 @@ model Attestation {
   revoked           Boolean  @default(false)
   
   // Timestamps
-  createdAt         DateTime @default(now())
+  createdAt         DateTime?  // Nullable - should be filled with blockchain timestamp
   revokedAt         DateTime?
   
   // Relations - keeping schemaUid as regular field without foreign key constraint
@@ -219,7 +219,7 @@ model Schema {
   transactionHash           String
   
   // Timestamps
-  createdAt                 DateTime @default(now())
+  createdAt                 DateTime?  // Nullable - should be filled with blockchain timestamp
   
   // Relations - removed to eliminate foreign key constraints
   // attestations can still reference schemas via schemaUid field
@@ -227,6 +227,8 @@ model Schema {
   // Indexer metadata
   ingestedAt                DateTime @default(now())
   lastUpdated               DateTime @updatedAt
+  category                  String   @default("default") 
+  featured                  Boolean  @default(false)
   
   @@index([ledger])
   @@index([deployerAddress])

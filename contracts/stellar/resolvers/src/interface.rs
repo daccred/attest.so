@@ -5,12 +5,15 @@ use soroban_sdk::{contracterror, contracttype, Address, BytesN, Env, String};
 pub struct ResolverAttestationData {
     pub uid: BytesN<32>,
     pub schema_uid: BytesN<32>,
-    pub attester: Address,
     pub recipient: Address,
-    pub data: soroban_sdk::Bytes,
-    pub timestamp: u64,
-    pub expiration_time: u64,
+    pub attester: Address,
+    pub time: u64,
+    pub expiration_time: u64, // 0 = not set
+    pub revocation_time: u64, // 0 = not set
     pub revocable: bool,
+    pub ref_uid: soroban_sdk::Bytes, // empty bytes = not set
+    pub data: soroban_sdk::Bytes,
+    pub value: i128, // 0 = not set
 }
 
 #[contracttype]

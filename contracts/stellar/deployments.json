@@ -1,14 +1,26 @@
 {
   "testnet": {
     "protocol": {
-      "id": "CB3NF4FHZPQOBWSPZNLKU32SK6Z5FR54TN6LWBBY72IDRDRIVWBRRFE5",
-      "hash": "a98383cb217858e5510912e4e5b7615596c0055d12de6ad143598c49065177b6",
-      "timestamp": "2025-08-30T02:27:37Z"
+      "id": "CDBWGWEZ3P4DZ3YUZSCEUKOVV2UGF2PYQEPW3E5OKNLYS5SNW4SQLDUA",
+      "hash": "4a00b37486949093de1be8981a1f75f051aa1c3527cafa73ef2ca0a2cdf30a37",
+      "timestamp": "2025-10-26T03:48:55Z"
     },
     "authority": {
-      "id": "CBLCL256WVODZVVGGC3TRV5ZSVLZXQFGX4OHE2YM2P4WUQIT2OFAOUQQ",
-      "hash": "8c7c9f0d763212f7470c633e21ffee365cc1312ca59526f36fac578c14617bf9",
-      "timestamp": "2025-08-30T02:27:25Z"
+      "id": "CDYP33SVMQ6HAE5FMTXURO65UKX6AVIWGQVNUB7K6PNVZPMVOTVZKA7M",
+      "hash": "ecefc9b4aab91800f5aa131d6417f1fcaf3cfa6261b1bc4ab7adab0f70532b0d",
+      "timestamp": "2025-10-26T03:48:45Z"
+    }
+  },
+  "mainnet": {
+    "protocol": {
+      "id": "CBUUI7WKGOTPCLXBPCHTKB5GNATWM4WAH4KMADY6GFCXOCNVF5OCW2WI",
+      "hash": "6eeaf6691748956417b7929951ff3789f499190b2c220d3e758e3b62ddc66e7f",
+      "timestamp": "2025-11-05T07:12:13Z"
+    },
+    "authority": {
+      "id": "CBKOB6XEEXYH5SEFQ4YSUEFJGYNBVISQBHQHVGCKB736A3JVGK7F77JG",
+      "hash": "6bd7703a8bdef80d2a71483ef34f5682fec8df95e348c8b32d4140029d78cfaf",
+      "timestamp": "2025-11-05T07:22:15Z"
     }
   }
 }

@@ -117,10 +117,10 @@ describe('StellarAttestationClient', () => {
   describe('BLS Key Generation (Item 13)', () => {
     it('should generate BLS key pairs', () => {
       const keyPair = client.generateBlsKeys()
-      
+
       expect(keyPair).toBeDefined()
-      expect(keyPair.publicKey).toBeInstanceOf(Buffer)
-      expect(keyPair.privateKey).toBeInstanceOf(Buffer)
+      expect(keyPair.publicKey).toBeInstanceOf(Uint8Array)
+      expect(keyPair.privateKey).toBeInstanceOf(Uint8Array)
       expect(keyPair.publicKey.length).toBe(192) // Uncompressed G2 point
       expect(keyPair.privateKey.length).toBe(32)
     })
@@ -128,9 +128,9 @@ describe('StellarAttestationClient', () => {
     it('should generate different keys each time', () => {
       const keyPair1 = generateBlsKeys()
       const keyPair2 = generateBlsKeys()
-      
-      expect(Buffer.compare(keyPair1.privateKey, keyPair2.privateKey)).not.toBe(0)
-      expect(Buffer.compare(keyPair1.publicKey, keyPair2.publicKey)).not.toBe(0)
+
+      expect(Buffer.compare(Buffer.from(keyPair1.privateKey), Buffer.from(keyPair2.privateKey))).not.toBe(0)
+      expect(Buffer.compare(Buffer.from(keyPair1.publicKey), Buffer.from(keyPair2.publicKey))).not.toBe(0)
     })
   })
 
@@ -296,10 +296,10 @@ describe('StellarAttestationClient', () => {
 
     it('should handle BLS key generation properly', () => {
       const keyPair = client.generateBlsKeys()
-      
+
       expect(keyPair).toBeDefined()
-      expect(keyPair.publicKey).toBeInstanceOf(Buffer)
-      expect(keyPair.privateKey).toBeInstanceOf(Buffer)
+      expect(keyPair.publicKey).toBeInstanceOf(Uint8Array)
+      expect(keyPair.privateKey).toBeInstanceOf(Uint8Array)
       expect(keyPair.publicKey.length).toBe(192)
       expect(keyPair.privateKey.length).toBe(32)
     })

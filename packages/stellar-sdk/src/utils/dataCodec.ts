@@ -72,7 +72,6 @@ export function createSimpleSchema(
 ): StellarSchemaDefinition {
   return {
     name,
-    version: '1.0',
     description: `Schema for ${name}`,
     fields: fields.map((field) => ({
       name: field.name,

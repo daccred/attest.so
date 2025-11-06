@@ -287,7 +287,7 @@ export function createTestSchema(
   return {
     ...schemas[schemaType],
     revocable: true,
-    resolver: null,
+    resolver: undefined,
   }
 }
 

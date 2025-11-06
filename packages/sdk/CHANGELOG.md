@@ -1,5 +1,52 @@
 # @attestprotocol/sdk
 
+## 2.0.1
+
+### Patch Changes
+
+- 4b56c67: SDK enhancements
+- Updated dependencies [4b56c67]
+  - @attestprotocol/starknet-sdk@2.0.1
+  - @attestprotocol/stellar-sdk@2.0.1
+  - @attestprotocol/solana-sdk@2.0.1
+  - @attestprotocol/core@2.0.1
+
+## 2.0.0
+
+### Major Changes
+
+- 13e3f7f: prepare mainnet and setup graphs and rpc
+
+### Patch Changes
+
+- Updated dependencies [13e3f7f]
+  - @attestprotocol/starknet-sdk@2.0.0
+  - @attestprotocol/stellar-sdk@2.0.0
+  - @attestprotocol/solana-sdk@2.0.0
+  - @attestprotocol/core@2.0.0
+
+## 1.7.6
+
+### Patch Changes
+
+- b14b837: integration refinements across SDK, horizon and schema deployer dApp
+- Updated dependencies [b14b837]
+  - @attestprotocol/starknet-sdk@1.7.6
+  - @attestprotocol/stellar-sdk@1.7.5
+  - @attestprotocol/solana-sdk@1.7.6
+  - @attestprotocol/core@1.7.6
+
+## 1.7.5
+
+### Patch Changes
+
+- 122527c: sdk references, update wash hash and contract spec with graph URL
+- Updated dependencies [122527c]
+  - @attestprotocol/core@1.7.5
+  - @attestprotocol/solana-sdk@1.7.5
+  - @attestprotocol/starknet-sdk@1.7.5
+  - @attestprotocol/stellar-sdk@1.7.5
+
 ## 1.7.4
 
 ### Patch Changes

@@ -3,8 +3,8 @@ import path from 'path'
 import { Address, nativeToScVal } from '@stellar/stellar-sdk';
 import * as ProtocolContract from '../bindings/src/protocol'
 import { keccak256 } from 'js-sha3';
-import { bls12_381 } from '@noble/curves/bls12-381';
-import { sha256 } from '@noble/hashes/sha2';
+import { bls12_381 } from '@noble/curves/bls12-381.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 
 /**
  * Defines the configuration required for running integration tests.

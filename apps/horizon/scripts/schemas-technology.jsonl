@@ -1,0 +1,8 @@
+{"name":"codeSigningSchema","uid":"644b958f167c98b033bdd832439b6e448d2f6d17ebe299f8347eb979951cbc02","category":"technology"}
+{"name":"sbomSchema","uid":"65f8f8e253de11db598d6cb806c16d6a28c2e050c95a476963dae264c1df45de","category":"technology"}
+{"name":"hardwareAttestationSchema","uid":"f8b111901756c381c8c9712850da8516b5717687d0255909f43c65661e1983c7","category":"technology"}
+{"name":"apiSecuritySchema","uid":"0b3a59abfc51a7a499ec045bb54fdb41d8a34d838cf7267d357cf02828041ce6","category":"technology"}
+{"name":"vulnerabilityAssessmentSchema","uid":"545dba45d13b6b0a18fe00084ebca8a2360182634c862ccf9f7940959d76e0b9","category":"technology"}
+{"name":"oauthServiceSchema","uid":"b28dac5afebd53a9848a443f8be163b0fc73bc7a14705470f68fc32a382a16d8","category":"technology"}
+{"name":"slaSchema","uid":"29c56a1698a6f17782fad85d0f97c624c459aa9d278944854eaef484aa080977","category":"technology"}
+{"name":"contentProvenanceSchema","uid":"402cf7ca3d88ccbf11e1720dce9ee8a5367266f3cf68bce553fe9d2d7ab98a96","category":"technology"}
