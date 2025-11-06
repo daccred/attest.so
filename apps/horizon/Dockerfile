@@ -62,7 +62,8 @@ WORKDIR /app/apps/horizon
 # Generate Prisma client in production environment
 RUN pnpm prisma generate
 
-# Expose port
+
+# Expose port on 8080
 EXPOSE 8080
 
 # Start the application
