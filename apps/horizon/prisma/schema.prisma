@@ -185,24 +185,26 @@ model Attestation {
   message           String   // Raw JSON value or message
   value             Json?    // Optional parsed fields
   revoked           Boolean  @default(false)
-  
+  contractAddress   String   // Contract that emitted this attestation
+
   // Timestamps
   createdAt         DateTime?  // Nullable - should be filled with blockchain timestamp
   revokedAt         DateTime?
-  
+
   // Relations - keeping schemaUid as regular field without foreign key constraint
   // This allows attestations to reference schemas by UID without database-level enforcement
-  
+
   // Indexer metadata
   ingestedAt        DateTime @default(now())
   lastUpdated       DateTime @updatedAt
-  
+
   @@index([ledger])
   @@index([schemaUid])
   @@index([attesterAddress])
   @@index([subjectAddress])
   @@index([revoked])
   @@index([createdAt])
+  @@index([contractAddress])
   @@map("attestations")
 }
 
@@ -217,23 +219,25 @@ model Schema {
   deployerAddress           String
   type                      String   @default("default") // Category label
   transactionHash           String
-  
+  contractAddress           String   // Contract that registered this schema
+
   // Timestamps
   createdAt                 DateTime?  // Nullable - should be filled with blockchain timestamp
-  
+
   // Relations - removed to eliminate foreign key constraints
   // attestations can still reference schemas via schemaUid field
-  
+
   // Indexer metadata
   ingestedAt                DateTime @default(now())
   lastUpdated               DateTime @updatedAt
-  category                  String   @default("default") 
+  category                  String   @default("default")
   featured                  Boolean  @default(false)
-  
+
   @@index([ledger])
   @@index([deployerAddress])
   @@index([type])
   @@index([createdAt])
+  @@index([contractAddress])
   @@map("schemas")
 }
 
