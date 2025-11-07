@@ -512,6 +512,7 @@ async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]): Pr
               deployerAddress: schemaObj.authority || txDetails.sourceAccount || '',
               type: 'default',
               transactionHash: ev.txHash || txDetails.hash || txDetails.txHash || '',
+              contractAddress: ev.contractId || '',
             })
           }
         }
@@ -544,6 +545,7 @@ async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]): Pr
               message,
               value,
               revoked: false,
+              contractAddress: ev.contractId || '',
             })
           }
         }
@@ -577,6 +579,7 @@ async function storeEventsAndTransactionsInDB(eventsWithTransactions: any[]): Pr
               value: undefined,
               revoked: true,
               revokedAt: revokedAt ?? undefined,
+              contractAddress: ev.contractId || '',
             })
           }
         }
