@@ -20,7 +20,7 @@ import { getDB } from '../../src/common/db';
 
 // MAINNET CONTRACT IDs
 const MAINNET_PROTOCOL_CONTRACT_ID = 'CBUUI7WKGOTPCLXBPCHTKB5GNATWM4WAH4KMADY6GFCXOCNVF5OCW2WI';
-const MAINNET_RPC_URL = 'https://soroban-rpc.mainnet.stellar.gateway.fm';
+const MAINNET_RPC_URL = 'https://rpc.lightsail.network';
 const SCRIPTS_MAINNET_DIR = __dirname;
 
 interface SchemaEntry {
