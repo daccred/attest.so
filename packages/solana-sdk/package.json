@@ -1,11 +1,11 @@
 {
   "name": "@attestprotocol/solana-sdk",
   "description": "Solana implementation of the Attest Protocol SDK",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "author": "daccred",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
-    "@attestprotocol/core": "2.0.1",
+    "@attestprotocol/core": "2.0.2",
     "@coral-xyz/anchor": "0.31.1",
     "@solana/spl-token": "^0.4.6",
     "@solana/web3.js": "^1.95.5"

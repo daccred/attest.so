@@ -1,5 +1,13 @@
 # @attestprotocol/cli
 
+## 2.0.2
+
+### Patch Changes
+
+- b90b9e9: mainnet release version
+- Updated dependencies [b90b9e9]
+  - @attestprotocol/sdk@2.0.2
+
 ## 2.0.1
 
 ### Patch Changes

@@ -1,11 +1,11 @@
 {
   "name": "@attestprotocol/starknet-sdk",
   "description": "Starknet implementation of the Attest Protocol SDK",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "author": "daccred",
   "bugs": "https://github.com/daccred/attest.so/issues",
   "dependencies": {
-    "@attestprotocol/core": "2.0.1",
+    "@attestprotocol/core": "2.0.2",
     "starknet": "^6.6.6"
   },
   "devDependencies": {
