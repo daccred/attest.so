@@ -9,7 +9,7 @@ import * as ProtocolContract from '@attestprotocol/stellar-contracts/protocol';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
-const ATTEST_PROTOCOL_CONTRACT_ID = 'CDBWGWEZ3P4DZ3YUZSCEUKOVV2UGF2PYQEPW3E5OKNLYS5SNW4SQLDUA'
+const ATTEST_PROTOCOL_CONTRACT_ID = ProtocolContract.networks.testnet.contractId
 
 // ============================================================================
 // SCHEMA DEFINITIONS
@@ -884,7 +884,7 @@ async function registerSchema(
       resolver: undefined, // No resolver for these schemas
       revocable: true
     }, {
-      fee: 100000, // Reduced from 1,000,000 to 100,000 stroops (0.01 XLM)
+      fee: 1_000_000, // Reduced from 1,000,000 stroops (0.1 XLM)
       timeoutInSeconds: 60
     })
 

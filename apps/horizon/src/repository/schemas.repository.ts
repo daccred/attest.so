@@ -45,6 +45,7 @@ export interface SchemaData {
   type?: string
   transactionHash: string
   createdAt?: Date  // Add optional createdAt to preserve blockchain timestamp
+  contractAddress: string  // Contract that registered this schema
 }
 
 /**
@@ -79,6 +80,7 @@ export async function singleUpsertSchema(schemaData: SchemaData) {
         type: schemaData.type || 'default',
         transactionHash: schemaData.transactionHash,
         createdAt: schemaData.createdAt,  // Use blockchain timestamp only - no fallback
+        contractAddress: schemaData.contractAddress,
       },
       // Removed attestations include due to removed foreign key constraint
     })
@@ -282,6 +284,7 @@ export async function bulkUpsertSchemas(schemas: SchemaData[]) {
               type: schemaData.type || 'default',
               transactionHash: schemaData.transactionHash,
               createdAt: schemaData.createdAt,  // Use blockchain timestamp only - no fallback
+              contractAddress: schemaData.contractAddress,
             },
           })
           processedCount++

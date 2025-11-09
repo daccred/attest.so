@@ -16,7 +16,7 @@ import { Keypair, Transaction } from '@stellar/stellar-sdk';
 import * as ProtocolContract from '@attestprotocol/stellar-contracts/protocol';
 import { getDB } from '../src/common/db';
 
-const ATTEST_PROTOCOL_CONTRACT_ID = 'CDBWGWEZ3P4DZ3YUZSCEUKOVV2UGF2PYQEPW3E5OKNLYS5SNW4SQLDUA';
+const ATTEST_PROTOCOL_CONTRACT_ID = ProtocolContract.networks.testnet.contractId;
 const RPC_URL = 'https://soroban-testnet.stellar.org';
 const SCRIPTS_DIR = __dirname;
 

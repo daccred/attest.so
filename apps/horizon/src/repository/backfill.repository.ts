@@ -643,6 +643,7 @@ async function upsertEventIndividually(db: any, eventData: EventData, operationI
           deployerAddress: schemaObj.authority || txDetails?.sourceAccount || '',
           type: 'default',
           transactionHash: eventData.transactionHash,
+          contractAddress: eventData.contractId,
           createdAt: new Date(eventData.timestamp),  // Use blockchain timestamp
         })
       } else {
@@ -695,6 +696,7 @@ async function upsertEventIndividually(db: any, eventData: EventData, operationI
           message,
           value,
           revoked: false,
+          contractAddress: eventData.contractId,
           createdAt: new Date(eventData.timestamp),  // Use blockchain timestamp
         })
       } else {
@@ -750,6 +752,7 @@ async function upsertEventIndividually(db: any, eventData: EventData, operationI
           value: undefined,
           revoked: revokedFlag === true,
           revokedAt,
+          contractAddress: eventData.contractId,
           createdAt: new Date(eventData.timestamp),  // Use blockchain timestamp
         })
       } else {

@@ -1,0 +1,12 @@
+{"name":"modelTrainingProvenanceSchema","uid":"8a7f30a374bdf9390380b773f083b1ffba7d26b89b26b9f87b96aed22888de91","category":"gpt"}
+{"name":"aiSafetyCertificationSchema","uid":"2466bf090e08a12ae54cafb1bf1d8964b3a71a5f1733436a5d9f19050baa260c","category":"gpt"}
+{"name":"biasAuditSchema","uid":"72c04535c575c5fa4037a98d1450464462d44118dfb0b061af6b756db52c1160","category":"gpt"}
+{"name":"aiGeneratedContentSchema","uid":"3e8adf988b37edad9dcda1cc4cd62f12a781a73102e6bb1beb27a8d8f6305499","category":"gpt"}
+{"name":"agentCapabilitySchema","uid":"40d814c1fd85fe358ad118046c249a6fd98fd54dd10bd30f2bd35c5edf2a1680","category":"gpt"}
+{"name":"modelInterpretabilitySchema","uid":"ecf0bf77699b8d6d818b4e2752196a7801b459c7bb8b1f52b8a0c8446a007423","category":"gpt"}
+{"name":"trainingConsentSchema","uid":"13144dc3c7ab89ebb57de7a8cdc7edea0d557809ca251597c8c03b7ff87e9e99","category":"gpt"}
+{"name":"trainingDataQualitySchema","uid":"9c09d4a5c586413ed7aca234d93b9d93e395c7a0da6dbf057a9fd090dfafe8d2","category":"gpt"}
+{"name":"tradingAgentPermissionSchema","uid":"276eb12856f0a42e68d92bc57d16753692ad8b3dbb34d06f97f5b2a0034826cf","category":"gpt"}
+{"name":"shoppingAgentPermissionSchema","uid":"bc9ec701f511c1d93241da87338f83ce015068892e97611a53ee8823e82b7fa6","category":"gpt"}
+{"name":"travelMeetingAgentSchema","uid":"b34e48979cd6833c773d95813f8a9533e9063ede30d8bc99af013f205de34307","category":"gpt"}
+{"name":"deepfakeDetectionSchema","uid":"079bd9d3f6525f7e2f7ad9ae87910b448804c6395629e502ef33b6d547648998","category":"gpt"}

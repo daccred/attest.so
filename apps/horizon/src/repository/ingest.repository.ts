@@ -650,6 +650,7 @@ async function upsertEventIndividually(db: any, eventData: EventData, operationI
           type: 'default',
           transactionHash: eventData.transactionHash,
           createdAt: new Date(eventData.timestamp),  // Use blockchain timestamp
+          contractAddress: eventData.contractId,
         })
       } else {
         console.log('⚠️ [Projection] SCHEMA missing expected fields', { schemaUidType: typeof val[0], objType: typeof val[1] })
@@ -702,6 +703,7 @@ async function upsertEventIndividually(db: any, eventData: EventData, operationI
           value,
           revoked: false,
           createdAt: new Date(eventData.timestamp),  // Use blockchain timestamp
+          contractAddress: eventData.contractId,
         })
       } else {
         console.log('⚠️ [Projection] ATTEST create missing ids', { attestationUid: !!attestationUid, schemaUid: !!schemaUid, attester: !!attesterAddress })
@@ -757,6 +759,7 @@ async function upsertEventIndividually(db: any, eventData: EventData, operationI
           revoked: revokedFlag === true,
           revokedAt,
           createdAt: new Date(eventData.timestamp),  // Use blockchain timestamp
+          contractAddress: eventData.contractId,
         })
       } else {
         console.log('⚠️ [Projection] ATTEST revoke missing required fields', { 
