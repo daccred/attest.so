@@ -10,6 +10,83 @@
 [![Solana Radar Award](https://img.shields.io/badge/Solana%20Radar-Public%20Goods%20Award-yellow)](https://x.com/solana/status/1856362113561964676)
 [![GitHub Issues](https://img.shields.io/github/issues/daccred/attest.so)](https://github.com/daccred/attest.so/issues)
 
+---
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🌐 Website & Docs
+- **[🏠 Website](https://attestprotocol.org)**
+  Official attestprotocol.org home
+- **[📚 Developer Docs](https://docs.attestprotocol.org)**
+  Complete integration guides & API reference
+
+### 🛠️ Live Environments
+
+<table>
+<thead>
+<tr>
+<th>Network</th>
+<th>Stellar</th>
+<th>Solana</th>
+<th>Starknet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><b>Sandbox</b></td>
+<td colspan="3" align="center"><a href="https://sandbox.attest.so">🧪 Try it now</a></td>
+</tr>
+<tr>
+<td><b>Testnet</b></td>
+<td align="center"><a href="https://testnet.attestprotocol.org">🔗 Launch</a></td>
+<td align="center">🚧 Soon</td>
+<td align="center">🚧 Soon</td>
+</tr>
+<tr>
+<td><b>Mainnet</b></td>
+<td align="center"><a href="https://stellar.attestprotocol.org">🚀 Launch</a></td>
+<td align="center">🚧 Soon</td>
+<td align="center">🚧 Soon</td>
+</tr>
+</tbody>
+</table>
+
+</td>
+<td width="50%" valign="top">
+
+### 📜 Smart Contracts
+
+**Stellar (Mainnet)** · [View on Stellar.Expert](https://stellar.expert/explorer/public)
+- [Protocol Contract](https://stellar.expert/explorer/public/contract/CBUUI7WKGOTPCLXBPCHTKB5GNATWM4WAH4KMADY6GFCXOCNVF5OCW2WI) · `CBUUI...`
+- [Authority Contract](https://stellar.expert/explorer/public/contract/CBKOB6XEEXYH5SEFQ4YSUEFJGYNBVISQBHQHVGCKB736A3JVGK7F77JG) · `CBKOB...`
+
+**Stellar (Testnet)** · [View on Stellar.Expert](https://stellar.expert/explorer/testnet)
+- [Protocol Contract](https://stellar.expert/explorer/testnet/contract/CBFE5YSUHCRYEYEOLNN2RJAWMQ2PW525KTJ6TPWPNS5XLIREZQ3NA4KP) · `CBFE5...`
+- [Authority Contract](https://stellar.expert/explorer/testnet/contract/CCMJGCRSQRZ56BDSLCAYV4BNS3SLIDPIP4CQYNT5X2VOPZIQ2ZM7GBVV) · `CCMJG...`
+
+### 📦 NPM Packages
+
+```bash
+npm install @attestprotocol/stellar-sdk
+npm install @attestprotocol/solana-sdk
+npm install @attestprotocol/starknet-sdk
+npm install @attestprotocol/cli
+```
+
+**Browse on npm:**
+[stellar-sdk](https://www.npmjs.com/package/@attestprotocol/stellar-sdk) ·
+[solana-sdk](https://www.npmjs.com/package/@attestprotocol/solana-sdk) ·
+[starknet-sdk](https://www.npmjs.com/package/@attestprotocol/starknet-sdk) ·
+[cli](https://www.npmjs.com/package/@attestprotocol/cli)
+
+</td>
+</tr>
+</table>
+
+---
+
 </div>
 
 ## 🌐 Overview
