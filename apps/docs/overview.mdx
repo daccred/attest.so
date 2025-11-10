@@ -114,22 +114,22 @@ Cryptographic delegation enables secure off-chain signing with on-chain verifica
 AttestProtocol's Stellar implementation consists of interconnected smart contracts and infrastructure:
 
 <CardGroup cols={2}>
-  <Card title="Protocol Contract" icon="cube" href="/chains/stellar/protocol-contract">
+  <Card title="Protocol Contract" icon="cube" href="/chains/stellar/overview">
     **Immutable Attestation Engine**
 
     Core Soroban contract managing schema registration, attestation lifecycle, BLS signature verification, and nonce-based replay protection.
   </Card>
-  <Card title="Authority Contract" icon="building" href="/chains/stellar/authority-contract">
+  <Card title="Authority Contract" icon="building" href="/chains/stellar/overview">
     **Payment-Gated Resolver**
 
     Reference implementation demonstrating payment validation (100 XLM), authority registry, and resolver integration with the protocol.
   </Card>
-  <Card title="Resolver Pattern" icon="plug" href="/concepts/resolvers">
+  <Card title="Resolver Pattern" icon="plug" href="/concepts/verification">
     **Business Logic Abstraction**
 
     Standardized interface for custom validation logic, side effects, and economic models without modifying core protocol contracts.
   </Card>
-  <Card title="Horizon Indexer" icon="server" href="/architecture/horizon-indexer">
+  <Card title="Horizon Indexer" icon="server" href="/reference/overview">
     **Comprehensive Data Layer**
 
     Express.js indexer tracking ALL contract interactions - events, operations, transactions, and account states for complete visibility.
@@ -214,32 +214,32 @@ AttestProtocol is currently deployed on Stellar with production contracts:
 
 <CardGroup cols={2}>
   <Card
-    title="Stellar SDK"
+    title="TypeScript SDK"
     icon="code"
-    href="/sdks/stellar/installation"
+    href="/sdks/typescript/installation"
   >
     TypeScript SDK with BLS signatures, delegation, and comprehensive contract interaction
   </Card>
   <Card
-    title="Contract Architecture"
+    title="Stellar Overview"
     icon="cube"
-    href="/architecture/overview"
+    href="/chains/stellar/overview"
   >
-    Deep dive into Protocol and Authority contracts with security model
+    Learn about Stellar implementation with Soroban smart contracts
   </Card>
   <Card
-    title="Horizon Indexer"
+    title="API Reference"
     icon="server"
-    href="/architecture/horizon-indexer"
+    href="/reference/overview"
   >
-    RESTful API for contract operations, events, and comprehensive analytics
+    Complete API documentation for contract interactions and methods
   </Card>
   <Card
-    title="Resolver Development"
+    title="Custom Schemas"
     icon="plug"
-    href="/guides/resolver-development"
+    href="/guides/custom-schemas"
   >
-    Build custom business logic with the resolver pattern
+    Build custom attestation schemas for your use cases
   </Card>
 </CardGroup>
 
@@ -272,5 +272,5 @@ AttestProtocol is currently deployed on Stellar with production contracts:
 ---
 
 <Info>
-**New to the architecture?** Check out the [System Architecture](/architecture/overview) to understand how Protocol contracts, Authority resolvers, and BLS delegation work together. For contract security analysis, see the [STRIDE Threat Model](/architecture/threat-analysis).
+**New to attestations?** Check out [What is AttestProtocol?](/guides/what-is-attestprotocol) to understand how Protocol contracts, Authority resolvers, and cryptographic delegation work together. Learn about [Core Concepts](/concepts/attestations) to get started building.
 </Info>

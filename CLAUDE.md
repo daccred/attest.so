@@ -27,8 +27,7 @@ attest.so is a unified trust framework for blockchain-based attestation infrastr
 ```
 apps/
   horizon/         # Stellar blockchain indexer (Express.js + MongoDB)
-  horizon-indexer/ # Additional indexer component
-  www/            # Documentation site (Next.js + Fumadocs)
+  docs/            # Documentation site (Mintlify)
 contracts/
   solana/         # Anchor-based Solana contracts
   stellar/        # Soroban contracts (authority & protocol)
@@ -70,13 +69,10 @@ pnpm format
 ```bash
 # Run commands on specific workspace
 pnpm --filter @attestprotocol/sdk build
-pnpm --filter @attestprotocol/www dev
+pnpm --filter @attestprotocol/docs dev
 
-# Start documentation site (Fumadocs on port 3001)
+# Start documentation site (Mintlify on port 3001)
 pnpm run dev:docs
-
-# Start Mintlify documentation (port 3001)
-pnpm dev:docs
 ```
 
 ### Contract Development
@@ -185,10 +181,9 @@ pnpm release
 - Resolver interfaces for attestation discovery
 
 ### Documentation Site
-- Built with Next.js 14 and Fumadocs
-- API documentation using Scalar
+- Built with Mintlify
 - Served on port 3001 in development
-- Custom fonts: SNPro, Mona Sans, PP Supply Mono
+- Located in `apps/docs/`
 
 ## Security Notes
 - Never commit secrets or API keys
