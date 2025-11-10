@@ -330,11 +330,44 @@ This configuration ensures that Rust Analyzer can correctly interpret the depend
 
 ---
 
-## �� Resources & Links
+## 🔗 Resources & Links
 
 - [Product Development Log](https://daccred.notion.site/We-re-building-https-on-the-blockchain-df20b05cb5a04e379a165714aab024fb?pvs=4)
 - [Technical Documentation](https://attest.so) (Coming Soon)
 - [API Reference](https://attest.so) (Coming Soon)
+
+---
+
+## 🏆 Awards & Recognition
+
+<div align="center">
+
+<table>
+<tr>
+<td align="center" width="50%">
+<img src="https://cryptologos.cc/logos/solana-sol-logo.png" width="80" alt="Solana Logo"/>
+<h3>🎖️ Solana Radar Hackathon</h3>
+<p><b>Public Goods Award Winner</b></p>
+<p>Recognized for building critical public infrastructure for the Solana ecosystem</p>
+<a href="https://x.com/solana/status/1856362113561964676">
+  <img src="https://img.shields.io/badge/View%20Announcement-black?style=for-the-badge&logo=x" alt="View on X"/>
+</a>
+</td>
+<td align="center" width="50%">
+<img src="https://cryptologos.cc/logos/stellar-xlm-logo.png" width="80" alt="Stellar Logo"/>
+<h3>⭐ Stellar Community Fund</h3>
+<p><b>SCF Award Recipient</b></p>
+<p>Selected for advancing attestation infrastructure on the Stellar network</p>
+<a href="https://communityfund.stellar.org/submissions/recIHN98Ja7MMb4DX">
+  <img src="https://img.shields.io/badge/View%20Submission-090020?style=for-the-badge&logo=stellar" alt="View on SCF"/>
+</a>
+</td>
+</tr>
+</table>
+
+</div>
+
+---
 
 ## 📝 License
 
