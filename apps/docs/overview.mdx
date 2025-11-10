@@ -16,22 +16,22 @@ description: 'Decentralized attestation infrastructure on Stellar. Build verifia
 
 ## Attestation Infrastructure on Stellar
 
-Modular attestation infrastructure on Stellar Soroban with cryptographic delegation, payment-gated verification, and flexible resolvers.
+Modular attestation protocol on Stellar Soroban with BLS delegation and payment-gated verification.
 
-## Features
+## Key Features
 
 <CardGroup cols={2}>
-  <Card title="Modular Architecture" icon="boxes-stacked">
-    Resolver pattern separates core logic from business rules
-  </Card>
   <Card title="BLS Delegation" icon="key">
     Off-chain signing with on-chain verification
   </Card>
   <Card title="Economic Security" icon="shield-check">
-    100 XLM fee prevents Sybil attacks
+    100 XLM authority registration prevents Sybil attacks
+  </Card>
+  <Card title="Flexible Resolvers" icon="plug">
+    Custom validation without protocol changes
   </Card>
   <Card title="Full Indexing" icon="database">
-    Track all contract interactions, not just events
+    Track all contract interactions
   </Card>
 </CardGroup>
 
@@ -65,30 +65,13 @@ await client.attest({
     Core attestation engine with BLS verification
   </Card>
   <Card title="Authority Contract" icon="building" href="/chains/stellar/overview">
-    Payment-gated resolver (100 XLM fee)
+    Payment-gated resolver (100 XLM registration)
   </Card>
-  <Card title="Resolvers" icon="plug" href="/concepts/verification">
-    Custom validation without protocol changes
+  <Card title="Indexer (Horizon)" icon="server" href="/reference/overview">
+    Complete contract interaction tracking
   </Card>
-  <Card title="Indexer" icon="server" href="/reference/overview">
-    Track all contract interactions
-  </Card>
-</CardGroup>
-
-## Use Cases
-
-<CardGroup cols={2}>
-  <Card title="Enterprise KYB" icon="building-shield">
-    Payment-gated authority verification with due diligence
-  </Card>
-  <Card title="Credentials" icon="certificate">
-    Schema-based verifiable credentials with revocation
-  </Card>
-  <Card title="Custom Logic" icon="code-branch">
-    Resolvers for rewards, fees, access control
-  </Card>
-  <Card title="Analytics" icon="database">
-    Complete contract visibility via indexer
+  <Card title="TypeScript SDK" icon="code" href="/sdks/typescript/installation">
+    Stellar-focused SDK with BLS support
   </Card>
 </CardGroup>
 
@@ -110,23 +93,17 @@ await client.attest({
 
 ## Resources
 
-<CardGroup cols={3}>
-  <Card title="TypeScript SDK" icon="code" href="/sdks/typescript/installation">
-    SDK with BLS delegation
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Build your first attestation
   </Card>
-  <Card title="Stellar Chain" icon="cube" href="/chains/stellar/overview">
-    Soroban implementation
-  </Card>
-  <Card title="API Docs" icon="server" href="/reference/overview">
-    Complete API reference
-  </Card>
-  <Card title="Discord" icon="discord" href="https://discord.com/invite/7kVur5ja5m">
-    Community support
+  <Card title="API Reference" icon="server" href="/reference/overview">
+    Complete API documentation
   </Card>
   <Card title="GitHub" icon="github" href="https://github.com/daccred/attest.so">
-    Source & contribute
+    Source code & contribute
   </Card>
-  <Card title="Twitter" icon="twitter" href="https://twitter.com/attestprotocol">
-    Updates & news
+  <Card title="Discord" icon="discord" href="https://discord.com/invite/7kVur5ja5m">
+    Community & support
   </Card>
 </CardGroup>
